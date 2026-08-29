@@ -24,7 +24,7 @@ pip3 install -e .
 > ```bash
 > export PATH="$HOME/Library/Python/3.9/bin:$PATH"
 > ```
-> Then reload: `source ~/.zshrc`. Alternatively, use `python3 -m crucible run ...` without modifying PATH.
+> Then reload: `source ~/.zshrc`. Alternatively, use `python3 -m crucible.cli run ...` without modifying PATH.
 
 4. **Ensure opencode is installed and configured** with your model provider (e.g., OpenRouter).
 
@@ -51,7 +51,7 @@ crucible run C2b --model openrouter/moonshotai/kimi-k2.6 --watch
 ```
 This opens the interactive opencode TUI in the workspace directory so you can observe the model working in real time. Press `q` or `Ctrl+C` to exit when done. In watch mode, output streams live to the terminal and is not captured to `stdout.txt`.
 
-*Prefer `python3 run.py ...`? Both work. Use `python3 -m crucible.cli` if `crucible` is not on PATH.*
+*Alternative: Use `python3 -m crucible.cli ...` if `crucible` is not on PATH.*
 
 ### Suite Categories
 - `coding`: C1, C1b, C2, C2b, C3, C4, C4b, C5, C6
@@ -94,18 +94,19 @@ crucible report --all --output results.md
 - `fixtures/` — Test data (calendar JSON, writing samples, etc.)
 - `repos/` — Seeded buggy repositories for coding tests
 - `runs/` — Output directory for test results
-- `run.py` — Main runner script
-- `score.py` — Interactive scoring
-- `report.py` — Comparison report generator
+- `crucible/cli.py` — CLI entry point
+- `crucible/runner.py` — Main runner module
+- `crucible/scorer.py` — Interactive scoring module
+- `crucible/reporter.py` — Comparison report generator
 
 ## How It Works
 
-1. `run.py` reads the prompt YAML and creates a workspace in `runs/<MODEL>/<CATEGORY>/<TEST_ID>/<TIMESTAMP>/workspace/`
+1. The runner creates a workspace in `runs/<MODEL>/<CATEGORY>/<TEST_ID>/<TIMESTAMP>/workspace/` by invoking `crucible run`
 2. For coding tests, it copies the seeded repo into the workspace (repos are never mutated)
 3. For reasoning tests, it copies fixtures (e.g., `calendar-fixture.json`)
 4. In headless mode, it invokes `opencode run` with the prompt attached as a file. In watch mode, it opens the opencode TUI in the workspace with the prompt pre-loaded.
 5. Results are saved: `stdout.txt`, `stderr.txt`, `session.json` (if available), `meta.json`
-6. You score manually with `score.py` (automated graders planned for select tests)
+6. You score manually with `crucible score` (automated graders planned for select tests)
 
 ## Model Aliases
 
@@ -120,5 +121,5 @@ Any model your opencode installation supports works. Common examples:
 
 Default timeout is 600 seconds (10 minutes) per test. Override with `--timeout`:
 ```bash
-python3 run.py C1 --model openrouter/moonshotai/kimi-k2.6 --timeout 300
+crucible run C1 --model openrouter/moonshotai/kimi-k2.6 --timeout 300
 ```
