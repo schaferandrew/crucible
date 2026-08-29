@@ -20,6 +20,12 @@ pip3 install pyyaml
 pip3 install -e .
 ```
 
+> **macOS note:** `pip3 install -e .` installs the `crucible` script to `~/Library/Python/3.9/bin/`, which is not on PATH by default. Add this to your `~/.zshrc` (or `~/.bash_profile`):
+> ```bash
+> export PATH="$HOME/Library/Python/3.9/bin:$PATH"
+> ```
+> Then reload: `source ~/.zshrc`. Alternatively, use `python3 -m crucible run ...` without modifying PATH.
+
 4. **Ensure opencode is installed and configured** with your model provider (e.g., OpenRouter).
 
 ## Running Tests
