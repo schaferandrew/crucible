@@ -15,7 +15,12 @@ cd crucible
 pip3 install pyyaml
 ```
 
-3. **Ensure opencode is installed and configured** with your model provider (e.g., OpenRouter).
+3. **Install crucible CLI** (optional, for `crucible run|score|report`):
+```bash
+pip3 install -e .
+```
+
+4. **Ensure opencode is installed and configured** with your model provider (e.g., OpenRouter).
 
 ## Running Tests
 
