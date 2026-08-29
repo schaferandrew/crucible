@@ -1,4 +1,5 @@
 test_id: H2
+needs_tools: false
 category: home_maintenance
 auto_grade: false
 repo: null

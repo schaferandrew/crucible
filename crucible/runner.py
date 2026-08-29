@@ -27,6 +27,8 @@ from typing import Any
 
 import yaml
 
+from crucible import direct_runner
+
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PROMPTS_DIR = REPO_ROOT / "prompts"
@@ -123,6 +125,62 @@ def run_single(test_id: str, model: str | None, watch: bool, timeout: int, outpu
     prompt_file_abs = str(prompt_file.resolve())
     workspace_abs = str(workspace.resolve())
 
+    needs_tools = prompt_def.get("needs_tools", True)
+    direct_mode = not needs_tools and model and (model.startswith("ollama/") or model.startswith("openrouter/"))
+
+    if direct_mode:
+        print(f"\n{'='*60}")
+        print(f"Test: {test_id}")
+        print(f"Model: {model or 'default'}")
+        print(f"Run ID: {run_id}")
+        print(f"Mode: DIRECT (no opencode overhead)")
+        print(f"{'='*60}\n")
+
+        started_at = datetime.now(timezone.utc).isoformat()
+        start_time = time.time()
+
+        stdout_text = ""
+        stderr_text = ""
+        try:
+            stdout_text = direct_runner.run_direct(
+                prompt_text,
+                model,
+                prompt_def.get("fixtures", []),
+                FIXTURES_DIR,
+                timeout,
+            )
+        except Exception as e:
+            stderr_text = f"Direct runner error: {e}"
+            print(f"[ERROR] {stderr_text}")
+
+        ended_at = datetime.now(timezone.utc).isoformat()
+        elapsed = time.time() - start_time
+
+        stdout_path = run_dir / "stdout.txt"
+        stderr_path = run_dir / "stderr.txt"
+        stdout_path.write_text(stdout_text)
+        stderr_path.write_text(stderr_text)
+
+        # Save metadata
+        meta = {
+            "run_id": run_id,
+            "test_id": test_id,
+            "model": model,
+            "watch": watch,
+            "started_at": started_at,
+            "ended_at": ended_at,
+            "elapsed_time": round(elapsed, 2),
+        }
+        (run_dir / "meta.json").write_text(json.dumps(meta, indent=2))
+
+        print(f"\n[COMPLETE] {run_id}")
+        print(f"  Elapsed: {elapsed:.1f}s")
+        print(f"  Output: {run_dir}")
+        print(f"  To score: crucible score {now}")
+
+        return run_id
+
+    # Build opencode command
     if watch:
         # Full TUI mode: opencode <workspace_dir> --prompt "..." --auto -m model
         cmd = [

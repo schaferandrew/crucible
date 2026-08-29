@@ -1,4 +1,5 @@
 test_id: G2
+needs_tools: false
 category: structured_data
 auto_grade: true
 repo: null

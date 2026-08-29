@@ -1,4 +1,5 @@
 test_id: W2b
+needs_tools: false
 category: writing
 auto_grade: false
 repo: null

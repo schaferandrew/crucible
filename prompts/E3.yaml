@@ -1,4 +1,5 @@
 test_id: E3
+needs_tools: false
 category: everyday
 auto_grade: false
 repo: null
