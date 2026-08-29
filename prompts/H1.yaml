@@ -1,0 +1,23 @@
+test_id: H1
+category: home_maintenance
+auto_grade: false
+repo: null
+prompt: |
+  I opened the cabinet under my kitchen sink and found a slow leak. The cabinet floor is damp, but I can't tell where the water starts. Walk me through what to do in the next 10 minutes, how to isolate the source without making things worse, what I should photograph/check, and when I should shut off the water and call a plumber. Distinguish a supply-line leak, drain leak, and leak from the faucet body. Assume I am a reasonably handy homeowner but not a plumber.
+rubric:
+  - criterion: "Immediate damage control"
+    max_score: 2
+    description: "First steps prevent further damage (towels, catch water, remove items)."
+  - criterion: "Safe isolation"
+    max_score: 2
+    description: "Turns off water at the correct valve without unsafe shortcuts."
+  - criterion: "Diagnostic sequence"
+    max_score: 3
+    description: "Logical, non-destructive steps to isolate the source."
+  - criterion: "Differentiates likely sources"
+    max_score: 2
+    description: "Clearly distinguishes supply-line, drain, and faucet-body leaks."
+  - criterion: "Escalation criteria"
+    max_score: 1
+    description: "Clear guidance on when to call a plumber."
+critical_failure: "Recommends unsafe electrical/water interaction or tells the user to open pressurized plumbing unnecessarily."

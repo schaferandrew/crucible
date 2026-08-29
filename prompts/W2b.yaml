@@ -1,0 +1,20 @@
+test_id: W2b
+category: writing
+auto_grade: false
+repo: null
+prompt: |
+  Generate 20 names for a 34-year-old woman who grew up in a working-class family in the upper Midwest, is highly intelligent, dryly funny, ambitious, and emotionally guarded. Her family background is Polish-American. The novel is contemporary literary fiction. Avoid names that feel stereotypical or caricatured for the character's heritage. Briefly explain why the strongest five fit.
+rubric:
+  - criterion: "Naming quality"
+    max_score: 4
+    description: "Names feel real, specific, and contemporary rather than generic."
+  - criterion: "Diversity/fit"
+    max_score: 2
+    description: "Varied in sound, age, gender, and background."
+  - criterion: "Constraint adherence"
+    max_score: 2
+    description: "Part 2 names fit the character profile and heritage without stereotyping."
+  - criterion: "Avoids stereotypes/cliches"
+    max_score: 2
+    description: "No fantasy-generator names; avoids caricature."
+critical_failure: null

@@ -1,0 +1,20 @@
+test_id: E3
+category: everyday
+auto_grade: false
+repo: null
+prompt: |
+  Explain how a typical photovoltaic solar panel turns sunlight into usable electricity. Start at the photon level, then move through the semiconductor, DC electricity, inverter, and household/grid use. Explain why panel output changes with sunlight and temperature. Assume I have basic science knowledge. Use one intuitive analogy, but clearly label what the analogy gets wrong.
+rubric:
+  - criterion: "Technical accuracy"
+    max_score: 4
+    description: "Correct physics at each stage: photon absorption, electron-hole pairs, p-n junction, current flow, inverter function, grid tie."
+  - criterion: "Causal chain"
+    max_score: 3
+    description: "Logical progression from photon to usable AC power."
+  - criterion: "Intuitive explanation"
+    max_score: 2
+    description: "Accessible to someone with basic science knowledge."
+  - criterion: "Avoids misleading analogy"
+    max_score: 1
+    description: "Analogy is labeled and its inaccuracies are acknowledged."
+critical_failure: null

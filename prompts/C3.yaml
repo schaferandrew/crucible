@@ -1,0 +1,23 @@
+test_id: C3
+category: coding_repo
+auto_grade: false
+repo: nextjs-data-access
+prompt: |
+  The app is supposed to show the account name and plan for acct_1, but it doesn't work correctly. Diagnose the issue and fix it using an idiomatic modern Next.js approach. Preserve the intent of the existing component structure where practical. Add or update tests so the bug is covered.
+rubric:
+  - criterion: "Finds actual root cause"
+    max_score: 3
+    description: "Identifies the real boundary/misuse, not a symptom."
+  - criterion: "Correct Server/Client Component boundary"
+    max_score: 3
+    description: "Fix respects Next.js App Router server/client boundaries."
+  - criterion: "Functional result"
+    max_score: 2
+    description: "acct_1 name and plan render correctly."
+  - criterion: "Regression test"
+    max_score: 1
+    description: "A test covers the original bug."
+  - criterion: "Scope/quality"
+    max_score: 1
+    description: "Minimal, clean diff with good code quality."
+critical_failure: "Making server-only data broadly client-accessible merely to bypass the error caps the score at 5."

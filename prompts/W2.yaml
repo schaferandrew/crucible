@@ -1,0 +1,20 @@
+test_id: W2
+category: writing
+auto_grade: false
+repo: null
+prompt: |
+  Give me 20 character names for a contemporary novel. Do not use famous fictional characters, celebrities, or obvious fantasy-generator names. Make the list varied in sound, age, gender, and social background. Add one short sentence describing the feel of each name.
+rubric:
+  - criterion: "Naming quality"
+    max_score: 4
+    description: "Names feel real, specific, and contemporary rather than generic."
+  - criterion: "Diversity/fit"
+    max_score: 2
+    description: "Varied in sound, age, gender, and background."
+  - criterion: "Constraint adherence"
+    max_score: 2
+    description: "Part 2 names fit the character profile and heritage without stereotyping."
+  - criterion: "Avoids stereotypes/cliches"
+    max_score: 2
+    description: "No fantasy-generator names; avoids caricature."
+critical_failure: null

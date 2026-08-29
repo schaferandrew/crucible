@@ -1,0 +1,23 @@
+test_id: C6
+category: coding_build
+auto_grade: false
+repo: null
+prompt: |
+  Teach me Next.js as a practical course for an experienced frontend engineer who already knows React and TypeScript. Design a course that builds from fundamentals into real application architecture. Include a sequence of lessons, exercises, small projects, checkpoints, and common mistakes. Start with Lesson 1 only. Teach interactively: explain the concept, show a small example, give me a short exercise, and wait for my answer before continuing. Adapt later lessons based on my answers.
+rubric:
+  - criterion: "Curriculum coherence"
+    max_score: 2
+    description: "Logical progression from fundamentals to architecture."
+  - criterion: "Technical accuracy"
+    max_score: 3
+    description: "Next.js concepts, App Router, SSR, RSC are explained correctly."
+  - criterion: "Appropriate level"
+    max_score: 2
+    description: "Respects existing React/TS knowledge; not too basic."
+  - criterion: "Exercises/checkpoints"
+    max_score: 2
+    description: "Includes short exercises and verification points."
+  - criterion: "Interactive teaching behavior"
+    max_score: 1
+    description: "Stops after each lesson/exercise and waits for user response."
+critical_failure: null

@@ -1,0 +1,23 @@
+test_id: E1
+category: everyday
+auto_grade: false
+repo: null
+prompt: |
+  Give me today's news briefing for Chicago, IL. Cover local, state, national, and global news. Prioritize events that happened or materially changed today. For each item, give: what happened, why it matters, and the source. Distinguish reported facts from analysis. Avoid repeating the same story across sections. Give me the five most important stories first, then a short section of other notable developments.
+rubric:
+  - criterion: "Factual accuracy"
+    max_score: 3
+    description: "No invented events or sources."
+  - criterion: "Recency"
+    max_score: 2
+    description: "Prioritizes today's material changes."
+  - criterion: "Prioritization"
+    max_score: 2
+    description: "Five most important stories are actually the most important."
+  - criterion: "Source quality/citations"
+    max_score: 2
+    description: "Named, reputable sources for each item."
+  - criterion: "Clear distinction between fact and analysis"
+    max_score: 1
+    description: "Facts are separated from opinion/analysis."
+critical_failure: "Inventing a current event or source caps the score at 3."

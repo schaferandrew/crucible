@@ -1,0 +1,25 @@
+test_id: G3
+category: long_agent
+auto_grade: false
+repo: null
+prompt: |
+  Produce a morning brief using the supplied sources. Include, in this order: weather, outstanding work from yesterday, important emails, today's calendar, and news. For each section, prioritize what actually requires attention today. Do not merely summarize everything. Highlight conflicts, deadlines, unanswered messages, and actions. Separate facts from recommendations. End with a "Top 3 things to do today" section.
+
+  Use only the supplied/local sources for email, work, and calendar. For news and weather, use live sources if available and cite them. If a source is unavailable, say so instead of inventing information.
+rubric:
+  - criterion: "Source fidelity"
+    max_score: 3
+    description: "Only uses supplied/local sources for internal data; cites live sources for weather/news."
+  - criterion: "Prioritization/actionability"
+    max_score: 3
+    description: "Highlights conflicts, deadlines, unanswered messages, and actions rather than just summarizing."
+  - criterion: "Cross-source synthesis"
+    max_score: 2
+    description: "Connects calendar conflicts with email deadlines, etc."
+  - criterion: "Concision/readability"
+    max_score: 1
+    description: "Brief is concise and easy to scan."
+  - criterion: "Transparent handling of missing data"
+    max_score: 1
+    description: "Says so when a source is unavailable rather than inventing."
+critical_failure: null

@@ -1,0 +1,23 @@
+test_id: E2
+category: everyday
+auto_grade: false
+repo: null
+prompt: |
+  Explain the concept of "enshittification" to an intelligent adult who has heard the word but doesn't know the theory behind it. Start with a one-sentence definition, then explain the mechanism in plain English, give two concrete examples, explain what the concept does and does not claim, and briefly discuss criticisms or limitations. Avoid jargon unless you define it.
+rubric:
+  - criterion: "Accurate definition"
+    max_score: 3
+    description: "One-sentence definition is correct and precise."
+  - criterion: "Mechanism"
+    max_score: 2
+    description: "Explains the two-sided market deterioration clearly."
+  - criterion: "Examples"
+    max_score: 2
+    description: "Two concrete, non-repetitive examples."
+  - criterion: "Boundaries/limitations"
+    max_score: 2
+    description: "Clearly states what the concept does and does not claim; discusses criticisms."
+  - criterion: "Clarity"
+    max_score: 1
+    description: "Plain English; jargon is defined if used."
+critical_failure: null

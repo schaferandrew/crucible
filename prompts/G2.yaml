@@ -1,0 +1,28 @@
+test_id: G2
+category: structured_data
+auto_grade: true
+repo: null
+fixtures: calendar-fixture.json
+prompt: |
+  Find all meeting times during the next seven days that work for both people. The meeting must be 60 minutes, must occur between 9:00 AM and 5:00 PM local time, and must not overlap any busy event. Prefer weekdays. Rank the three best options by minimizing gaps between existing meetings and avoiding the first or last available hour of the day. Return valid JSON with an explanation field for each recommendation.
+
+  Use the supplied calendar JSON as the source of truth. Do not infer availability outside the specified window.
+
+  The calendar fixture is provided as calendar-fixture.json.
+rubric:
+  - criterion: "Finds all valid options"
+    max_score: 3
+    description: "Enumerates every non-overlapping 60-minute slot within the window."
+  - criterion: "Rejects conflicts"
+    max_score: 2
+    description: "No recommended slot overlaps an existing event."
+  - criterion: "Ranking follows criteria"
+    max_score: 2
+    description: "Prefers weekdays; minimizes gaps; avoids first/last hour."
+  - criterion: "Correct JSON"
+    max_score: 2
+    description: "Valid JSON with explanation fields."
+  - criterion: "Explanation"
+    max_score: 1
+    description: "Each recommendation has a clear explanation."
+critical_failure: "Recommending a conflicting time caps score at 5."

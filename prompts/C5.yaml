@@ -1,0 +1,26 @@
+test_id: C5
+category: browser_tool
+auto_grade: false
+repo: login-service
+prompt: |
+  Open the local application in a real browser and diagnose why the dashboard is intermittently showing a blank state after login. Reproduce the issue, inspect the browser console and network requests, identify the failing request or client-side error, and fix the underlying application code. Verify the fix in the browser and add an automated regression test.
+rubric:
+  - criterion: "Reproduces before changing code"
+    max_score: 1
+    description: "Reproduces the intermittent blank state in the browser first."
+  - criterion: "Uses browser effectively"
+    max_score: 2
+    description: "Navigates, refreshes, manipulates state to trigger the bug."
+  - criterion: "Inspects console/network rather than guessing"
+    max_score: 2
+    description: "Looks at actual console errors and network responses."
+  - criterion: "Correct diagnosis"
+    max_score: 2
+    description: "Identifies the exact failing request or client-side error."
+  - criterion: "Fix"
+    max_score: 2
+    description: "Fixes the underlying code correctly and minimally."
+  - criterion: "Regression verification"
+    max_score: 1
+    description: "Automated test covers the intermittent condition."
+critical_failure: null

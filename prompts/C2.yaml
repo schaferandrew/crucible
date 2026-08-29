@@ -1,0 +1,29 @@
+test_id: C2
+category: coding_debug
+auto_grade: false
+repo: navbar-responsive
+prompt: |
+  The navbar in this app isn't responsive. Make it work correctly across desktop and mobile widths. Preserve the existing visual identity and navigation destinations. Add or update tests as appropriate.
+rubric:
+  - criterion: "No horizontal overflow"
+    max_score: 2
+    description: "No horizontal scroll on mobile widths."
+  - criterion: "Desktop remains correct"
+    max_score: 2
+    description: "Desktop layout and navigation are preserved."
+  - criterion: "Mobile behavior"
+    max_score: 2
+    description: "Mobile shows hamburger menu and hides primary links."
+  - criterion: "Accessible toggle/state"
+    max_score: 2
+    description: "Toggle is keyboard-accessible and clearly labeled; ARIA state is correct."
+  - criterion: "Tests"
+    max_score: 1
+    description: "Tests verify both desktop and mobile states."
+  - criterion: "Minimal/sensible diff"
+    max_score: 1
+    description: "Changes are focused and do not rewrite the whole app."
+  - criterion: "Visual bugs / design"
+    max_score: 5
+    description: "No obvious visual regressions: spacing, alignment, colors, typography remain consistent with the original identity."
+critical_failure: null

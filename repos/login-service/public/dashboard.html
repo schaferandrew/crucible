@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2rem; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; }
+        .dashboard-content { margin-top: 2rem; padding: 1rem; background: #f8f9fa; border-radius: 8px; }
+        #message { font-size: 1.2rem; }
+        #user { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Dashboard</h1>
+            <button id="logout">Logout</button>
+        </div>
+        <div class="dashboard-content">
+            <p>User: <span id="user">Loading...</span></p>
+            <p id="message">Loading...</p>
+        </div>
+    </div>
+    <script>
+        async function loadDashboard() {
+            const res = await fetch('/api/dashboard');
+            const data = await res.json();
+            if (data.user) {
+                document.getElementById('user').textContent = data.user;
+                document.getElementById('message').textContent = data.dashboardMessage;
+            } else {
+                // C5 BUG: This shows a blank state when session is expired/stale
+                document.getElementById('user').textContent = '';
+                document.getElementById('message').textContent = '';
+            }
+        }
+
+        document.getElementById('logout').addEventListener('click', async () => {
+            await fetch('/api/logout', { method: 'POST' });
+            window.location.href = '/login.html';
+        });
+
+        loadDashboard();
+    </script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+test_id: W1c
+category: writing
+auto_grade: false
+repo: null
+prompt: |
+  Proofread this economics essay for objective language errors. Then separately flag claims, terminology, or wording that are potentially unclear, overstated, or technically imprecise. Do not rewrite the author's argument into your own argument.
+
+  Inflation is when prices go up because the government prints too much money. This is obvious if you think about it: if there's more money chasing the same amount of stuff, each dollar is worth less. The Consumer Price Index (CPI) measures inflation by tracking a basket of goods that the average household buys, and when CPI rises above 2% annually, the Federal Reserve is legally required to raise interest rates. Many economists believe that the natural rate of unemployment is around 4%, which means anyone above that is either lazy or the victim of bad policy. Quantitative easing, which the Fed started after 2008, is basically just printing money to buy treasury bonds, which devalues the currency and inevitably causes hyperinflation. Japan's experience with deflation in the 1990s proves that monetary policy is completely ineffective at stimulating demand. Most importantly, supply-side economics has been definitively debunked by the failed Reagan tax cuts, which increased the deficit without growing the economy at all.
+rubric:
+  - criterion: "Objective corrections"
+    max_score: 4
+    description: "Finds and fixes grammar, spelling, punctuation, and usage errors."
+  - criterion: "Does not invent errors"
+    max_score: 2
+    description: "Does not flag correct text as wrong."
+  - criterion: "Preserves voice/facts"
+    max_score: 2
+    description: "Does not change facts, tone, or intentional stylistic choices."
+  - criterion: "Distinguishes error from style"
+    max_score: 2
+    description: "Clearly separates objective errors from optional improvements."
+critical_failure: null

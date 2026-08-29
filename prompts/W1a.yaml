@@ -1,0 +1,25 @@
+test_id: W1a
+category: writing
+auto_grade: false
+repo: null
+prompt: |
+  Edit the email below. First identify grammar/spelling/punctuation errors, then provide a corrected version. Distinguish clearly between objective errors and optional style improvements. Do not change the facts or make the customer sound more apologetic than the original.
+
+  Subject: Refund for order 84721
+
+  Hi Support,
+  I am writing because my order arrived three days late, and one of the two items were damaged. I contacted support last week but I havent heard anything back. The box was clearly crush on one side, and the mug inside has a crack through the handle. I would like a refund for the mug, but please let me know if you need pictures of it. Also, your website says refunds are processed in 5-7 business days, which seem to have passed already for my earlier request. Can you tell me what the status is? Thanks for your help.
+rubric:
+  - criterion: "Objective corrections"
+    max_score: 4
+    description: "Finds and fixes grammar, spelling, punctuation, and usage errors."
+  - criterion: "Does not invent errors"
+    max_score: 2
+    description: "Does not flag correct text as wrong."
+  - criterion: "Preserves voice/facts"
+    max_score: 2
+    description: "Does not change facts, tone, or intentional stylistic choices."
+  - criterion: "Distinguishes error from style"
+    max_score: 2
+    description: "Clearly separates objective errors from optional improvements."
+critical_failure: null

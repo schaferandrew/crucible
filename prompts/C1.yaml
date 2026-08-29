@@ -1,0 +1,23 @@
+test_id: C1
+category: coding_build
+auto_grade: true
+repo: null
+prompt: |
+  Create a CLI tool for calculating interest, similar in spirit to a consumer interest calculator such as interest.gov. Decide what inputs, outputs, and useful features the tool should provide. Make it easy to use and include tests and documentation.
+rubric:
+  - criterion: "Requirements captured without being reminded"
+    max_score: 2
+    description: "Did it build something useful without the explicit Part 2 spec?"
+  - criterion: "Correct financial math"
+    max_score: 3
+    description: "Compound interest formula is correct; recurring contributions are handled properly."
+  - criterion: "Input validation"
+    max_score: 2
+    description: "Invalid, negative, and contradictory inputs are rejected gracefully."
+  - criterion: "Tests"
+    max_score: 2
+    description: "Automated tests cover ordinary, edge, and known-value cases and all pass."
+  - criterion: "UX / docs"
+    max_score: 1
+    description: "README with command examples and readable output."
+critical_failure: "Wrong compound-interest math = maximum score 4/10."

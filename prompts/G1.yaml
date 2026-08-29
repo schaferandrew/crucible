@@ -1,0 +1,29 @@
+test_id: G1
+category: reasoning
+auto_grade: true
+repo: null
+prompt: |
+  You are given a puzzle you have not seen before. Solve it carefully and explain the reasoning. Before giving the final answer, state any assumptions the puzzle requires. If the wording is ambiguous, identify the ambiguity rather than silently choosing an interpretation.
+
+  Four friends — Alice, Bob, Carol, and Dave — sit in a row of four chairs numbered 1 to 4 from left to right. Each friend has a different favorite color: red, blue, green, or yellow. Use these clues to determine who sits in chair 3:
+
+  1. Alice sits immediately to the left of the person who likes blue.
+  2. Bob does not sit in chair 4.
+  3. The person who likes green sits in chair 1.
+  4. Carol likes yellow and sits somewhere to the right of the person who likes red.
+  5. Dave likes red.
+rubric:
+  - criterion: "Correct answer"
+    max_score: 4
+    description: "Correctly identifies the person in chair 3 with valid deduction."
+  - criterion: "Valid reasoning"
+    max_score: 3
+    description: "Explains the logical steps clearly."
+  - criterion: "Handles ambiguity"
+    max_score: 2
+    description: "States assumptions rather than assuming them silently."
+  - criterion: "Final answer clearly stated"
+    max_score: 1
+    description: "Answer is unambiguous and clearly presented."
+critical_failure: null
+hidden_answer: "Alice(green,1), Bob(blue,2), Dave(red,3), Carol(yellow,4). Chair 3 is Dave."

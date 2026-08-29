@@ -1,0 +1,22 @@
+test_id: W1b
+category: writing
+auto_grade: false
+repo: null
+prompt: |
+  Proofread the paragraph below for grammar, spelling, punctuation, and obvious usage problems. Preserve the author's voice, rhythm, imagery, and intentional fragments. Flag anything that may be intentional rather than silently changing it.
+
+  Mara stepped off the train and into a city that smelled like rain, hot asphalt, and somebody's breakfast. The station was louder then she remembered it, all brakes shrieking and people talking to fast. She could feel the old neighborhood somewhere beyond the buildings, waiting. Not waiting for her, exactly. That would have been too kind. Still—she was back. And she didn't know whether to laugh, or leave.
+rubric:
+  - criterion: "Objective corrections"
+    max_score: 4
+    description: "Finds and fixes grammar, spelling, punctuation, and usage errors."
+  - criterion: "Does not invent errors"
+    max_score: 2
+    description: "Does not flag correct text as wrong."
+  - criterion: "Preserves voice/facts"
+    max_score: 2
+    description: "Does not change facts, tone, or intentional stylistic choices."
+  - criterion: "Distinguishes error from style"
+    max_score: 2
+    description: "Clearly separates objective errors from optional improvements."
+critical_failure: null

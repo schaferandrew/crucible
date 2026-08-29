@@ -1,0 +1,23 @@
+test_id: H3
+category: home_maintenance
+auto_grade: false
+repo: null
+prompt: |
+  One room is much colder near an exterior window during winter. Help me determine whether the problem is air leakage, poor glazing, a failed seal, or simply cold surfaces creating a downdraft. Give me inexpensive diagnostic tests I can do today, followed by repairs ranked from temporary/cheap to permanent/expensive. Do not assume the window needs replacement.
+rubric:
+  - criterion: "Correct differential diagnosis"
+    max_score: 3
+    description: "Distinguishes air leakage, glazing issues, failed seal, and downdraft."
+  - criterion: "Non-destructive tests"
+    max_score: 2
+    description: "Tests are inexpensive and do not damage the window."
+  - criterion: "Repair prioritization"
+    max_score: 3
+    description: "Repairs ranked from temporary/cheap to permanent/expensive."
+  - criterion: "Cost/common-sense judgment"
+    max_score: 1
+    description: "Recommendations are proportionate to the problem."
+  - criterion: "Avoids premature replacement"
+    max_score: 1
+    description: "Does not jump to full window replacement as the first option."
+critical_failure: null
