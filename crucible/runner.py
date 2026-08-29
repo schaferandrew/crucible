@@ -8,10 +8,11 @@ Usage:
     crucible run coding --model openrouter/moonshotai/kimi-k2.6
 
 Options:
-    --model      Model to use (default from opencode config if not set)
-    --watch      Open opencode TUI to observe
-    --timeout    Timeout in seconds (default 600)
-    --output     Output directory for runs (default ./runs)
+    --provider, -p   Provider (ollama, openrouter)
+    --model, -m      Model name (e.g. qwen3.5:9b-mlx) or provider/model
+    --watch          Open opencode TUI to observe
+    --timeout        Timeout in seconds (default 600)
+    --output         Output directory for runs (default ./runs)
 """
 from __future__ import annotations
 import argparse
@@ -28,12 +29,71 @@ from typing import Any
 import yaml
 
 from crucible import direct_runner
+from crucible.selector import select_from_list
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PROMPTS_DIR = REPO_ROOT / "prompts"
 FIXTURES_DIR = REPO_ROOT / "fixtures"
 REPOS_DIR = REPO_ROOT / "repos"
+
+
+def resolve_model(provider: str | None, model: str | None) -> str | None:
+    """Resolve final model string from provider/model inputs."""
+    # Case 1: Both provided -> combine
+    if provider and model:
+        return f"{provider}/{model}"
+
+    # Case 2: Only model provided -> auto-detect provider from prefix or fuzzy match
+    if model and not provider:
+        if "/" in model:  # Already has provider prefix
+            return model
+
+        # Fuzzy match across providers
+        matches = direct_runner.find_model_matches(model)
+        if not matches:
+            print(f"Model '{model}' not found on any provider.")
+            sys.exit(1)
+        if len(matches) == 1:
+            return matches[0]
+
+        # Multiple matches -> show combined selector
+        selected = select_from_list(matches, f"Model '{model}' found on multiple providers:")
+        if selected is None:
+            print("Cancelled.")
+            sys.exit(0)
+        return selected
+
+    # Case 3: Only provider provided -> interactive model selection for that provider
+    if provider and not model:
+        if provider == "ollama":
+            models = direct_runner.fetch_ollama_models()
+            if not models:
+                print("No ollama models found. Run 'ollama pull <model>' first.")
+                sys.exit(1)
+            model_items = [f"ollama/{m}" for m in models]
+            selected = select_from_list(model_items, f"Select {provider} model:")
+            if selected is None:
+                print("Cancelled.")
+                sys.exit(0)
+            return selected
+        elif provider == "openrouter":
+            models = direct_runner.fetch_openrouter_models()
+            if not models:
+                print("No openrouter models found (check OPENROUTER_API_KEY).")
+                sys.exit(1)
+            model_items = [f"openrouter/{m}" for m in models]
+            selected = select_from_list(model_items, f"Select {provider} model:")
+            if selected is None:
+                print("Cancelled.")
+                sys.exit(0)
+            return selected
+        else:
+            print(f"Unknown provider: {provider}")
+            sys.exit(1)
+
+    # Case 4: Neither provided -> None (use opencode default)
+    return None
 
 
 def load_prompt(test_id: str) -> dict:
@@ -298,11 +358,15 @@ def run_single(test_id: str, model: str | None, watch: bool, timeout: int, outpu
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run AI benchmark tests via opencode")
     parser.add_argument("test", help="Test ID (e.g. C1) or suite (coding, writing, everyday, reasoning, home, all)")
-    parser.add_argument("--model", help="Model to use (e.g. openrouter/moonshotai/kimi-k2.6)")
+    parser.add_argument("--provider", "-p", help="Provider (ollama, openrouter)")
+    parser.add_argument("--model", "-m", help="Model name (e.g. qwen3.5:9b-mlx) or provider/model")
     parser.add_argument("--watch", action="store_true", help="Open opencode TUI")
     parser.add_argument("--timeout", type=int, default=600, help="Timeout in seconds")
     parser.add_argument("--output", type=Path, default=Path("runs"), help="Output directory")
     args = parser.parse_args()
+
+    # Resolve model from provider/model args
+    args.model = resolve_model(args.provider, args.model)
 
     suites = {
         "coding": ["C1", "C1b", "C2", "C2b", "C3", "C4", "C4b", "C5", "C6"],
