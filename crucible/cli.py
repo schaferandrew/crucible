@@ -8,8 +8,18 @@ Usage:
 """
 from __future__ import annotations
 import sys
+from pathlib import Path
 
 from crucible import runner, scorer, reporter
+
+
+def _get_version() -> str:
+    pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
+    if pyproject.exists():
+        for line in pyproject.read_text().splitlines():
+            if line.startswith("version"):
+                return line.split("=")[1].strip().strip('"')
+    return "dev"
 
 
 def main():
@@ -18,6 +28,11 @@ def main():
         sys.exit(1)
 
     cmd = sys.argv[1]
+
+    if cmd in ("--version", "-v"):
+        print(f"crucible {_get_version()}")
+        sys.exit(0)
+
     rest = sys.argv[2:]
 
     # Patch sys.argv so the subcommand's argparse sees only its own args
