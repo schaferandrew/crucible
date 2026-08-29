@@ -2,8 +2,8 @@
 """Interactive scoring for benchmark runs.
 
 Usage:
-    python3 score.py <run_id>
-    python3 score.py <run_id> --auto
+    crucible score <run_id>
+    crucible score <run_id> --auto
 """
 from __future__ import annotations
 import argparse
@@ -12,7 +12,7 @@ from pathlib import Path
 
 import yaml
 
-REPO_ROOT = Path(__file__).resolve().parent
+REPO_ROOT = Path(__file__).resolve().parent.parent
 PROMPTS_DIR = REPO_ROOT / "prompts"
 RUNS_DIR = REPO_ROOT / "runs"
 
@@ -20,6 +20,24 @@ RUNS_DIR = REPO_ROOT / "runs"
 def load_prompt(test_id: str) -> dict:
     with open(PROMPTS_DIR / f"{test_id}.yaml") as f:
         return yaml.safe_load(f)
+
+
+def find_run_dir(run_id_or_path: str) -> Path:
+    """Resolve a run identifier to a directory path.
+    
+    If the argument contains '/', treat it as a relative path under runs/.
+    Otherwise, search recursively under runs/ for a directory matching the name.
+    """
+    direct = RUNS_DIR / run_id_or_path
+    if direct.exists() and direct.is_dir():
+        return direct
+    
+    # Search recursively for a directory with this exact name
+    for candidate in RUNS_DIR.rglob(run_id_or_path):
+        if candidate.is_dir():
+            return candidate
+    
+    raise FileNotFoundError(f"Run not found: {run_id_or_path}")
 
 
 def score_interactive(test_id: str, run_dir: Path) -> dict:
@@ -128,13 +146,14 @@ def score_interactive(test_id: str, run_dir: Path) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Score a benchmark run")
-    parser.add_argument("run_id", help="Run ID to score")
+    parser.add_argument("run_id", help="Run ID to score (full path like model/category/test/timestamp, or just timestamp)")
     parser.add_argument("--auto", action="store_true", help="Run auto-grader if available")
     args = parser.parse_args()
 
-    run_dir = RUNS_DIR / args.run_id
-    if not run_dir.exists():
-        print(f"Run not found: {run_dir}")
+    try:
+        run_dir = find_run_dir(args.run_id)
+    except FileNotFoundError as e:
+        print(e)
         sys.exit(1)
 
     # Load meta to get test_id
@@ -144,8 +163,18 @@ def main() -> None:
             meta = json.load(f)
         test_id = meta.get("test_id")
     else:
-        # Try to extract from run_id
-        test_id = args.run_id.split("_")[1]
+        # Try to extract from the second-to-last path component (test_id dir)
+        parts = run_dir.parts
+        # Walk up from leaf to find test_id
+        test_id = None
+        for i in range(len(parts) - 1, -1, -1):
+            # Heuristic: test IDs are like E2, C1b, W1a
+            part = parts[i]
+            if len(part) <= 4 and part[0].isalpha() and part[1:].replace('b','').replace('c','').replace('a','').isdigit():
+                test_id = part
+                break
+        if not test_id and len(parts) >= 2:
+            test_id = parts[-2]
 
     if not test_id:
         print("Could not determine test_id")

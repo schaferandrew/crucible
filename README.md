@@ -55,19 +55,24 @@ After a run completes, score it interactively:
 python3 score.py <RUN_ID>
 ```
 
+`RUN_ID` can be either:
+- The **full path** (e.g. `openrouter_moonshotai_kimi-k2.6/everyday/E2/20260829_040024`)
+- Just the **timestamp leaf** (e.g. `20260829_040024`) — it will be found recursively
+
 Example:
 ```bash
-python3 score.py 20260829_040024_E2_openrouter_moonshotai_kimi-k2.6
+python3 score.py 20260829_040024
+python3 score.py openrouter_moonshotai_kimi-k2.6/everyday/E2/20260829_040024
 ```
 
-The interactive CLI walks you through each rubric criterion and saves results to `runs/<RUN_ID>/results.json`.
+The interactive CLI walks you through each rubric criterion and saves results to `runs/<MODEL>/<CATEGORY>/<TEST>/<TIMESTAMP>/results.json`.
 
 ## Reports
 
 Compare multiple runs:
 ```bash
 python3 report.py run1 run2 run3
-python3 report.py run1 run2 run3 --output results.md
+python3 report.py --all --output results.md
 ```
 
 ## Structure
@@ -82,8 +87,8 @@ python3 report.py run1 run2 run3 --output results.md
 
 ## How It Works
 
-1. `run.py` reads the prompt YAML and creates a workspace in `runs/<RUN_ID>/workspace/`
-2. For coding tests, it copies the seeded repo into the workspace
+1. `run.py` reads the prompt YAML and creates a workspace in `runs/<MODEL>/<CATEGORY>/<TEST_ID>/<TIMESTAMP>/workspace/`
+2. For coding tests, it copies the seeded repo into the workspace (repos are never mutated)
 3. For reasoning tests, it copies fixtures (e.g., `calendar-fixture.json`)
 4. In headless mode, it invokes `opencode run` with the prompt attached as a file. In watch mode, it opens the opencode TUI in the workspace with the prompt pre-loaded.
 5. Results are saved: `stdout.txt`, `stderr.txt`, `session.json` (if available), `meta.json`

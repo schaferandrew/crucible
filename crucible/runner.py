@@ -2,10 +2,10 @@
 """Simple benchmark runner using opencode CLI directly.
 
 Usage:
-    python3 run.py C1 --model openrouter/moonshotai/kimi-k2.6
-    python3 run.py all --model openrouter/moonshotai/kimi-k2.6
-    python3 run.py C1 --model ollama/qwen3:30b-a3b --watch
-    python3 run.py coding --model openrouter/moonshotai/kimi-k2.6
+    crucible run C1 --model openrouter/moonshotai/kimi-k2.6
+    crucible run all --model openrouter/moonshotai/kimi-k2.6
+    crucible run C1 --model ollama/qwen3:30b-a3b --watch
+    crucible run coding --model openrouter/moonshotai/kimi-k2.6
 
 Options:
     --model      Model to use (default from opencode config if not set)
@@ -28,7 +28,7 @@ from typing import Any
 import yaml
 
 
-REPO_ROOT = Path(__file__).resolve().parent
+REPO_ROOT = Path(__file__).resolve().parent.parent
 PROMPTS_DIR = REPO_ROOT / "prompts"
 FIXTURES_DIR = REPO_ROOT / "fixtures"
 REPOS_DIR = REPO_ROOT / "repos"
@@ -99,12 +99,16 @@ def run_single(test_id: str, model: str | None, watch: bool, timeout: int, outpu
     prompt_def = load_prompt(test_id)
     prompt_text = prompt_def["prompt"]
 
-    # Create run directory
+    # Create run directory: runs/<model>/<category>/<test_id>/<timestamp>
     now = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     model_slug = (model or "default").replace("/", "_").replace(":", "_")
-    run_id = f"{now}_{test_id}_{model_slug}"
+    category = prompt_def.get("category", "uncategorized")
+    run_id = f"{model_slug}/{category}/{test_id}/{now}"
     run_dir = output_dir / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
+
+    # Opencode title must be a flat unique string
+    opencode_title = f"{now}_{test_id}_{model_slug}"
 
     # Setup workspace
     workspace = setup_workspace(run_dir, prompt_def)
@@ -119,7 +123,6 @@ def run_single(test_id: str, model: str | None, watch: bool, timeout: int, outpu
     prompt_file_abs = str(prompt_file.resolve())
     workspace_abs = str(workspace.resolve())
 
-    # Build opencode command
     if watch:
         # Full TUI mode: opencode <workspace_dir> --prompt "..." --auto -m model
         cmd = [
@@ -142,7 +145,7 @@ def run_single(test_id: str, model: str | None, watch: bool, timeout: int, outpu
             "--dir",
             workspace_abs,
             "--title",
-            run_id,
+            opencode_title,
             "--auto",
         ]
         if model:
@@ -200,7 +203,7 @@ def run_single(test_id: str, model: str | None, watch: bool, timeout: int, outpu
     # Try to export session
     try:
         export = subprocess.run(
-            ["opencode", "export", run_id, "--sanitize"],
+            ["opencode", "export", opencode_title, "--sanitize"],
             capture_output=True,
             text=True,
             timeout=30,

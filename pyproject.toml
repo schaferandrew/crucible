@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "crucible"
+version = "0.1.0"
+description = "Personal AI benchmark gauntlet for evaluating models on real-world tasks"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+crucible = "crucible.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/schaferandrew/crucible"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["crucible*"]
