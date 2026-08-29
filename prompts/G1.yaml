@@ -1,4 +1,5 @@
 test_id: G1
+needs_tools: false
 category: reasoning
 auto_grade: true
 repo: null

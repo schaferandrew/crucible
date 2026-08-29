@@ -1,4 +1,5 @@
 test_id: G3
+needs_tools: false
 category: long_agent
 auto_grade: false
 repo: null
