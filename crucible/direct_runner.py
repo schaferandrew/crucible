@@ -20,6 +20,61 @@ def _parse_model(model: str) -> tuple[str, str]:
     raise ValueError(f"Unsupported model prefix for direct mode: {model}. Use ollama/... or openrouter/...")
 
 
+def fetch_ollama_models() -> list[str]:
+    """Fetch available model names from local ollama instance."""
+    try:
+        req = urllib.request.Request("http://localhost:11434/api/tags", method="GET")
+        resp = urllib.request.urlopen(req, timeout=10)
+        data = json.loads(resp.read())
+        return [m["name"] for m in data.get("models", [])]
+    except Exception:
+        return []
+
+
+def fetch_openrouter_models() -> list[str]:
+    """Fetch model IDs from OpenRouter API."""
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    if not api_key:
+        return []
+    try:
+        req = urllib.request.Request(
+            "https://openrouter.ai/api/v1/models",
+            headers={"Authorization": f"Bearer {api_key}"},
+            method="GET"
+        )
+        resp = urllib.request.urlopen(req, timeout=10)
+        data = json.loads(resp.read())
+        return [m["id"] for m in data.get("data", [])]
+    except Exception:
+        return []
+
+
+def find_model_matches(model_query: str) -> list[str]:
+    """Return list of 'provider/model' strings matching query across providers."""
+    matches = []
+
+    # Exact match on ollama
+    ollama_models = fetch_ollama_models()
+    if model_query in ollama_models:
+        matches.append(f"ollama/{model_query}")
+
+    # Fuzzy match on OpenRouter
+    openrouter_models = fetch_openrouter_models()
+    query_lower = model_query.lower()
+    for om in openrouter_models:
+        om_lower = om.lower()
+        if query_lower in om_lower:
+            matches.append(f"openrouter/{om}")
+            continue
+        # Also match on colon-separated parts (e.g., qwen3.5:9b matches qwen/qwen-2.5-7b)
+        for part in query_lower.replace(":", " ").split():
+            if part and part in om_lower:
+                matches.append(f"openrouter/{om}")
+                break
+
+    return matches
+
+
 def _inline_fixtures(prompt_text: str, fixtures: list[str], fixtures_dir: Path) -> str:
     """Append fixture contents to the prompt so the model can see them inline."""
     lines = [prompt_text.rstrip()]
