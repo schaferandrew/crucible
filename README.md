@@ -32,24 +32,26 @@ pip3 install -e .
 
 ### Single Test
 ```bash
-python3 run.py C1 --model openrouter/moonshotai/kimi-k2.6
+crucible run C1 --model openrouter/moonshotai/kimi-k2.6
 ```
 
 ### Full Suite
 ```bash
-python3 run.py all --model openrouter/moonshotai/kimi-k2.6
+crucible run all --model openrouter/moonshotai/kimi-k2.6
 ```
 
 ### With Ollama (local)
 ```bash
-python3 run.py G2 --model ollama/qwen3:30b-a3b
+crucible run G2 --model ollama/qwen3:30b-a3b
 ```
 
 ### Watch Mode (opens full TUI)
 ```bash
-python3 run.py C2b --model openrouter/moonshotai/kimi-k2.6 --watch
+crucible run C2b --model openrouter/moonshotai/kimi-k2.6 --watch
 ```
 This opens the interactive opencode TUI in the workspace directory so you can observe the model working in real time. Press `q` or `Ctrl+C` to exit when done. In watch mode, output streams live to the terminal and is not captured to `stdout.txt`.
+
+*Prefer `python3 run.py ...`? Both work. Use `python3 -m crucible.cli` if `crucible` is not on PATH.*
 
 ### Suite Categories
 - `coding`: C1, C1b, C2, C2b, C3, C4, C4b, C5, C6
@@ -63,7 +65,7 @@ This opens the interactive opencode TUI in the workspace directory so you can ob
 
 After a run completes, score it interactively:
 ```bash
-python3 score.py <RUN_ID>
+crucible score <RUN_ID>
 ```
 
 `RUN_ID` can be either:
@@ -72,8 +74,8 @@ python3 score.py <RUN_ID>
 
 Example:
 ```bash
-python3 score.py 20260829_040024
-python3 score.py openrouter_moonshotai_kimi-k2.6/everyday/E2/20260829_040024
+crucible score 20260829_040024
+crucible score openrouter_moonshotai_kimi-k2.6/everyday/E2/20260829_040024
 ```
 
 The interactive CLI walks you through each rubric criterion and saves results to `runs/<MODEL>/<CATEGORY>/<TEST>/<TIMESTAMP>/results.json`.
@@ -82,8 +84,8 @@ The interactive CLI walks you through each rubric criterion and saves results to
 
 Compare multiple runs:
 ```bash
-python3 report.py run1 run2 run3
-python3 report.py --all --output results.md
+crucible report run1 run2 run3
+crucible report --all --output results.md
 ```
 
 ## Structure
