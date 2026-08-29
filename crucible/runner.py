@@ -290,7 +290,7 @@ def run_single(test_id: str, model: str | None, watch: bool, timeout: int, outpu
     print(f"\n[COMPLETE] {run_id}")
     print(f"  Elapsed: {elapsed:.1f}s")
     print(f"  Output: {run_dir}")
-    print(f"  To score: python3 score.py {run_id}")
+    print(f"  To score: crucible score {run_id}")
 
     return run_id
 
