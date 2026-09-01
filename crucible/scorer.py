@@ -8,6 +8,7 @@ Usage:
 from __future__ import annotations
 import argparse
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
@@ -18,7 +19,7 @@ RUNS_DIR = REPO_ROOT / "runs"
 
 
 def load_prompt(test_id: str) -> dict:
-    with open(PROMPTS_DIR / f"{test_id}.yaml") as f:
+    with open(PROMPTS_DIR / f"{test_id}.yaml", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 
@@ -49,8 +50,8 @@ def score_interactive(test_id: str, run_dir: Path) -> dict:
     # Load model output for context
     stdout_path = run_dir / "stdout.txt"
     prompt_path = run_dir / "prompt.txt"
-    model_output = stdout_path.read_text() if stdout_path.exists() else "[No stdout captured]"
-    prompt_text = prompt_path.read_text() if prompt_path.exists() else prompt.get("prompt", "[Prompt not found]")
+    model_output = stdout_path.read_text(encoding="utf-8") if stdout_path.exists() else "[No stdout captured]"
+    prompt_text = prompt_path.read_text(encoding="utf-8") if prompt_path.exists() else prompt.get("prompt", "[Prompt not found]")
     hidden_answer = prompt.get("hidden_answer")
 
     # Truncate long outputs for display
@@ -99,7 +100,12 @@ def score_interactive(test_id: str, run_dir: Path) -> dict:
         print(f"  {description}")
 
         while True:
-            raw = input(f"  Score (0-{max_score}): ").strip()
+            try:
+                raw = input(f"  Score (0-{max_score}): ").strip()
+            except EOFError:
+                print("  Input closed; skipping this criterion.")
+                raw = ""
+                break
             if raw == "":
                 print("  Skipped.")
                 break
@@ -114,31 +120,22 @@ def score_interactive(test_id: str, run_dir: Path) -> dict:
 
     # Raw metrics
     print(f"\n{'='*60}")
-    print("Raw metrics (press Enter to skip)")
+    print("Raw metrics (autofilled defaults)")
     print(f"{'='*60}")
     extras = {
         "user_interventions": 0,
         "tool_calls": 0,
-        "tests_passed": None,
-        "tests_failed": None,
-        "final_success": None,
-        "estimated_cost_usd": None,
+        "tests_passed": 0,
+        "tests_failed": 0,
+        "final_success": True,
+        "estimated_cost_usd": 0.0,
     }
-    for key in extras:
-        raw = input(f"  {key}: ").strip()
-        if raw:
-            try:
-                if "." in raw:
-                    extras[key] = float(raw)
-                else:
-                    extras[key] = int(raw)
-            except ValueError:
-                if raw.lower() in ("true", "yes"):
-                    extras[key] = True
-                elif raw.lower() in ("false", "no"):
-                    extras[key] = False
-                else:
-                    extras[key] = raw
+    print(f"  user_interventions: {extras['user_interventions']}")
+    print(f"  tool_calls: {extras['tool_calls']}")
+    print(f"  tests_passed: {extras['tests_passed']}")
+    print(f"  tests_failed: {extras['tests_failed']}")
+    print(f"  final_success: {extras['final_success']}")
+    print(f"  estimated_cost_usd: {extras['estimated_cost_usd']}")
 
     scores["_raw_metrics_manual"] = extras
     return scores
@@ -159,7 +156,7 @@ def main() -> None:
     # Load meta to get test_id
     meta_path = run_dir / "meta.json"
     if meta_path.exists():
-        with open(meta_path) as f:
+        with open(meta_path, encoding="utf-8") as f:
             meta = json.load(f)
         test_id = meta.get("test_id")
     else:
@@ -228,7 +225,7 @@ def main() -> None:
     }
 
     results_path = run_dir / "results.json"
-    with open(results_path, "w") as f:
+    with open(results_path, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2)
 
     print(f"\n[COMPLETE] Results saved to {results_path}")
@@ -236,5 +233,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     import sys
-    from datetime import datetime, timezone
     main()

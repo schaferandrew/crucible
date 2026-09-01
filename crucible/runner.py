@@ -77,6 +77,17 @@ def resolve_model(provider: str | None, model: str | None) -> str | None:
                 print("Cancelled.")
                 sys.exit(0)
             return selected
+        elif provider == "lmstudio":
+            models = direct_runner.fetch_lmstudio_models()
+            if not models:
+                print("No LM Studio models found. Start LM Studio and load a model first.")
+                sys.exit(1)
+            model_items = [f"lmstudio/{m}" for m in models]
+            selected = select_from_list(model_items, f"Select {provider} model:")
+            if selected is None:
+                print("Cancelled.")
+                sys.exit(0)
+            return selected
         elif provider == "openrouter":
             models = direct_runner.fetch_openrouter_models()
             if not models:
@@ -100,7 +111,7 @@ def load_prompt(test_id: str) -> dict:
     path = PROMPTS_DIR / f"{test_id}.yaml"
     if not path.exists():
         raise FileNotFoundError(f"Prompt not found: {path}")
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 
@@ -177,16 +188,18 @@ def run_single(test_id: str, model: str | None, watch: bool, timeout: int, outpu
 
     # Write prompt to workspace
     prompt_file = workspace / "prompt.txt"
-    prompt_file.write_text(prompt_text)
+    prompt_file.write_text(prompt_text, encoding="utf-8")
     # Also save in run_dir for reference
-    (run_dir / "prompt.txt").write_text(prompt_text)
+    (run_dir / "prompt.txt").write_text(prompt_text, encoding="utf-8")
 
     # Use absolute paths
     prompt_file_abs = str(prompt_file.resolve())
     workspace_abs = str(workspace.resolve())
 
     needs_tools = prompt_def.get("needs_tools", True)
-    direct_mode = not needs_tools and model and (model.startswith("ollama/") or model.startswith("openrouter/"))
+    direct_mode = not needs_tools and model and (
+        model.startswith("ollama/") or model.startswith("openrouter/") or model.startswith("lmstudio/")
+    )
 
     if direct_mode:
         print(f"\n{'='*60}")
@@ -218,8 +231,8 @@ def run_single(test_id: str, model: str | None, watch: bool, timeout: int, outpu
 
         stdout_path = run_dir / "stdout.txt"
         stderr_path = run_dir / "stderr.txt"
-        stdout_path.write_text(stdout_text)
-        stderr_path.write_text(stderr_text)
+        stdout_path.write_text(stdout_text, encoding="utf-8")
+        stderr_path.write_text(stderr_text, encoding="utf-8")
 
         # Save metadata
         meta = {
@@ -231,7 +244,7 @@ def run_single(test_id: str, model: str | None, watch: bool, timeout: int, outpu
             "ended_at": ended_at,
             "elapsed_time": round(elapsed, 2),
         }
-        (run_dir / "meta.json").write_text(json.dumps(meta, indent=2))
+        (run_dir / "meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
 
         print(f"\n[COMPLETE] {run_id}")
         print(f"  Elapsed: {elapsed:.1f}s")
@@ -278,7 +291,7 @@ def run_single(test_id: str, model: str | None, watch: bool, timeout: int, outpu
     print(f"{'='*60}\n")
 
     # Save command
-    (run_dir / "command.sh").write_text("#!/bin/bash\n" + " ".join(cmd) + "\n")
+    (run_dir / "command.sh").write_text("#!/bin/bash\n" + " ".join(cmd) + "\n", encoding="utf-8")
 
     started_at = datetime.now(timezone.utc).isoformat()
     start_time = time.time()
@@ -312,11 +325,11 @@ def run_single(test_id: str, model: str | None, watch: bool, timeout: int, outpu
         return str(data)
 
     if isinstance(result, subprocess.TimeoutExpired):
-        stdout_path.write_text(safe_decode(result.stdout))
-        stderr_path.write_text(safe_decode(result.stderr))
+        stdout_path.write_text(safe_decode(result.stdout), encoding="utf-8")
+        stderr_path.write_text(safe_decode(result.stderr), encoding="utf-8")
     else:
-        stdout_path.write_text(safe_decode(result.stdout))
-        stderr_path.write_text(safe_decode(result.stderr))
+        stdout_path.write_text(safe_decode(result.stdout), encoding="utf-8")
+        stderr_path.write_text(safe_decode(result.stderr), encoding="utf-8")
 
     # Try to export session
     try:
@@ -329,9 +342,9 @@ def run_single(test_id: str, model: str | None, watch: bool, timeout: int, outpu
         session_path = run_dir / "session.json"
         try:
             data = json.loads(export.stdout)
-            session_path.write_text(json.dumps(data, indent=2))
+            session_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
         except json.JSONDecodeError:
-            session_path.write_text(export.stdout)
+            session_path.write_text(export.stdout, encoding="utf-8")
     except Exception as e:
         print(f"  Warning: could not export session: {e}")
 
@@ -345,7 +358,7 @@ def run_single(test_id: str, model: str | None, watch: bool, timeout: int, outpu
         "ended_at": ended_at,
         "elapsed_time": round(elapsed, 2),
     }
-    (run_dir / "meta.json").write_text(json.dumps(meta, indent=2))
+    (run_dir / "meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
 
     print(f"\n[COMPLETE] {run_id}")
     print(f"  Elapsed: {elapsed:.1f}s")
