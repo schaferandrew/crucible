@@ -2,6 +2,87 @@
 
 A lightweight, personal benchmark suite for evaluating AI models on real-world tasks: coding, writing, reasoning, everyday knowledge, and home maintenance.
 
+## macOS Quick Start
+
+### Option A: standard venv
+
+```bash
+cd /path/to/crucible
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install pyyaml
+python -m pip install -e .
+```
+
+### Option B: uv (recommended for macOS)
+
+```bash
+cd /path/to/crucible
+uv venv
+source .venv/bin/activate
+uv pip install --upgrade pip
+uv pip install pyyaml
+uv pip install -e .
+```
+
+If you prefer a global install without a venv:
+
+```bash
+pip3 install pyyaml
+pip3 install -e .
+```
+
+Then verify the CLI works:
+
+```bash
+crucible --help
+```
+
+> If `crucible` is not on PATH, use `python3 -m crucible.cli ...` instead.
+
+## Windows Quick Start
+
+From PowerShell in the repo root:
+
+```powershell
+cd C:\Users\Andrew\Development\crucible
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install pyyaml
+python -m pip install -e .
+```
+
+Then verify the CLI works:
+
+```powershell
+crucible --help
+```
+
+If PowerShell blocks script execution, run:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
+```
+
+## Running with LM Studio locally (Windows)
+
+If you are using LM Studio with the OpenAI-compatible local server at `http://127.0.0.1:1234`, you can run the direct API path without `opencode`:
+
+```powershell
+crucible run G2 --provider lmstudio --model openai/gpt-oss-20b --timeout 180
+```
+
+You can also specify the model by full provider/name format:
+
+```powershell
+crucible run E2 --model lmstudio/openai/gpt-oss-20b --timeout 180
+```
+
+This project has a direct runner for `lmstudio/...` models and does not require `opencode` for the no-tools benchmark cases.
+
 ## Quick Start
 
 1. **Clone the repo**:
