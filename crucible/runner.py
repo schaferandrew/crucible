@@ -310,7 +310,7 @@ def count_tool_calls(session_path: Path) -> int | None:
             stack.extend(node.values())
         elif isinstance(node, list):
             stack.extend(node)
-    return count or None
+    return count
 
 
 def extract_metrics(run_dir: Path) -> dict:
@@ -386,14 +386,15 @@ def split_pool_output(run_dir: Path) -> None:
 # --------------------------------------------------------------------------
 
 def should_run_direct(agent: str, needs_tools: bool, model: str | None) -> bool:
-    """Decide whether a test may bypass the agent and call the provider API directly.
+    """Decide whether a test bypasses the agent and calls the provider API directly.
 
-    Tool-requiring tests must NEVER run directly: direct mode is only allowed
-    when the prompt explicitly declares needs_tools: false and the model is on
-    a direct-capable provider (ollama, openrouter, lmstudio).
+    Direct mode must be explicitly requested (--agent direct) and is only
+    allowed when the prompt declares needs_tools: false and the model is on a
+    direct-capable provider (ollama, openrouter, lmstudio). Tool-requiring
+    tests can NEVER run directly.
     """
     return bool(
-        agent == "opencode"
+        agent == "direct"
         and not needs_tools
         and model
         and model.startswith(tuple(PROVIDER_CATALOG))
@@ -428,6 +429,9 @@ def _run_direct(test_id: str, run_id: str, run_dir: Path, prompt_def: dict,
         stdout_text = direct_runner.run_direct(full_prompt, model, [], FIXTURES_DIR, timeout)
     except Exception as e:
         stderr_text = f"Direct runner error: {e}"
+
+    (run_dir / "stdout.txt").write_text(stdout_text, encoding="utf-8")
+    (run_dir / "stderr.txt").write_text(stderr_text, encoding="utf-8")
 
     _finalize_run(
         run_dir, run_id, test_id, "direct", model, False, started_at, start_time,
@@ -603,6 +607,18 @@ def run_single(test_id: str, model: str | None, watch: bool, timeout: int,
     prompt_def = load_prompt(test_id)
     validate_category(prompt_def.get("category"))
 
+    needs_tools = prompt_def.get("needs_tools", True)
+
+    if agent == "direct":
+        if needs_tools:
+            print(f"[ERROR] Test {test_id} requires tool access; refusing to run it directly. "
+                  f"Use --agent opencode or --agent pool.")
+            sys.exit(1)
+        if not model or not model.startswith(tuple(PROVIDER_CATALOG)):
+            print("[ERROR] Direct mode needs a model on a direct-capable provider "
+                  "(ollama/, openrouter/, lmstudio/).")
+            sys.exit(1)
+
     if agent == "pool" and model and model.startswith("openrouter/") \
             and not os.environ.get("OPENROUTER_API_KEY"):
         print("[ERROR] OPENROUTER_API_KEY required for openrouter-backed pool runs")
@@ -618,7 +634,7 @@ def run_single(test_id: str, model: str | None, watch: bool, timeout: int,
     prompt_text = prompt_def["prompt"]
 
     # Direct runs are text-only: no workspace, just the API call
-    if should_run_direct(agent, prompt_def.get("needs_tools", True), model):
+    if agent == "direct":
         (run_dir / "prompt.txt").write_text(prompt_text, encoding="utf-8")
         return _run_direct(test_id, run_id, run_dir, prompt_def, prompt_text,
                            model, timeout, watch)
@@ -644,8 +660,10 @@ def main() -> None:
     parser.add_argument("test", help="Test ID (e.g. C1) or suite (coding, writing, everyday, reasoning, home, all)")
     parser.add_argument("--provider", "-p", help="Model provider (ollama, openrouter, lmstudio)")
     parser.add_argument("--model", "-m", help="Model name (e.g. qwen3.5:9b-mlx) or provider/model")
-    parser.add_argument("--agent", choices=["opencode", "pool"], default="opencode",
-                        help="Agent that executes the test (default: opencode)")
+    parser.add_argument("--agent", choices=["opencode", "pool", "direct"], default="opencode",
+                        help="Agent that executes the test (default: opencode). "
+                             "'direct' calls the provider API without an agent — "
+                             "only for needs_tools: false prompts")
     parser.add_argument("--watch", action="store_true", help="Open the agent TUI (opencode or pool) with the prompt pre-loaded")
     parser.add_argument("--timeout", type=int, default=600, help="Timeout in seconds")
     parser.add_argument("--output", type=Path, default=Path("runs"), help="Output directory")
