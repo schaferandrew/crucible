@@ -219,7 +219,7 @@ def main() -> None:
 
     # Save
     results = {
-        "run_id": args.run_id,
+        "run_id": str(run_dir.relative_to(RUNS_DIR)),
         "test_id": test_id,
         "scores": scores,
         "scored_at": datetime.now(timezone.utc).isoformat(),
