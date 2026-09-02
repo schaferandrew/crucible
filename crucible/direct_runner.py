@@ -105,8 +105,10 @@ def find_model_matches(model_query: str) -> list[str]:
     return matches
 
 
-def _inline_fixtures(prompt_text: str, fixtures: list[str], fixtures_dir: Path) -> str:
+def _inline_fixtures(prompt_text: str, fixtures: list[str] | str, fixtures_dir: Path) -> str:
     """Append fixture contents to the prompt so the model can see them inline."""
+    if isinstance(fixtures, str):
+        fixtures = [fixtures]
     lines = [prompt_text.rstrip()]
     for fixture_name in fixtures:
         src = fixtures_dir / fixture_name

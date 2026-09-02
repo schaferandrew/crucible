@@ -1,4 +1,5 @@
 test_id: C3
+needs_tools: true
 category: coding_repo
 auto_grade: false
 repo: nextjs-data-access

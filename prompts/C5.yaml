@@ -1,4 +1,5 @@
 test_id: C5
+needs_tools: true
 category: browser_tool
 auto_grade: false
 repo: login-service
