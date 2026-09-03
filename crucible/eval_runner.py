@@ -2,18 +2,17 @@
 """Batch evaluation runner — auto-score multiple runs at once.
 
 Usage:
-    crucible eval <run_id> [<run_id> ...] [--auto] [--judge MODEL] [--output FILE]
-    crucible eval --all --auto --judge ollama/qwen3:14b --output eval_summary.json
+    crucible eval <run_id> [<run_id> ...] [--judge MODEL] [--output FILE]
+    crucible eval --all --judge ollama/qwen3:14b --output eval_summary.json
 
 This command is a thin wrapper around the same auto-scoring pipeline used by
-`crucible score --auto --judge`, but applies it to many runs and writes a
-consolidated summary. It is the entry point for the "run the eval with ollama"
-workflow.
+`crucible score`, but applies it to many runs and writes a consolidated
+summary. Deterministic graders always run; --judge adds LLM judging for
+remaining criteria.
 """
 from __future__ import annotations
 
 import argparse
-import csv
 import json
 import sys
 from datetime import datetime, timezone
@@ -33,8 +32,12 @@ def discover_scored_runs() -> list[str]:
     return run_ids
 
 
-def score_run(run_id: str, auto: bool, judge_model: str | None) -> dict:
-    """Auto-score a single run. Returns a summary dict."""
+def score_run(run_id: str, judge_model: str | None) -> dict:
+    """Auto-score a single run. Returns a summary dict.
+
+    Deterministic grading always runs; if *judge_model* is provided the LLM
+    judge handles remaining criteria.
+    """
     try:
         run_dir = find_run_dir(run_id)
     except FileNotFoundError as e:
@@ -65,7 +68,7 @@ def score_run(run_id: str, auto: bool, judge_model: str | None) -> dict:
     if overall is not None:
         scores["_overall"] = overall
 
-    # Save results.json alongside the run (same format as crucible score --auto)
+    # Save results.json alongside the run (same format as crucible score)
     results = {
         "run_id": run_id,
         "test_id": test_id,
@@ -123,15 +126,13 @@ def main() -> None:
     parser.add_argument("run_ids", nargs="*", help="Run IDs to auto-score")
     parser.add_argument("--all", action="store_true",
                         help="Score all runs that have a meta.json")
-    parser.add_argument("--auto", action="store_true",
-                        help="Use deterministic auto-graders where available")
     parser.add_argument("--judge", metavar="MODEL",
                         help="LLM judge model (e.g. ollama/qwen3:14b or openrouter/deepseek/deepseek-v4-flash)")
     parser.add_argument("--output", "-o", help="Output file (markdown summary; .json for JSON)")
     args = parser.parse_args()
 
-    if not args.auto and not args.judge:
-        print("Error: specify --auto, --judge MODEL, or both.")
+    if not args.run_ids and not args.all:
+        print("Error: specify run IDs, --all, or both.")
         sys.exit(1)
 
     if args.all:
@@ -140,7 +141,7 @@ def main() -> None:
         run_ids = args.run_ids
 
     if not run_ids:
-        print("No runs specified. Use run IDs, --all, or both.")
+        print("No runs specified. Use run IDs or --all.")
         sys.exit(1)
 
     print(f"Evaluating {len(run_ids)} run(s)...")
@@ -150,7 +151,7 @@ def main() -> None:
     summaries = []
     for i, run_id in enumerate(run_ids, 1):
         print(f"\n[{i}/{len(run_ids)}] Scoring {run_id}...")
-        summary = score_run(run_id, args.auto, args.judge)
+        summary = score_run(run_id, args.judge)
         summaries.append(summary)
         if summary.get("overall") is not None:
             print(f"  → Overall: {summary['overall']}/10")
