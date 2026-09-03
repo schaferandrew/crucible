@@ -1,0 +1,22 @@
+test_id: E6
+category: everyday
+needs_tools: true
+auto_grade: true
+repo: null
+prompt: |
+  What is the current weather in Saint Paul, MN right now? Find a reliable, machine-readable source yourself — fetch live conditions, then compare today's temperature with the historical average for this date (find historical data yourself as well). Report: current temperature and conditions, the historical average, and whether today is typical or an outlier. Cite the sources you used and briefly explain why you trusted them.
+  If a source fails or blocks you, adapt rather than giving up — but never invent data.
+rubric:
+  - criterion: "Source selection"
+    max_score: 3
+    description: "Chose a reputable, machine-readable source (an API, not scraping flaky HTML sites); explain reasoning; adapted gracefully if a source failed."
+  - criterion: "Current conditions reported"
+    max_score: 2
+    description: "Live temperature and conditions consistent with a real-time source actually fetched."
+  - criterion: "Historical comparison"
+    max_score: 3
+    description: "Found historical data, computed the average for this date, and stated whether today is typical or an outlier."
+  - criterion: "Attribution and honesty"
+    max_score: 2
+    description: "Names sources/endpoints used; distinguishes fetched facts from inference; never fabricates data."
+critical_failure: "Inventing live conditions without a fetch caps the score at 4."

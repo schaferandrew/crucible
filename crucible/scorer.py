@@ -8,10 +8,13 @@ Usage:
 from __future__ import annotations
 import argparse
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
+
+from crucible.taxonomy import validate_category
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PROMPTS_DIR = REPO_ROOT / "prompts"
@@ -25,32 +28,73 @@ def load_prompt(test_id: str) -> dict:
 
 def find_run_dir(run_id_or_path: str) -> Path:
     """Resolve a run identifier to a directory path.
-    
-    If the argument contains '/', treat it as a relative path under runs/.
-    Otherwise, search recursively under runs/ for a directory matching the name.
+
+    Accepts: a path relative to the repo root (optionally with a leading
+    'runs/'), a path relative to runs/, or just the timestamp leaf, which is
+    searched for recursively.
     """
-    direct = RUNS_DIR / run_id_or_path
+    # Tolerate the common 'runs/...' form and absolute paths
+    candidate = Path(run_id_or_path)
+    if candidate.is_absolute() and candidate.is_dir():
+        return candidate
+    parts = candidate.parts
+    if parts and parts[0] == RUNS_DIR.name:
+        candidate = Path(*parts[1:]) if len(parts) > 1 else RUNS_DIR
+
+    direct = RUNS_DIR / candidate
     if direct.exists() and direct.is_dir():
         return direct
-    
+
     # Search recursively for a directory with this exact name
-    for candidate in RUNS_DIR.rglob(run_id_or_path):
-        if candidate.is_dir():
-            return candidate
-    
+    for match in RUNS_DIR.rglob(candidate.name if candidate.name else run_id_or_path):
+        if match.is_dir():
+            return match
+
     raise FileNotFoundError(f"Run not found: {run_id_or_path}")
+
+
+def _session_model_output(session_path: Path) -> str | None:
+    """Extract the model's reply from a session capture (opencode or pool)."""
+    try:
+        data = json.loads(session_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+
+    texts = []
+    if isinstance(data, dict):  # opencode export: messages -> parts -> text
+        for msg in data.get("messages", []):
+            if msg.get("info", {}).get("role") not in (None, "assistant"):
+                continue
+            for part in msg.get("parts", []):
+                if part.get("type") == "text" and part.get("text"):
+                    texts.append(part["text"])
+    elif isinstance(data, list):  # pool NLJSON events
+        for event in data:
+            if event.get("type") == "assistantMessage" and event.get("message"):
+                texts.append(event["message"])
+    return "\n\n".join(texts) if texts else None
 
 
 def score_interactive(test_id: str, run_dir: Path) -> dict:
     """Present rubric and collect scores interactively."""
     prompt = load_prompt(test_id)
+    validate_category(prompt.get("category"))
     rubric = prompt.get("rubric", [])
     critical = prompt.get("critical_failure")
 
-    # Load model output for context
+    # Model output: stdout.txt first; watch runs capture nothing there, so fall
+    # back to the session transcript.
     stdout_path = run_dir / "stdout.txt"
     prompt_path = run_dir / "prompt.txt"
-    model_output = stdout_path.read_text(encoding="utf-8") if stdout_path.exists() else "[No stdout captured]"
+    model_output = stdout_path.read_text(encoding="utf-8") if stdout_path.exists() else ""
+    if not model_output.strip():
+        session_path = run_dir / "session.json"
+        if session_path.exists():
+            fallback = _session_model_output(session_path)
+            if fallback:
+                model_output = f"{fallback}\n\n[captured from session.json — watch run]"
+    if not model_output.strip():
+        model_output = "[No stdout captured]"
     prompt_text = prompt_path.read_text(encoding="utf-8") if prompt_path.exists() else prompt.get("prompt", "[Prompt not found]")
     hidden_answer = prompt.get("hidden_answer")
 
@@ -118,24 +162,30 @@ def score_interactive(test_id: str, run_dir: Path) -> dict:
             except ValueError:
                 print("  Please enter a number.")
 
-    # Raw metrics
+    # Raw metrics: prefer values auto-extracted by the runner into meta.json;
+    # None means unknown rather than zero.
     print(f"\n{'='*60}")
-    print("Raw metrics (autofilled defaults)")
+    print("Raw metrics (auto-extracted where possible)")
     print(f"{'='*60}")
+    meta = {}
+    meta_path = run_dir / "meta.json"
+    if meta_path.exists():
+        with open(meta_path, encoding="utf-8") as f:
+            meta = json.load(f)
+    extracted = meta.get("metrics") or {}
+    timed_out = meta.get("timed_out")
+    returncode = meta.get("returncode")
+    final_success = (timed_out is not True) and (returncode in (0, None))
     extras = {
         "user_interventions": 0,
-        "tool_calls": 0,
-        "tests_passed": 0,
-        "tests_failed": 0,
-        "final_success": True,
-        "estimated_cost_usd": 0.0,
+        "tool_calls": extracted.get("tool_calls"),
+        "tests_passed": extracted.get("tests_passed"),
+        "tests_failed": extracted.get("tests_failed"),
+        "final_success": final_success,
+        "estimated_cost_usd": None,
     }
-    print(f"  user_interventions: {extras['user_interventions']}")
-    print(f"  tool_calls: {extras['tool_calls']}")
-    print(f"  tests_passed: {extras['tests_passed']}")
-    print(f"  tests_failed: {extras['tests_failed']}")
-    print(f"  final_success: {extras['final_success']}")
-    print(f"  estimated_cost_usd: {extras['estimated_cost_usd']}")
+    for key, value in extras.items():
+        print(f"  {key}: {value}")
 
     scores["_raw_metrics_manual"] = extras
     return scores
@@ -184,41 +234,23 @@ def main() -> None:
     # Interactive scoring
     scores = score_interactive(test_id, run_dir)
 
-    # Calculate weighted score
-    weights = {
-        "coding_build": 0.10,
-        "coding_debug": 0.10,
-        "coding_repo": 0.15,
-        "browser_tool": 0.10,
-        "writing": 0.10,
-        "everyday": 0.10,
-        "reasoning": 0.10,
-        "structured_data": 0.10,
-        "long_agent": 0.05,
-        "home_maintenance": 0.10,
-    }
-
+    # Per-run overall: plain mean of criterion scores normalized to 0-10.
+    # Category sweep weights (taxonomy.CATEGORY_WEIGHTS) are NOT applied here —
+    # they only make sense when aggregating a full sweep across categories.
     prompt = load_prompt(test_id)
-    category = prompt.get("category", "")
+    rubric = {item["criterion"]: item["max_score"] for item in prompt.get("rubric", [])}
 
-    total = 0.0
-    count = 0
+    normalized = []
     for criterion, score in scores.items():
-        if not criterion.startswith("_"):
-            # Use max score from rubric for weighted calc
-            for item in prompt.get("rubric", []):
-                if item["criterion"] == criterion:
-                    normalized = score / item["max_score"] * 10  # 0-10 scale
-                    total += normalized * weights.get(category, 0.1)
-                    count += 1
-                    break
+        if not criterion.startswith("_") and criterion in rubric:
+            normalized.append(score / rubric[criterion] * 10)
 
-    if count > 0:
-        scores["_overall"] = round(total, 2)
+    if normalized:
+        scores["_overall"] = round(sum(normalized) / len(normalized), 2)
 
     # Save
     results = {
-        "run_id": args.run_id,
+        "run_id": str(run_dir.relative_to(RUNS_DIR)),
         "test_id": test_id,
         "scores": scores,
         "scored_at": datetime.now(timezone.utc).isoformat(),
@@ -232,5 +264,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    import sys
     main()

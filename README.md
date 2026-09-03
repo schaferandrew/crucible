@@ -116,6 +116,12 @@ pip3 install -e .
 crucible run C1 --model openrouter/moonshotai/kimi-k2.6
 ```
 
+### With the Poolside agent instead of opencode
+```bash
+crucible run C1 --agent pool --provider ollama
+```
+The model is passed to pool's standalone API as a bare name (provider prefixes are stripped automatically).
+
 ### Full Suite
 ```bash
 crucible run all --model openrouter/moonshotai/kimi-k2.6
@@ -126,25 +132,30 @@ crucible run all --model openrouter/moonshotai/kimi-k2.6
 crucible run G2 --model ollama/qwen3:30b-a3b
 ```
 
-### Watch Mode (opens full TUI)
+### Watch Mode (opens the agent TUI with the prompt pre-loaded)
 ```bash
 crucible run C2b --model openrouter/moonshotai/kimi-k2.6 --watch
+crucible run C1 --agent pool --provider ollama --watch
 ```
-This opens the interactive opencode TUI in the workspace directory so you can observe the model working in real time. Press `q` or `Ctrl+C` to exit when done. In watch mode, output streams live to the terminal and is not captured to `stdout.txt`.
+This opens the opencode or pool TUI in the workspace directory so you can observe the model working in real time (pool auto-sends the prompt via its prompt queue). Press `q` or `Ctrl+C` to exit. In watch mode, output streams live to the terminal and is not captured to `stdout.txt`.
 
 *Alternative: Use `python3 -m crucible.cli ...` if `crucible` is not on PATH.*
 
 ### Suite Categories
+Suites are derived from test-ID prefixes: `C`→coding, `W`→writing, `E`→everyday, `G`→reasoning, `H`→home.
+
 - `coding`: C1, C1b, C2, C2b, C3, C4, C4b, C5, C6
 - `writing`: W1a, W1b, W1c, W2, W2b
-- `everyday`: E1-E3
+- `everyday`: E1-E4
 - `reasoning`: G1-G3
 - `home`: H1-H4
 - `all`: Everything
 
+Each prompt also declares a scoring **category** (`coding_build`, `coding_debug`, `coding_repo`, `browser_tool`, `everyday`, `reasoning`, `structured_data`, `long_agent`, `home_maintenance`, `writing`) used for run directory layout and sweep aggregation. Run paths are `runs/<model_slug>/<category>/<test_id>/<timestamp>/`.
+
 ## Scoring
 
-After a run completes, score it interactively:
+After a run completes, crucible offers to score it right away (`Would you like to score ... now? [y/N]`). You can also score later:
 ```bash
 crucible score <RUN_ID>
 ```

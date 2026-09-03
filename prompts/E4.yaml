@@ -1,0 +1,12 @@
+test_id: E4
+needs_tools: true
+category: everyday
+auto_grade: false
+repo: null
+prompt: |
+  Create a morning brief. Pull together important emails from yesterday, upcoming calendar events, and important news for me where I live. End with a paragraph in spanish that is relevant to the content of the day to help me keep practicing.
+  - criterion: "Proper Language Switching"
+    max_score: 2
+    description: "Only the last paragraph is in spanish, the briefing is in english"
+
+critical_failure: null

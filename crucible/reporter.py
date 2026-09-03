@@ -12,21 +12,10 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from crucible.scorer import find_run_dir
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 RUNS_DIR = REPO_ROOT / "runs"
-
-
-def find_run_dir(run_id_or_path: str) -> Path | None:
-    """Resolve a run identifier to a directory path."""
-    direct = RUNS_DIR / run_id_or_path
-    if direct.exists() and direct.is_dir():
-        return direct
-    
-    for candidate in RUNS_DIR.rglob(run_id_or_path):
-        if candidate.is_dir():
-            return candidate
-    
-    return None
 
 
 def load_run(run_id: str) -> dict | None:

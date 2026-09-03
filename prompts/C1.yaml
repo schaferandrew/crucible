@@ -1,4 +1,5 @@
 test_id: C1
+needs_tools: true
 category: coding_build
 auto_grade: true
 repo: null

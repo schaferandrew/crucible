@@ -11,3 +11,4 @@ results*.json
 *.egg-info/
 dist/
 build/
+.poolside/
