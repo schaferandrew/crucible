@@ -4,18 +4,23 @@ needs_tools: true
 auto_grade: true
 repo: null
 prompt: |
-  What is the current weather in Saint Paul, MN right now? Fetch live conditions from the web — do not answer from training data. Then compare today's actual temperature with the historical average for this date and say whether today is typical or an outlier. Cite the source you fetched from.
+  What is the current weather in Saint Paul, MN right now? Fetch it live from Open-Meteo's JSON API (no key required):
+    https://api.open-meteo.com/v1/forecast?latitude=44.9537&longitude=-93.09&current_weather=true&temperature_unit=fahrenheit&timezone=America%2FChicago
+  Then compare today's temperature with the historical average for this date. Open-Meteo's archive API returns the whole range in one call — fetch it, filter the rows matching today's month/day across years, and average them:
+    https://archive-api.open-meteo.com/v1/archive?latitude=44.9537&longitude=-93.09&start_date=2016-09-03&end_date=2025-09-03&daily=temperature_2m_max&temperature_unit=fahrenheit
+  (adjust the dates to today's month/day). Report: current temperature and conditions, the historical average, and whether today is typical or an outlier. Cite the endpoints you used.
+  Do not scrape HTML weather sites; these JSON endpoints are the sources of truth.
 rubric:
-  - criterion: "Live fetch performed"
+  - criterion: "Live fetch from JSON API"
     max_score: 3
-    description: "Used a web fetch to get current conditions instead of answering from memory."
+    description: "Fetched current conditions from the Open-Meteo (or equivalent machine-readable JSON) API; no HTML scraping, no answering from memory."
   - criterion: "Current conditions reported"
     max_score: 3
-    description: "Reports current temperature and conditions consistent with a real-time source."
+    description: "Temperature and conditions consistent with the API response."
   - criterion: "Historical comparison"
     max_score: 3
-    description: "Compares against the historical average for this date and states whether today is typical or an outlier."
+    description: "Fetched the archive data, computed the historical average for this date, and stated whether today is typical or an outlier."
   - criterion: "Source attribution"
     max_score: 1
-    description: "Names the source fetched."
+    description: "Names the endpoints used."
 critical_failure: "Inventing live conditions without a fetch caps the score at 4."
