@@ -1,4 +1,5 @@
 test_id: C2b
+needs_tools: true
 category: coding_debug
 auto_grade: false
 repo: navbar-responsive

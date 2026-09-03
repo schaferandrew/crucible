@@ -1,0 +1,29 @@
+test_id: E6b
+category: everyday
+needs_tools: true
+auto_grade: true
+repo: null
+prompt: |
+  What is the current weather in Saint Paul, MN right now? Fetch it live from a machine-readable JSON API (no key required) — use one of:
+    - Open-Meteo (one call): https://api.open-meteo.com/v1/forecast?latitude=44.9537&longitude=-93.09&current_weather=true&temperature_unit=fahrenheit&timezone=America%2FChicago
+    - NWS latest observation: https://api.weather.gov/stations/KSTP/observations/latest (include a User-Agent header, e.g. curl -A "crucible-benchmark")
+
+  Then compare today's temperature with the historical average for this date. Use one of:
+    - Open-Meteo archive (whole range in one call — filter rows matching today's month/day across years and average): https://archive-api.open-meteo.com/v1/archive?latitude=44.9537&longitude=-93.09&start_date=2016-09-03&end_date=2025-09-03&daily=temperature_2m_max&temperature_unit=fahrenheit (adjust dates to today's month/day)
+    - NOAA NCEI 1991-2020 daily normals: https://www.ncei.noaa.gov/access/services/data/v1?dataset=normals-daily&stations=USW00014922&startDate=<today>&endDate=<today>&units=standard&format=json
+
+  Report: current temperature and conditions, the historical average, and whether today is typical or an outlier. Cite the endpoints you used. Do not scrape HTML weather sites; these JSON endpoints are the sources of truth.
+rubric:
+  - criterion: "Live fetch from JSON API"
+    max_score: 3
+    description: "Fetched current conditions from one of the listed (or equivalent machine-readable JSON) APIs; no HTML scraping, no answering from memory."
+  - criterion: "Current conditions reported"
+    max_score: 3
+    description: "Temperature and conditions consistent with the API response."
+  - criterion: "Historical comparison"
+    max_score: 3
+    description: "Fetched historical/normals data, computed or read the average for this date, and stated whether today is typical or an outlier."
+  - criterion: "Source attribution"
+    max_score: 1
+    description: "Names the endpoints used."
+critical_failure: "Inventing live conditions without a fetch caps the score at 4."

@@ -1,10 +1,10 @@
 test_id: E1
-needs_tools: false
+needs_tools: true
 category: everyday
 auto_grade: false
 repo: null
 prompt: |
-  Give me today's news briefing for Chicago, IL. Cover local, state, national, and global news. Prioritize events that happened or materially changed today. For each item, give: what happened, why it matters, and the source. Distinguish reported facts from analysis. Avoid repeating the same story across sections. Give me the five most important stories first, then a short section of other notable developments.
+  Give me today's news briefing for Saint Paul, MN. Cover local, state, national, and global news. Prioritize events that happened or materially changed today. For each item, give: what happened, why it matters, and the source. Distinguish reported facts from analysis. Avoid repeating the same story across sections. Give me the five most important stories first, then a short section of other notable developments.
 rubric:
   - criterion: "Factual accuracy"
     max_score: 3
