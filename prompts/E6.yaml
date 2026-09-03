@@ -1,0 +1,21 @@
+test_id: E6
+category: everyday
+needs_tools: true
+auto_grade: true
+repo: null
+prompt: |
+  What is the current weather in Saint Paul, MN right now? Fetch live conditions from the web — do not answer from training data. Then compare today's actual temperature with the historical average for this date and say whether today is typical or an outlier. Cite the source you fetched from.
+rubric:
+  - criterion: "Live fetch performed"
+    max_score: 3
+    description: "Used a web fetch to get current conditions instead of answering from memory."
+  - criterion: "Current conditions reported"
+    max_score: 3
+    description: "Reports current temperature and conditions consistent with a real-time source."
+  - criterion: "Historical comparison"
+    max_score: 3
+    description: "Compares against the historical average for this date and states whether today is typical or an outlier."
+  - criterion: "Source attribution"
+    max_score: 1
+    description: "Names the source fetched."
+critical_failure: "Inventing live conditions without a fetch caps the score at 4."

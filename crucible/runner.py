@@ -50,6 +50,9 @@ REPOS_DIR = REPO_ROOT / "repos"
 TOOL_CALL_TYPES = {"tool", "toolCall"}  # opencode export, pool NLJSON
 
 OPENROUTER_API = "https://openrouter.ai/api/v1"
+# Ollama's OpenAI-compatible endpoint; explicit base URL forces pool into
+# standalone mode even when tenant (Poolside cloud) credentials are present.
+OLLAMA_OPENAI_API = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/") + "/v1"
 
 
 # --------------------------------------------------------------------------
@@ -444,9 +447,11 @@ def _run_direct(test_id: str, run_id: str, run_dir: Path, prompt_def: dict,
 def _pool_config(model: str | None) -> tuple[dict, list[str], str | None]:
     """Build the env/cmd adjustments for pool's standalone vs tenant modes.
 
-    - no model          -> tenant mode (logged-in Poolside managed model)
-    - ollama/<model>    -> standalone against pool.api_url (local ollama)
-    - openrouter/<v>/<m>-> standalone against OpenRouter. The --api-url flag
+    - no model           -> tenant mode (logged-in Poolside managed model)
+    - ollama/<model>     -> standalone against local ollama. The base URL must
+      be pinned explicitly: with tenant credentials present, pool ignores
+      settings.yaml's pool.api_url and would otherwise hit Poolside cloud.
+    - openrouter/<v>/<m> -> standalone against OpenRouter. The --api-url flag
       gets blocked by Cloudflare bot detection, but the
       POOLSIDE_STANDALONE_BASE_URL env var works.
     """
@@ -462,6 +467,10 @@ def _pool_config(model: str | None) -> tuple[dict, list[str], str | None]:
         env["POOLSIDE_STANDALONE_BASE_URL"] = OPENROUTER_API
         env["POOLSIDE_STANDALONE_MODEL"] = standalone_model = model.split("/", 1)[1]
         extra_flags = ["--sandbox", "disabled"]
+    elif model and model.startswith("ollama/"):
+        standalone_model = model.rsplit("/", 1)[-1]
+        env["POOLSIDE_STANDALONE_BASE_URL"] = OLLAMA_OPENAI_API
+        env["POOLSIDE_STANDALONE_MODEL"] = standalone_model
     elif model and model != "pool":
         standalone_model = model.rsplit("/", 1)[-1]
         env["POOLSIDE_STANDALONE_MODEL"] = standalone_model
@@ -556,6 +565,11 @@ def _run_opencode(test_id: str, run_id: str, run_dir: Path, prompt_text: str,
 
     if not watch:
         _export_opencode_session(workspace_abs, title, run_dir)
+    else:
+        # Watch runs capture no stdout, but the TUI session holds the full
+        # transcript — export it (newest session; the TUI auto-titles it) so
+        # scoring has something to read.
+        _export_opencode_session(workspace_abs, None, run_dir)
 
     if result["timed_out"]:
         status = "TIMEOUT"
@@ -569,24 +583,30 @@ def _run_opencode(test_id: str, run_id: str, run_dir: Path, prompt_text: str,
     return run_id
 
 
-def _export_opencode_session(workspace_abs: str, title: str, run_dir: Path) -> None:
-    """Export the run's opencode session transcript to session.json.
+def _export_opencode_session(workspace_abs: str, title: str | None, run_dir: Path) -> None:
+    """Export an opencode session transcript to session.json.
 
     Sessions live in the workspace's project-scoped DB, so list/export must run
-    with cwd=workspace and use the real session ID resolved from the title.
+    with cwd=workspace. title=None (watch runs, where the TUI auto-titles the
+    session) exports the most recent session. No --sanitize: it redacts the
+    transcript text itself, making the capture unreadable.
     """
     try:
         listing = subprocess.run(
             ["opencode", "session", "list", "--format", "json"],
             cwd=workspace_abs, capture_output=True, text=True, timeout=30,
         )
-        sid = next((e.get("id") for e in json.loads(listing.stdout or "[]")
-                    if e.get("title") == title), None)
+        entries = json.loads(listing.stdout or "[]")
+        if title:
+            sid = next((e.get("id") for e in entries if e.get("title") == title), None)
+        else:
+            newest = max(entries, key=lambda e: e.get("updated", 0), default=None)
+            sid = newest.get("id") if newest else None
         if not sid:
             print("  Warning: session not found; skipping session.json")
             return
         export = subprocess.run(
-            ["opencode", "export", sid, "--sanitize"],
+            ["opencode", "export", sid],
             cwd=workspace_abs, capture_output=True, text=True, timeout=60,
         )
         (run_dir / "session.json").write_text(

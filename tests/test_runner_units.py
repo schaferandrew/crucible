@@ -80,9 +80,13 @@ class TestPoolConfig:
         assert "POOLSIDE_STANDALONE_MODEL" not in env
         assert standalone is None
 
-    def test_ollama_standalone(self):
+    def test_ollama_standalone_pins_base_url(self):
+        # With tenant credentials present, pool ignores settings.yaml's
+        # api_url — the base URL must be pinned or inference silently goes
+        # to Poolside cloud instead of ollama
         env, flags, standalone = runner._pool_config("ollama/laguna-xs-2.1:nvfp4")
         assert env["POOLSIDE_STANDALONE_MODEL"] == "laguna-xs-2.1:nvfp4"
+        assert env["POOLSIDE_STANDALONE_BASE_URL"] == runner.OLLAMA_OPENAI_API
         assert flags == []
         assert standalone == "laguna-xs-2.1:nvfp4"
 

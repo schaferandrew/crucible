@@ -53,6 +53,28 @@ def find_run_dir(run_id_or_path: str) -> Path:
     raise FileNotFoundError(f"Run not found: {run_id_or_path}")
 
 
+def _session_model_output(session_path: Path) -> str | None:
+    """Extract the model's reply from a session capture (opencode or pool)."""
+    try:
+        data = json.loads(session_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+
+    texts = []
+    if isinstance(data, dict):  # opencode export: messages -> parts -> text
+        for msg in data.get("messages", []):
+            if msg.get("info", {}).get("role") not in (None, "assistant"):
+                continue
+            for part in msg.get("parts", []):
+                if part.get("type") == "text" and part.get("text"):
+                    texts.append(part["text"])
+    elif isinstance(data, list):  # pool NLJSON events
+        for event in data:
+            if event.get("type") == "assistantMessage" and event.get("message"):
+                texts.append(event["message"])
+    return "\n\n".join(texts) if texts else None
+
+
 def score_interactive(test_id: str, run_dir: Path) -> dict:
     """Present rubric and collect scores interactively."""
     prompt = load_prompt(test_id)
@@ -60,10 +82,19 @@ def score_interactive(test_id: str, run_dir: Path) -> dict:
     rubric = prompt.get("rubric", [])
     critical = prompt.get("critical_failure")
 
-    # Load model output for context
+    # Model output: stdout.txt first; watch runs capture nothing there, so fall
+    # back to the session transcript.
     stdout_path = run_dir / "stdout.txt"
     prompt_path = run_dir / "prompt.txt"
-    model_output = stdout_path.read_text(encoding="utf-8") if stdout_path.exists() else "[No stdout captured]"
+    model_output = stdout_path.read_text(encoding="utf-8") if stdout_path.exists() else ""
+    if not model_output.strip():
+        session_path = run_dir / "session.json"
+        if session_path.exists():
+            fallback = _session_model_output(session_path)
+            if fallback:
+                model_output = f"{fallback}\n\n[captured from session.json — watch run]"
+    if not model_output.strip():
+        model_output = "[No stdout captured]"
     prompt_text = prompt_path.read_text(encoding="utf-8") if prompt_path.exists() else prompt.get("prompt", "[Prompt not found]")
     hidden_answer = prompt.get("hidden_answer")
 
