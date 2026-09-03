@@ -11,8 +11,9 @@ from pathlib import Path
 from typing import Any
 
 
-LMSTUDIO_BASE_URL = os.environ.get("LMSTUDIO_BASE_URL", "http://127.0.0.1:1234/v1")
-OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
+from crucible.constants import (
+    OLLAMA_BASE_URL, OLLAMA_OPENAI_API, OPENROUTER_API, LMSTUDIO_BASE_URL,
+)
 
 
 def _parse_model(model: str) -> tuple[str, str]:

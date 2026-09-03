@@ -10,7 +10,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from crucible import runner, scorer, reporter
+from crucible import runner, scorer, reporter, eval_runner
 
 
 def _get_version() -> str:
@@ -93,6 +93,8 @@ def main():
         scorer.main()
     elif cmd == "report":
         reporter.main()
+    elif cmd == "eval":
+        eval_runner.main()
     else:
         print(f"Unknown command: {cmd}")
         print("Usage: crucible <run|score|report> [args...]")

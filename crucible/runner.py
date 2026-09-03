@@ -37,6 +37,7 @@ from pathlib import Path
 import yaml
 
 from crucible import direct_runner, scorer
+from crucible.constants import OLLAMA_OPENAI_API, OPENROUTER_API
 from crucible.selector import select_from_list
 from crucible.taxonomy import derive_suites, validate_category
 
@@ -48,11 +49,6 @@ REPOS_DIR = REPO_ROOT / "repos"
 
 # Event type names for tool invocations in session captures
 TOOL_CALL_TYPES = {"tool", "toolCall"}  # opencode export, pool NLJSON
-
-OPENROUTER_API = "https://openrouter.ai/api/v1"
-# Ollama's OpenAI-compatible endpoint; explicit base URL forces pool into
-# standalone mode even when tenant (Poolside cloud) credentials are present.
-OLLAMA_OPENAI_API = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/") + "/v1"
 
 
 # --------------------------------------------------------------------------

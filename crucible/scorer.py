@@ -14,6 +14,7 @@ from pathlib import Path
 
 import yaml
 
+from crucible import graders, llm_judge
 from crucible.taxonomy import validate_category
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -191,10 +192,114 @@ def score_interactive(test_id: str, run_dir: Path) -> dict:
     return scores
 
 
+# --------------------------------------------------------------------------
+# Auto-grading (deterministic + LLM judge)
+# --------------------------------------------------------------------------
+
+def _extract_raw_metrics(run_dir: Path) -> dict:
+    """Extract raw metrics from meta.json for scoring provenance."""
+    meta_path = run_dir / "meta.json"
+    if meta_path.exists():
+        with open(meta_path, encoding="utf-8") as f:
+            meta = json.load(f)
+        extracted = meta.get("metrics") or {}
+        timed_out = meta.get("timed_out")
+        returncode = meta.get("returncode")
+        final_success = (timed_out is not True) and (returncode in (0, None))
+        return {
+            "user_interventions": 0,
+            "tool_calls": extracted.get("tool_calls"),
+            "tests_passed": extracted.get("tests_passed"),
+            "tests_failed": extracted.get("tests_failed"),
+            "final_success": final_success,
+            "estimated_cost_usd": None,
+        }
+    return {
+        "user_interventions": 0,
+        "tool_calls": 0,
+        "tests_passed": 0,
+        "tests_failed": 0,
+        "final_success": True,
+        "estimated_cost_usd": 0.0,
+    }
+
+
+def auto_score(test_id: str, prompt_def: dict, run_dir: Path,
+               judge_model: str | None = None) -> tuple[dict, dict] | None:
+    """Automatically score a run using deterministic graders + optional LLM judge.
+
+    Returns (scores, provenance) where scores maps criterion→score and
+    provenance records what method produced each criterion. Returns None
+    if no automated grading is possible at all.
+    """
+    model_output = graders.get_model_output(run_dir)
+    scores: dict[str, float] = {}
+    provenance: dict[str, list[str]] = {"deterministic": [], "llm_judge": []}
+
+    # 1. Try deterministic grader
+    if graders.has_grader(test_id):
+        grader = graders.get_grader(test_id)
+        det_scores = grader(prompt_def, run_dir, model_output)
+        scores.update(det_scores)
+        provenance["deterministic"] = list(det_scores.keys())
+        print(f"\n  [auto] Deterministic grader scored {len(det_scores)} criterion/criteria.")
+
+    # 2. If LLM judge requested, judge remaining criteria
+    if judge_model:
+        judge = llm_judge.LLMJudge(judge_model)
+        remaining = {
+            item["criterion"] for item in prompt_def.get("rubric", [])
+        } - set(scores.keys())
+        if remaining:
+            print(f"  [judge] Sending {len(remaining)} un-graded criterion/criteria to {judge_model}...")
+            llm_scores = judge.judge(prompt_def, model_output, skip=set(scores.keys()))
+            scores.update(llm_scores)
+            provenance["llm_judge"] = list(llm_scores.keys())
+            print(f"  [judge] LLM judge scored {len(llm_scores)} criterion/criteria.")
+        else:
+            print("  [judge] All criteria already scored deterministically; skipping LLM judge.")
+
+    if not scores:
+        return None
+
+    # Record raw metrics
+    scores["_raw_metrics_auto"] = _extract_raw_metrics(run_dir)
+
+    # Track coverage for transparency
+    all_criteria = {item["criterion"] for item in prompt_def.get("rubric", [])}
+    scored = set(scores.keys()) & all_criteria
+    scores["_un_scored_criteria"] = sorted(all_criteria - scored)
+
+    return scores, provenance
+
+
+def _compute_overall(scores: dict, prompt_def: dict) -> float | None:
+    """Compute per-run overall score as a plain mean of normalized criterion scores (0–10).
+
+    Category sweep weights (taxonomy.CATEGORY_WEIGHTS) are NOT applied here —
+    they only make sense when aggregating a full sweep across categories.
+    """
+    rubric = {item["criterion"]: item["max_score"] for item in prompt_def.get("rubric", [])}
+    normalized = []
+    for criterion, score in scores.items():
+        if not criterion.startswith("_") and criterion in rubric:
+            normalized.append(score / rubric[criterion] * 10)
+    if not normalized:
+        return None
+    return round(sum(normalized) / len(normalized), 2)
+
+
+# --------------------------------------------------------------------------
+# Entry point
+# --------------------------------------------------------------------------
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Score a benchmark run")
     parser.add_argument("run_id", help="Run ID to score (full path like model/category/test/timestamp, or just timestamp)")
-    parser.add_argument("--auto", action="store_true", help="Run auto-grader if available")
+    parser.add_argument("--auto", action="store_true",
+                        help="Run deterministic auto-grader if available for this test")
+    parser.add_argument("--judge", metavar="MODEL",
+                        help="Use an LLM judge for un-graded criteria (e.g. ollama/qwen3:14b or openrouter/deepseek/deepseek-v4-flash)")
     args = parser.parse_args()
 
     try:
@@ -227,26 +332,49 @@ def main() -> None:
         print("Could not determine test_id")
         sys.exit(1)
 
-    # Run auto-grader
-    if args.auto:
-        print("Auto-grader not yet implemented in this version.")
+    prompt = load_prompt(test_id)
 
-    # Interactive scoring
+    # ---- Auto-grading path ----
+    if args.auto or args.judge:
+        result = auto_score(test_id, prompt, run_dir, args.judge)
+        if result is not None:
+            scores, provenance = result
+            overall = _compute_overall(scores, prompt)
+            if overall is not None:
+                scores["_overall"] = overall
+
+            results = {
+                "run_id": args.run_id,
+                "test_id": test_id,
+                "scores": scores,
+                "auto_graded": True,
+                "provenance": {
+                    "deterministic_criteria": provenance["deterministic"],
+                    "llm_judge_criteria": provenance["llm_judge"],
+                    "judge_model": args.judge or None,
+                },
+                "scored_at": datetime.now(timezone.utc).isoformat(),
+            }
+            results_path = run_dir / "results.json"
+            with open(results_path, "w", encoding="utf-8") as f:
+                json.dump(results, f, indent=2)
+            print(f"\n[COMPLETE] Auto-scored results saved to {results_path}")
+            if scores.get("_overall") is not None:
+                print(f"  Overall: {scores['_overall']}/10")
+            return
+
+        # No automated grader available at all
+        if args.auto and not args.judge:
+            print(f"No automated grader available for {test_id}; falling back to interactive scoring.")
+        else:
+            print(f"Auto-scoring failed for {test_id}; falling back to interactive scoring.")
+
+    # ---- Interactive scoring (fallback) ----
     scores = score_interactive(test_id, run_dir)
 
-    # Per-run overall: plain mean of criterion scores normalized to 0-10.
-    # Category sweep weights (taxonomy.CATEGORY_WEIGHTS) are NOT applied here —
-    # they only make sense when aggregating a full sweep across categories.
-    prompt = load_prompt(test_id)
-    rubric = {item["criterion"]: item["max_score"] for item in prompt.get("rubric", [])}
-
-    normalized = []
-    for criterion, score in scores.items():
-        if not criterion.startswith("_") and criterion in rubric:
-            normalized.append(score / rubric[criterion] * 10)
-
-    if normalized:
-        scores["_overall"] = round(sum(normalized) / len(normalized), 2)
+    overall = _compute_overall(scores, prompt)
+    if overall is not None:
+        scores["_overall"] = overall
 
     # Save
     results = {
