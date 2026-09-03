@@ -471,6 +471,9 @@ def _pool_config(model: str | None) -> tuple[dict, list[str], str | None]:
         standalone_model = model.rsplit("/", 1)[-1]
         env["POOLSIDE_STANDALONE_BASE_URL"] = OLLAMA_OPENAI_API
         env["POOLSIDE_STANDALONE_MODEL"] = standalone_model
+        # Ollama ignores auth, but the TUI's ACP session/new refuses to start
+        # without a token ("Authentication required"); any placeholder works.
+        env.setdefault("POOLSIDE_API_KEY", "ollama")
     elif model and model != "pool":
         standalone_model = model.rsplit("/", 1)[-1]
         env["POOLSIDE_STANDALONE_MODEL"] = standalone_model
@@ -672,6 +675,61 @@ def run_single(test_id: str, model: str | None, watch: bool, timeout: int,
                          title=f"{now}_{test_id}_{model_slug}")
 
 
+def _meta_status(run_dir: Path) -> str:
+    """Classify a finished run from its meta.json."""
+    try:
+        meta = json.loads((run_dir / "meta.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return "ERROR (no meta recorded)"
+    if meta.get("timed_out"):
+        return "TIMEOUT"
+    rc = meta.get("returncode")
+    if rc == 0:
+        return "COMPLETE"
+    if rc == 4:
+        return "TASK FAILED"
+    return f"ERROR (exit {rc})"
+
+
+def _close_the_loop(run_id: str, args: argparse.Namespace) -> None:
+    """Interactively score successful runs; failed runs can be retried or discarded."""
+    while True:
+        status = _meta_status(args.output / run_id)
+        try:
+            if status == "COMPLETE":
+                answer = input(f"\nWould you like to score {run_id} now? [y/N] ").strip().lower()
+                if answer in ("y", "yes"):
+                    print()
+                    sys.argv = ["crucible score", run_id]
+                    scorer.main()
+                return
+            answer = input(
+                f"\nRun {status}: {run_id}\n[d]iscard it, [r]etry it, or Enter to leave it? "
+            ).strip().lower()
+        except EOFError:
+            return
+
+        if answer == "d":
+            shutil.rmtree(args.output / run_id, ignore_errors=True)
+            print(f"  Discarded {run_id}")
+            return
+        if answer == "r":
+            try:
+                meta = json.loads((args.output / run_id / "meta.json").read_text(encoding="utf-8"))
+                test_id = meta.get("test_id")
+            except (OSError, json.JSONDecodeError):
+                print("  Cannot retry: meta.json unreadable")
+                return
+            if not test_id:
+                print("  Cannot retry: test_id unknown")
+                return
+            print()
+            run_id = run_single(test_id, args.model, args.watch, args.timeout,
+                                args.output, args.agent)
+            continue
+        return
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="crucible run",
@@ -725,18 +783,11 @@ def main() -> None:
         print(f"  {rid}")
     print(f"{'='*60}")
 
-    # Close the loop: offer to score right away (interactive sessions only, so
-    # scripted/headless invocations are never blocked on a prompt).
+    # Close the loop: score successful runs, discard/retry failed ones.
+    # Interactive sessions only, so scripted/headless invocations never block.
     if run_ids and sys.stdin.isatty():
         for rid in run_ids:
-            try:
-                answer = input(f"\nWould you like to score {rid} now? [y/N] ").strip().lower()
-            except EOFError:
-                break
-            if answer in ("y", "yes"):
-                print()
-                sys.argv = ["crucible score", rid]
-                scorer.main()
+            _close_the_loop(rid, args)
 
 
 if __name__ == "__main__":
