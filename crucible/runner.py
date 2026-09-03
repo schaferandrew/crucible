@@ -26,6 +26,7 @@ import argparse
 import json
 import os
 import re
+import shlex
 import shutil
 import signal
 import subprocess
@@ -588,13 +589,15 @@ def _transcript_lines(events: list[dict]) -> list[str]:
 
 def _export_pool_watch_session(run_dir: Path, workspace_abs: str) -> None:
     """Build session.json + transcript for a pool TUI (watch) run.
+
     The TUI prints to the terminal, so nothing lands in stdout.txt and scoring
     would have nothing to read. Pool records every session as an NDJSON
-    trajectory under its data dir, keyed by session ID; the workspace-scoped
-    log dir maps run -> newest session ID. Events are converted into the same
-    schema split_pool_output produces from headless NLJSON stdout:
-    assistantMessage {message}, toolCall {name, args}, toolCallResult {result}.
-    Best effort: leaves watch artifacts untouched when nothing is found.
+    trajectory keyed by session ID; the trajectory's session.start event names
+    its working directories, which maps run -> trajectory. Events are
+    converted into the same schema split_pool_output produces from headless
+    NLJSON stdout: assistantMessage {message}, toolCall {name, args},
+    toolCallResult {result}. Best effort: leaves watch artifacts untouched
+    when nothing is found.
     """
     trajectory = _find_pool_trajectory(workspace_abs)
     if trajectory is None:
@@ -815,7 +818,7 @@ def _run_opencode(test_id: str, run_id: str, run_dir: Path, prompt_text: str,
     run_env = {**os.environ, **mcp_env} if mcp_env else None
     env_line = ""
     if mcp_env:
-        env_line = f"export OPENCODE_CONFIG_CONTENT={mcp_env['OPENCODE_CONFIG_CONTENT']}\n"
+        env_line = f"export OPENCODE_CONFIG_CONTENT={shlex.quote(mcp_env['OPENCODE_CONFIG_CONTENT'])}\n"
 
     if watch:
         cmd = ["opencode", workspace_abs, "--prompt", prompt_text, "--auto"]
