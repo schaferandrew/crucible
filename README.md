@@ -137,7 +137,11 @@ crucible run G2 --model ollama/qwen3:30b-a3b
 crucible run C2b --model openrouter/moonshotai/kimi-k2.6 --watch
 crucible run C1 --agent pool --provider ollama --watch
 ```
-This opens the opencode or pool TUI in the workspace directory so you can observe the model working in real time (pool auto-sends the prompt via its prompt queue). Press `q` or `Ctrl+C` to exit. In watch mode, output streams live to the terminal and is not captured to `stdout.txt`.
+This opens the opencode or pool TUI in the workspace directory so you can observe the model working in real time (pool auto-sends the prompt via its prompt queue). Quit the TUI when the task completes (`/quit` for pool, `Ctrl+C` for opencode) — the run finalizes after the TUI exits.
+
+Watch runs are fully scoreable: pool rebuilds `session.json` + a readable `stdout.txt` transcript from its trajectory record, and opencode exports its session, so tool calls and output text are captured in both modes. Pool watch runs auto-approve tool calls (`--mode always-allow`, matching headless `--unsafe-auto-allow`) so unattended runs never stall on permission prompts.
+
+> **Note:** driving a TUI from a headless shell (synthetic pty) is unreliable for teardown — watch mode is designed for a human terminal. For unattended automation, use headless mode.
 
 *Alternative: Use `python3 -m crucible.cli ...` if `crucible` is not on PATH.*
 
@@ -215,3 +219,49 @@ Default timeout is 600 seconds (10 minutes) per test. Override with `--timeout`:
 ```bash
 crucible run C1 --model openrouter/moonshotai/kimi-k2.6 --timeout 300
 ```
+
+## Mock MCP Server
+
+Tests that need email / calendar / news / weather data declare the mock MCP server in their prompt YAML:
+
+```yaml
+mcp_servers:
+  - mock-data
+```
+
+The server (`fixtures/mock-mcp-server/mock_server.py`, stdio JSON-RPC) serves fixture data from `fixtures/mock-data/` (`emails.json`, `calendar.json`, `news.json`, `weather.json`) via four tools: `get_emails`, `get_calendar_events`, `get_news`, `get_weather`.
+
+**Wiring is per-run and self-contained — nothing goes in global agent configs:**
+- **opencode**: the runner injects `OPENCODE_CONFIG_CONTENT` into the spawned process only
+- **pool**: pool has no per-launch MCP config, so the runner adds the entry to `~/.config/poolside/settings.yaml` for the run and removes it afterwards (a pre-existing `mock-data` entry is left untouched)
+
+This makes fresh machines work with zero manual setup: install the repo, run the test, the mock server is wired up and torn down automatically.
+
+### Token usage
+
+`meta.json` records `tokens_in` / `tokens_out` per run (from opencode's session export or pool's trajectory record). Caveats: opencode's `tokens_out` includes reasoning tokens; pool's `tokens_in` may include cached input.
+
+### Verified MCP permutations (E4)
+
+All combinations below ran against the mock MCP server; "✓" means the mock tools were invoked and the briefing ended with the Spanish paragraph.
+
+| Agent   | Mode     | Model                                   | Run (20260903_*) | Result | tokens in/out |
+|---------|----------|------------------------------------------|------------------|--------|---------------|
+| pool    | headless | tenant default (laguna-xs-2.1:nvfp4)     | 131513           | ✓      | 12513 / 925   |
+| pool    | headless | openrouter/deepseek/deepseek-v4-flash    | 032355           | ✓      | 12833 / 1027  |
+| pool    | headless | openrouter/moonshotai/kimi-k2.6          | 030425           | ✓      | n/a (pre-fix) |
+| pool    | headless | ollama/laguna-xs-2.1:nvfp4               | 033147           | ✓      | 25533 / 740   |
+| opencode| headless | openrouter/anthropic/claude-sonnet-4.5   | 010917           | ✓      | n/a (pre-fix) |
+| opencode| headless | openrouter/deepseek/deepseek-v4-flash    | 032424           | ✓      | n/a (run pre-dated token capture wiring) |
+| pool    | watch    | ollama/laguna-xs-2.1:nvfp4               | 033631           | ✓      | 29207 / 776   |
+| pool    | watch    | openrouter/deepseek/deepseek-v4-flash    | 040603           | ✓ *    | 14584 / 1209  |
+| opencode| watch    | openrouter/deepseek/deepseek-v4-flash    | 041420           | ✓      | n/a (run pre-dated token capture wiring) |
+
+\* Task completed and verified via pool's ACP log; artifacts were exported from the trajectory record after a synthetic-pty teardown.
+
+### Pitfalls learned
+
+- **Rubrics must live in a top-level `rubric:` key**, never inside `prompt:` — otherwise the agent sees the eval criteria (fixed for E4; all prompts scanned).
+- **Stale global `crucible` install**: an editable install pointing at a different checkout silently runs old code (symptom: "MCP not available" despite everything else working). Check with `pip show crucible | grep -i editable`.
+- **Pool watch without auto-approve stalls**: the TUI blocks on tool-approval prompts; the runner now passes `--mode always-allow` in watch mode.
+- **Pool has no per-launch MCP flag**: only settings.yaml; hence the harness's add/remove-around-the-run approach.
