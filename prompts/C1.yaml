@@ -3,6 +3,9 @@ needs_tools: true
 category: coding_build
 auto_grade: true
 repo: null
+auto_grader:
+  type: module
+  module: crucible.graders.c1_compound
 prompt: |
   Create a CLI tool for calculating interest, similar in spirit to a consumer interest calculator such as interest.gov. Decide what inputs, outputs, and useful features the tool should provide. Make it easy to use and include tests and documentation.
 rubric:

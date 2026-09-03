@@ -3,6 +3,9 @@ category: everyday
 needs_tools: true
 auto_grade: true
 repo: null
+auto_grader:
+  type: module
+  module: crucible.graders.e6_research
 prompt: |
   What is the current weather in Saint Paul, MN right now? Find a reliable, machine-readable source yourself — fetch live conditions, then compare today's temperature with the historical average for this date (find historical data yourself as well). Report: current temperature and conditions, the historical average, and whether today is typical or an outlier. Cite the sources you used and briefly explain why you trusted them.
   If a source fails or blocks you, adapt rather than giving up — but never invent data.

@@ -14,21 +14,15 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-import yaml
-
 from crucible import graders, llm_judge
+from crucible.graders.helpers import load_prompt
 from crucible.taxonomy import validate_category
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-PROMPTS_DIR = REPO_ROOT / "prompts"
 RUNS_DIR = REPO_ROOT / "runs"
 
 # Default LLM judge model — well-suited to the M1 Pro 32GB target machine.
 DEFAULT_JUDGE_MODEL = "ollama/qwen3:14b"
-
-def load_prompt(test_id: str) -> dict:
-    with open(PROMPTS_DIR / f"{test_id}.yaml", encoding="utf-8") as f:
-        return yaml.safe_load(f)
 
 
 def find_run_dir(run_id_or_path: str) -> Path:

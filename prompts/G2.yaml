@@ -4,6 +4,9 @@ category: structured_data
 auto_grade: true
 repo: null
 fixtures: calendar-fixture.json
+auto_grader:
+  type: module
+  module: crucible.graders.g2_calendar
 prompt: |
   Find all meeting times during the next seven days that work for both people. The meeting must be 60 minutes, must occur between 9:00 AM and 5:00 PM local time, and must not overlap any busy event. Prefer weekdays. Rank the three best options by minimizing gaps between existing meetings and avoiding the first or last available hour of the day. Return valid JSON with an explanation field for each recommendation.
 

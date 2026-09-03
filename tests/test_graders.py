@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
-"""Tests for deterministic auto-graders."""
+"""Tests for deterministic auto-graders.
+
+Tests for E5 and G1 use the declarative YAML rule engine (rules are defined
+in the prompt YAML's auto_grader section).  Tests for G2, C1, and E6 use
+the dedicated Python grader modules.
+"""
 import json
-import sys
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
@@ -10,7 +14,7 @@ import pytest
 from crucible import graders
 from crucible.graders import (
     GRADERS, _extract_json_block, _extract_json_objects, get_model_output,
-    grade_e5, grade_g1, grade_g2, grade_c1, grade_e6, has_grader,
+    grade_c1, grade_e5, grade_e6, grade_g1, grade_g2, has_grader, get_grader,
 )
 
 
@@ -23,14 +27,10 @@ def _prompt(test_id: str, rubric: list, critical_failure=None, **extra):
     prompt.update(extra)
     return prompt
 
-
 E5_PROMPT = _prompt("E5", [
     {"criterion": "Correct answer", "max_score": 10,
      "description": "States that firetrucks in the US are (predominantly) red"}
 ])
-E5_PROMPT_WITH_CF = _prompt("E5", [
-    {"criterion": "Correct answer", "max_score": 10}
-], critical_failure="Inventing firetruck color caps score at 5")
 
 G1_PROMPT = _prompt("G1", [
     {"criterion": "Correct answer", "max_score": 4},
@@ -64,21 +64,33 @@ E6_PROMPT = _prompt("E6", [
 
 
 class TestRegistry:
-    def test_graders_registered(self):
-        assert "E5" in GRADERS
-        assert "G1" in GRADERS
-        assert "G2" in GRADERS
-        assert "C1" in GRADERS
-        assert "C1b" in GRADERS
-        assert "E6" in GRADERS
+    def test_has_grader_true_for_known_tests(self):
+        for tid in ("E5", "G1", "G2", "C1", "C1b", "E6"):
+            assert has_grader(tid) is True
 
-    def test_has_grader(self):
-        assert has_grader("E5") is True
+    def test_has_grader_false_for_unknown(self):
         assert has_grader("W1a") is False
         assert has_grader("X9") is False
 
+    def test_get_grader_returns_callable(self):
+        for tid in ("E5", "G1", "G2", "C1", "C1b", "E6"):
+            grader = get_grader(tid)
+            assert callable(grader)
+
     def test_c1b_uses_c1_grader(self):
-        assert graders.get_grader("C1b") is graders.get_grader("C1")
+        assert get_grader("C1b") is get_grader("C1")
+
+    def test_c1_grader_in_graders_dict(self):
+        assert "C1" in GRADERS
+        assert "C1b" in GRADERS
+
+    def test_e5_uses_declarative_rules(self):
+        """E5 has no Python module — it's driven by YAML declarative rules."""
+        grader = get_grader("E5")
+        assert grader is not None
+        # The grader should work when given a prompt with the rubric
+        scores = grader(E5_PROMPT, Path("/tmp"), "Firetrucks are red.")
+        assert scores == {"Correct answer": 10.0}
 
 
 class TestExtractJson:
@@ -105,60 +117,71 @@ class TestExtractJson:
 
 
 class TestGradeE5:
+    """E5 uses declarative YAML rules — tests go through get_grader()."""
+
+    def _grade(self, output):
+        return get_grader("E5")(E5_PROMPT, Path("/tmp"), output)
+
     def test_correct_answer_red(self):
-        scores = grade_e5(E5_PROMPT, Path("/tmp"), "Firetrucks in the US are red.")
+        scores = self._grade("Firetrucks in the US are red.")
         assert scores == {"Correct answer": 10.0}
 
     def test_correct_answer_with_nuance(self):
-        scores = grade_e5(E5_PROMPT, Path("/tmp"),
-                          "Firetrucks are predominantly red, though some departments use other colors.")
+        scores = self._grade(
+            "Firetrucks are predominantly red, though some departments use other colors.")
         assert scores == {"Correct answer": 10.0}
 
     def test_wrong_answer(self):
-        scores = grade_e5(E5_PROMPT, Path("/tmp"), "Firetrucks are blue.")
+        scores = self._grade("Firetrucks are blue.")
         assert scores == {"Correct answer": 0.0}
 
     def test_empty_output(self):
-        scores = grade_e5(E5_PROMPT, Path("/tmp"), "")
+        scores = self._grade("")
         assert scores == {"Correct answer": 0.0}
 
 
 class TestGradeG1:
+    """G1 uses declarative YAML rules — tests go through get_grader()."""
+
+    def _grade(self, output):
+        return get_grader("G1")(G1_PROMPT, Path("/tmp"), output)
+
     def test_correct_answer_dave_chair3(self):
         output = "The person in chair 3 is Dave, who likes red."
-        scores = grade_g1(G1_PROMPT, Path("/tmp"), output)
+        scores = self._grade(output)
         assert scores["Correct answer"] == 4.0
         assert scores["Final answer clearly stated"] == 1.0
 
     def test_wrong_answer(self):
         output = "The person in chair 3 is Alice."
-        scores = grade_g1(G1_PROMPT, Path("/tmp"), output)
+        scores = self._grade(output)
         assert scores["Correct answer"] == 0.0
 
     def test_ambiguity_mentioned(self):
         output = "Assuming standard interpretation, Dave is in chair 3. The puzzle could be ambiguous about..."
-        scores = grade_g1(G1_PROMPT, Path("/tmp"), output)
+        scores = self._grade(output)
         assert scores["Handles ambiguity"] == 2.0
 
     def test_no_ambiguity_mentioned(self):
         output = "Dave sits in chair 3. That's the answer."
-        scores = grade_g1(G1_PROMPT, Path("/tmp"), output)
+        scores = self._grade(output)
         assert scores["Handles ambiguity"] == 0.0
 
     def test_final_answer_cleared(self):
         output = "Chair 3 is Dave."
-        scores = grade_g1(G1_PROMPT, Path("/tmp"), output)
+        scores = self._grade(output)
         assert scores["Final answer clearly stated"] == 1.0
 
     def test_no_clear_answer(self):
         output = "This is a difficult puzzle."
-        scores = grade_g1(G1_PROMPT, Path("/tmp"), output)
+        scores = self._grade(output)
         assert scores["Final answer clearly stated"] == 0.0
 
 
 class TestGradeG2:
+    """G2 uses a dedicated Python module — tests call grade_g2 directly."""
+
     def test_valid_json_correct_slots(self):
-        # Model output with valid JSON containing conflict-free slots
         output = json.dumps([
             {"start": "2026-08-31T10:00:00-05:00", "end": "2026-08-31T11:00:00-05:00",
              "explanation": "Free slot Monday morning"},
@@ -166,12 +189,10 @@ class TestGradeG2:
              "explanation": "After design review"},
         ])
         scores = grade_g2(G2_PROMPT, Path("/tmp"), output)
-        # At minimum, correct JSON criterion should pass
         assert scores["Correct JSON"] == 2.0
         assert scores["Explanation"] >= 0.5
 
     def test_conflicting_slot_detected(self):
-        # Slot overlaps with Alex's 10:00-11:00 event
         output = json.dumps([
             {"start": "2026-08-31T10:00:00-05:00", "end": "2026-08-31T11:00:00-05:00",
              "explanation": "Meeting slot"}
@@ -187,7 +208,6 @@ class TestGradeG2:
         assert scores["Finds all valid options"] == 0.0
 
     def test_free_slot_accepted(self):
-        # 11:00-12:00 on Aug 31 is free for both (Alex busy 10-11, 13-14; Jamie busy 9-10, 14:00-15:30)
         output = json.dumps([
             {"start": "2026-08-31T11:00:00-05:00", "end": "2026-08-31T12:00:00-05:00",
              "explanation": "Free for both"},
@@ -197,6 +217,8 @@ class TestGradeG2:
 
 
 class TestGradeC1:
+    """C1/C1b uses a dedicated Python module — tests call grade_c1 directly."""
+
     def test_no_workspace(self, tmp_path):
         """Direct-mode runs have no workspace."""
         scores = grade_c1(C1_PROMPT, tmp_path, "Firetrucks are red.")
@@ -204,7 +226,7 @@ class TestGradeC1:
         assert scores["Tests"] == 0.0
         assert scores["Correct financial math"] == 0.0
 
-    @patch("crucible.graders._run_workspace_tests")
+    @patch("crucible.graders.c1_compound._run_workspace_tests")
     def test_tests_pass(self, mock_run_tests, tmp_path):
         mock_run_tests.return_value = (True, 15)
         workspace = tmp_path / "workspace"
@@ -215,7 +237,7 @@ class TestGradeC1:
         scores = grade_c1(C1_PROMPT, tmp_path, "")
         assert scores["Tests"] == 2.0
 
-    @patch("crucible.graders._run_workspace_tests")
+    @patch("crucible.graders.c1_compound._run_workspace_tests")
     def test_tests_fail(self, mock_run_tests, tmp_path):
         mock_run_tests.return_value = (False, 3)
         workspace = tmp_path / "workspace"
@@ -223,8 +245,8 @@ class TestGradeC1:
         scores = grade_c1(C1_PROMPT, tmp_path, "")
         assert scores["Tests"] == 0.0
 
-    @patch("crucible.graders._run_workspace_tests")
-    @patch("crucible.graders._verify_compound_math")
+    @patch("crucible.graders.c1_compound._run_workspace_tests")
+    @patch("crucible.graders.c1_compound._verify_compound_math")
     def test_correct_math(self, mock_math, mock_tests, tmp_path):
         mock_tests.return_value = (True, 10)
         mock_math.return_value = True
@@ -233,8 +255,8 @@ class TestGradeC1:
         scores = grade_c1(C1_PROMPT, tmp_path, "")
         assert scores["Correct financial math"] == 3.0
 
-    @patch("crucible.graders._run_workspace_tests")
-    @patch("crucible.graders._verify_compound_math")
+    @patch("crucible.graders.c1_compound._run_workspace_tests")
+    @patch("crucible.graders.c1_compound._verify_compound_math")
     def test_wrong_math(self, mock_math, mock_tests, tmp_path):
         mock_tests.return_value = (True, 10)
         mock_math.return_value = False
@@ -243,10 +265,10 @@ class TestGradeC1:
         scores = grade_c1(C1_PROMPT, tmp_path, "")
         assert scores["Correct financial math"] == 0.0
 
-    @patch("crucible.graders._run_workspace_tests")
-    @patch("crucible.graders._verify_compound_math")
-    @patch("crucible.graders._check_validation")
-    @patch("crucible.graders._check_readme")
+    @patch("crucible.graders.c1_compound._run_workspace_tests")
+    @patch("crucible.graders.c1_compound._verify_compound_math")
+    @patch("crucible.graders.c1_compound._check_validation")
+    @patch("crucible.graders.c1_compound._check_readme")
     def test_all_criteria_pass(self, mock_readme, mock_validation, mock_math, mock_tests, tmp_path):
         mock_tests.return_value = (True, 20)
         mock_math.return_value = True
@@ -264,8 +286,9 @@ class TestGradeC1:
 
 
 class TestGradeE6:
+    """E6 uses a dedicated Python module — tests call grade_e6 directly."""
+
     def test_live_fetch_with_session(self, tmp_path):
-        import json
         session = tmp_path / "session.json"
         session.write_text(json.dumps([
             {"type": "toolCall", "name": "web_fetch", "args": {"url": "https://weather.gov"}},
@@ -286,7 +309,6 @@ class TestGradeE6:
     def test_no_session_file(self, tmp_path):
         output = "It's raining. Source: Weather Channel."
         scores = grade_e6(E6_PROMPT, tmp_path, output)
-        # No session → no tool calls → 0 for fetch (unless output mentions fetch keywords)
         assert scores["Live fetch performed"] == 0.0
         assert scores["Source attribution"] == 1.0
 

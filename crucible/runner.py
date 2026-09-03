@@ -47,8 +47,10 @@ PROMPTS_DIR = REPO_ROOT / "prompts"
 FIXTURES_DIR = REPO_ROOT / "fixtures"
 REPOS_DIR = REPO_ROOT / "repos"
 
-# Event type names for tool invocations in session captures
-TOOL_CALL_TYPES = {"tool", "toolCall"}  # opencode export, pool NLJSON
+# Re-export utility functions shared with the graders package.
+# These live in crucible.graders.helpers to avoid circular imports
+# (graders → runner → scorer → graders).
+from crucible.graders.helpers import TOOL_CALL_TYPES, count_tool_calls  # noqa: E402,F401
 
 
 # --------------------------------------------------------------------------
@@ -291,26 +293,6 @@ def _finalize_run(run_dir: Path, run_id: str, test_id: str, agent: str,
 # --------------------------------------------------------------------------
 # Metrics
 # --------------------------------------------------------------------------
-
-def count_tool_calls(session_path: Path) -> int | None:
-    """Count tool invocations in a session file (opencode and pool schemas)."""
-    try:
-        data = json.loads(session_path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
-        return None
-
-    count = 0
-    stack = [data]
-    while stack:
-        node = stack.pop()
-        if isinstance(node, dict):
-            if node.get("type") in TOOL_CALL_TYPES:
-                count += 1
-            stack.extend(node.values())
-        elif isinstance(node, list):
-            stack.extend(node)
-    return count
-
 
 def extract_metrics(run_dir: Path) -> dict:
     """Best-effort raw metrics from run artifacts; None when unknown."""

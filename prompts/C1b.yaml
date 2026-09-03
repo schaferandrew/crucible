@@ -3,6 +3,9 @@ needs_tools: true
 category: coding_build
 auto_grade: true
 repo: null
+auto_grader:
+  type: module
+  module: crucible.graders.c1_compound
 prompt: |
   Build a CLI compound-interest calculator. It must accept principal, annual interest rate, time, compounding frequency, and optional recurring contribution amount and contribution frequency. Support at least years and months for time. Print a readable summary containing principal, total contributions, interest earned, and final balance. Validate invalid, negative, or contradictory inputs. Include automated tests covering ordinary cases, zero interest, monthly compounding, recurring contributions, invalid input, and a known expected-value case. Keep the implementation dependency-light and document the command examples in the README.
 rubric:
