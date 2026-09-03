@@ -1,0 +1,16 @@
+{
+  "yesterday": [
+    {
+      "from": "alex@example.com",
+      "subject": "Project update - Q3 review completed",
+      "body": "The Q3 review is now complete and ahead of schedule. Let's discuss the results in our planning meeting.",
+      "timestamp": "2026-09-01T10:30:00Z"
+    },
+    {
+      "from": "jamie@example.com",
+      "subject": "Meeting notes from yesterday",
+      "body": "Notes from yesterday's 1-on-1: discussed career goals, next quarter priorities, and team building activities.",
+      "timestamp": "2026-09-01T09:00:00Z"
+    }
+  ]
+}

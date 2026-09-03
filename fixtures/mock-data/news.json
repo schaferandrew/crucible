@@ -1,0 +1,26 @@
+{
+  "location": "Saint Paul, MN",
+  "articles": [
+    {
+      "title": "Twin Cities Tech Conference Returns",
+      "summary": "Annual tech conference returns to Minneapolis with 50+ speakers covering AI, startup funding, and emerging technologies. Registration opens this Friday.",
+      "source": "StarTribune",
+      "importance": "high",
+      "url": "https://www.startribune.com/tech-conference-2026"
+    },
+    {
+      "title": "Maplewood Park Renovation Complete",
+      "summary": "Renovations to Maplewood Park finished ahead of schedule, adding new walking trails and a children's playground. Grand reopening is Saturday.",
+      "source": "Pioneer Press",
+      "importance": "medium",
+      "url": "https://www.twincities.com/maplewood-park-renovation"
+    },
+    {
+      "title": "State Fair Attendance Drops Slightly",
+      "summary": "Minnesota State Fair saw a 3% decline in attendance this year, with cooler-than-average weather cited as a factor.",
+      "source": "StarTribune",
+      "importance": "low",
+      "url": "https://www.startribune.com/state-fair-attendance-2026"
+    }
+  ]
+}

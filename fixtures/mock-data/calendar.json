@@ -1,0 +1,79 @@
+{
+  "timezone": "America/Chicago",
+  "window": {
+    "start": "2026-09-01T00:00:00-05:00",
+    "end": "2026-09-08T00:00:00-05:00"
+  },
+  "events": [
+    {
+      "start": "2026-09-01T09:00:00-05:00",
+      "end": "2026-09-01T10:00:00-05:00",
+      "title": "Standup (Alex)",
+      "location": "Zoom",
+      "attendees": ["alex@example.com"]
+    },
+    {
+      "start": "2026-09-01T10:00:00-05:00",
+      "end": "2026-09-01T11:00:00-05:00",
+      "title": "Team standup",
+      "location": "Zoom",
+      "attendees": ["alex@example.com", "jamie@example.com"]
+    },
+    {
+      "start": "2026-09-01T13:00:00-05:00",
+      "end": "2026-09-01T14:00:00-05:00",
+      "title": "Design review",
+      "location": "Conference Room A",
+      "attendees": ["alex@example.com"]
+    },
+    {
+      "start": "2026-09-01T15:00:00-05:00",
+      "end": "2026-09-01T16:30:00-05:00",
+      "title": "Customer call",
+      "location": "Zoom",
+      "attendees": ["alex@example.com", "client@example.com"]
+    },
+    {
+      "start": "2026-09-02T09:30:00-05:00",
+      "end": "2026-09-02T10:30:00-05:00",
+      "title": "Planning",
+      "location": "Room B",
+      "attendees": ["alex@example.com"]
+    },
+    {
+      "start": "2026-09-02T13:00:00-05:00",
+      "end": "2026-09-02T14:00:00-05:00",
+      "title": "Budget meeting",
+      "location": "Conference Room A",
+      "attendees": ["jamie@example.com"]
+    },
+    {
+      "start": "2026-09-03T09:00:00-05:00",
+      "end": "2026-09-03T10:00:00-05:00",
+      "title": "Standup",
+      "location": "Zoom",
+      "attendees": ["jamie@example.com"]
+    },
+    {
+      "start": "2026-09-03T11:00:00-05:00",
+      "end": "2026-09-03T12:00:00-05:00",
+      "title": "Interview",
+      "location": "Conference Room B",
+      "attendees": ["alex@example.com"]
+    },
+    {
+      "start": "2026-09-04T09:00:00-05:00",
+      "end": "2026-09-04T11:00:00-05:00",
+      "title": "Workshop",
+      "location": "Main Hall",
+      "attendees": ["jamie@example.com"]
+    },
+    {
+      "start": "2026-09-04T14:00:00-05:00",
+      "end": "2026-09-04T15:00:00-05:00",
+      "title": "Project review",
+      "location": "Conference Room A",
+      "attendees": ["alex@example.com"]
+    }
+  ]
+}
