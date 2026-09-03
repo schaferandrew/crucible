@@ -3,6 +3,12 @@ category: everyday
 needs_tools: false
 auto_grade: true
 repo: null
+auto_grader:
+  - type: regex
+    pattern: '\bred\b'
+    flags: [IGNORECASE]
+    criterion: "Correct answer"
+    max_score: 10
 prompt: |
   What color are firetrucks in the US? Answer in one or two sentences.
 rubric:

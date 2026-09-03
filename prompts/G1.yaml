@@ -3,6 +3,37 @@ needs_tools: false
 category: reasoning
 auto_grade: true
 repo: null
+auto_grader:
+  - type: all_of
+    criterion: "Correct answer"
+    max_score: 4
+    rules:
+      - type: regex
+        pattern: '\bdave\b'
+        flags: [IGNORECASE]
+      - type: regex
+        pattern: 'chair\s*3|3rd\s*chair|third'
+        flags: [IGNORECASE]
+  - type: regex
+    pattern: '\b(assumption|ambiguit|could be|possibly|without loss of|clarif)'
+    flags: [IGNORECASE]
+    criterion: "Handles ambiguity"
+    max_score: 2
+  - type: any_of
+    criterion: "Final answer clearly stated"
+    max_score: 1
+    rules:
+      - type: regex
+        pattern: 'chair\s*3.*dave|dave.*chair\s*3|chair\s*3\s*is\s*dave'
+        flags: [IGNORECASE]
+      - type: all_of
+        rules:
+          - type: regex
+            pattern: '\bdave\b'
+            flags: [IGNORECASE]
+          - type: regex
+            pattern: 'chair\s*3|3rd\s*chair|third'
+            flags: [IGNORECASE]
 prompt: |
   You are given a puzzle you have not seen before. Solve it carefully and explain the reasoning. Before giving the final answer, state any assumptions the puzzle requires. If the wording is ambiguous, identify the ambiguity rather than silently choosing an interpretation.
 

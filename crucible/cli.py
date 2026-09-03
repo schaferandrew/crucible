@@ -10,7 +10,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from crucible import runner, scorer, reporter
+from crucible import runner, scorer, reporter, eval_runner
 
 
 def _get_version() -> str:
@@ -30,8 +30,9 @@ Usage:
 
 Commands:
   run      Run benchmark test(s) with an agent (opencode or pool)
-  score    Interactively score a completed run against its rubric
+  score    Auto-score a completed run (deterministic graders first, then optional LLM judge or interactive)
   report   Generate a comparison report across runs
+  eval     Batch-score multiple runs against their rubrics
 
 Test suites:
   coding (C1, C1b, C2, C2b, C3, C4, C4b, C5, C6)
@@ -51,9 +52,14 @@ Examples:
   # Watch a test live in the opencode TUI
   crucible run C2b --model openrouter/anthropic/claude-sonnet-4 --watch
 
-  # Score a run (by timestamp leaf or full run path)
+  # Score a run (deterministic first, then interactive menu for remaining)
   crucible score 20260829_040024
-  crucible score openrouter_moonshotai_kimi-k2.6/everyday/E2/20260829_040024
+
+  # Score with LLM judge (default model)
+  crucible score 20260829_040024 --judge
+
+  # Score with a specific judge model
+  crucible score 20260829_040024 --judge openrouter/deepseek/deepseek-v4-flash
 
   # Compare specific runs, or report everything
   crucible report run1 run2 run3
@@ -93,9 +99,11 @@ def main():
         scorer.main()
     elif cmd == "report":
         reporter.main()
+    elif cmd == "eval":
+        eval_runner.main()
     else:
         print(f"Unknown command: {cmd}")
-        print("Usage: crucible <run|score|report> [args...]")
+        print("Usage: crucible <run|score|report|eval> [args...]")
         print("Try 'crucible --help' for details.")
         sys.exit(1)
 

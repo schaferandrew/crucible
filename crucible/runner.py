@@ -37,6 +37,7 @@ from pathlib import Path
 import yaml
 
 from crucible import direct_runner, scorer
+from crucible.constants import OLLAMA_OPENAI_API, OPENROUTER_API
 from crucible.selector import select_from_list
 from crucible.taxonomy import derive_suites, validate_category
 
@@ -46,13 +47,10 @@ PROMPTS_DIR = REPO_ROOT / "prompts"
 FIXTURES_DIR = REPO_ROOT / "fixtures"
 REPOS_DIR = REPO_ROOT / "repos"
 
-# Event type names for tool invocations in session captures
-TOOL_CALL_TYPES = {"tool", "toolCall"}  # opencode export, pool NLJSON
-
-OPENROUTER_API = "https://openrouter.ai/api/v1"
-# Ollama's OpenAI-compatible endpoint; explicit base URL forces pool into
-# standalone mode even when tenant (Poolside cloud) credentials are present.
-OLLAMA_OPENAI_API = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/") + "/v1"
+# Re-export utility functions shared with the graders package.
+# These live in crucible.graders.helpers to avoid circular imports
+# (graders → runner → scorer → graders).
+from crucible.graders.helpers import TOOL_CALL_TYPES, count_tool_calls  # noqa: E402,F401
 
 
 # --------------------------------------------------------------------------
@@ -295,26 +293,6 @@ def _finalize_run(run_dir: Path, run_id: str, test_id: str, agent: str,
 # --------------------------------------------------------------------------
 # Metrics
 # --------------------------------------------------------------------------
-
-def count_tool_calls(session_path: Path) -> int | None:
-    """Count tool invocations in a session file (opencode and pool schemas)."""
-    try:
-        data = json.loads(session_path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
-        return None
-
-    count = 0
-    stack = [data]
-    while stack:
-        node = stack.pop()
-        if isinstance(node, dict):
-            if node.get("type") in TOOL_CALL_TYPES:
-                count += 1
-            stack.extend(node.values())
-        elif isinstance(node, list):
-            stack.extend(node)
-    return count
-
 
 def extract_metrics(run_dir: Path) -> dict:
     """Best-effort raw metrics from run artifacts; None when unknown."""
