@@ -121,6 +121,10 @@ class MCPServer:
             method = request.get("method")
             params = request.get("params", {})
 
+            # JSON-RPC notifications (no id) get no response, per spec.
+            if request_id is None or (isinstance(method, str) and method.startswith("notifications/")):
+                return
+
             if method == "initialize":
                 self.handle_initialize(params, request_id)
             elif method == "tools/list":

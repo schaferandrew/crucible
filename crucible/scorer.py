@@ -179,6 +179,8 @@ def score_interactive(test_id: str, run_dir: Path) -> dict:
     extras = {
         "user_interventions": 0,
         "tool_calls": extracted.get("tool_calls"),
+        "tokens_in": extracted.get("tokens_in"),
+        "tokens_out": extracted.get("tokens_out"),
         "tests_passed": extracted.get("tests_passed"),
         "tests_failed": extracted.get("tests_failed"),
         "final_success": final_success,
