@@ -268,8 +268,8 @@ def _epoch_s(timestamp: str) -> float:
 def trajectory_timings(trajectory: Path) -> list[dict]:
     """Per model call: inference.start -> inference.end duration, paired by step_id.
 
-    ttft_s stays None: crucible does not (yet) read a first-token event from
-    pool's trajectory.
+    ttft_s stays None: pool's trajectory has no first-token or streaming event
+    (verified with pool 1.0.16), only inference start/end per call.
     """
     starts: dict[str, float] = {}
     timings = []

@@ -291,7 +291,7 @@ This makes fresh machines work with zero manual setup: install the repo, run the
 - **pi**: exact, timestamped inside pi by crucible's extension (headless and `--watch`)
 - **direct**: exact, from the streamed provider response (direct runs also record token usage)
 - **opencode**: per-response duration from its session export; no token-level timestamps, so TTFT is empty
-- **pool**: per-response duration from its trajectory record (inference start/end); TTFT not captured yet
+- **pool**: per-response duration from its trajectory record (inference start/end); its trajectory has no first-token event, so TTFT is empty
 
 ### Token usage
 
