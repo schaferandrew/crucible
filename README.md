@@ -110,7 +110,7 @@ pip3 install -e .
 4. **Install an agent**: [opencode](https://opencode.ai) (default) and/or [pi](https://pi.dev):
 ```bash
 npm install -g opencode-ai
-npm install -g @mariozechner/pi-coding-agent
+npm install -g --ignore-scripts @earendil-works/pi-coding-agent
 ```
 > **Windows + pi:** pi's `bash` tool needs a bash shell — install [Git for Windows](https://git-scm.com/download/win) (pi finds Git Bash automatically).
 

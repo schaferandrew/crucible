@@ -22,7 +22,7 @@ jobs:
       - name: Install crucible
         run: python -m pip install -e . pytest
       - name: Install pi
-        run: npm install -g @mariozechner/pi-coding-agent
+        run: npm install -g --ignore-scripts @earendil-works/pi-coding-agent
       - name: Run tests (includes pi end-to-end against a scripted model)
         run: python -m pytest -v
 
