@@ -323,3 +323,13 @@ class TestRegistry:
         for name, agent in AGENTS.items():
             assert agent.name == name and agent.executable and agent.install_hint
             assert type(agent).launch is not runner.Agent.launch
+
+
+class TestMetricsSummary:
+    def test_only_known_metrics_shown(self):
+        assert runner._metrics_summary({"tool_calls": 2, "tests_passed": 3, "tests_failed": None,
+                                        "tokens_in": None, "tokens_out": None}) == \
+            "2 tool calls, tests 3 passed"
+
+    def test_nothing_known(self):
+        assert runner._metrics_summary({}) == ""

@@ -189,6 +189,20 @@ def _print_header(title: str, rows: list[tuple[str, str]]) -> None:
     print(f"{'='*60}\n")
 
 
+def _metrics_summary(metrics: dict) -> str:
+    """One-line digest of the metrics that were captured (unknowns skipped)."""
+    parts = []
+    if metrics.get("tool_calls") is not None:
+        parts.append(f"{metrics['tool_calls']} tool calls")
+    tests = [f"{metrics[k]} {label}" for k, label in
+             (("tests_passed", "passed"), ("tests_failed", "failed")) if metrics.get(k) is not None]
+    if tests:
+        parts.append("tests " + " / ".join(tests))
+    if metrics.get("tokens_in") is not None:
+        parts.append(f"tokens {metrics['tokens_in']} in / {metrics['tokens_out']} out")
+    return ", ".join(parts)
+
+
 def _write_meta(run_dir: Path, meta: dict) -> None:
     (run_dir / "meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
 
@@ -206,6 +220,7 @@ def _finalize_run(run_dir: Path, run_id: str, test_id: str, agent: str,
         if not path.exists():
             path.write_text("", encoding="utf-8")
 
+    metrics = extract_metrics(run_dir, agent_impl)
     _write_meta(run_dir, {
         "run_id": run_id,
         "test_id": test_id,
@@ -218,12 +233,15 @@ def _finalize_run(run_dir: Path, run_id: str, test_id: str, agent: str,
         "elapsed_time": round(elapsed, 2),
         "returncode": result["returncode"],
         "timed_out": result["timed_out"],
-        "metrics": extract_metrics(run_dir, agent_impl),
+        "metrics": metrics,
     })
 
     print(f"\n[{status}] {run_id}")
     print(f"  Elapsed: {elapsed:.1f}s")
     print(f"  Output: {run_dir}")
+    summary = _metrics_summary(metrics)
+    if summary:
+        print(f"  Metrics: {summary}")
     if status != "COMPLETE":
         stderr_tail = (run_dir / "stderr.txt").read_text(
             encoding="utf-8", errors="replace").strip().splitlines()
@@ -350,6 +368,7 @@ def _run_agent(agent: Agent, ctx: RunContext) -> str:
             result = procs.run_interactive(launch.cmd, ctx.timeout, ctx.test_id,
                                            cwd=launch.cwd, env=env)
         else:
+            print(f"Running headless — follow along: tail -f {ctx.run_dir / 'stdout.txt'}")
             result = procs.run_logged(launch.cmd, ctx.run_dir, ctx.timeout, ctx.test_id,
                                       cwd=launch.cwd, env=env)
         agent.collect(ctx)
@@ -437,6 +456,16 @@ def _meta_status(run_dir: Path) -> str:
     return f"ERROR (exit {rc})"
 
 
+def _run_summary_line(run_dir: Path) -> str:
+    """'COMPLETE   12.3s' style prefix for the end-of-suite listing."""
+    try:
+        elapsed = json.loads((run_dir / "meta.json").read_text(encoding="utf-8"))["elapsed_time"]
+        took = f"{elapsed:>7.1f}s"
+    except (OSError, json.JSONDecodeError, KeyError, TypeError):
+        took = "      ?s"
+    return f"{_meta_status(run_dir):<14} {took}"
+
+
 def _close_the_loop(run_id: str, args: argparse.Namespace) -> None:
     """Interactively score successful runs; failed runs can be retried or discarded."""
     while True:
@@ -510,10 +539,12 @@ def main() -> None:
         tests = [args.test]
 
     run_ids = []
-    for test_id in tests:
+    for i, test_id in enumerate(tests, 1):
         if not (PROMPTS_DIR / f"{test_id}.yaml").exists():
             print(f"Skipping unknown test: {test_id}")
             continue
+        if len(tests) > 1:
+            print(f"\n[{i}/{len(tests)}] {test_id}")
         try:
             run_ids.append(run_single(test_id, args.model, args.watch, args.timeout,
                                       args.output, args.agent))
@@ -526,7 +557,7 @@ def main() -> None:
     print(f"\n{'='*60}")
     print(f"Completed {len(run_ids)} run(s)")
     for rid in run_ids:
-        print(f"  {rid}")
+        print(f"  {_run_summary_line(args.output / rid)}  {rid}")
     print(f"{'='*60}")
 
     # Close the loop: score successful runs, discard/retry failed ones.
