@@ -291,7 +291,7 @@ This makes fresh machines work with zero manual setup: install the repo, run the
 - **pi**: exact, timestamped inside pi by crucible's extension (headless and `--watch`)
 - **direct**: exact, from the streamed provider response (direct runs also record token usage)
 - **opencode**: per-response duration from its session export; no token-level timestamps, so TTFT is empty
-- **pool**: not yet (pending a look at its real trajectory format)
+- **pool**: per-response duration from its trajectory record (inference start/end); TTFT not captured yet
 
 ### Token usage
 
@@ -323,6 +323,6 @@ pi runs are covered end-to-end by `tests/test_pi_integration.py`, which drives t
 - **Stale global `crucible` install**: an editable install pointing at a different checkout silently runs old code (symptom: "MCP not available" despite everything else working). Check with `pip show crucible | grep -i editable`.
 - **Pool watch without auto-approve stalls**: the TUI blocks on tool-approval prompts; the harness passes `--mode always-allow` in watch mode.
 - **Pool has no per-launch MCP flag**: only settings.yaml; hence the add/remove-around-the-run approach (`PoolAgent.prepare`).
-- **Pool trajectory location**: pool's data dir sits next to its logs — `~/Library/Application Support/poolside` on macOS, `%LOCALAPPDATA%\poolside` on Windows; Linux is unverified (`pool config` prints it). Set `CRUCIBLE_POOL_TRAJECTORIES_DIR` if watch-mode capture or token counts come up empty.
+- **Pool trajectory location** (as `pool config` prints it): `~/Library/Application Support/poolside/trajectories` on macOS, `%LOCALAPPDATA%\poolside\trajectories` on Windows, `$XDG_STATE_HOME` (default `~/.local/state`)`/poolside/trajectories` on Linux. Set `CRUCIBLE_POOL_TRAJECTORIES_DIR` to override.
 - **Pool MCP schema**: `settings.yaml` entries need `command` as a single string plus `args` (pool 1.0.16 rejects a list-valued `command`).
 - **Windows argument mangling**: npm CLIs are `.cmd` shims on Windows and cmd.exe truncates multi-line arguments, so prompts are always attached as `prompt.txt` (never passed inline) and per-run config travels in env vars.

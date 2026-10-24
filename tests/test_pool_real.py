@@ -40,10 +40,11 @@ def test_e4_headless_real_pool(tmp_path, fake_model):
         cwd=REPO_ROOT, env=env, capture_output=True, text=True, encoding="utf-8",
         stdin=subprocess.DEVNULL, timeout=300,
     )
-    print(proc.stdout, proc.stderr)
+    show = lambda text: print(text.encode("ascii", "backslashreplace").decode())  # cp1252-safe
+    show(proc.stdout + proc.stderr)
     (run_dir,) = (out_dir / "ollama_fake-model" / "everyday" / "E4").iterdir()
     for name in ("command.sh", "stdout.txt", "stderr.txt", "meta.json"):
-        print(f"----- {name}\n{(run_dir / name).read_text(encoding='utf-8', errors='replace')[:4000]}")
+        show(f"----- {name}\n{(run_dir / name).read_text(encoding='utf-8', errors='replace')[:4000]}")
     print(f"----- requests seen by fake model: {len(fake_model.requests)}")
     for body in fake_model.requests[:1]:
         print("tools offered:", [t.get("function", {}).get("name") for t in body.get("tools") or []])
@@ -56,3 +57,6 @@ def test_e4_headless_real_pool(tmp_path, fake_model):
     # The mock MCP server was provisioned for the run and pool offered its tools
     offered = {t.get("function", {}).get("name") for t in fake_model.requests[0].get("tools") or []}
     assert any(n and n.endswith("get_weather") for n in offered)
+    # Tokens and per-response timing come from pool's trajectory record
+    assert meta["metrics"]["tokens_in"] is not None, "trajectory not found"
+    assert meta["metrics"]["response_time_avg_s"] is not None

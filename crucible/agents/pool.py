@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import contextlib
 import json
+from datetime import datetime
 import os
 import sys
 from dataclasses import dataclass, field
@@ -43,26 +44,26 @@ TENANT_MODEL = "pool"  # placeholder model name for tenant mode
 EXIT_TASK_FAILED = 4   # pool exec: agent ran but could not complete the task
 
 
-def trajectory_dirs() -> list[Path]:
-    """Where pool may keep its trajectory records, most specific first.
+def _state_home() -> Path:
+    return Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local" / "state"))
 
-    pool keeps its data dir next to its logs: verified on macOS
-    (~/Library/Application Support/poolside) and Windows (%LOCALAPPDATA%\\poolside).
-    The Linux location is the XDG convention, unverified; set
-    CRUCIBLE_POOL_TRAJECTORIES_DIR to point elsewhere.
-    """
+
+# Where pool writes trajectories, per platform (as printed by `pool config`,
+# verified with pool 1.0.16 on each OS)
+TRAJECTORY_DIRS = {
+    "darwin": lambda: Path.home() / "Library" / "Application Support" / "poolside" / "trajectories",
+    "win32": lambda: Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
+    / "poolside" / "trajectories",
+    "linux": lambda: _state_home() / "poolside" / "trajectories",
+}
+
+
+def trajectory_dir() -> Path:
+    """pool's trajectory directory; CRUCIBLE_POOL_TRAJECTORIES_DIR overrides it."""
     override = os.environ.get("CRUCIBLE_POOL_TRAJECTORIES_DIR")
     if override:
-        return [Path(override)]
-    home = Path.home()
-    if sys.platform == "darwin":
-        return [home / "Library" / "Application Support" / "poolside" / "trajectories"]
-    if os.name == "nt":
-        appdata = Path(os.environ.get("APPDATA", home / "AppData" / "Roaming"))
-        local = Path(os.environ.get("LOCALAPPDATA", home / "AppData" / "Local"))
-        return [local / "poolside" / "trajectories", appdata / "poolside" / "trajectories"]
-    data = Path(os.environ.get("XDG_DATA_HOME", home / ".local" / "share"))
-    return [data / "poolside" / "trajectories", home / ".config" / "poolside" / "trajectories"]
+        return Path(override)
+    return TRAJECTORY_DIRS.get(sys.platform, TRAJECTORY_DIRS["linux"])()
 
 
 @dataclass
@@ -205,19 +206,16 @@ def split_output(run_dir: Path) -> None:
 def find_trajectory(workspace: str) -> Path | None:
     """Newest trajectory whose session.start names the workspace."""
     best: tuple[float, Path] | None = None
-    for directory in trajectory_dirs():
-        if not directory.is_dir():
+    for path in trajectory_dir().glob("trajectory-*.ndjson"):
+        try:
+            with open(path, encoding="utf-8") as f:
+                first = json.loads(f.readline())
+            mtime = path.stat().st_mtime
+        except (OSError, json.JSONDecodeError):
             continue
-        for path in directory.glob("trajectory-*.ndjson"):
-            try:
-                with open(path, encoding="utf-8") as f:
-                    first = json.loads(f.readline())
-                mtime = path.stat().st_mtime
-            except (OSError, json.JSONDecodeError):
-                continue
-            dirs = (first.get("session_start") or {}).get("working_directories") or []
-            if workspace in dirs and (best is None or mtime > best[0]):
-                best = (mtime, path)
+        dirs = (first.get("session_start") or {}).get("working_directories") or []
+        if workspace in dirs and (best is None or mtime > best[0]):
+            best = (mtime, path)
     return best[1] if best else None
 
 
@@ -254,6 +252,36 @@ def trajectory_events(trajectory: Path) -> list[dict]:
         if normalized:
             events.append(normalized)
     return events
+
+
+def _epoch_s(timestamp: str) -> float:
+    """ISO-8601 'YYYY-MM-DDTHH:MM:SS.fffffffZ' -> epoch seconds.
+
+    pool writes 7 fractional digits, which datetime.fromisoformat rejects
+    before Python 3.11, so the fraction is cut to microseconds first.
+    """
+    base, _, rest = timestamp.rstrip("Z").partition(".")
+    micro = (rest + "000000")[:6]
+    return datetime.fromisoformat(f"{base}.{micro}+00:00").timestamp()
+
+
+def trajectory_timings(trajectory: Path) -> list[dict]:
+    """Per model call: inference.start -> inference.end duration, paired by step_id.
+
+    ttft_s stays None: crucible does not (yet) read a first-token event from
+    pool's trajectory.
+    """
+    starts: dict[str, float] = {}
+    timings = []
+    for event in _ndjson(trajectory):
+        kind, step, ts = event.get("type"), event.get("step_id"), event.get("timestamp")
+        if not (step and ts):
+            continue
+        if kind == "tool_call.inference.start":
+            starts[step] = _epoch_s(ts)
+        elif kind == "tool_call.inference.end" and step in starts:
+            timings.append({"ttft_s": None, "duration_s": _epoch_s(ts) - starts.pop(step)})
+    return timings
 
 
 def trajectory_tokens(trajectory: Path) -> tuple[int, int] | None:
@@ -319,6 +347,10 @@ class PoolAgent(Agent):
     def token_usage(self, run_dir: Path) -> tuple[int, int] | None:
         trajectory = find_trajectory(str(run_dir / "workspace"))
         return trajectory_tokens(trajectory) if trajectory else None
+
+    def response_timings(self, run_dir: Path) -> list[dict]:
+        trajectory = find_trajectory(str(run_dir / "workspace"))
+        return trajectory_timings(trajectory) if trajectory else []
 
     def status(self, result: dict) -> str:
         if not result["timed_out"] and result["returncode"] == EXIT_TASK_FAILED:

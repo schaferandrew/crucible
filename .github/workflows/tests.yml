@@ -68,21 +68,24 @@ jobs:
           pool mcp add --help || true
       - name: Real pool end-to-end
         run: python -m pytest tests/test_pool_real.py -v -s
-      - name: Where pool keeps settings and trajectories
+      - name: pool trajectory event shapes (for harness parsing)
         if: always()
         shell: bash
         run: |
-          for d in "$HOME/.config/poolside" "$HOME/Library/Application Support/poolside" \
-                   "$HOME/.local/share/poolside" "${APPDATA:-/nonexistent}/poolside" \
-                   "${LOCALAPPDATA:-/nonexistent}/poolside"; do
-            [ -d "$d" ] && { echo "== $d"; find "$d" -maxdepth 3 | head -50; }
-          done
           pool config || true
-          t=$(find "$HOME" "${LOCALAPPDATA:-/nonexistent}" -name 'trajectory-*.ndjson' 2>/dev/null | head -1)
-          if [ -n "$t" ]; then
-            echo "== sample trajectory: $t"
-            head -c 6000 "$t"
-          fi
+          python - <<'PY'
+          import glob, json, os
+          from pathlib import Path
+          roots = [Path.home(), Path(os.environ.get("LOCALAPPDATA", "/nonexistent"))]
+          files = [f for r in roots for f in glob.glob(str(r / "**" / "trajectory-*.ndjson"), recursive=True)]
+          for f in files[:1]:
+              print("==", f)
+              for line in open(f, encoding="utf-8"):
+                  e = json.loads(line)
+                  body = {k: (sorted(v) if isinstance(v, dict) else type(v).__name__)
+                          for k, v in e.items() if k not in ("id", "type", "timestamp", "step_id")}
+                  print(e.get("timestamp"), e.get("type"), body)
+          PY
       - name: Upload pool run artifacts
         if: always()
         uses: actions/upload-artifact@v4

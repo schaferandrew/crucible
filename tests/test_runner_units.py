@@ -305,8 +305,12 @@ class TestPoolCaptures:
         ctx = _ctx(tmp_path, watch=True)
         (trajectories / "trajectory-standalone_1.ndjson").write_text("\n".join(json.dumps(e) for e in [
             {"type": "session.start", "session_start": {"working_directories": [str(ctx.workspace)]}},
+            {"type": "tool_call.inference.start", "step_id": "s1",
+             "timestamp": "2026-10-24T14:59:25.6823085Z"},
             {"type": "tool_call.parsed", "tool_call_parsed": {"name": "get_news", "args": {}}},
-            {"type": "tool_call.inference.end", "tool_call_inference_end": {"input_tokens": 40, "output_tokens": 4}},
+            {"type": "tool_call.inference.end", "step_id": "s1",
+             "timestamp": "2026-10-24T14:59:27.1823085Z",
+             "tool_call_inference_end": {"input_tokens": 40, "output_tokens": 4}},
             {"type": "tool_call.result", "tool_call_result": {"tool_name": "get_news", "observation": "MN news"}},
             {"type": "assistant_message.end", "assistant_message_end": {"assistant_message": "Done"}},
         ]) + "\n", encoding="utf-8")
@@ -314,6 +318,18 @@ class TestPoolCaptures:
         assert [e["type"] for e in json.loads((tmp_path / "session.json").read_text())] == \
             ["toolCall", "toolCallResult", "assistantMessage"]
         assert AGENTS["pool"].token_usage(tmp_path) == (40, 4)
+        (timing,) = AGENTS["pool"].response_timings(tmp_path)
+        assert timing["ttft_s"] is None and abs(timing["duration_s"] - 1.5) < 1e-6
+
+    def test_trajectory_dir_per_platform(self, monkeypatch):
+        # Locations printed by `pool config` on each OS (pool 1.0.16)
+        monkeypatch.delenv("CRUCIBLE_POOL_TRAJECTORIES_DIR", raising=False)
+        monkeypatch.delenv("XDG_STATE_HOME", raising=False)
+        monkeypatch.setattr(pool_agent.sys, "platform", "linux")
+        assert pool_agent.trajectory_dir().parts[-4:] == (".local", "state", "poolside", "trajectories")
+        monkeypatch.setattr(pool_agent.sys, "platform", "darwin")
+        assert pool_agent.trajectory_dir().parts[-4:] == ("Library", "Application Support",
+                                                          "poolside", "trajectories")
 
     def test_other_workspace_trajectory_ignored(self, tmp_path, monkeypatch):
         trajectories = tmp_path / "trajectories"
