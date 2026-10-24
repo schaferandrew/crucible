@@ -29,9 +29,18 @@ def resolve_executable(name: str) -> str:
     return path
 
 
+SECRET_ENV_MARKERS = ("KEY", "TOKEN", "SECRET", "PASSWORD")
+
+
 def format_command(cmd: list[str], env: dict[str, str] | None = None) -> str:
-    """Shell-pasteable rendering of a command (for command.sh records)."""
-    lines = [f"export {k}={shlex.quote(v)}" for k, v in (env or {}).items()]
+    """Shell-pasteable rendering of a command (for command.sh records).
+
+    Secret-looking variables are redacted so run directories never hold keys.
+    """
+    def shown(name: str, value: str) -> str:
+        return "<redacted>" if any(m in name.upper() for m in SECRET_ENV_MARKERS) else value
+
+    lines = [f"export {k}={shlex.quote(shown(k, v))}" for k, v in (env or {}).items()]
     lines.append(shlex.join(cmd))
     return "\n".join(lines)
 

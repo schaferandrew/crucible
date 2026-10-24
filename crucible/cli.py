@@ -29,7 +29,7 @@ Usage:
   crucible <command> [args...]
 
 Commands:
-  run      Run benchmark test(s) with an agent (opencode or pi)
+  run      Run benchmark test(s) with an agent (opencode, pi or pool)
   score    Interactively score a completed run against its rubric
   report   Generate a comparison report across runs
 
@@ -47,6 +47,9 @@ Examples:
 
   # Run through the pi agent instead of opencode
   crucible run C1 --agent pi --model openrouter/moonshotai/kimi-k2.6
+
+  # Run through the Poolside agent (tenant mode)
+  crucible run C1 --agent pool
 
   # Watch a test live in the opencode TUI
   crucible run C2b --model openrouter/anthropic/claude-sonnet-4 --watch

@@ -6,6 +6,7 @@ what it left behind into session.json / stdout.txt / token counts.
 """
 from __future__ import annotations
 
+import contextlib
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -67,10 +68,20 @@ class Agent:
     label: str = ""
     executable: str = ""
     install_hint: str = ""
+    # Model recorded (and used for the run-dir slug) when none is given
+    default_model: str | None = None
 
     def validate(self, model: str | None) -> str | None:
         """Return an error message when this agent cannot run the model."""
         return None
+
+    def prepare(self, ctx: RunContext) -> contextlib.AbstractContextManager:
+        """Set up/tear down anything the run needs outside the run dir.
+
+        Wraps launch, run and collect; teardown runs on every exit path
+        (timeout, Ctrl+C, errors). Most agents need nothing here.
+        """
+        return contextlib.nullcontext()
 
     def launch(self, ctx: RunContext) -> Launch:
         raise NotImplementedError

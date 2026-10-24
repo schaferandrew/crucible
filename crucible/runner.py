@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Benchmark runner: routes tests to an agent (opencode, pi) or direct API.
+"""Benchmark runner: routes tests to an agent (see crucible/agents) or direct API.
 
 Usage:
     crucible run C1 --model openrouter/moonshotai/kimi-k2.6
@@ -7,12 +7,13 @@ Usage:
     crucible run C1 --model ollama/qwen3:30b-a3b --watch
     crucible run C1 --agent pi --model openrouter/moonshotai/kimi-k2.6
     crucible run C1 --agent pi --model ollama/qwen3:30b-a3b
+    crucible run C1 --agent pool                          # Poolside tenant mode
     crucible run E1 --agent direct --model openrouter/z-ai/glm-5.3-flash
 
 Options:
     --provider, -p   Model provider (ollama, openrouter, lmstudio)
     --model, -m      Model name or provider/model
-    --agent          opencode (default), pi, or direct (no tools)
+    --agent          opencode (default), pi, pool, or direct (no tools)
     --watch          Open the agent TUI with the prompt pre-loaded
     --timeout        Timeout in seconds (default 600)
     --output         Output directory for runs (default ./runs)
@@ -338,19 +339,20 @@ def _run_agent(agent: Agent, ctx: RunContext) -> str:
     started_at = datetime.now(timezone.utc).isoformat()
     start_time = time.time()
 
-    launch = agent.launch(ctx)
-    env = {**os.environ, **launch.env}
-    (ctx.run_dir / "command.sh").write_text(
-        "#!/bin/bash\n" + procs.format_command(launch.cmd, launch.env) + "\n", encoding="utf-8")
+    with agent.prepare(ctx):
+        launch = agent.launch(ctx)
+        env = {**os.environ, **launch.env}
+        (ctx.run_dir / "command.sh").write_text(
+            "#!/bin/bash\n" + procs.format_command(launch.cmd, launch.env) + "\n", encoding="utf-8")
 
-    if ctx.watch:
-        print(f"Command: {' '.join(launch.cmd)}\n")
-        result = procs.run_interactive(launch.cmd, ctx.timeout, ctx.test_id,
-                                       cwd=launch.cwd, env=env)
-    else:
-        result = procs.run_logged(launch.cmd, ctx.run_dir, ctx.timeout, ctx.test_id,
-                                  cwd=launch.cwd, env=env)
-    agent.collect(ctx)
+        if ctx.watch:
+            print(f"Command: {' '.join(launch.cmd)}\n")
+            result = procs.run_interactive(launch.cmd, ctx.timeout, ctx.test_id,
+                                           cwd=launch.cwd, env=env)
+        else:
+            result = procs.run_logged(launch.cmd, ctx.run_dir, ctx.timeout, ctx.test_id,
+                                      cwd=launch.cwd, env=env)
+        agent.collect(ctx)
 
     _finalize_run(ctx.run_dir, ctx.run_id, ctx.test_id, agent.name, ctx.model, ctx.watch,
                   started_at, start_time, result, agent.status(result), agent_impl=agent)
@@ -477,7 +479,7 @@ def _close_the_loop(run_id: str, args: argparse.Namespace) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="crucible run",
-        description="Run AI benchmark tests via an agent (opencode or pi) or direct API",
+        description=f"Run AI benchmark tests via an agent ({', '.join(AGENTS)}) or direct API",
     )
     parser.add_argument("test", help="Test ID (e.g. C1) or suite (coding, writing, everyday, reasoning, home, all)")
     parser.add_argument("--provider", "-p", help="Model provider (ollama, openrouter, lmstudio)")
@@ -493,6 +495,8 @@ def main() -> None:
 
     # Resolve model from provider/model args; None means the agent's default
     args.model = resolve_model(args.provider, args.model)
+    if args.model is None and args.agent in AGENTS:
+        args.model = AGENTS[args.agent].default_model
 
     # Suites are derived from test-ID prefixes (C->coding, W->writing, ...)
     all_tests = sorted(p.stem for p in PROMPTS_DIR.glob("*.yaml"))

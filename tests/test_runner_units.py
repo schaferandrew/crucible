@@ -6,6 +6,7 @@ import pytest
 from crucible import procs, runner, session
 from crucible.agents import AGENTS, RunContext
 from crucible.agents import pi as pi_agent
+from crucible.agents import pool as pool_agent
 
 
 def _ctx(tmp_path, **overrides):
@@ -188,3 +189,137 @@ class TestProcs:
     def test_format_command_quotes(self):
         text = procs.format_command(["pi", "a b"], {"X": '{"k": 1}'})
         assert text == "export X='{\"k\": 1}'\npi 'a b'"
+
+    def test_format_command_redacts_secrets(self):
+        text = procs.format_command(["pool"], {"POOLSIDE_API_KEY": "sk-1", "MODEL": "m"})
+        assert "sk-1" not in text and "MODEL=m" in text
+
+
+class TestPoolConfig:
+    def test_tenant_mode(self):
+        for model in (None, "pool"):
+            env, flags, standalone = pool_agent.pool_config(model)
+            assert env == {} and flags == [] and standalone is None
+
+    def test_ollama_standalone_pins_base_url(self, monkeypatch):
+        # With tenant credentials present, pool ignores settings.yaml's
+        # api_url — the base URL must be pinned or inference silently goes
+        # to Poolside cloud instead of ollama
+        monkeypatch.delenv("POOLSIDE_API_KEY", raising=False)
+        env, flags, standalone = pool_agent.pool_config("ollama/laguna-xs-2.1:nvfp4")
+        assert env["POOLSIDE_STANDALONE_MODEL"] == "laguna-xs-2.1:nvfp4"
+        assert env["POOLSIDE_STANDALONE_BASE_URL"] == pool_agent.OLLAMA_OPENAI_API
+        assert env["POOLSIDE_API_KEY"] == "ollama"
+        assert flags == [] and standalone == "laguna-xs-2.1:nvfp4"
+
+    def test_openrouter_standalone(self, monkeypatch):
+        monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+        env, flags, standalone = pool_agent.pool_config("openrouter/deepseek/deepseek-v4-flash")
+        assert env["POOLSIDE_API_KEY"] == "test-key"
+        assert env["POOLSIDE_STANDALONE_BASE_URL"] == pool_agent.OPENROUTER_API
+        assert standalone == "deepseek/deepseek-v4-flash"
+        assert flags == ["--sandbox", "disabled"]
+
+    def test_openrouter_key_never_lands_in_command_sh(self, monkeypatch):
+        monkeypatch.setenv("OPENROUTER_API_KEY", "sk-secret")
+        env, _, _ = pool_agent.pool_config("openrouter/x/y")
+        assert "sk-secret" not in procs.format_command(["pool"], env)
+
+    def test_validate_openrouter_needs_key(self, monkeypatch):
+        monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+        assert AGENTS["pool"].validate("openrouter/x/y")
+        assert AGENTS["pool"].validate(None) is None
+
+
+class TestPoolLaunch:
+    def test_headless(self, tmp_path):
+        ctx = _ctx(tmp_path)
+        cmd = AGENTS["pool"].launch(ctx).cmd
+        assert cmd[:2] == ["pool", "exec"] and "--unsafe-auto-allow" in cmd
+        assert cmd[-2:] == ["-o", "json"]
+
+    def test_watch_single_line_and_auto_approve(self, tmp_path):
+        cmd = AGENTS["pool"].launch(_ctx(tmp_path, watch=True, model="ollama/m")).cmd
+        assert "always-allow" in cmd and cmd[cmd.index("-m") + 1] == "m"
+        assert all("\n" not in arg for arg in cmd)
+
+    def test_exit_4_is_task_failed(self):
+        assert AGENTS["pool"].status({"timed_out": False, "returncode": 4}).startswith("TASK FAILED")
+        assert AGENTS["pool"].status({"timed_out": False, "returncode": 0}) == "COMPLETE"
+
+
+class TestPoolMcpSettings:
+    def test_add_then_remove_restores_user_settings(self, tmp_path, monkeypatch):
+        settings = tmp_path / "settings.yaml"
+        settings.write_text("theme: dark\n", encoding="utf-8")
+        monkeypatch.setattr(pool_agent, "POOL_SETTINGS", settings)
+        added = pool_agent.add_mcp_servers(["mock-data"])
+        assert added == ["mock-data"]
+        assert "mock-data" in settings.read_text(encoding="utf-8")
+        pool_agent.remove_mcp_servers(added)
+        assert settings.read_text(encoding="utf-8") == "theme: dark\n"
+
+    def test_existing_entry_left_alone(self, tmp_path, monkeypatch):
+        settings = tmp_path / "settings.yaml"
+        settings.write_text("mcp_servers:\n  mock-data:\n    command: [mine]\n", encoding="utf-8")
+        monkeypatch.setattr(pool_agent, "POOL_SETTINGS", settings)
+        assert pool_agent.add_mcp_servers(["mock-data"]) == []
+        assert "mine" in settings.read_text(encoding="utf-8")
+
+    def test_prepare_cleans_up_on_error(self, tmp_path, monkeypatch):
+        settings = tmp_path / "settings.yaml"
+        monkeypatch.setattr(pool_agent, "POOL_SETTINGS", settings)
+        with pytest.raises(KeyboardInterrupt):
+            with AGENTS["pool"].prepare(_ctx(tmp_path, mcp_servers=["mock-data"])):
+                assert "mock-data" in settings.read_text(encoding="utf-8")
+                raise KeyboardInterrupt
+        assert "mock-data" not in settings.read_text(encoding="utf-8")
+
+
+class TestPoolCaptures:
+    def test_split_output(self, tmp_path):
+        (tmp_path / "stdout.txt").write_text("\n".join([
+            json.dumps({"type": "assistantMessage", "message": "hello"}),
+            json.dumps({"type": "toolCall", "name": "shell", "args": {"cmd": "ls"}}),
+            '{"type":"toolCallResult","res',  # truncated by a timeout
+        ]) + "\n", encoding="utf-8")
+        pool_agent.split_output(tmp_path)
+        assert len(json.loads((tmp_path / "session.json").read_text())) == 2
+        assert "⏺ shell(cmd=ls)" in (tmp_path / "stdout.txt").read_text(encoding="utf-8")
+
+    def test_non_json_stdout_untouched(self, tmp_path):
+        (tmp_path / "stdout.txt").write_text("plain text\n", encoding="utf-8")
+        pool_agent.split_output(tmp_path)
+        assert not (tmp_path / "session.json").exists()
+
+    def test_watch_trajectory_export_and_tokens(self, tmp_path, monkeypatch):
+        trajectories = tmp_path / "trajectories"
+        trajectories.mkdir()
+        monkeypatch.setenv("CRUCIBLE_POOL_TRAJECTORIES_DIR", str(trajectories))
+        ctx = _ctx(tmp_path, watch=True)
+        (trajectories / "trajectory-standalone_1.ndjson").write_text("\n".join(json.dumps(e) for e in [
+            {"type": "session.start", "session_start": {"working_directories": [str(ctx.workspace)]}},
+            {"type": "tool_call.parsed", "tool_call_parsed": {"name": "get_news", "args": {}}},
+            {"type": "tool_call.inference.end", "tool_call_inference_end": {"input_tokens": 40, "output_tokens": 4}},
+            {"type": "tool_call.result", "tool_call_result": {"tool_name": "get_news", "observation": "MN news"}},
+            {"type": "assistant_message.end", "assistant_message_end": {"assistant_message": "Done"}},
+        ]) + "\n", encoding="utf-8")
+        AGENTS["pool"].collect(ctx)
+        assert [e["type"] for e in json.loads((tmp_path / "session.json").read_text())] == \
+            ["toolCall", "toolCallResult", "assistantMessage"]
+        assert AGENTS["pool"].token_usage(tmp_path) == (40, 4)
+
+    def test_other_workspace_trajectory_ignored(self, tmp_path, monkeypatch):
+        trajectories = tmp_path / "trajectories"
+        trajectories.mkdir()
+        monkeypatch.setenv("CRUCIBLE_POOL_TRAJECTORIES_DIR", str(trajectories))
+        (trajectories / "trajectory-x.ndjson").write_text(json.dumps(
+            {"session_start": {"working_directories": ["/elsewhere"]}}) + "\n", encoding="utf-8")
+        assert pool_agent.find_trajectory(str(tmp_path / "workspace")) is None
+
+
+class TestRegistry:
+    def test_every_agent_is_complete(self):
+        for name, agent in AGENTS.items():
+            assert agent.name == name and agent.executable and agent.install_hint
+            assert type(agent).launch is not runner.Agent.launch

@@ -121,6 +121,14 @@ npm install -g @mariozechner/pi-coding-agent
 crucible run C1 --model openrouter/moonshotai/kimi-k2.6
 ```
 
+### With the Poolside agent (pool)
+```bash
+crucible run C1 --agent pool                                 # tenant mode (logged-in Poolside model)
+crucible run C1 --agent pool --model ollama/laguna-xs-2.1:nvfp4
+crucible run C1 --agent pool --model openrouter/deepseek/deepseek-v4-flash
+```
+Without a model, pool runs in tenant mode (recorded as model `pool`). `ollama/` and `openrouter/` models run pool in standalone mode; the model is passed to pool as a bare name.
+
 ### With the pi agent instead of opencode
 ```bash
 crucible run C1 --agent pi --model openrouter/moonshotai/kimi-k2.6
@@ -146,10 +154,11 @@ crucible run G2 --model ollama/qwen3:30b-a3b
 ```bash
 crucible run C2b --model openrouter/moonshotai/kimi-k2.6 --watch
 crucible run C1 --agent pi --model ollama/qwen3:30b-a3b --watch
+crucible run C1 --agent pool --watch
 ```
-This opens the opencode or pi TUI in the workspace directory so you can observe the model working in real time (pi auto-sends the attached prompt). Quit the TUI when the task completes (`/quit` or `Ctrl+C` twice for pi, `Ctrl+C` for opencode) — the run finalizes after the TUI exits.
+This opens the agent's TUI in the workspace directory so you can observe the model working in real time (pi and pool auto-send the task). Quit the TUI when the task completes (`/quit` for pi and pool, `Ctrl+C` for opencode) — the run finalizes after the TUI exits.
 
-Watch runs are fully scoreable: pi writes its session into the run directory (`--session-dir`), from which crucible builds `session.json` + a readable `stdout.txt` transcript, and opencode exports its session, so tool calls and output text are captured in both modes. pi has no tool-approval prompts, so watch runs never stall on permissions.
+Watch runs are fully scoreable: pi writes its session into the run directory (`--session-dir`), from which crucible builds `session.json` + a readable `stdout.txt` transcript, pool's is rebuilt from its trajectory record, and opencode exports its session, so tool calls and output text are captured in both modes. pi has no tool-approval prompts and pool watch runs auto-approve (`--mode always-allow`, matching headless `--unsafe-auto-allow`), so unattended runs never stall on permission prompts.
 
 > **Note:** driving a TUI from a headless shell (synthetic pty) is unreliable for teardown — watch mode is designed for a human terminal. For unattended automation, use headless mode.
 
@@ -194,11 +203,24 @@ crucible report run1 run2 run3
 crucible report --all --output results.md
 ```
 
+## Adding an agent harness
+
+`crucible/runner.py` is the only orchestrator: it builds the workspace and run directory, applies the timeout, writes `meta.json` and runs the scoring loop. Everything harness-specific lives in one module under `crucible/agents/`:
+
+1. Create `crucible/agents/<name>.py` with a subclass of `Agent` (`crucible/agents/base.py`):
+   - `name`, `label`, `executable`, `install_hint` (and optionally `default_model`)
+   - `launch(ctx)` → `Launch(cmd, cwd, env)` for headless or watch (`ctx.watch`) mode
+   - `collect(ctx)` → turn what the harness left behind into `session.json` / `stdout.txt` (use `crucible.session.write_normalized` for the shared event format)
+   - optional: `prepare(ctx)` (setup/teardown around the run), `token_usage(run_dir)`, `status(result)`, `validate(model)`
+2. Add an instance to `AGENTS` in `crucible/agents/__init__.py`.
+
+`--agent <name>`, preflight checks and install hints then work automatically. Use `crucible/procs.py` conventions for portability: single-line arguments, prompt passed as a file, per-run config in env vars.
+
 ## Developing
 
 ```bash
 python -m pip install -e . pytest
-python -m pytest            # unit tests; the pi end-to-end test runs when `pi` is on PATH
+python -m pytest            # unit + end-to-end tests (pi's runs when `pi` is on PATH; pool's uses a stand-in CLI)
 ```
 CI (`.github/workflows/tests.yml`) runs the suite on Linux, macOS and Windows with pi installed.
 
@@ -210,7 +232,7 @@ CI (`.github/workflows/tests.yml`) runs the suite on Linux, macOS and Windows wi
 - `runs/` — Output directory for test results
 - `crucible/cli.py` — CLI entry point
 - `crucible/runner.py` — Run orchestration (workspace, run dir, meta.json)
-- `crucible/agents/` — One module per agent (`opencode.py`, `pi.py` + `pi_extension.ts`)
+- `crucible/agents/` — One module per agent harness (`opencode.py`, `pi.py` + `pi_extension.ts`, `pool.py`)
 - `crucible/procs.py` — Cross-platform process launch / tree-kill (macOS, Linux, Windows)
 - `crucible/session.py` — Normalized session capture, transcript, tool-call counting
 - `crucible/scorer.py` — Interactive scoring module
@@ -254,13 +276,14 @@ The server (`fixtures/mock-mcp-server/mock_server.py`, stdio JSON-RPC) serves fi
 
 **Wiring is per-run and self-contained — nothing goes in global agent configs:**
 - **opencode**: the runner injects `OPENCODE_CONFIG_CONTENT` into the spawned process only
+- **pool**: pool has no per-launch MCP config, so the harness adds the entry to `~/.config/poolside/settings.yaml` for the run and removes it afterwards, even on timeout or Ctrl+C (a pre-existing entry is left untouched)
 - **pi**: pi has no MCP support, so crucible's per-run pi extension (`crucible/agents/pi_extension.ts`, loaded with `-e`) spawns the declared MCP servers and registers their tools as native pi tools; config arrives via the `CRUCIBLE_PI_CONFIG` env var
 
 This makes fresh machines work with zero manual setup: install the repo, run the test, the mock server is wired up and torn down automatically.
 
 ### Token usage
 
-`meta.json` records `tokens_in` / `tokens_out` per run (from opencode's session export or pi's session file). Caveats: opencode's `tokens_out` includes reasoning tokens; pi's `tokens_in` includes cache reads/writes.
+`meta.json` records `tokens_in` / `tokens_out` per run (from opencode's session export, pi's session file, or pool's trajectory record). Caveats: opencode's `tokens_out` includes reasoning tokens; pi's `tokens_in` includes cache reads/writes; pool's `tokens_in` may include cached input.
 
 ### Verified MCP permutations (E4)
 
@@ -268,9 +291,17 @@ All combinations below ran against the mock MCP server; "✓" means the mock too
 
 | Agent   | Mode     | Model                                   | Run (20260903_*) | Result | tokens in/out |
 |---------|----------|------------------------------------------|------------------|--------|---------------|
+| pool    | headless | tenant default (laguna-xs-2.1:nvfp4)     | 131513           | ✓      | 12513 / 925   |
+| pool    | headless | openrouter/deepseek/deepseek-v4-flash    | 032355           | ✓      | 12833 / 1027  |
+| pool    | headless | openrouter/moonshotai/kimi-k2.6          | 030425           | ✓      | n/a (pre-fix) |
+| pool    | headless | ollama/laguna-xs-2.1:nvfp4               | 033147           | ✓      | 25533 / 740   |
 | opencode| headless | openrouter/anthropic/claude-sonnet-4.5   | 010917           | ✓      | n/a (pre-fix) |
 | opencode| headless | openrouter/deepseek/deepseek-v4-flash    | 032424           | ✓      | n/a (run pre-dated token capture wiring) |
+| pool    | watch    | ollama/laguna-xs-2.1:nvfp4               | 033631           | ✓      | 29207 / 776   |
+| pool    | watch    | openrouter/deepseek/deepseek-v4-flash    | 040603           | ✓ *    | 14584 / 1209  |
 | opencode| watch    | openrouter/deepseek/deepseek-v4-flash    | 041420           | ✓      | n/a (run pre-dated token capture wiring) |
+
+\* Task completed and verified via pool's ACP log; artifacts were exported from the trajectory record after a synthetic-pty teardown. (Rows predate the harness refactor.)
 
 pi runs are covered end-to-end by `tests/test_pi_integration.py`, which drives the real pi CLI against a scripted OpenAI-compatible model (`tests/fake_openai.py`) through the mock MCP server, on Linux, macOS and Windows in CI.
 
@@ -278,4 +309,7 @@ pi runs are covered end-to-end by `tests/test_pi_integration.py`, which drives t
 
 - **Rubrics must live in a top-level `rubric:` key**, never inside `prompt:` — otherwise the agent sees the eval criteria (fixed for E4; all prompts scanned).
 - **Stale global `crucible` install**: an editable install pointing at a different checkout silently runs old code (symptom: "MCP not available" despite everything else working). Check with `pip show crucible | grep -i editable`.
+- **Pool watch without auto-approve stalls**: the TUI blocks on tool-approval prompts; the harness passes `--mode always-allow` in watch mode.
+- **Pool has no per-launch MCP flag**: only settings.yaml; hence the add/remove-around-the-run approach (`PoolAgent.prepare`).
+- **Pool trajectory location**: verified on macOS (`~/Library/Application Support/poolside/trajectories`); the Linux/Windows locations are platform-convention guesses — set `CRUCIBLE_POOL_TRAJECTORIES_DIR` if watch-mode capture or token counts come up empty.
 - **Windows argument mangling**: npm CLIs are `.cmd` shims on Windows and cmd.exe truncates multi-line arguments, so prompts are always attached as `prompt.txt` (never passed inline) and per-run config travels in env vars.
