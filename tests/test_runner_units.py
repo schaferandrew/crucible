@@ -167,14 +167,16 @@ class TestCountToolCalls:
 class TestProcs:
     def test_timeout_kills_process_tree(self, tmp_path):
         # Parent spawns a grandchild; both must die on timeout
+        # (marker path goes in argv: Windows backslashes break string literals)
         marker = tmp_path / "survived"
+        grandchild = "import sys, time; time.sleep(3); open(sys.argv[1], 'w')"
         script = (
             "import subprocess, sys, time\n"
-            f"subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(3); open(r\"{marker}\", \"w\")'])\n"
+            f"subprocess.Popen([sys.executable, '-c', {grandchild!r}, sys.argv[1]])\n"
             "time.sleep(30)\n"
         )
-        result = procs.run_logged([sys.executable, "-c", script], tmp_path, 1, "t")
-        assert result["timed_out"]
+        result = procs.run_logged([sys.executable, "-c", script, str(marker)], tmp_path, 1, "t")
+        assert result["timed_out"], (tmp_path / "stderr.txt").read_text()
         import time
         time.sleep(4)
         assert not marker.exists()
