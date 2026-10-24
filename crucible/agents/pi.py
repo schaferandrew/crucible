@@ -129,7 +129,7 @@ class PiAgent(Agent):
     executable = "pi"
     install_hint = "npm install -g @mariozechner/pi-coding-agent"
 
-    def validate(self, model: str | None) -> str | None:
+    def validate(self, model: str | None, prompt_def: dict) -> str | None:
         if model and model.startswith("openrouter/") and not os.environ.get("OPENROUTER_API_KEY"):
             return "OPENROUTER_API_KEY required for openrouter models with pi"
         return None

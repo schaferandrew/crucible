@@ -205,16 +205,16 @@ crucible report --all --output results.md
 
 ## Adding an agent harness
 
-`crucible/runner.py` is the only orchestrator: it builds the workspace and run directory, applies the timeout, writes `meta.json` and runs the scoring loop. Everything harness-specific lives in one module under `crucible/agents/`:
+`crucible/runner.py` is the only orchestrator and never branches on which harness it is running: per test it loads the prompt, asks the agent `check()`, creates the run directory (plus `workspace/` if the agent uses one), calls `agent.run(ctx)`, writes `meta.json` and prints the result. Everything harness-specific lives in one module under `crucible/agents/`:
 
 1. Create `crucible/agents/<name>.py` with a subclass of `Agent` (`crucible/agents/base.py`):
-   - `name`, `label`, `executable`, `install_hint` (and optionally `default_model`)
-   - `launch(ctx)` → `Launch(cmd, cwd, env)` for headless or watch (`ctx.watch`) mode
-   - `collect(ctx)` → turn what the harness left behind into `session.json` / `stdout.txt` (use `crucible.session.write_normalized` for the shared event format)
-   - optional: `prepare(ctx)` (setup/teardown around the run), `token_usage(run_dir)`, `status(result)`, `validate(model)`
+   - `name`, `label`, `executable` (CLI that must be on PATH) + `install_hint`, optionally `default_model`
+   - **CLI harnesses** implement `launch(ctx)` → `Launch(cmd, cwd, env)` for headless or watch (`ctx.watch`) mode, and `collect(ctx)` to turn what the harness left behind into `session.json` / `stdout.txt` (use `crucible.session.write_normalized` for the shared event format). The default `run()` handles the rest: `command.sh`, headless logging or the TUI, timeouts and tree-kill.
+   - **Non-CLI harnesses** (like `direct`) override `run(ctx)` instead, and may set `uses_workspace = False`.
+   - optional: `validate(model, prompt_def)` (API keys, unsupported tests), `prepare(ctx)` (setup/teardown around the run, e.g. pool's settings.yaml), `token_usage(run_dir)`, `response_timings(run_dir)`, `status(result)`
 2. Add an instance to `AGENTS` in `crucible/agents/__init__.py`.
 
-`--agent <name>`, preflight checks and install hints then work automatically. Use `crucible/procs.py` conventions for portability: single-line arguments, prompt passed as a file, per-run config in env vars.
+`--agent <name>`, preflight checks, install hints, metrics and the console summary then work automatically. Use `crucible/procs.py` conventions for portability: single-line arguments, prompt passed as a file, per-run config in env vars.
 
 ## Developing
 
@@ -230,12 +230,16 @@ CI (`.github/workflows/tests.yml`) runs the suite on Linux, macOS and Windows wi
 - `fixtures/` — Test data (calendar JSON, writing samples, etc.)
 - `repos/` — Seeded buggy repositories for coding tests
 - `runs/` — Output directory for test results
-- `crucible/cli.py` — CLI entry point
-- `crucible/runner.py` — Run orchestration (workspace, run dir, meta.json)
-- `crucible/agents/` — One module per agent harness (`opencode.py`, `pi.py` + `pi_extension.ts`, `pool.py`)
+- `crucible/cli.py` — CLI entry point (`run` / `score` / `report`)
+- `crucible/runner.py` — `crucible run`: per-test orchestration and the suite loop
+- `crucible/agents/` — One module per harness: `opencode.py`, `pi.py` (+ `pi_extension.ts`), `pool.py`, `direct.py`
+- `crucible/workspace.py` — Prompts, run directories, workspace setup, fixtures
+- `crucible/models.py` / `crucible/providers.py` — Model resolution; provider table (list models, stream completions)
+- `crucible/metrics.py` — Metrics in `meta.json` (tests, tool calls, tokens, latency)
+- `crucible/console.py` — What `crucible run` prints
 - `crucible/procs.py` — Cross-platform process launch / tree-kill (macOS, Linux, Windows)
-- `crucible/session.py` — Normalized session capture, transcript, tool-call counting
-- `crucible/scorer.py` — Interactive scoring module
+- `crucible/session.py` — Normalized session events, transcript, tool-call counting
+- `crucible/scorer.py` — Interactive scoring (`score_run`)
 - `crucible/reporter.py` — Comparison report generator
 
 ## How It Works

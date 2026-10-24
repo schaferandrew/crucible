@@ -18,21 +18,33 @@ from pathlib import Path
 TOOL_CALL_TYPES = {"tool", "toolCall"}
 
 
+def _tool_call_line(e: dict) -> str:
+    args = e.get("args") or {}
+    summary = ", ".join(f"{k}={str(v)[:60]}" for k, v in list(args.items())[:3])
+    return f"⏺ {e.get('name', '?')}({summary})"
+
+
+def _tool_result_line(e: dict) -> str | None:
+    result = str(e.get("result", "")).strip()
+    return f"  ⎿ {result[:200]}" if result else None
+
+
+# normalized event type -> transcript line (None = nothing to show)
+TRANSCRIPT_FORMATTERS = {
+    "assistantMessage": lambda e: f"⏺ {e.get('message', '')}",
+    "toolCall": _tool_call_line,
+    "toolCallResult": _tool_result_line,
+}
+
+
 def transcript_lines(events: list[dict]) -> list[str]:
     """Human-readable transcript for normalized session events."""
     lines = []
-    for e in events:
-        t = e.get("type")
-        if t == "assistantMessage":
-            lines.append(f"⏺ {e.get('message', '')}")
-        elif t == "toolCall":
-            args = e.get("args") or {}
-            summary = ", ".join(f"{k}={str(v)[:60]}" for k, v in list(args.items())[:3])
-            lines.append(f"⏺ {e.get('name', '?')}({summary})")
-        elif t == "toolCallResult":
-            result = str(e.get("result", "")).strip()
-            if result:
-                lines.append(f"  ⎿ {result[:200]}")
+    for event in events:
+        fmt = TRANSCRIPT_FORMATTERS.get(event.get("type"))
+        line = fmt(event) if fmt else None
+        if line:
+            lines.append(line)
     return lines
 
 
@@ -65,24 +77,3 @@ def count_tool_calls(session_path: Path) -> int | None:
         elif isinstance(node, list):
             stack.extend(node)
     return count
-
-
-def timing_summary(responses: list[dict]) -> dict:
-    """Run-level latency metrics from per-model-response timings.
-
-    responses: in call order, each {"ttft_s": float | None, "duration_s":
-    float | None} where ttft_s is request sent -> first streamed token and
-    duration_s is request sent -> response complete. Unknowns stay None so
-    agents only report what they actually measured.
-    """
-    def avg(values):
-        values = [v for v in values if v is not None]
-        return round(sum(values) / len(values), 3) if values else None
-
-    first = responses[0].get("ttft_s") if responses else None
-    return {
-        "model_responses": len(responses) or None,
-        "ttft_s": round(first, 3) if first is not None else None,
-        "ttft_avg_s": avg(r.get("ttft_s") for r in responses),
-        "response_time_avg_s": avg(r.get("duration_s") for r in responses),
-    }

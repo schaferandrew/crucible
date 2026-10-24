@@ -4,8 +4,8 @@ import sys
 import pytest
 import yaml
 
-from crucible import procs, runner, session
-from crucible.agents import AGENTS, RunContext
+from crucible import console, metrics, procs, session
+from crucible.agents import AGENTS, Agent, RunContext
 from crucible.agents import pi as pi_agent
 from crucible.agents import pool as pool_agent
 
@@ -64,10 +64,10 @@ class TestPiSession:
         assert "⏺ bash(command=npm test)" in transcript
         assert "⎿ 3 passed" in transcript
         assert "⏺ Done." in transcript
-        metrics = runner.extract_metrics(tmp_path, AGENTS["pi"])
-        assert metrics["tool_calls"] == 1
-        assert metrics["tests_passed"] == 3
-        assert (metrics["tokens_in"], metrics["tokens_out"]) == (300, 20)
+        found = metrics.extract_metrics(tmp_path, AGENTS["pi"])
+        assert found["tool_calls"] == 1
+        assert found["tests_passed"] == 3
+        assert (found["tokens_in"], found["tokens_out"]) == (300, 20)
 
     def test_collect_without_session_is_harmless(self, tmp_path):
         AGENTS["pi"].collect(_ctx(tmp_path))
@@ -118,10 +118,10 @@ class TestPiLaunch:
 class TestPiValidate:
     def test_openrouter_needs_key(self, monkeypatch):
         monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
-        assert AGENTS["pi"].validate("openrouter/x/y")
+        assert AGENTS["pi"].validate("openrouter/x/y", {})
         monkeypatch.setenv("OPENROUTER_API_KEY", "k")
-        assert AGENTS["pi"].validate("openrouter/x/y") is None
-        assert AGENTS["pi"].validate("ollama/q") is None
+        assert AGENTS["pi"].validate("openrouter/x/y", {}) is None
+        assert AGENTS["pi"].validate("ollama/q", {}) is None
 
 
 class TestOpenCodeLaunch:
@@ -202,37 +202,37 @@ class TestProcs:
 class TestPoolConfig:
     def test_tenant_mode(self):
         for model in (None, "pool"):
-            env, flags, standalone = pool_agent.pool_config(model)
-            assert env == {} and flags == [] and standalone is None
+            mode = pool_agent.pool_mode(model)
+            assert mode.env == {} and mode.exec_flags == [] and mode.standalone_model is None
 
     def test_ollama_standalone_pins_base_url(self, monkeypatch):
         # With tenant credentials present, pool ignores settings.yaml's
         # api_url — the base URL must be pinned or inference silently goes
         # to Poolside cloud instead of ollama
         monkeypatch.delenv("POOLSIDE_API_KEY", raising=False)
-        env, flags, standalone = pool_agent.pool_config("ollama/laguna-xs-2.1:nvfp4")
-        assert env["POOLSIDE_STANDALONE_MODEL"] == "laguna-xs-2.1:nvfp4"
-        assert env["POOLSIDE_STANDALONE_BASE_URL"] == pool_agent.OLLAMA_OPENAI_API
-        assert env["POOLSIDE_API_KEY"] == "ollama"
-        assert flags == [] and standalone == "laguna-xs-2.1:nvfp4"
+        mode = pool_agent.pool_mode("ollama/laguna-xs-2.1:nvfp4")
+        assert mode.env["POOLSIDE_STANDALONE_MODEL"] == "laguna-xs-2.1:nvfp4"
+        assert mode.env["POOLSIDE_STANDALONE_BASE_URL"] == pool_agent.OLLAMA_OPENAI_API
+        assert mode.env["POOLSIDE_API_KEY"] == "ollama"
+        assert mode.exec_flags == [] and mode.standalone_model == "laguna-xs-2.1:nvfp4"
 
     def test_openrouter_standalone(self, monkeypatch):
         monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
-        env, flags, standalone = pool_agent.pool_config("openrouter/deepseek/deepseek-v4-flash")
-        assert env["POOLSIDE_API_KEY"] == "test-key"
-        assert env["POOLSIDE_STANDALONE_BASE_URL"] == pool_agent.OPENROUTER_API
-        assert standalone == "deepseek/deepseek-v4-flash"
-        assert flags == ["--sandbox", "disabled"]
+        mode = pool_agent.pool_mode("openrouter/deepseek/deepseek-v4-flash")
+        assert mode.env["POOLSIDE_API_KEY"] == "test-key"
+        assert mode.env["POOLSIDE_STANDALONE_BASE_URL"] == pool_agent.OPENROUTER_API
+        assert mode.standalone_model == "deepseek/deepseek-v4-flash"
+        assert mode.exec_flags == ["--sandbox", "disabled"]
 
     def test_openrouter_key_never_lands_in_command_sh(self, monkeypatch):
         monkeypatch.setenv("OPENROUTER_API_KEY", "sk-secret")
-        env, _, _ = pool_agent.pool_config("openrouter/x/y")
-        assert "sk-secret" not in procs.format_command(["pool"], env)
+        mode = pool_agent.pool_mode("openrouter/x/y")
+        assert "sk-secret" not in procs.format_command(["pool"], mode.env)
 
     def test_validate_openrouter_needs_key(self, monkeypatch):
         monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
-        assert AGENTS["pool"].validate("openrouter/x/y")
-        assert AGENTS["pool"].validate(None) is None
+        assert AGENTS["pool"].validate("openrouter/x/y", {})
+        assert AGENTS["pool"].validate(None, {}) is None
 
 
 class TestPoolLaunch:
@@ -327,23 +327,25 @@ class TestPoolCaptures:
 class TestRegistry:
     def test_every_agent_is_complete(self):
         for name, agent in AGENTS.items():
-            assert agent.name == name and agent.executable and agent.install_hint
-            assert type(agent).launch is not runner.Agent.launch
+            assert agent.name == name and agent.label
+            # A CLI harness implements launch(); anything else overrides run()
+            assert type(agent).launch is not Agent.launch or type(agent).run is not Agent.run
+            assert not agent.executable or agent.install_hint
 
 
 class TestMetricsSummary:
     def test_only_known_metrics_shown(self):
-        assert runner._metrics_summary({"tool_calls": 2, "tests_passed": 3, "tests_failed": None,
+        assert console.metrics_summary({"tool_calls": 2, "tests_passed": 3, "tests_failed": None,
                                         "tokens_in": None, "tokens_out": None}) == \
             "2 tool calls, tests 3 passed"
 
     def test_nothing_known(self):
-        assert runner._metrics_summary({}) == ""
+        assert console.metrics_summary({}) == ""
 
 
 class TestTiming:
     def test_summary(self):
-        summary = session.timing_summary([
+        summary = metrics.timing_summary([
             {"ttft_s": 0.5, "duration_s": 2.0},
             {"ttft_s": None, "duration_s": 1.0},
             {"ttft_s": 0.3, "duration_s": 3.0},
@@ -352,7 +354,7 @@ class TestTiming:
                            "response_time_avg_s": 2.0}
 
     def test_summary_empty_is_all_unknown(self):
-        assert set(session.timing_summary([]).values()) == {None}
+        assert set(metrics.timing_summary([]).values()) == {None}
 
     def test_pi_timing_file(self, tmp_path):
         (tmp_path / pi_agent.TIMING_FILENAME).write_text(
@@ -372,6 +374,6 @@ class TestTiming:
             {"ttft_s": None, "duration_s": 3.0}, {"ttft_s": None, "duration_s": None}]
 
     def test_metrics_line_shows_ttft(self):
-        line = runner._metrics_summary({"ttft_s": 0.21, "ttft_avg_s": 0.3, "model_responses": 3,
+        line = console.metrics_summary({"ttft_s": 0.21, "ttft_avg_s": 0.3, "model_responses": 3,
                                         "response_time_avg_s": 1.5})
         assert line == "TTFT 0.21s (avg 0.30s), 3 model responses, avg 1.50s"

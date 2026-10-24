@@ -24,6 +24,7 @@ import contextlib
 import json
 import os
 import sys
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
@@ -64,30 +65,47 @@ def trajectory_dirs() -> list[Path]:
     return [data / "poolside" / "trajectories", home / ".config" / "poolside" / "trajectories"]
 
 
-def pool_config(model: str | None) -> tuple[dict[str, str], list[str], str | None]:
-    """Env additions, extra `pool exec` flags and standalone model name."""
-    env: dict[str, str] = {}
-    extra_flags: list[str] = []
-    standalone_model = None
+@dataclass
+class PoolMode:
+    env: dict[str, str] = field(default_factory=dict)
+    exec_flags: list[str] = field(default_factory=list)
+    standalone_model: str | None = None   # passed as -m to the TUI
 
-    if model and model.startswith("openrouter/"):
-        env["POOLSIDE_API_KEY"] = os.environ.get("OPENROUTER_API_KEY", "")
-        env["POOLSIDE_STANDALONE_BASE_URL"] = OPENROUTER_API
-        env["POOLSIDE_STANDALONE_MODEL"] = standalone_model = model.split("/", 1)[1]
-        extra_flags = ["--sandbox", "disabled"]
-    elif model and model.startswith("ollama/"):
-        standalone_model = model.rsplit("/", 1)[-1]
-        env["POOLSIDE_STANDALONE_BASE_URL"] = OLLAMA_OPENAI_API
-        env["POOLSIDE_STANDALONE_MODEL"] = standalone_model
-        # Ollama ignores auth, but the TUI's ACP session/new refuses to start
-        # without a token ("Authentication required"); any placeholder works.
-        if not os.environ.get("POOLSIDE_API_KEY"):
-            env["POOLSIDE_API_KEY"] = "ollama"
-    elif model and model != TENANT_MODEL:
-        standalone_model = model.rsplit("/", 1)[-1]
-        env["POOLSIDE_STANDALONE_MODEL"] = standalone_model
 
-    return env, extra_flags, standalone_model
+def _openrouter_mode(model_id: str) -> PoolMode:
+    return PoolMode(env={"POOLSIDE_API_KEY": os.environ.get("OPENROUTER_API_KEY", ""),
+                         "POOLSIDE_STANDALONE_BASE_URL": OPENROUTER_API,
+                         "POOLSIDE_STANDALONE_MODEL": model_id},
+                    exec_flags=["--sandbox", "disabled"], standalone_model=model_id)
+
+
+def _ollama_mode(model_id: str) -> PoolMode:
+    env = {"POOLSIDE_STANDALONE_BASE_URL": OLLAMA_OPENAI_API,
+           "POOLSIDE_STANDALONE_MODEL": model_id}
+    # Ollama ignores auth, but the TUI's ACP session/new refuses to start
+    # without a token ("Authentication required"); any placeholder works.
+    if not os.environ.get("POOLSIDE_API_KEY"):
+        env["POOLSIDE_API_KEY"] = "ollama"
+    return PoolMode(env=env, standalone_model=model_id)
+
+
+def _named_model_mode(model_id: str) -> PoolMode:
+    """Any other model: pool's standalone default endpoint, model by name."""
+    return PoolMode(env={"POOLSIDE_STANDALONE_MODEL": model_id}, standalone_model=model_id)
+
+
+# provider prefix -> mode builder, given the model ID after the prefix
+POOL_MODES = {"openrouter": _openrouter_mode, "ollama": _ollama_mode}
+
+
+def pool_mode(model: str | None) -> PoolMode:
+    """Tenant mode (no model / "pool"), else standalone per provider prefix."""
+    if not model or model == TENANT_MODEL:
+        return PoolMode()
+    provider, _, model_id = model.partition("/")
+    if provider in POOL_MODES and model_id:
+        return POOL_MODES[provider](model_id)
+    return _named_model_mode(model.rsplit("/", 1)[-1])
 
 
 # --------------------------------------------------------------------------
@@ -203,23 +221,38 @@ def find_trajectory(workspace: str) -> Path | None:
     return best[1] if best else None
 
 
+def _tool_call(event: dict) -> dict:
+    tc = event.get("tool_call_parsed") or {}
+    return {"type": "toolCall", "name": tc.get("name", "?"), "args": tc.get("args") or {}}
+
+
+def _tool_result(event: dict) -> dict:
+    tcr = event.get("tool_call_result") or {}
+    return {"type": "toolCallResult", "name": tcr.get("tool_name", "?"),
+            "result": tcr.get("observation", "")}
+
+
+def _assistant_message(event: dict) -> dict | None:
+    msg = (event.get("assistant_message_end") or {}).get("assistant_message", "")
+    return {"type": "assistantMessage", "message": msg} if msg else None
+
+
+# trajectory event type -> converter to a normalized event (None = skip)
+TRAJECTORY_CONVERTERS = {
+    "tool_call.parsed": _tool_call,
+    "tool_call.result": _tool_result,
+    "assistant_message.end": _assistant_message,
+}
+
+
 def trajectory_events(trajectory: Path) -> list[dict]:
     """Convert trajectory events into the normalized session schema."""
     events = []
     for event in _ndjson(trajectory):
-        t = event.get("type")
-        if t == "tool_call.parsed":
-            tc = event.get("tool_call_parsed") or {}
-            events.append({"type": "toolCall", "name": tc.get("name", "?"),
-                           "args": tc.get("args") or {}})
-        elif t == "tool_call.result":
-            tcr = event.get("tool_call_result") or {}
-            events.append({"type": "toolCallResult", "name": tcr.get("tool_name", "?"),
-                           "result": tcr.get("observation", "")})
-        elif t == "assistant_message.end":
-            msg = (event.get("assistant_message_end") or {}).get("assistant_message", "")
-            if msg:
-                events.append({"type": "assistantMessage", "message": msg})
+        convert = TRAJECTORY_CONVERTERS.get(event.get("type"))
+        normalized = convert(event) if convert else None
+        if normalized:
+            events.append(normalized)
     return events
 
 
@@ -243,7 +276,7 @@ class PoolAgent(Agent):
     install_hint = "see https://poolside.ai for the pool CLI"
     default_model = TENANT_MODEL
 
-    def validate(self, model: str | None) -> str | None:
+    def validate(self, model: str | None, prompt_def: dict) -> str | None:
         if model and model.startswith("openrouter/") and not os.environ.get("OPENROUTER_API_KEY"):
             return "OPENROUTER_API_KEY required for openrouter-backed pool runs"
         return None
@@ -257,20 +290,19 @@ class PoolAgent(Agent):
             remove_mcp_servers(added)
 
     def launch(self, ctx: RunContext) -> Launch:
-        env, extra_flags, standalone_model = pool_config(ctx.model)
+        mode = pool_mode(ctx.model)
         workspace = str(ctx.workspace)
         if ctx.watch:
             # TUI in the workspace with the instruction pre-queued (auto-sent).
             # --mode always-allow mirrors headless --unsafe-auto-allow: without
             # it the TUI blocks on tool-approval prompts.
-            cmd = ["pool", "-C", workspace, "--mode", "always-allow"]
-            if standalone_model:
-                cmd.extend(["-m", standalone_model])
-            cmd.extend(["-q", WATCH_INSTRUCTION])
+            model_flag = ["-m", mode.standalone_model] if mode.standalone_model else []
+            cmd = ["pool", "-C", workspace, "--mode", "always-allow", *model_flag,
+                   "-q", WATCH_INSTRUCTION]
         else:
             cmd = ["pool", "exec", "-f", str(ctx.prompt_file), "-d", workspace,
-                   "--unsafe-auto-allow", *extra_flags, "-o", "json"]
-        return Launch(cmd=cmd, env=env)
+                   "--unsafe-auto-allow", *mode.exec_flags, "-o", "json"]
+        return Launch(cmd=cmd, env=mode.env)
 
     def collect(self, ctx: RunContext) -> None:
         if not ctx.watch:

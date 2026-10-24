@@ -1,131 +1,65 @@
-#!/usr/bin/env python3
-"""Direct API runner for text-only prompts (no opencode overhead).
+"""Model providers crucible talks to directly: Ollama, LM Studio, OpenRouter.
 
-Supports Ollama, LM Studio, and OpenRouter via stdlib urllib.
+One table (PROVIDERS) says, per provider, how to list its models, whether
+model lookups match exactly or fuzzily, and how to stream a completion. It
+backs both model resolution (crucible.models) and --agent direct.
 """
 from __future__ import annotations
+
 import json
 import os
 import time
 import urllib.request
-from pathlib import Path
-from typing import Any
-
+from dataclasses import dataclass
+from typing import Callable
 
 LMSTUDIO_BASE_URL = os.environ.get("LMSTUDIO_BASE_URL", "http://127.0.0.1:1234/v1")
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 
-def _parse_model(model: str) -> tuple[str, str]:
-    """Parse 'provider/model' or 'provider/model:tag' into (provider, model_id)."""
-    if model.startswith("ollama/"):
-        return "ollama", model[len("ollama/") :]
-    if model.startswith("openrouter/"):
-        return "openrouter", model[len("openrouter/") :]
-    if model.startswith("lmstudio/"):
-        return "lmstudio", model[len("lmstudio/") :]
-    raise ValueError(f"Unsupported model prefix for direct mode: {model}. Use ollama/... , lmstudio/... , or openrouter/...")
+# --------------------------------------------------------------------------
+# Model listing
+# --------------------------------------------------------------------------
+
+def _get_json(url: str, headers: dict | None = None) -> dict:
+    req = urllib.request.Request(url, headers=headers or {}, method="GET")
+    return json.loads(urllib.request.urlopen(req, timeout=10).read())
 
 
 def fetch_ollama_models() -> list[str]:
-    """Fetch available model names from local ollama instance."""
+    """Model names from the local ollama instance ([] when unreachable)."""
     try:
-        req = urllib.request.Request(f"{OLLAMA_BASE_URL}/api/tags", method="GET")
-        resp = urllib.request.urlopen(req, timeout=10)
-        data = json.loads(resp.read())
-        return [m["name"] for m in data.get("models", [])]
+        return [m["name"] for m in _get_json(f"{OLLAMA_BASE_URL}/api/tags").get("models", [])]
     except Exception:
         return []
 
 
 def fetch_lmstudio_models() -> list[str]:
-    """Fetch available model names from a local LM Studio OpenAI-compatible endpoint."""
+    """Model IDs from LM Studio's OpenAI-compatible server ([] when unreachable)."""
     try:
-        req = urllib.request.Request(f"{LMSTUDIO_BASE_URL}/models", method="GET")
-        resp = urllib.request.urlopen(req, timeout=10)
-        data = json.loads(resp.read())
-        return [m.get("id", "") for m in data.get("data", []) if m.get("id")]
+        data = _get_json(f"{LMSTUDIO_BASE_URL}/models").get("data", [])
+        return [m["id"] for m in data if m.get("id")]
     except Exception:
         return []
 
 
 def fetch_openrouter_models() -> list[str]:
-    """Fetch model IDs from OpenRouter API."""
+    """Model IDs from OpenRouter ([] without OPENROUTER_API_KEY or when unreachable)."""
     api_key = os.environ.get("OPENROUTER_API_KEY")
     if not api_key:
         return []
     try:
-        req = urllib.request.Request(
-            "https://openrouter.ai/api/v1/models",
-            headers={"Authorization": f"Bearer {api_key}"},
-            method="GET",
-        )
-        resp = urllib.request.urlopen(req, timeout=10)
-        data = json.loads(resp.read())
-        return [m["id"] for m in data.get("data", [])]
+        data = _get_json(f"{OPENROUTER_BASE_URL}/models",
+                         headers={"Authorization": f"Bearer {api_key}"}).get("data", [])
+        return [m["id"] for m in data]
     except Exception:
         return []
 
 
-def find_model_matches(model_query: str) -> list[str]:
-    """Return list of 'provider/model' strings matching query across providers."""
-    matches = []
-
-    # Exact match on ollama
-    ollama_models = fetch_ollama_models()
-    if model_query in ollama_models:
-        matches.append(f"ollama/{model_query}")
-
-    # Fuzzy match on LM Studio
-    lmstudio_models = fetch_lmstudio_models()
-    query_lower = model_query.lower()
-    for model_name in lmstudio_models:
-        model_name_lower = model_name.lower()
-        if query_lower in model_name_lower:
-            matches.append(f"lmstudio/{model_name}")
-            continue
-        # Also match on colon-separated parts (e.g., qwen3.5:9b matches qwen/qwen-2.5-7b)
-        for part in query_lower.replace(":", " ").split():
-            if part and part in model_name_lower:
-                matches.append(f"lmstudio/{model_name}")
-                break
-
-    # Fuzzy match on OpenRouter
-    openrouter_models = fetch_openrouter_models()
-    for om in openrouter_models:
-        om_lower = om.lower()
-        if query_lower in om_lower:
-            matches.append(f"openrouter/{om}")
-            continue
-        # Also match on colon-separated parts (e.g., qwen3.5:9b matches qwen/qwen-2.5-7b)
-        for part in query_lower.replace(":", " ").split():
-            if part and part in om_lower:
-                matches.append(f"openrouter/{om}")
-                break
-
-    return matches
-
-
-def _inline_fixtures(prompt_text: str, fixtures: list[str] | str, fixtures_dir: Path) -> str:
-    """Append fixture contents to the prompt so the model can see them inline."""
-    if isinstance(fixtures, str):
-        fixtures = [fixtures]
-    lines = [prompt_text.rstrip()]
-    for fixture_name in fixtures:
-        src = fixtures_dir / fixture_name
-        if not src.exists():
-            lines.append(f"\n[Fixture not found: {fixture_name}]")
-            continue
-        if src.is_dir():
-            lines.append(f"\n[Fixture is a directory: {fixture_name}]")
-            continue
-        lines.append(f"\n---")
-        lines.append(f"FIXTURE: {fixture_name}")
-        lines.append(f"---")
-        lines.append(src.read_text(encoding="utf-8"))
-    return "\n".join(lines)
-
+# --------------------------------------------------------------------------
+# Streaming completions (time to first token + token usage)
+# --------------------------------------------------------------------------
 
 class _StreamTimer:
     """Wall-clock timing for one streamed response."""
@@ -232,24 +166,67 @@ def _call_openrouter(model_id: str, prompt: str, timeout: int = 300) -> dict:
                                    headers={"Authorization": f"Bearer {api_key}"})
 
 
-def run_direct(
-    prompt_text: str,
-    model: str,
-    fixtures: list[str],
-    fixtures_dir: Path,
-    timeout: int = 300,
-) -> dict:
-    """Run a text-only prompt via direct API (streamed).
+# --------------------------------------------------------------------------
+# Provider table
+# --------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class Provider:
+    name: str
+    list_models: Callable[[], list[str]]
+    complete: Callable[[str, str, int], dict]   # (model_id, prompt, timeout)
+    fuzzy_match: bool                           # False: exact name only
+    empty_hint: str
+
+
+# Lambdas look the functions up at call time, so tests can patch them.
+PROVIDERS: dict[str, Provider] = {p.name: p for p in (
+    Provider("ollama", lambda: fetch_ollama_models(),
+             lambda *a: _call_ollama(*a), fuzzy_match=False,
+             empty_hint="No ollama models found. Run 'ollama pull <model>' first."),
+    Provider("lmstudio", lambda: fetch_lmstudio_models(),
+             lambda *a: _call_lmstudio(*a), fuzzy_match=True,
+             empty_hint="No LM Studio models found. Start LM Studio and load a model first."),
+    Provider("openrouter", lambda: fetch_openrouter_models(),
+             lambda *a: _call_openrouter(*a), fuzzy_match=True,
+             empty_hint="No openrouter models found (check OPENROUTER_API_KEY)."),
+)}
+
+
+def split_model(model: str) -> tuple[Provider, str]:
+    """'provider/model[:tag]' -> (Provider, model_id); ValueError if unsupported."""
+    name, _, model_id = model.partition("/")
+    if name not in PROVIDERS or not model_id:
+        raise ValueError(f"Unsupported model '{model}'. Use one of: "
+                         + ", ".join(f"{n}/<model>" for n in PROVIDERS))
+    return PROVIDERS[name], model_id
+
+
+def _fuzzy_matches(query: str, candidates: list[str]) -> list[str]:
+    """Candidates containing the query, or any of its ':'/space-separated parts.
+
+    e.g. 'qwen3.5:9b' matches 'qwen/qwen3.5-9b' via the 'qwen3.5' part.
+    """
+    parts = [query] + query.replace(":", " ").split()
+    return [c for c in candidates if any(p.lower() in c.lower() for p in parts if p)]
+
+
+def find_model_matches(query: str) -> list[str]:
+    """'provider/model' strings matching a bare model name across providers."""
+    matches = []
+    for provider in PROVIDERS.values():
+        models = provider.list_models()
+        found = _fuzzy_matches(query, models) if provider.fuzzy_match else \
+            [m for m in models if m == query]
+        matches += [f"{provider.name}/{m}" for m in found]
+    return matches
+
+
+def complete(model: str, prompt: str, timeout: int = 300) -> dict:
+    """Stream one completion for 'provider/model'.
 
     Returns {"text", "ttft_s", "duration_s", "tokens_in", "tokens_out"};
     timing/token fields are None when the provider does not report them.
     """
-    provider, model_id = _parse_model(model)
-    full_prompt = _inline_fixtures(prompt_text, fixtures, fixtures_dir)
-    if provider == "ollama":
-        return _call_ollama(model_id, full_prompt, timeout)
-    if provider == "lmstudio":
-        return _call_lmstudio(model_id, full_prompt, timeout)
-    if provider == "openrouter":
-        return _call_openrouter(model_id, full_prompt, timeout)
-    raise ValueError(f"Unknown provider: {provider}")
+    provider, model_id = split_model(model)
+    return provider.complete(model_id, prompt, timeout)
