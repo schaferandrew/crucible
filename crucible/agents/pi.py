@@ -69,19 +69,14 @@ def pi_config(model: str | None, mcp_servers: list[str],
     return flags, config
 
 
-def session_events(session_file: Path) -> tuple[list[dict], tuple[int, int] | None]:
-    """Normalized events and (tokens_in, tokens_out) from a pi session JSONL.
-
-    tokens_in counts all prompt tokens (fresh + cache read/write); a
-    truncated trailing line (timeout/kill) is dropped.
-    """
-    events: list[dict] = []
-    tokens_in = tokens_out = 0
-    seen_usage = False
+def _messages(session_file: Path) -> list[dict]:
+    """The message payloads of a pi session JSONL; a truncated trailing line
+    (timeout/kill) ends the list."""
     try:
         raw_lines = session_file.read_text(encoding="utf-8").splitlines()
     except OSError:
-        return [], None
+        return []
+    messages = []
     for line in raw_lines:
         if not line.strip():
             continue
@@ -89,9 +84,28 @@ def session_events(session_file: Path) -> tuple[list[dict], tuple[int, int] | No
             entry = json.loads(line)
         except json.JSONDecodeError:
             break
-        if entry.get("type") != "message":
-            continue
-        msg = entry.get("message") or {}
+        if entry.get("type") == "message":
+            messages.append(entry.get("message") or {})
+    return messages
+
+
+def session_cost(session_file: Path) -> float | None:
+    """Sum of pi's per-response usage.cost.total (pi's price list, not a bill)."""
+    costs = [((m.get("usage") or {}).get("cost") or {}).get("total")
+             for m in _messages(session_file) if m.get("role") == "assistant"]
+    costs = [c for c in costs if isinstance(c, (int, float))]
+    return sum(costs) if costs else None
+
+
+def session_events(session_file: Path) -> tuple[list[dict], tuple[int, int] | None]:
+    """Normalized events and (tokens_in, tokens_out) from a pi session JSONL.
+
+    tokens_in counts all prompt tokens (fresh + cache read/write).
+    """
+    events: list[dict] = []
+    tokens_in = tokens_out = 0
+    seen_usage = False
+    for msg in _messages(session_file):
         role = msg.get("role")
         content = msg.get("content")
         if role == "assistant":
@@ -128,6 +142,7 @@ class PiAgent(Agent):
     label = "pi"
     executable = "pi"
     install_hint = "npm install -g --ignore-scripts @earendil-works/pi-coding-agent"
+    builtin_web_tools: list[str] = []  # read/bash/edit/write; web only via curl or MCP
 
     def validate(self, model: str | None, prompt_def: dict) -> str | None:
         if model and model.startswith("openrouter/") and not os.environ.get("OPENROUTER_API_KEY"):
@@ -163,6 +178,10 @@ class PiAgent(Agent):
     def token_usage(self, run_dir: Path) -> tuple[int, int] | None:
         session_file = find_session_file(run_dir)
         return session_events(session_file)[1] if session_file else None
+
+    def cost_estimate(self, run_dir: Path) -> float | None:
+        session_file = find_session_file(run_dir)
+        return session_cost(session_file) if session_file else None
 
     def response_timings(self, run_dir: Path) -> list[dict]:
         """Measured in-process by the extension (epoch ms -> seconds)."""

@@ -235,7 +235,9 @@ CI (`.github/workflows/tests.yml`) runs the suite on Linux, macOS and Windows wi
 - `crucible/agents/` — One module per harness: `opencode.py`, `pi.py` (+ `pi_extension.ts`), `pool.py`, `direct.py`
 - `crucible/workspace.py` — Prompts, run directories, workspace setup, fixtures
 - `crucible/models.py` / `crucible/providers.py` — Model resolution; provider table (list models, stream completions)
-- `crucible/metrics.py` — Metrics in `meta.json` (tests, tool calls, tokens, latency)
+- `crucible/metrics.py` — Metrics in `meta.json` (tests, tool calls, tokens, latency, cost)
+- `crucible/cost.py` — Run cost: billed OpenRouter usage or the agent's own estimate
+- `crucible/mcp_servers/` — MCP servers crucible ships to agents (`web_server.py`: `web_fetch`, `web_search`)
 - `crucible/console.py` — What `crucible run` prints
 - `crucible/procs.py` — Cross-platform process launch / tree-kill (macOS, Linux, Windows)
 - `crucible/session.py` — Normalized session events, transcript, tool-call counting
@@ -296,6 +298,18 @@ This makes fresh machines work with zero manual setup: install the repo, run the
 ### Token usage
 
 `meta.json` records `tokens_in` / `tokens_out` per run (from opencode's session export, pi's session file, or pool's trajectory record). Caveats: opencode's `tokens_out` includes reasoning tokens; pi's `tokens_in` includes cache reads/writes; pool's `tokens_in` may include cached input.
+
+### Cost
+
+`meta.json` records `cost_usd` and `cost_source`, best source first:
+- **`openrouter_billed`**: for `openrouter/...` models, the billed usage of `OPENROUTER_API_KEY` read before and after the run (`GET /api/v1/key`), so it is real spend for any agent. It is only clean when nothing else spends on that key during the run, so give an LLM judge its own key. Usage can lag a few seconds, so a run that reads $0 is re-checked for up to ~8s.
+- **`<agent>_estimate`**: the agent's own figure from its session record (pi's `usage.cost.total`, opencode's `messages[].info.cost`), priced from the agent's built-in price list rather than a bill. Local models (ollama, LM Studio) read $0.
+
+Both are `null` when unknown.
+
+### Web tools (E6)
+
+E6 and E6b declare crucible's web MCP server (`mcp_servers: [web]`, `crucible/mcp_servers/web_server.py`), so every agent gets the same `web_fetch` tool (HTTP GET; HTML reduced to text) rather than whatever its harness ships. `web_search` (Brave Search API) is offered only when `BRAVE_SEARCH_API_KEY` is set. `meta.json` records `tools.mcp_servers` and `tools.builtin_web` (opencode still has its own `webfetch`), so you can see what each run could reach.
 
 ### Verified MCP permutations (E4)
 

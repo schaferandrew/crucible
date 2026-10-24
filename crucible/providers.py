@@ -57,6 +57,19 @@ def fetch_openrouter_models() -> list[str]:
         return []
 
 
+def fetch_openrouter_key_usage() -> float | None:
+    """Total USD billed to OPENROUTER_API_KEY so far (None without a key or when unreachable)."""
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    if not api_key:
+        return None
+    try:
+        usage = _get_json(f"{OPENROUTER_BASE_URL}/key",
+                          headers={"Authorization": f"Bearer {api_key}"}).get("data", {}).get("usage")
+        return float(usage) if usage is not None else None
+    except Exception:
+        return None
+
+
 # --------------------------------------------------------------------------
 # Streaming completions (time to first token + token usage)
 # --------------------------------------------------------------------------

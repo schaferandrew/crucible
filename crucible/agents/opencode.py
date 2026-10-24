@@ -14,6 +14,7 @@ class OpenCodeAgent(Agent):
     label = "OpenCode"
     executable = "opencode"
     install_hint = "npm install -g opencode-ai"
+    builtin_web_tools = ["webfetch"]
 
     def launch(self, ctx: RunContext) -> Launch:
         # MCP config rides in via OPENCODE_CONFIG_CONTENT, which opencode loads
@@ -69,6 +70,11 @@ class OpenCodeAgent(Agent):
                 tokens_out += (tok.get("output", 0) or 0) + (tok.get("reasoning", 0) or 0)
         return (tokens_in, tokens_out) if seen else None
 
+    def cost_estimate(self, run_dir: Path) -> float | None:
+        """Sum of messages[].info.cost (opencode's own price list)."""
+        costs = [(msg.get("info") or {}).get("cost") for msg in _messages(run_dir)]
+        costs = [c for c in costs if isinstance(c, (int, float))]
+        return sum(costs) if costs else None
 
     def response_timings(self, run_dir: Path) -> list[dict]:
         """Per assistant message: info.time {created, completed} in epoch ms.
@@ -90,6 +96,16 @@ class OpenCodeAgent(Agent):
             duration = (completed - created) / 1000 if created and completed else None
             timings.append({"ttft_s": None, "duration_s": duration})
         return timings
+
+
+def _messages(run_dir: Path) -> list[dict]:
+    """messages[] of the exported session.json ([] when missing or malformed)."""
+    try:
+        session = json.loads((run_dir / "session.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    messages = session.get("messages", []) if isinstance(session, dict) else []
+    return [m for m in messages if isinstance(m, dict)] if isinstance(messages, list) else []
 
 
 def _export_session(workspace: str, title: str | None, run_dir: Path) -> None:

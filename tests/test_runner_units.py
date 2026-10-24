@@ -4,10 +4,12 @@ import sys
 import pytest
 import yaml
 
-from crucible import console, metrics, procs, session
+from crucible import console, cost, metrics, procs, session, workspace
 from crucible.agents import AGENTS, Agent, RunContext
 from crucible.agents import pi as pi_agent
 from crucible.agents import pool as pool_agent
+from crucible.agents.base import available_mcp_servers
+from crucible.mcp_servers import web_server
 
 
 def _ctx(tmp_path, **overrides):
@@ -393,3 +395,90 @@ class TestTiming:
         line = console.metrics_summary({"ttft_s": 0.21, "ttft_avg_s": 0.3, "model_responses": 3,
                                         "response_time_avg_s": 1.5})
         assert line == "TTFT 0.21s (avg 0.30s), 3 model responses, avg 1.50s"
+
+
+class TestCost:
+    def test_billed_delta_for_openrouter(self):
+        usage = iter([1.25, 1.2875])
+        with cost.BilledCost("openrouter/x/y", read_usage=lambda: next(usage)) as bill:
+            pass
+        assert bill.usd == 0.0375
+
+    def test_billed_waits_for_lagging_usage(self):
+        usage = iter([2.0, 2.0, 2.01])
+        sleeps = []
+        with cost.BilledCost("openrouter/x/y", read_usage=lambda: next(usage),
+                             sleep=sleeps.append) as bill:
+            pass
+        assert bill.usd == 0.01 and len(sleeps) == 1
+
+    def test_not_billed_for_other_providers_or_unreachable(self):
+        with cost.BilledCost("ollama/qwen3", read_usage=lambda: 1 / 0) as local:
+            pass
+        with cost.BilledCost("openrouter/x/y", read_usage=lambda: None) as offline:
+            pass
+        assert local.usd is None and offline.usd is None
+
+    def test_billed_beats_estimate(self):
+        assert cost.run_cost("pi", 0.5, 0.4) == {"cost_usd": 0.4, "cost_source": "openrouter_billed"}
+        assert cost.run_cost("pi", 0.5, None) == {"cost_usd": 0.5, "cost_source": "pi_estimate"}
+        assert cost.run_cost("pi", None, None) == {"cost_usd": None, "cost_source": None}
+
+    def test_pi_estimate_sums_usage_cost(self, tmp_path):
+        priced = {**USAGE, "cost": {"total": 0.002}}
+        entries = [e if e.get("message", {}).get("role") != "assistant" else
+                   {**e, "message": {**e["message"], "usage": priced}} for e in PI_ENTRIES]
+        _pi_session(tmp_path, entries)
+        assert AGENTS["pi"].cost_estimate(tmp_path) == pytest.approx(0.004)
+
+    def test_pi_estimate_unknown_without_cost(self, tmp_path):
+        _pi_session(tmp_path, PI_ENTRIES)
+        assert AGENTS["pi"].cost_estimate(tmp_path) is None
+
+    def test_opencode_estimate(self, tmp_path):
+        (tmp_path / "session.json").write_text(json.dumps({"messages": [
+            {"info": {"role": "user"}},
+            {"info": {"role": "assistant", "cost": 0.01}},
+            {"info": {"role": "assistant", "cost": 0.02}},
+        ]}), encoding="utf-8")
+        assert AGENTS["opencode"].cost_estimate(tmp_path) == pytest.approx(0.03)
+
+    def test_metrics_line_shows_cost(self):
+        assert console.metrics_summary({"cost_usd": 0.01234, "cost_source": "pi_estimate"}) == \
+            "cost $0.0123 (pi_estimate)"
+
+    def test_metrics_include_cost(self, tmp_path):
+        m = metrics.extract_metrics(tmp_path, AGENTS["pi"], billed_usd=0.1)
+        assert (m["cost_usd"], m["cost_source"]) == (0.1, "openrouter_billed")
+
+
+class TestWebMcpServer:
+    def _call(self, name, **arguments):
+        return web_server.handle({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+                                  "params": {"name": name, "arguments": arguments}})["result"]
+
+    def test_search_listed_only_with_key(self, monkeypatch):
+        monkeypatch.delenv("BRAVE_SEARCH_API_KEY", raising=False)
+        listed = web_server.handle({"id": 1, "method": "tools/list"})["result"]["tools"]
+        assert [t["name"] for t in listed] == ["web_fetch"]
+        monkeypatch.setenv("BRAVE_SEARCH_API_KEY", "k")
+        listed = web_server.handle({"id": 1, "method": "tools/list"})["result"]["tools"]
+        assert {t["name"] for t in listed} == {"web_search", "web_fetch"}
+
+    def test_bad_input_is_a_tool_error(self):
+        assert self._call("web_fetch", url="file:///etc/passwd")["isError"] is True
+        assert self._call("web_fetch")["isError"] is True  # missing url
+
+    def test_fetch_reduces_html_and_truncates(self, monkeypatch):
+        page = "<html><style>x{}</style><script>evil()</script><p>Hello &amp; hi</p></html>"
+        monkeypatch.setattr(web_server, "_get", lambda url, headers=None: (200, "text/html", page))
+        text = self._call("web_fetch", url="https://example.com", max_chars=9)["content"][0]["text"]
+        assert text.startswith("HTTP 200 (text/html)\n\nHello & h") and "evil" not in text
+        assert "[truncated at 9 characters]" in text
+
+    def test_notifications_get_no_response(self):
+        assert web_server.handle({"method": "notifications/initialized"}) is None
+
+    def test_declared_and_recorded(self):
+        assert "web" in workspace.load_prompt("E6")["mcp_servers"]
+        assert available_mcp_servers(["web", "mock-data", "nope"]) == ["web", "mock-data"]

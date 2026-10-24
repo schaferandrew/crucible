@@ -5,6 +5,7 @@ import re
 from pathlib import Path
 
 from crucible.agents import Agent
+from crucible.cost import run_cost
 from crucible.session import count_tool_calls
 
 
@@ -42,8 +43,11 @@ def _test_counts(run_dir: Path) -> tuple[int | None, int | None]:
     return passed, failed
 
 
-def extract_metrics(run_dir: Path, agent: Agent) -> dict:
-    """Best-effort metrics from the run's artifacts and the agent's own records."""
+def extract_metrics(run_dir: Path, agent: Agent, billed_usd: float | None = None) -> dict:
+    """Best-effort metrics from the run's artifacts and the agent's own records.
+
+    billed_usd: provider-billed spend measured around the run (crucible.cost).
+    """
     tests_passed, tests_failed = _test_counts(run_dir)
     session_path = run_dir / "session.json"
     # Output tokens include reasoning tokens where the agent reports them
@@ -55,4 +59,5 @@ def extract_metrics(run_dir: Path, agent: Agent) -> dict:
         "tokens_in": tokens_in,
         "tokens_out": tokens_out,
         **timing_summary(agent.response_timings(run_dir)),
+        **run_cost(agent.name, agent.cost_estimate(run_dir), billed_usd),
     }

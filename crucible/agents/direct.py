@@ -21,6 +21,7 @@ class DirectAgent(Agent):
     name = "direct"
     label = "Direct API (no tool use)"
     uses_workspace = False
+    builtin_web_tools: list[str] = []
 
     def validate(self, model: str | None, prompt_def: dict) -> str | None:
         if prompt_def.get("needs_tools", True):

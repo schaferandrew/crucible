@@ -41,6 +41,8 @@ METRIC_FORMATTERS = [
     lambda m: (f"{m.get('model_responses') or 0} model responses, "
                f"avg {m['response_time_avg_s']:.2f}s"
                if _known(m, "response_time_avg_s") else None),
+    lambda m: (f"cost ${m['cost_usd']:.4f} ({m.get('cost_source')})"
+               if _known(m, "cost_usd") else None),
 ]
 
 

@@ -3,6 +3,9 @@ category: everyday
 needs_tools: true
 auto_grade: true
 repo: null
+# Same web tools for every agent, so E6 compares models, not harnesses
+mcp_servers:
+  - web
 prompt: |
   What is the current weather in Saint Paul, MN right now? Fetch it live from a machine-readable JSON API (no key required) — use one of:
     - Open-Meteo (one call): https://api.open-meteo.com/v1/forecast?latitude=44.9537&longitude=-93.09&current_weather=true&temperature_unit=fahrenheit&timezone=America%2FChicago

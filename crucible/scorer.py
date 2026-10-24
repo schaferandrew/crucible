@@ -103,7 +103,6 @@ def _raw_metrics(meta: dict) -> dict:
         "user_interventions": 0,
         **(meta.get("metrics") or {}),
         "final_success": meta.get("timed_out") is not True and meta.get("returncode") in (0, None),
-        "estimated_cost_usd": None,
     }
 
 

@@ -25,6 +25,8 @@ from pathlib import Path
 
 from crucible import console, scorer, workspace
 from crucible.agents import AGENTS, DEFAULT_AGENT, Agent, RunContext
+from crucible.agents.base import available_mcp_servers
+from crucible.cost import BilledCost
 from crucible.metrics import extract_metrics
 from crucible.models import resolve_model
 from crucible.taxonomy import derive_suites, validate_category
@@ -60,7 +62,7 @@ def _build_context(agent: Agent, test_id: str, prompt_def: dict, model: str | No
 
 
 def _write_meta(ctx: RunContext, agent: Agent, result: dict,
-                started_at: str, elapsed: float) -> dict:
+                started_at: str, elapsed: float, billed_usd: float | None = None) -> dict:
     # Every run dir has the same shape, even when the TUI printed to the terminal
     for name in ("stdout.txt", "stderr.txt"):
         (ctx.run_dir / name).touch()
@@ -77,7 +79,12 @@ def _write_meta(ctx: RunContext, agent: Agent, result: dict,
         "returncode": result["returncode"],
         "timed_out": result["timed_out"],
         "status": agent.status(result),
-        "metrics": extract_metrics(ctx.run_dir, agent),
+        # What the model could reach: tool access shapes scores (e.g. E6)
+        "tools": {
+            "builtin_web": agent.builtin_web_tools,
+            "mcp_servers": available_mcp_servers(ctx.mcp_servers),
+        },
+        "metrics": extract_metrics(ctx.run_dir, agent, billed_usd),
     }
     (ctx.run_dir / "meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
     return meta
@@ -103,8 +110,10 @@ def run_single(test_id: str, model: str | None, watch: bool, timeout: int,
 
     started_at = datetime.now(timezone.utc).isoformat()
     start = time.time()
-    result = agent.run(ctx)
-    meta = _write_meta(ctx, agent, result, started_at, time.time() - start)
+    with BilledCost(model) as bill:
+        result = agent.run(ctx)
+    elapsed = time.time() - start
+    meta = _write_meta(ctx, agent, result, started_at, elapsed, bill.usd)
     console.print_result(meta, ctx.run_dir)
     return ctx.run_id
 

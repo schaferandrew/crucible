@@ -26,6 +26,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 # need no setup.
 BUILTIN_MCP_SERVERS = {
     "mock-data": REPO_ROOT / "fixtures" / "mock-mcp-server" / "mock_server.py",
+    "web": REPO_ROOT / "crucible" / "mcp_servers" / "web_server.py",
 }
 
 # Instruction sent alongside the attached prompt.txt. Kept to one line: on
@@ -57,20 +58,23 @@ class Launch:
     env: dict[str, str] = field(default_factory=dict)
 
 
+def available_mcp_servers(servers: list[str]) -> list[str]:
+    """The declared MCP servers crucible can actually provide."""
+    return [name for name in servers
+            if name in BUILTIN_MCP_SERVERS and BUILTIN_MCP_SERVERS[name].exists()]
+
+
 def mcp_server_commands(servers: list[str]) -> dict[str, list[str]]:
     """Launch commands for the declared MCP servers that crucible provides.
 
     Uses the current interpreter explicitly: Windows has no shebang support,
     and it keeps the server on the same Python everywhere.
     """
-    commands = {}
+    available = available_mcp_servers(servers)
     for name in servers:
-        script = BUILTIN_MCP_SERVERS.get(name)
-        if script is None or not script.exists():
+        if name not in available:
             print(f"[WARN] MCP server '{name}' unavailable; its tools are disabled")
-            continue
-        commands[name] = [sys.executable, str(script)]
-    return commands
+    return {name: [sys.executable, str(BUILTIN_MCP_SERVERS[name])] for name in available}
 
 
 class Agent:
@@ -82,6 +86,9 @@ class Agent:
     default_model: str | None = None
     # Whether the runner builds workspace/ (seeded repo + fixtures) for it
     uses_workspace: bool = True
+    # Web tools the harness ships on its own (recorded in meta.json, since
+    # they decide what E6-style tasks measure); None = not known
+    builtin_web_tools: list[str] | None = None
 
     # ---- checks ----------------------------------------------------------
 
@@ -144,6 +151,13 @@ class Agent:
     # ---- metrics (read back from the run dir) ----------------------------
 
     def token_usage(self, run_dir: Path) -> tuple[int, int] | None:
+        return None
+
+    def cost_estimate(self, run_dir: Path) -> float | None:
+        """USD the agent itself reports for the run (its own price list), or None.
+
+        See crucible.cost: billed OpenRouter usage takes precedence.
+        """
         return None
 
     def response_timings(self, run_dir: Path) -> list[dict]:
