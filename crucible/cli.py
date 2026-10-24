@@ -16,7 +16,7 @@ from crucible import runner, scorer, reporter
 def _get_version() -> str:
     pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
     if pyproject.exists():
-        for line in pyproject.read_text().splitlines():
+        for line in pyproject.read_text(encoding="utf-8").splitlines():
             if line.startswith("version"):
                 return line.split("=")[1].strip().strip('"')
     return "dev"
@@ -29,7 +29,7 @@ Usage:
   crucible <command> [args...]
 
 Commands:
-  run      Run benchmark test(s) with an agent (opencode or pool)
+  run      Run benchmark test(s) with an agent harness (opencode, pi, pool, direct)
   score    Interactively score a completed run against its rubric
   report   Generate a comparison report across runs
 
@@ -45,7 +45,10 @@ Examples:
   # Whole coding suite with a local ollama model
   crucible run coding --model ollama/qwen3:30b-a3b --timeout 300
 
-  # Run through the Poolside agent instead of opencode
+  # Run through the pi agent instead of opencode
+  crucible run C1 --agent pi --model openrouter/moonshotai/kimi-k2.6
+
+  # Run through the Poolside agent (tenant mode)
   crucible run C1 --agent pool
 
   # Watch a test live in the opencode TUI
@@ -67,38 +70,32 @@ Run 'crucible <command> -h' for command-specific options.
 """)
 
 
+COMMANDS = {"run": runner.main, "score": scorer.main, "report": reporter.main}
+
+
 def main():
-    if len(sys.argv) < 2:
+    # Windows writes piped output in the legacy code page (cp1252); emit
+    # UTF-8 everywhere and never crash on glyphs a console cannot show.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
+    cmd, rest = (sys.argv[1], sys.argv[2:]) if len(sys.argv) > 1 else (None, [])
+    if cmd in (None, "-h", "--help", "help"):
         _print_help()
-        sys.exit(1)
-
-    cmd = sys.argv[1]
-
-    if cmd in ("-h", "--help", "help"):
-        _print_help()
-        sys.exit(0)
-
-    if cmd in ("--version", "-v"):
+        sys.exit(0 if cmd else 1)
+    if cmd in ("-v", "--version"):
         print(f"crucible {_get_version()}")
         sys.exit(0)
-
-    rest = sys.argv[2:]
-
-    # Patch sys.argv so the subcommand's argparse sees only its own args
-    sys.argv = [f"crucible {cmd}"] + rest
-
-    if cmd == "run":
-        runner.main()
-    elif cmd == "score":
-        scorer.main()
-    elif cmd == "report":
-        reporter.main()
-    else:
+    if cmd not in COMMANDS:
         print(f"Unknown command: {cmd}")
-        print("Usage: crucible <run|score|report> [args...]")
+        print(f"Usage: crucible <{'|'.join(COMMANDS)}> [args...]")
         print("Try 'crucible --help' for details.")
         sys.exit(1)
 
+    # The subcommand's argparse sees only its own args
+    sys.argv = [f"crucible {cmd}", *rest]
+    COMMANDS[cmd]()
 
 if __name__ == "__main__":
     main()

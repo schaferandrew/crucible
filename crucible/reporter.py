@@ -6,98 +6,65 @@ Usage:
     crucible report --all --output results.md
 """
 from __future__ import annotations
+
 import argparse
 import json
 import sys
 from datetime import datetime
 from pathlib import Path
 
-from crucible.scorer import find_run_dir
-
-REPO_ROOT = Path(__file__).resolve().parent.parent
-RUNS_DIR = REPO_ROOT / "runs"
+from crucible.scorer import RUNS_DIR, find_run_dir
 
 
 def load_run(run_id: str) -> dict | None:
-    run_dir = find_run_dir(run_id)
-    if not run_dir:
+    """{"meta": ..., "results": ... | None}, or None if the run is unknown."""
+    try:
+        run_dir = find_run_dir(run_id)
+        meta = json.loads((run_dir / "meta.json").read_text(encoding="utf-8"))
+    except (FileNotFoundError, OSError, json.JSONDecodeError):
         return None
-    
-    meta_path = run_dir / "meta.json"
     results_path = run_dir / "results.json"
+    results = json.loads(results_path.read_text(encoding="utf-8")) if results_path.exists() else None
+    return {"meta": meta, "results": results}
 
-    if not meta_path.exists():
-        return None
 
-    data = {}
-    with open(meta_path) as f:
-        data["meta"] = json.load(f)
+def _scores(run: dict | None) -> dict:
+    return ((run or {}).get("results") or {}).get("scores") or {}
 
-    if results_path.exists():
-        with open(results_path) as f:
-            data["results"] = json.load(f)
-    else:
-        data["results"] = None
 
-    return data
+def _summary_row(run_id: str, run: dict | None) -> str:
+    if run is None:
+        return f"| {run_id} | ? | ? | ? | ? |"
+    meta = run["meta"]
+    overall = _scores(run).get("_overall")
+    score = f"{overall}/10" if overall is not None else "N/A"
+    return (f"| {run_id} | {meta.get('test_id', '?')} | {meta.get('model', '?')} "
+            f"| {meta.get('elapsed_time', '?')}s | {score} |")
 
+
+def _breakdown(run_id: str, scores: dict) -> list[str]:
+    lines = [f"## {run_id}", ""]
+    lines += [f"- {criterion}: {score}" for criterion, score in scores.items()
+              if not criterion.startswith("_")]
+    if "_overall" in scores:
+        lines.append(f"\n**Overall: {scores['_overall']}/10**")
+    return lines + [""]
 
 
 def generate_report(run_ids: list[str]) -> str:
+    runs = {run_id: load_run(run_id) for run_id in run_ids}
     lines = [
         "# Crucible Benchmark Report",
         f"Generated: {datetime.now().isoformat()}",
         "",
+        "| Run | Test | Model | Elapsed | Score |",
+        "|-----|------|-------|---------|-------|",
+        *(_summary_row(run_id, run) for run_id, run in runs.items()),
+        "",
     ]
-
-    # Header
-    lines.append("| Run | Test | Model | Elapsed | Score |")
-    lines.append("|-----|------|-------|---------|-------|")
-
-    for rid in run_ids:
-        data = load_run(rid)
-        if not data:
-            lines.append(f"| {rid} | ? | ? | ? | ? |")
-            continue
-
-        meta = data["meta"]
-        test_id = meta.get("test_id", "?")
-        model = meta.get("model", "?")
-        elapsed = meta.get("elapsed_time", "?")
-
-        score = "N/A"
-        if data.get("results") and data["results"].get("scores"):
-            scores = data["results"]["scores"]
-            if "_overall" in scores:
-                score = f"{scores['_overall']}/10"
-
-        lines.append(f"| {rid} | {test_id} | {model} | {elapsed}s | {score} |")
-
-    lines.append("")
-
-    # Detailed breakdown for scored runs
-    for rid in run_ids:
-        data = load_run(rid)
-        if not data or not data.get("results"):
-            continue
-
-        results = data["results"]
-        scores = results.get("scores", {})
-        if not scores:
-            continue
-
-        lines.append(f"## {rid}")
-        lines.append("")
-
-        for criterion, score in scores.items():
-            if not criterion.startswith("_"):
-                lines.append(f"- {criterion}: {score}")
-
-        if "_overall" in scores:
-            lines.append(f"\n**Overall: {scores['_overall']}/10**")
-
-        lines.append("")
-
+    for run_id, run in runs.items():
+        if _scores(run):
+            lines += _breakdown(run_id, _scores(run))
     return "\n".join(lines)
 
 
@@ -108,25 +75,16 @@ def main() -> None:
     parser.add_argument("--output", "-o", help="Output file (default: print to stdout)")
     args = parser.parse_args()
 
-    run_ids = args.run_ids or []
-    
-    if args.all:
-        # Discover all directories that have results.json
-        all_runs = []
-        for path in RUNS_DIR.rglob("results.json"):
-            # Relative path from RUNS_DIR, parent is the run dir
-            rel = str(path.parent.relative_to(RUNS_DIR))
-            all_runs.append(rel)
-        run_ids = sorted(set(run_ids + all_runs))
-
+    run_ids = set(args.run_ids)
+    if args.all:  # every run directory that has been scored
+        run_ids |= {str(p.parent.relative_to(RUNS_DIR)) for p in RUNS_DIR.rglob("results.json")}
     if not run_ids:
         print("No runs specified. Use run IDs or --all")
         sys.exit(1)
 
-    report = generate_report(run_ids)
-
+    report = generate_report(sorted(run_ids))
     if args.output:
-        Path(args.output).write_text(report)
+        Path(args.output).write_text(report, encoding="utf-8")
         print(f"Report saved to {args.output}")
     else:
         print(report)

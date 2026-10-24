@@ -1,0 +1,95 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install crucible
+        run: python -m pip install -e . pytest
+      - name: Install pi
+        run: npm install -g --ignore-scripts @earendil-works/pi-coding-agent
+      - name: Run tests (includes pi end-to-end against a scripted model)
+        run: python -m pytest -v
+
+  # The real Poolside CLI, standalone against tests/fake_openai.py (no login).
+  # Installing accepts the Poolside EULA non-interactively, as authorized by
+  # the repo owner. Windows uses the beta PowerShell installer: best-effort.
+  pool:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.os == 'windows-latest' }}
+    env:
+      POOL_INSTALL_ACCEPT_EULA: "1"
+      CRUCIBLE_REAL_POOL: "1"
+      CRUCIBLE_TEST_RUNS: ${{ github.workspace }}/pool-runs
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install crucible
+        run: python -m pip install -e . pytest
+      - name: Install pool (macOS/Linux)
+        if: runner.os != 'Windows'
+        run: |
+          curl -fsSL https://downloads.poolside.ai/pool/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Install pool (Windows, beta)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          irm https://downloads.poolside.ai/pool/install.ps1 | iex
+          "$env:LOCALAPPDATA\Programs\pool\bin" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+      - name: pool CLI surface (flags the harness relies on)
+        shell: bash
+        run: |
+          pool --version
+          pool --help || true
+          pool exec --help || true
+          pool config || true
+          pool mcp add --help || true
+      - name: Real pool end-to-end
+        run: python -m pytest tests/test_pool_real.py -v -s
+      - name: pool trajectory event shapes (for harness parsing)
+        if: always()
+        shell: bash
+        run: |
+          pool config || true
+          python - <<'PY'
+          import glob, json, os
+          from pathlib import Path
+          roots = [Path.home(), Path(os.environ.get("LOCALAPPDATA", "/nonexistent"))]
+          files = [f for r in roots for f in glob.glob(str(r / "**" / "trajectory-*.ndjson"), recursive=True)]
+          for f in files[:1]:
+              print("==", f)
+              for line in open(f, encoding="utf-8"):
+                  e = json.loads(line)
+                  body = {k: (sorted(v) if isinstance(v, dict) else type(v).__name__)
+                          for k, v in e.items() if k not in ("id", "type", "timestamp", "step_id")}
+                  print(e.get("timestamp"), e.get("type"), body)
+          PY
+      - name: Upload pool run artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pool-runs-${{ matrix.os }}
+          path: pool-runs
+          if-no-files-found: ignore

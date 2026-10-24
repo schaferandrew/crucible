@@ -21,3 +21,6 @@ Homepage = "https://github.com/schaferandrew/crucible"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["crucible*"]
+
+[tool.setuptools.package-data]
+"crucible.agents" = ["*.ts"]
