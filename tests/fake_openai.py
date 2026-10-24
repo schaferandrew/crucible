@@ -11,9 +11,12 @@ from __future__ import annotations
 
 import json
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 FINAL_TEXT = "All done: wrote answer.txt. 3 passed"
+# Held before the first streamed chunk so time-to-first-token is measurable
+FIRST_TOKEN_DELAY_S = 0.2
 
 
 def _next_step(body: dict) -> dict:
@@ -21,11 +24,14 @@ def _next_step(body: dict) -> dict:
     messages = body.get("messages", [])
     tool_names = {t.get("function", {}).get("name") for t in body.get("tools") or []}
     done = sum(1 for m in messages if m.get("role") == "tool")
+    # Agents may namespace MCP tools (e.g. "mock-data__get_weather")
+    weather = next((n for n in tool_names if n and n.endswith("get_weather")), None)
     if done == 0:
-        if "get_weather" in tool_names:
-            return {"tool": "get_weather", "args": {}}
-        return {"tool": "bash", "args": {"command": "echo hello"}}
-    if done == 1:
+        if weather:
+            return {"tool": weather, "args": {}}
+        if "bash" in tool_names:
+            return {"tool": "bash", "args": {"command": "echo hello"}}
+    if done <= 1 and "write" in tool_names:
         return {"tool": "write", "args": {"path": "answer.txt", "content": "done\n"}}
     return {"text": FINAL_TEXT}
 
@@ -46,6 +52,9 @@ class _Handler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length") or 0)
         body = json.loads(self.rfile.read(length) or b"{}")
         self.server.requests.append(body)
+        if self.path.rstrip("/").endswith("/api/generate"):
+            self._ollama_generate(body)
+            return
         step = _next_step(body)
         usage = {"prompt_tokens": 100, "completion_tokens": 10, "total_tokens": 110}
         if step.get("tool"):
@@ -71,6 +80,8 @@ class _Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
         self.end_headers()
+        self.wfile.flush()
+        time.sleep(FIRST_TOKEN_DELAY_S)
         base = {"id": "chatcmpl-fake", "object": "chat.completion.chunk", "model": body.get("model")}
         for chunk in (
             {**base, "choices": [{"index": 0, "delta": delta, "finish_reason": None}]},
@@ -80,6 +91,21 @@ class _Handler(BaseHTTPRequestHandler):
             self.wfile.write(f"data: {json.dumps(chunk)}\n\n".encode())
         self.wfile.write(b"data: [DONE]\n\n")
         self.wfile.flush()
+
+    def _ollama_generate(self, body: dict):
+        """Ollama's native /api/generate: NDJSON chunks, counts on the last one."""
+        self.send_response(200)
+        self.send_header("Content-Type", "application/x-ndjson")
+        self.end_headers()
+        self.wfile.flush()
+        time.sleep(FIRST_TOKEN_DELAY_S)
+        for chunk in (
+            {"model": body.get("model"), "response": FINAL_TEXT, "done": False},
+            {"model": body.get("model"), "response": "", "done": True,
+             "prompt_eval_count": 100, "eval_count": 10},
+        ):
+            self.wfile.write((json.dumps(chunk) + "\n").encode())
+            self.wfile.flush()
 
     def _json(self, payload: dict):
         data = json.dumps(payload).encode()

@@ -77,7 +77,9 @@ class TestPiLaunch:
     def test_default_model_has_no_flags_or_config(self, tmp_path):
         launch = AGENTS["pi"].launch(_ctx(tmp_path))
         assert "--model" not in launch.cmd
-        assert launch.env == {}
+        # only the timing hook is configured
+        assert json.loads(launch.env["CRUCIBLE_PI_CONFIG"]) == {
+            "timingFile": str(tmp_path / pi_agent.TIMING_FILENAME)}
         assert launch.cwd == tmp_path / "workspace"
         assert "-p" in launch.cmd
 
@@ -91,7 +93,8 @@ class TestPiLaunch:
     def test_openrouter_passes_through(self, tmp_path):
         launch = AGENTS["pi"].launch(_ctx(tmp_path, model="openrouter/moonshotai/kimi-k2.6"))
         assert launch.cmd[launch.cmd.index("--model") + 1] == "openrouter/moonshotai/kimi-k2.6"
-        assert launch.env == {}  # pi reads OPENROUTER_API_KEY itself
+        # pi reads OPENROUTER_API_KEY itself; no provider is registered
+        assert "providers" not in json.loads(launch.env["CRUCIBLE_PI_CONFIG"])
 
     def test_mcp_servers_use_current_interpreter(self, tmp_path):
         launch = AGENTS["pi"].launch(_ctx(tmp_path, mcp_servers=["mock-data"]))
@@ -333,3 +336,39 @@ class TestMetricsSummary:
 
     def test_nothing_known(self):
         assert runner._metrics_summary({}) == ""
+
+
+class TestTiming:
+    def test_summary(self):
+        summary = session.timing_summary([
+            {"ttft_s": 0.5, "duration_s": 2.0},
+            {"ttft_s": None, "duration_s": 1.0},
+            {"ttft_s": 0.3, "duration_s": 3.0},
+        ])
+        assert summary == {"model_responses": 3, "ttft_s": 0.5, "ttft_avg_s": 0.4,
+                           "response_time_avg_s": 2.0}
+
+    def test_summary_empty_is_all_unknown(self):
+        assert set(session.timing_summary([]).values()) == {None}
+
+    def test_pi_timing_file(self, tmp_path):
+        (tmp_path / pi_agent.TIMING_FILENAME).write_text(
+            json.dumps({"request_start": 1000, "first_token": 1250, "end": 2000}) + "\n"
+            + json.dumps({"request_start": 3000, "first_token": None, "end": 3500}) + "\n"
+            + '{"request_st', encoding="utf-8")  # truncated by a kill
+        assert AGENTS["pi"].response_timings(tmp_path) == [
+            {"ttft_s": 0.25, "duration_s": 1.0}, {"ttft_s": None, "duration_s": 0.5}]
+
+    def test_opencode_message_times(self, tmp_path):
+        (tmp_path / "session.json").write_text(json.dumps({"messages": [
+            {"info": {"role": "user", "time": {"created": 0}}},
+            {"info": {"role": "assistant", "time": {"created": 1000, "completed": 4000}}},
+            {"info": {"role": "assistant", "time": {"created": 5000}}},  # interrupted
+        ]}), encoding="utf-8")
+        assert AGENTS["opencode"].response_timings(tmp_path) == [
+            {"ttft_s": None, "duration_s": 3.0}, {"ttft_s": None, "duration_s": None}]
+
+    def test_metrics_line_shows_ttft(self):
+        line = runner._metrics_summary({"ttft_s": 0.21, "ttft_avg_s": 0.3, "model_responses": 3,
+                                        "response_time_avg_s": 1.5})
+        assert line == "TTFT 0.21s (avg 0.30s), 3 model responses, avg 1.50s"

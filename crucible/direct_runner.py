@@ -6,6 +6,7 @@ Supports Ollama, LM Studio, and OpenRouter via stdlib urllib.
 from __future__ import annotations
 import json
 import os
+import time
 import urllib.request
 from pathlib import Path
 from typing import Any
@@ -13,6 +14,7 @@ from typing import Any
 
 LMSTUDIO_BASE_URL = os.environ.get("LMSTUDIO_BASE_URL", "http://127.0.0.1:1234/v1")
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 
 def _parse_model(model: str) -> tuple[str, str]:
@@ -125,68 +127,109 @@ def _inline_fixtures(prompt_text: str, fixtures: list[str] | str, fixtures_dir: 
     return "\n".join(lines)
 
 
-def _call_ollama(model_id: str, prompt: str, timeout: int = 300) -> str:
+class _StreamTimer:
+    """Wall-clock timing for one streamed response."""
+
+    def __init__(self):
+        self.start = time.monotonic()
+        self.first_token: float | None = None
+
+    def token(self):
+        if self.first_token is None:
+            self.first_token = time.monotonic()
+
+    def result(self, text: str, tokens_in: int | None, tokens_out: int | None) -> dict:
+        return {
+            "text": text,
+            "ttft_s": self.first_token - self.start if self.first_token is not None else None,
+            "duration_s": time.monotonic() - self.start,
+            "tokens_in": tokens_in,
+            "tokens_out": tokens_out,
+        }
+
+
+def _call_ollama(model_id: str, prompt: str, timeout: int = 300) -> dict:
+    """Streams /api/generate (NDJSON); the final chunk carries token counts."""
     req = urllib.request.Request(
         f"{OLLAMA_BASE_URL}/api/generate",
-        data=json.dumps({
-            "model": model_id,
-            "prompt": prompt,
-            "stream": False,
-        }).encode(),
+        data=json.dumps({"model": model_id, "prompt": prompt, "stream": True}).encode(),
         headers={"Content-Type": "application/json"},
         method="POST",
     )
-    resp = urllib.request.urlopen(req, timeout=timeout)
-    data = json.loads(resp.read())
-    return data.get("response", "")
+    timer = _StreamTimer()
+    parts: list[str] = []
+    tokens_in = tokens_out = None
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        for raw in resp:
+            if not raw.strip():
+                continue
+            chunk = json.loads(raw)
+            if chunk.get("response") or chunk.get("thinking"):
+                timer.token()
+                parts.append(chunk.get("response") or "")
+            if chunk.get("done"):
+                tokens_in = chunk.get("prompt_eval_count")
+                tokens_out = chunk.get("eval_count")
+    return timer.result("".join(parts), tokens_in, tokens_out)
 
 
-def _call_lmstudio(model_id: str, prompt: str, timeout: int = 300) -> str:
+def _call_openai_compatible(url: str, model_id: str, prompt: str, timeout: int,
+                            headers: dict | None = None, extra: dict | None = None) -> dict:
+    """Streams /chat/completions (SSE), asking for usage in the final chunk."""
+    body = {
+        "model": model_id,
+        "messages": [{"role": "user", "content": prompt}],
+        "stream": True,
+        "stream_options": {"include_usage": True},
+        **(extra or {}),
+    }
     req = urllib.request.Request(
-        f"{LMSTUDIO_BASE_URL}/chat/completions",
-        data=json.dumps({
-            "model": model_id,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.2,
-            "stream": False,
-        }).encode(),
-        headers={"Content-Type": "application/json"},
+        f"{url}/chat/completions",
+        data=json.dumps(body).encode(),
+        headers={"Content-Type": "application/json", **(headers or {})},
         method="POST",
     )
-    resp = urllib.request.urlopen(req, timeout=timeout)
-    data = json.loads(resp.read())
-    choices = data.get("choices", [])
-    if not choices:
-        raise RuntimeError(f"No choices in response: {data}")
-    message = choices[0].get("message", {})
-    if isinstance(message.get("content"), list):
-        return "".join(part.get("text", "") for part in message["content"] if isinstance(part, dict))
-    return message.get("content", "")
+    timer = _StreamTimer()
+    parts: list[str] = []
+    tokens_in = tokens_out = None
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        for raw in resp:
+            line = raw.decode("utf-8", errors="replace").strip()
+            if not line.startswith("data:"):
+                continue
+            data = line[len("data:"):].strip()
+            if data == "[DONE]":
+                break
+            chunk = json.loads(data)
+            if chunk.get("error"):
+                raise RuntimeError(f"Provider error: {chunk['error']}")
+            for choice in chunk.get("choices") or []:
+                delta = choice.get("delta") or {}
+                content = delta.get("content")
+                if isinstance(content, list):
+                    content = "".join(p.get("text", "") for p in content if isinstance(p, dict))
+                if content or delta.get("reasoning") or delta.get("reasoning_content"):
+                    timer.token()
+                if content:
+                    parts.append(content)
+            usage = chunk.get("usage") or {}
+            if usage:
+                tokens_in = usage.get("prompt_tokens")
+                tokens_out = usage.get("completion_tokens")
+    return timer.result("".join(parts), tokens_in, tokens_out)
 
 
-def _call_openrouter(model_id: str, prompt: str, timeout: int = 300) -> str:
+def _call_lmstudio(model_id: str, prompt: str, timeout: int = 300) -> dict:
+    return _call_openai_compatible(LMSTUDIO_BASE_URL, model_id, prompt, timeout,
+                                   extra={"temperature": 0.2})
+
+
+def _call_openrouter(model_id: str, prompt: str, timeout: int = 300) -> dict:
     api_key = os.environ.get("OPENROUTER_API_KEY")
     if not api_key:
         raise RuntimeError("OPENROUTER_API_KEY env var required for openrouter direct mode")
-    req = urllib.request.Request(
-        "https://openrouter.ai/api/v1/chat/completions",
-        data=json.dumps({
-            "model": model_id,
-            "messages": [{"role": "user", "content": prompt}],
-            "stream": False,
-        }).encode(),
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        },
-        method="POST",
-    )
-    resp = urllib.request.urlopen(req, timeout=timeout)
-    data = json.loads(resp.read())
-    choices = data.get("choices", [])
-    if not choices:
-        raise RuntimeError(f"No choices in response: {data}")
-    return choices[0]["message"]["content"]
+    return _call_openai_compatible(OPENROUTER_BASE_URL, model_id, prompt, timeout,
+                                   headers={"Authorization": f"Bearer {api_key}"})
 
 
 def run_direct(
@@ -195,8 +238,12 @@ def run_direct(
     fixtures: list[str],
     fixtures_dir: Path,
     timeout: int = 300,
-) -> str:
-    """Run a text-only prompt via direct API. Returns the model's text response."""
+) -> dict:
+    """Run a text-only prompt via direct API (streamed).
+
+    Returns {"text", "ttft_s", "duration_s", "tokens_in", "tokens_out"};
+    timing/token fields are None when the provider does not report them.
+    """
     provider, model_id = _parse_model(model)
     full_prompt = _inline_fixtures(prompt_text, fixtures, fixtures_dir)
     if provider == "ollama":

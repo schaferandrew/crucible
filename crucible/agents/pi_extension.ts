@@ -7,15 +7,20 @@
  *
  *   {
  *     "providers": { "<name>": { baseUrl, api, apiKey, compat?, models: [{ id }] } },
- *     "mcpServers": { "<name>": { "command": ["python", "/path/server.py"] } }
+ *     "mcpServers": { "<name>": { "command": ["python", "/path/server.py"] } },
+ *     "timingFile": "/run/dir/pi-timing.ndjson"
  *   }
  *
  * - providers: local OpenAI-compatible endpoints (ollama, LM Studio) pi has no
  *   built-in entry for; model defaults are filled in here.
  * - mcpServers: pi has no MCP support, so each stdio MCP server is spawned and
  *   its tools are registered as native pi tools that proxy tools/call.
+ * - timingFile: one NDJSON line per model response with epoch-ms timestamps
+ *   for request sent, first streamed token and response end, so crucible can
+ *   report time to first token (headless and TUI runs alike).
  */
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { appendFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 
 type Json = any;
@@ -141,7 +146,39 @@ export default async function crucible(pi: any) {
 		}
 	}
 
+	if (config.timingFile) recordTiming(pi, config.timingFile);
+
 	const closeAll = () => clients.forEach((c) => c.close());
 	pi.on("session_shutdown", closeAll);
 	process.once("exit", closeAll);
+}
+
+function recordTiming(pi: any, file: string) {
+	let requestStart: number | null = null;
+	let firstToken: number | null = null;
+	pi.on("before_provider_request", () => {
+		requestStart = Date.now();
+		firstToken = null;
+	});
+	pi.on("message_update", (event: Json) => {
+		// Any streamed delta (text, thinking, tool-call arguments) is a token
+		if (firstToken === null && String(event?.assistantMessageEvent?.type ?? "").endsWith("_delta")) {
+			firstToken = Date.now();
+		}
+	});
+	pi.on("message_end", (event: Json) => {
+		if (event?.message?.role !== "assistant" || requestStart === null) return;
+		const record = {
+			request_start: requestStart,
+			first_token: firstToken,
+			end: Date.now(),
+			stop_reason: event.message.stopReason ?? null,
+		};
+		try {
+			appendFileSync(file, JSON.stringify(record) + "\n");
+		} catch (err) {
+			console.error(`[crucible] cannot write timing: ${err}`);
+		}
+		requestStart = firstToken = null;
+	});
 }

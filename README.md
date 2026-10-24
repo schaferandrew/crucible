@@ -281,6 +281,14 @@ The server (`fixtures/mock-mcp-server/mock_server.py`, stdio JSON-RPC) serves fi
 
 This makes fresh machines work with zero manual setup: install the repo, run the test, the mock server is wired up and torn down automatically.
 
+### Latency
+
+`meta.json` also records `ttft_s` (time to first token of the first model response, from request sent), `ttft_avg_s`, `response_time_avg_s` and `model_responses`, and the per-test terminal summary prints them. Each harness reports only what it actually measures:
+- **pi**: exact, timestamped inside pi by crucible's extension (headless and `--watch`)
+- **direct**: exact, from the streamed provider response (direct runs also record token usage)
+- **opencode**: per-response duration from its session export; no token-level timestamps, so TTFT is empty
+- **pool**: not yet (pending a look at its real trajectory format)
+
 ### Token usage
 
 `meta.json` records `tokens_in` / `tokens_out` per run (from opencode's session export, pi's session file, or pool's trajectory record). Caveats: opencode's `tokens_out` includes reasoning tokens; pi's `tokens_in` includes cache reads/writes; pool's `tokens_in` may include cached input.

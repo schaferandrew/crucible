@@ -56,6 +56,10 @@ def test_e4_with_mock_mcp(tmp_path, fake_model):
     assert meta["metrics"]["tool_calls"] == 2
     assert meta["metrics"]["tokens_in"] == 300 and meta["metrics"]["tokens_out"] == 30
     assert meta["metrics"]["tests_passed"] == 3
+    # Latency measured in-process by the pi extension
+    assert meta["metrics"]["model_responses"] == 3
+    assert fake_openai.FIRST_TOKEN_DELAY_S <= meta["metrics"]["ttft_s"] < 5
+    assert meta["metrics"]["response_time_avg_s"] >= meta["metrics"]["ttft_avg_s"]
 
     events = json.loads((run_dir / "session.json").read_text(encoding="utf-8"))
     calls = [e["name"] for e in events if e["type"] == "toolCall"]

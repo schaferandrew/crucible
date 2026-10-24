@@ -26,6 +26,7 @@ from crucible.session import write_normalized
 
 EXTENSION = Path(__file__).resolve().parent / "pi_extension.ts"
 SESSION_DIRNAME = "pi-sessions"
+TIMING_FILENAME = "pi-timing.ndjson"  # written by pi_extension.ts
 
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/") + "/v1"
 LMSTUDIO_BASE_URL = os.environ.get("LMSTUDIO_BASE_URL", "http://127.0.0.1:1234/v1").rstrip("/")
@@ -38,7 +39,8 @@ LOCAL_PROVIDERS = {
 }
 
 
-def pi_config(model: str | None, mcp_servers: list[str]) -> tuple[list[str], dict]:
+def pi_config(model: str | None, mcp_servers: list[str],
+              timing_file: Path | None = None) -> tuple[list[str], dict]:
     """Model CLI flags and CRUCIBLE_PI_CONFIG payload for a run.
 
     - None                -> pi's own default model/provider
@@ -62,6 +64,8 @@ def pi_config(model: str | None, mcp_servers: list[str]) -> tuple[list[str], dic
     servers = mcp_server_commands(mcp_servers)
     if servers:
         config["mcpServers"] = {name: {"command": cmd} for name, cmd in servers.items()}
+    if timing_file:
+        config["timingFile"] = str(timing_file)
     return flags, config
 
 
@@ -131,7 +135,8 @@ class PiAgent(Agent):
         return None
 
     def launch(self, ctx: RunContext) -> Launch:
-        model_flags, config = pi_config(ctx.model, ctx.mcp_servers)
+        model_flags, config = pi_config(ctx.model, ctx.mcp_servers,
+                                        timing_file=ctx.run_dir / TIMING_FILENAME)
         cmd = ["pi"]
         if not ctx.watch:
             cmd.append("-p")
@@ -143,7 +148,7 @@ class PiAgent(Agent):
             # (spaces, drive letters) out of the argument list
             f"@{ctx.prompt_file.name}", TASK_INSTRUCTION,
         ]
-        env = {"CRUCIBLE_PI_CONFIG": json.dumps(config)} if config else {}
+        env = {"CRUCIBLE_PI_CONFIG": json.dumps(config)}
         return Launch(cmd=cmd, cwd=ctx.workspace, env=env)
 
     def collect(self, ctx: RunContext) -> None:
@@ -158,3 +163,24 @@ class PiAgent(Agent):
     def token_usage(self, run_dir: Path) -> tuple[int, int] | None:
         session_file = find_session_file(run_dir)
         return session_events(session_file)[1] if session_file else None
+
+    def response_timings(self, run_dir: Path) -> list[dict]:
+        """Measured in-process by the extension (epoch ms -> seconds)."""
+        timings = []
+        try:
+            lines = (run_dir / TIMING_FILENAME).read_text(encoding="utf-8").splitlines()
+        except OSError:
+            return []
+        for line in lines:
+            try:
+                r = json.loads(line)
+                start = r["request_start"]
+            except (json.JSONDecodeError, KeyError, TypeError):
+                continue
+            first = r.get("first_token")
+            end = r.get("end")
+            timings.append({
+                "ttft_s": (first - start) / 1000 if first is not None else None,
+                "duration_s": (end - start) / 1000 if end is not None else None,
+            })
+        return timings

@@ -92,6 +92,14 @@ class Agent:
     def token_usage(self, run_dir: Path) -> tuple[int, int] | None:
         return None
 
+    def response_timings(self, run_dir: Path) -> list[dict]:
+        """Per model response, in order: {"ttft_s", "duration_s"} (None if unknown).
+
+        See crucible.session.timing_summary. Return [] when the agent records
+        no timing at all.
+        """
+        return []
+
     def status(self, result: dict) -> str:
         if result["timed_out"]:
             return "TIMEOUT"

@@ -70,6 +70,28 @@ class OpenCodeAgent(Agent):
         return (tokens_in, tokens_out) if seen else None
 
 
+    def response_timings(self, run_dir: Path) -> list[dict]:
+        """Per assistant message: info.time {created, completed} in epoch ms.
+
+        opencode's export has no token-level timestamps, so ttft_s is None.
+        """
+        try:
+            session = json.loads((run_dir / "session.json").read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return []
+        messages = session.get("messages", []) if isinstance(session, dict) else []
+        timings = []
+        for msg in messages:
+            info = (msg.get("info") or {}) if isinstance(msg, dict) else {}
+            if info.get("role") != "assistant":
+                continue
+            t = info.get("time") or {}
+            created, completed = t.get("created"), t.get("completed")
+            duration = (completed - created) / 1000 if created and completed else None
+            timings.append({"ttft_s": None, "duration_s": duration})
+        return timings
+
+
 def _export_session(workspace: str, title: str | None, run_dir: Path) -> None:
     """Export an opencode session transcript to session.json.
 

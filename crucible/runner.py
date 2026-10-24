@@ -39,7 +39,7 @@ import yaml
 from crucible import direct_runner, procs, scorer
 from crucible.agents import AGENTS, DEFAULT_AGENT, Agent, RunContext
 from crucible.selector import select_from_list
-from crucible.session import count_tool_calls
+from crucible.session import count_tool_calls, timing_summary
 from crucible.taxonomy import derive_suites, validate_category
 
 
@@ -200,6 +200,14 @@ def _metrics_summary(metrics: dict) -> str:
         parts.append("tests " + " / ".join(tests))
     if metrics.get("tokens_in") is not None:
         parts.append(f"tokens {metrics['tokens_in']} in / {metrics['tokens_out']} out")
+    if metrics.get("ttft_s") is not None:
+        ttft = f"TTFT {metrics['ttft_s']:.2f}s"
+        if (metrics.get("model_responses") or 0) > 1 and metrics.get("ttft_avg_s") is not None:
+            ttft += f" (avg {metrics['ttft_avg_s']:.2f}s)"
+        parts.append(ttft)
+    if metrics.get("response_time_avg_s") is not None:
+        parts.append(f"{metrics.get('model_responses') or 0} model responses, "
+                     f"avg {metrics['response_time_avg_s']:.2f}s")
     return ", ".join(parts)
 
 
@@ -209,7 +217,8 @@ def _write_meta(run_dir: Path, meta: dict) -> None:
 
 def _finalize_run(run_dir: Path, run_id: str, test_id: str, agent: str,
                   model: str | None, watch: bool, started_at: str, start_time: float,
-                  result: dict, status: str, agent_impl: Agent | None = None) -> None:
+                  result: dict, status: str, agent_impl: Agent | None = None,
+                  extra_metrics: dict | None = None) -> None:
     """Write meta.json and print the closing status block."""
     elapsed = time.time() - start_time
 
@@ -220,7 +229,7 @@ def _finalize_run(run_dir: Path, run_id: str, test_id: str, agent: str,
         if not path.exists():
             path.write_text("", encoding="utf-8")
 
-    metrics = extract_metrics(run_dir, agent_impl)
+    metrics = {**extract_metrics(run_dir, agent_impl), **(extra_metrics or {})}
     _write_meta(run_dir, {
         "run_id": run_id,
         "test_id": test_id,
@@ -282,6 +291,8 @@ def extract_metrics(run_dir: Path, agent: Agent | None = None) -> dict:
         "tool_calls": tool_calls,
         "tokens_in": tokens_in,
         "tokens_out": tokens_out,
+        # Latency: ttft_s is the first model response's time to first token
+        **timing_summary(agent.response_timings(run_dir) if agent else []),
     }
 
 
@@ -329,8 +340,12 @@ def _run_direct(test_id: str, run_id: str, run_dir: Path, prompt_def: dict,
 
     stdout_text = ""
     stderr_text = ""
+    metrics: dict = {}
     try:
-        stdout_text = direct_runner.run_direct(full_prompt, model, [], FIXTURES_DIR, timeout)
+        response = direct_runner.run_direct(full_prompt, model, [], FIXTURES_DIR, timeout)
+        stdout_text = response["text"]
+        metrics = {"tokens_in": response["tokens_in"], "tokens_out": response["tokens_out"],
+                   **timing_summary([response])}
     except Exception as e:
         stderr_text = f"Direct runner error: {e}"
 
@@ -341,6 +356,7 @@ def _run_direct(test_id: str, run_id: str, run_dir: Path, prompt_def: dict,
         run_dir, run_id, test_id, "direct", model, False, started_at, start_time,
         result={"returncode": 0 if not stderr_text else 1, "timed_out": False},
         status="COMPLETE" if not stderr_text else "ERROR",
+        extra_metrics=metrics,
     )
     return run_id
 
