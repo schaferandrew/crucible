@@ -30,11 +30,11 @@ def load_run(run_id: str) -> dict | None:
         return None
 
     data = {}
-    with open(meta_path) as f:
+    with open(meta_path, encoding="utf-8") as f:
         data["meta"] = json.load(f)
 
     if results_path.exists():
-        with open(results_path) as f:
+        with open(results_path, encoding="utf-8") as f:
             data["results"] = json.load(f)
     else:
         data["results"] = None
@@ -126,7 +126,7 @@ def main() -> None:
     report = generate_report(run_ids)
 
     if args.output:
-        Path(args.output).write_text(report)
+        Path(args.output).write_text(report, encoding="utf-8")
         print(f"Report saved to {args.output}")
     else:
         print(report)

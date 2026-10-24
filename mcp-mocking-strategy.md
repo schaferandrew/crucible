@@ -253,21 +253,21 @@ chmod +x fixtures/mock-mcp-server/mock_server.py
 echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' | python3 fixtures/mock-mcp-server/mock_server.py
 
 # 7. Run E4 test with mock server active
-crucible run E4 --agent pool
+crucible run E4 --agent pi
 ```
 
 ### Integration with Existing Infrastructure
 
 The mock MCP server integrates with:
 - **Opencode**: Via configuration files or environment setup
-- **Pool agent**: Via subprocess spawning
+- **pi agent**: Via crucible's per-run pi extension, which bridges MCP tools into pi
 - **Crucible test runner**: Extends existing fixture pattern to MCP tools
 
 ### Testing Strategy
 
 1. Verify mock server starts and responds to `initialize` and `tools/list`
 2. Test each tool (get_emails, get_calendar_events, get_news, get_weather) returns valid fixture data
-3. Run E4 test with mock server active via opencode or pool agent
+3. Run E4 test with mock server active via opencode or pi agent
 4. Verify Spanish paragraph is generated correctly at end of briefing
 5. Verify all fixture files are properly integrated
 

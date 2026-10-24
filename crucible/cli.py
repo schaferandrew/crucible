@@ -16,7 +16,7 @@ from crucible import runner, scorer, reporter
 def _get_version() -> str:
     pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
     if pyproject.exists():
-        for line in pyproject.read_text().splitlines():
+        for line in pyproject.read_text(encoding="utf-8").splitlines():
             if line.startswith("version"):
                 return line.split("=")[1].strip().strip('"')
     return "dev"
@@ -29,7 +29,7 @@ Usage:
   crucible <command> [args...]
 
 Commands:
-  run      Run benchmark test(s) with an agent (opencode or pool)
+  run      Run benchmark test(s) with an agent (opencode or pi)
   score    Interactively score a completed run against its rubric
   report   Generate a comparison report across runs
 
@@ -45,8 +45,8 @@ Examples:
   # Whole coding suite with a local ollama model
   crucible run coding --model ollama/qwen3:30b-a3b --timeout 300
 
-  # Run through the Poolside agent instead of opencode
-  crucible run C1 --agent pool
+  # Run through the pi agent instead of opencode
+  crucible run C1 --agent pi --model openrouter/moonshotai/kimi-k2.6
 
   # Watch a test live in the opencode TUI
   crucible run C2b --model openrouter/anthropic/claude-sonnet-4 --watch
@@ -68,6 +68,12 @@ Run 'crucible <command> -h' for command-specific options.
 
 
 def main():
+    # Windows consoles default to a legacy code page; never crash on the
+    # transcript glyphs or model output that it cannot encode.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="replace")
+
     if len(sys.argv) < 2:
         _print_help()
         sys.exit(1)

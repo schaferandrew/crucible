@@ -17,8 +17,8 @@ class TestShouldRunDirect:
         assert runner.should_run_direct("direct", True, "openrouter/z-ai/glm-5.3-flash") is False
         assert runner.should_run_direct("opencode", True, "ollama/qwen3:9b") is False
 
-    def test_pool_agent_never_direct(self):
-        assert runner.should_run_direct("pool", False, "openrouter/z-ai/glm-5.3-flash") is False
+    def test_pi_agent_never_direct(self):
+        assert runner.should_run_direct("pi", False, "openrouter/z-ai/glm-5.3-flash") is False
 
     def test_no_model_never_direct(self):
         assert runner.should_run_direct("direct", False, None) is False

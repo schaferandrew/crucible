@@ -54,7 +54,7 @@ def find_run_dir(run_id_or_path: str) -> Path:
 
 
 def _session_model_output(session_path: Path) -> str | None:
-    """Extract the model's reply from a session capture (opencode or pool)."""
+    """Extract the model's reply from a session capture (opencode or normalized)."""
     try:
         data = json.loads(session_path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
@@ -68,7 +68,7 @@ def _session_model_output(session_path: Path) -> str | None:
             for part in msg.get("parts", []):
                 if part.get("type") == "text" and part.get("text"):
                     texts.append(part["text"])
-    elif isinstance(data, list):  # pool NLJSON events
+    elif isinstance(data, list):  # normalized events (pi; see crucible.session)
         for event in data:
             if event.get("type") == "assistantMessage" and event.get("message"):
                 texts.append(event["message"])

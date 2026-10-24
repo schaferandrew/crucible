@@ -121,7 +121,7 @@ def _inline_fixtures(prompt_text: str, fixtures: list[str] | str, fixtures_dir: 
         lines.append(f"\n---")
         lines.append(f"FIXTURE: {fixture_name}")
         lines.append(f"---")
-        lines.append(src.read_text())
+        lines.append(src.read_text(encoding="utf-8"))
     return "\n".join(lines)
 
 

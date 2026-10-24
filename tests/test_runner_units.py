@@ -1,100 +1,188 @@
 import json
+import sys
 
 import pytest
 
-from crucible import runner
+from crucible import procs, runner, session
+from crucible.agents import AGENTS, RunContext
+from crucible.agents import pi as pi_agent
 
 
-class TestSplitPoolOutput:
-    def _write(self, tmp_path, lines):
-        (tmp_path / "stdout.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+def _ctx(tmp_path, **overrides):
+    workspace = tmp_path / "workspace"
+    workspace.mkdir(exist_ok=True)
+    fields = dict(test_id="C1", run_id="m/coding/C1/ts", run_dir=tmp_path,
+                  workspace=workspace, prompt_file=workspace / "prompt.txt",
+                  model=None, watch=False, timeout=60, title="ts_C1_m")
+    fields.update(overrides)
+    return RunContext(**fields)
 
-    def test_splits_valid_events(self, tmp_path):
-        self._write(tmp_path, [
-            json.dumps({"type": "assistantMessage", "message": "hello"}),
-            json.dumps({"type": "toolCall", "name": "shell", "args": {"cmd": "ls"}}),
-            json.dumps({"type": "toolCallResult", "result": "file.txt"}),
-        ])
-        runner.split_pool_output(tmp_path)
-        events = json.loads((tmp_path / "session.json").read_text())
-        assert len(events) == 3
-        transcript = (tmp_path / "stdout.txt").read_text()
-        assert "⏺ hello" in transcript
-        assert "⏺ shell(cmd=ls)" in transcript
-        assert "⎿ file.txt" in transcript
+
+def _pi_session(tmp_path, entries):
+    sessions = tmp_path / pi_agent.SESSION_DIRNAME
+    sessions.mkdir(exist_ok=True)
+    path = sessions / "2026-01-01T00-00-00-000Z_abc.jsonl"
+    path.write_text("\n".join(json.dumps(e) for e in entries) + "\n", encoding="utf-8")
+    return path
+
+
+USAGE = {"input": 100, "output": 10, "cacheRead": 50, "cacheWrite": 0}
+PI_ENTRIES = [
+    {"type": "session", "version": 3, "id": "abc", "cwd": "/w"},
+    {"type": "message", "message": {"role": "user", "content": [{"type": "text", "text": "do it"}]}},
+    {"type": "message", "message": {"role": "assistant", "usage": USAGE, "content": [
+        {"type": "thinking", "thinking": "hmm"},
+        {"type": "toolCall", "id": "1", "name": "bash", "arguments": {"command": "npm test"}},
+    ]}},
+    {"type": "message", "message": {"role": "toolResult", "toolName": "bash",
+                                    "content": [{"type": "text", "text": "3 passed"}]}},
+    {"type": "message", "message": {"role": "assistant", "usage": USAGE,
+                                    "content": [{"type": "text", "text": "Done."}]}},
+]
+
+
+class TestPiSession:
+    def test_normalizes_events_and_tokens(self, tmp_path):
+        events, usage = pi_agent.session_events(_pi_session(tmp_path, PI_ENTRIES))
+        assert [e["type"] for e in events] == ["toolCall", "toolCallResult", "assistantMessage"]
+        assert events[0] == {"type": "toolCall", "name": "bash", "args": {"command": "npm test"}}
+        assert usage == (300, 20)  # input includes cache reads
 
     def test_truncated_tail_keeps_complete_prefix(self, tmp_path):
-        # A timeout can leave the last event half-written
-        self._write(tmp_path, [
-            json.dumps({"type": "assistantMessage", "message": "working"}),
-            '{"type":"assistantMessage","mess',  # truncated
-        ])
-        runner.split_pool_output(tmp_path)
-        events = json.loads((tmp_path / "session.json").read_text())
+        path = _pi_session(tmp_path, PI_ENTRIES[:3])
+        with open(path, "a", encoding="utf-8") as f:
+            f.write('{"type":"message","message":{"role":"assis')
+        events, _ = pi_agent.session_events(path)
         assert len(events) == 1
-        assert events[0]["message"] == "working"
 
-    def test_non_json_stdout_untouched(self, tmp_path):
-        self._write(tmp_path, ["plain text output", "more text"])
-        runner.split_pool_output(tmp_path)
+    def test_collect_writes_session_and_transcript(self, tmp_path):
+        _pi_session(tmp_path, PI_ENTRIES)
+        AGENTS["pi"].collect(_ctx(tmp_path))
+        transcript = (tmp_path / "stdout.txt").read_text(encoding="utf-8")
+        assert "⏺ bash(command=npm test)" in transcript
+        assert "⎿ 3 passed" in transcript
+        assert "⏺ Done." in transcript
+        metrics = runner.extract_metrics(tmp_path, AGENTS["pi"])
+        assert metrics["tool_calls"] == 1
+        assert metrics["tests_passed"] == 3
+        assert (metrics["tokens_in"], metrics["tokens_out"]) == (300, 20)
+
+    def test_collect_without_session_is_harmless(self, tmp_path):
+        AGENTS["pi"].collect(_ctx(tmp_path))
         assert not (tmp_path / "session.json").exists()
-        assert "plain text output" in (tmp_path / "stdout.txt").read_text()
+
+
+class TestPiLaunch:
+    def test_default_model_has_no_flags_or_config(self, tmp_path):
+        launch = AGENTS["pi"].launch(_ctx(tmp_path))
+        assert "--model" not in launch.cmd
+        assert launch.env == {}
+        assert launch.cwd == tmp_path / "workspace"
+        assert "-p" in launch.cmd
+
+    def test_ollama_registers_local_provider(self, tmp_path):
+        launch = AGENTS["pi"].launch(_ctx(tmp_path, model="ollama/qwen3:30b-a3b"))
+        assert launch.cmd[launch.cmd.index("--model") + 1] == "ollama/qwen3:30b-a3b"
+        provider = json.loads(launch.env["CRUCIBLE_PI_CONFIG"])["providers"]["ollama"]
+        assert provider["baseUrl"] == pi_agent.OLLAMA_BASE_URL
+        assert provider["models"] == [{"id": "qwen3:30b-a3b"}]
+
+    def test_openrouter_passes_through(self, tmp_path):
+        launch = AGENTS["pi"].launch(_ctx(tmp_path, model="openrouter/moonshotai/kimi-k2.6"))
+        assert launch.cmd[launch.cmd.index("--model") + 1] == "openrouter/moonshotai/kimi-k2.6"
+        assert launch.env == {}  # pi reads OPENROUTER_API_KEY itself
+
+    def test_mcp_servers_use_current_interpreter(self, tmp_path):
+        launch = AGENTS["pi"].launch(_ctx(tmp_path, mcp_servers=["mock-data"]))
+        servers = json.loads(launch.env["CRUCIBLE_PI_CONFIG"])["mcpServers"]
+        assert servers["mock-data"]["command"][0] == sys.executable
+
+    def test_watch_opens_tui_with_prompt_attached(self, tmp_path):
+        ctx = _ctx(tmp_path, watch=True)
+        launch = AGENTS["pi"].launch(ctx)
+        assert "-p" not in launch.cmd
+        assert "@prompt.txt" in launch.cmd
+
+    def test_args_are_single_line(self, tmp_path):
+        # Windows .cmd shims truncate multi-line arguments
+        for watch in (False, True):
+            launch = AGENTS["pi"].launch(_ctx(tmp_path, watch=watch, mcp_servers=["mock-data"]))
+            assert all("\n" not in arg for arg in launch.cmd)
+
+
+class TestPiValidate:
+    def test_openrouter_needs_key(self, monkeypatch):
+        monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+        assert AGENTS["pi"].validate("openrouter/x/y")
+        monkeypatch.setenv("OPENROUTER_API_KEY", "k")
+        assert AGENTS["pi"].validate("openrouter/x/y") is None
+        assert AGENTS["pi"].validate("ollama/q") is None
+
+
+class TestOpenCodeLaunch:
+    def test_mcp_via_config_content(self, tmp_path):
+        launch = AGENTS["opencode"].launch(_ctx(tmp_path, mcp_servers=["mock-data"],
+                                                model="openrouter/x/y"))
+        config = json.loads(launch.env["OPENCODE_CONFIG_CONTENT"])
+        assert config["mcp"]["mock-data"]["command"][0] == sys.executable
+        assert launch.cmd[-2:] == ["-m", "openrouter/x/y"]
+
+    def test_watch_args_are_single_line(self, tmp_path):
+        launch = AGENTS["opencode"].launch(_ctx(tmp_path, watch=True))
+        assert all("\n" not in arg for arg in launch.cmd)
+
+    def test_token_usage(self, tmp_path):
+        (tmp_path / "session.json").write_text(json.dumps({"messages": [
+            {"info": {"tokens": {"input": 5, "output": 2, "reasoning": 1}}},
+            {"info": {"tokens": {"input": 7, "output": 3}}},
+        ]}), encoding="utf-8")
+        assert AGENTS["opencode"].token_usage(tmp_path) == (12, 6)
 
 
 class TestCountToolCalls:
     def test_opencode_schema(self, tmp_path):
-        session = tmp_path / "session.json"
-        session.write_text(json.dumps({
-            "messages": [
-                {"parts": [{"type": "tool"}, {"type": "text"}]},
-                {"parts": [{"type": "tool"}]},
-            ]
-        }))
-        assert runner.count_tool_calls(session) == 2
+        path = tmp_path / "session.json"
+        path.write_text(json.dumps({"messages": [
+            {"parts": [{"type": "tool"}, {"type": "text"}]},
+            {"parts": [{"type": "tool"}]},
+        ]}))
+        assert session.count_tool_calls(path) == 2
 
-    def test_pool_schema(self, tmp_path):
-        session = tmp_path / "session.json"
-        session.write_text(json.dumps([
+    def test_normalized_schema(self, tmp_path):
+        path = tmp_path / "session.json"
+        path.write_text(json.dumps([
             {"type": "assistantMessage", "message": "hi"},
             {"type": "toolCall", "name": "shell"},
             {"type": "toolCallResult", "result": ""},
             {"type": "toolCall", "name": "write"},
         ]))
-        assert runner.count_tool_calls(session) == 2  # results not double-counted
+        assert session.count_tool_calls(path) == 2  # results not double-counted
 
     def test_invalid_file_returns_none(self, tmp_path):
-        session = tmp_path / "session.json"
-        session.write_text("not json at all {")
-        assert runner.count_tool_calls(session) is None
+        path = tmp_path / "session.json"
+        path.write_text("not json at all {")
+        assert session.count_tool_calls(path) is None
 
 
-class TestPoolConfig:
-    def test_tenant_mode_no_model(self):
-        env, flags, standalone = runner._pool_config(None)
-        assert "POOLSIDE_STANDALONE_MODEL" not in env
-        assert flags == []
-        assert standalone is None
+class TestProcs:
+    def test_timeout_kills_process_tree(self, tmp_path):
+        # Parent spawns a grandchild; both must die on timeout
+        marker = tmp_path / "survived"
+        script = (
+            "import subprocess, sys, time\n"
+            f"subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(3); open(r\"{marker}\", \"w\")'])\n"
+            "time.sleep(30)\n"
+        )
+        result = procs.run_logged([sys.executable, "-c", script], tmp_path, 1, "t")
+        assert result["timed_out"]
+        import time
+        time.sleep(4)
+        assert not marker.exists()
 
-    def test_pool_placeholder_is_tenant_mode(self):
-        env, flags, standalone = runner._pool_config("pool")
-        assert "POOLSIDE_STANDALONE_MODEL" not in env
-        assert standalone is None
+    def test_missing_executable(self):
+        with pytest.raises(FileNotFoundError):
+            procs.resolve_executable("definitely-not-a-real-binary-xyz")
 
-    def test_ollama_standalone_pins_base_url(self):
-        # With tenant credentials present, pool ignores settings.yaml's
-        # api_url — the base URL must be pinned or inference silently goes
-        # to Poolside cloud instead of ollama
-        env, flags, standalone = runner._pool_config("ollama/laguna-xs-2.1:nvfp4")
-        assert env["POOLSIDE_STANDALONE_MODEL"] == "laguna-xs-2.1:nvfp4"
-        assert env["POOLSIDE_STANDALONE_BASE_URL"] == runner.OLLAMA_OPENAI_API
-        assert flags == []
-        assert standalone == "laguna-xs-2.1:nvfp4"
-
-    def test_openrouter_standalone(self, monkeypatch):
-        monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
-        env, flags, standalone = runner._pool_config("openrouter/deepseek/deepseek-v4-flash")
-        assert env["POOLSIDE_API_KEY"] == "test-key"
-        assert env["POOLSIDE_STANDALONE_BASE_URL"] == runner.OPENROUTER_API
-        assert env["POOLSIDE_STANDALONE_MODEL"] == "deepseek/deepseek-v4-flash"
-        assert flags == ["--sandbox", "disabled"]
-        assert standalone == "deepseek/deepseek-v4-flash"
+    def test_format_command_quotes(self):
+        text = procs.format_command(["pi", "a b"], {"X": '{"k": 1}'})
+        assert text == "export X='{\"k\": 1}'\npi 'a b'"
