@@ -2,6 +2,7 @@ import json
 import sys
 
 import pytest
+import yaml
 
 from crucible import procs, runner, session
 from crucible.agents import AGENTS, RunContext
@@ -258,7 +259,9 @@ class TestPoolMcpSettings:
         monkeypatch.setattr(pool_agent, "POOL_SETTINGS", settings)
         added = pool_agent.add_mcp_servers(["mock-data"])
         assert added == ["mock-data"]
-        assert "mock-data" in settings.read_text(encoding="utf-8")
+        entry = yaml.safe_load(settings.read_text(encoding="utf-8"))["mcp_servers"]["mock-data"]
+        # pool rejects a list-valued command (verified against pool 1.0.16)
+        assert entry["command"] == sys.executable and isinstance(entry["args"], list)
         pool_agent.remove_mcp_servers(added)
         assert settings.read_text(encoding="utf-8") == "theme: dark\n"
 

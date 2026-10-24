@@ -71,11 +71,11 @@ Run 'crucible <command> -h' for command-specific options.
 
 
 def main():
-    # Windows consoles default to a legacy code page; never crash on the
-    # transcript glyphs or model output that it cannot encode.
+    # Windows writes piped output in the legacy code page (cp1252); emit
+    # UTF-8 everywhere and never crash on glyphs a console cannot show.
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
-            stream.reconfigure(errors="replace")
+            stream.reconfigure(encoding="utf-8", errors="replace")
 
     if len(sys.argv) < 2:
         _print_help()

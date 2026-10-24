@@ -36,6 +36,7 @@ OPENROUTER_API = "https://openrouter.ai/api/v1"
 # standalone mode even when tenant credentials are present.
 OLLAMA_OPENAI_API = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/") + "/v1"
 
+# Same location on every OS, Windows included (verified with pool 1.0.16)
 POOL_SETTINGS = Path.home() / ".config" / "poolside" / "settings.yaml"
 TENANT_MODEL = "pool"  # placeholder model name for tenant mode
 EXIT_TASK_FAILED = 4   # pool exec: agent ran but could not complete the task
@@ -44,9 +45,10 @@ EXIT_TASK_FAILED = 4   # pool exec: agent ran but could not complete the task
 def trajectory_dirs() -> list[Path]:
     """Where pool may keep its trajectory records, most specific first.
 
-    macOS is verified. The Linux (XDG data dir) and Windows (%APPDATA%)
-    locations are the platform conventions and unverified; set
-    CRUCIBLE_POOL_TRAJECTORIES_DIR to point at the right place.
+    pool keeps its data dir next to its logs: verified on macOS
+    (~/Library/Application Support/poolside) and Windows (%LOCALAPPDATA%\\poolside).
+    The Linux location is the XDG convention, unverified; set
+    CRUCIBLE_POOL_TRAJECTORIES_DIR to point elsewhere.
     """
     override = os.environ.get("CRUCIBLE_POOL_TRAJECTORIES_DIR")
     if override:
@@ -57,7 +59,7 @@ def trajectory_dirs() -> list[Path]:
     if os.name == "nt":
         appdata = Path(os.environ.get("APPDATA", home / "AppData" / "Roaming"))
         local = Path(os.environ.get("LOCALAPPDATA", home / "AppData" / "Local"))
-        return [appdata / "poolside" / "trajectories", local / "poolside" / "trajectories"]
+        return [local / "poolside" / "trajectories", appdata / "poolside" / "trajectories"]
     data = Path(os.environ.get("XDG_DATA_HOME", home / ".local" / "share"))
     return [data / "poolside" / "trajectories", home / ".config" / "poolside" / "trajectories"]
 
@@ -129,11 +131,9 @@ def add_mcp_servers(servers: list[str]) -> list[str]:
     added = [name for name in commands if name not in mcp]
     if not added:
         return []
-    if os.name == "nt":
-        print("[WARN] pool MCP provisioning assumes the POSIX poolside config "
-              "location; verify pool reads this settings.yaml on Windows")
     for name in added:
-        mcp[name] = {"command": commands[name]}
+        # pool's schema: command is a single executable string, args a list
+        mcp[name] = {"command": commands[name][0], "args": commands[name][1:]}
     return added if _write_settings(settings) else []
 
 

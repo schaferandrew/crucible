@@ -64,6 +64,8 @@ jobs:
           pool --version
           pool --help || true
           pool exec --help || true
+          pool config || true
+          pool mcp add --help || true
       - name: Real pool end-to-end
         run: python -m pytest tests/test_pool_real.py -v -s
       - name: Where pool keeps settings and trajectories
@@ -75,7 +77,8 @@ jobs:
                    "${LOCALAPPDATA:-/nonexistent}/poolside"; do
             [ -d "$d" ] && { echo "== $d"; find "$d" -maxdepth 3 | head -50; }
           done
-          t=$(find "$HOME" -name 'trajectory-*.ndjson' 2>/dev/null | head -1)
+          pool config || true
+          t=$(find "$HOME" "${LOCALAPPDATA:-/nonexistent}" -name 'trajectory-*.ndjson' 2>/dev/null | head -1)
           if [ -n "$t" ]; then
             echo "== sample trajectory: $t"
             head -c 6000 "$t"

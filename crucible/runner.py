@@ -384,7 +384,7 @@ def _run_agent(agent: Agent, ctx: RunContext) -> str:
             result = procs.run_interactive(launch.cmd, ctx.timeout, ctx.test_id,
                                            cwd=launch.cwd, env=env)
         else:
-            print(f"Running headless — follow along: tail -f {ctx.run_dir / 'stdout.txt'}")
+            print(f"Running headless - follow along: tail -f {ctx.run_dir / 'stdout.txt'}")
             result = procs.run_logged(launch.cmd, ctx.run_dir, ctx.timeout, ctx.test_id,
                                       cwd=launch.cwd, env=env)
         agent.collect(ctx)
