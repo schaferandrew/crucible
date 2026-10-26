@@ -21,6 +21,7 @@ import json
 import os
 from pathlib import Path
 
+from crucible import environment
 from crucible.agents.base import TASK_INSTRUCTION, Agent, Launch, RunContext, mcp_server_commands
 from crucible.session import write_normalized
 
@@ -44,7 +45,9 @@ def pi_config(model: str | None, mcp_servers: list[str],
     """Model CLI flags and CRUCIBLE_PI_CONFIG payload for a run.
 
     - None                -> pi's own default model/provider
-    - ollama/<m>, lmstudio/<m> -> provider registered by the extension
+    - ollama/<m>, lmstudio/<m> -> provider registered by the extension, with
+      the context window the server actually loaded (pi otherwise assumes
+      the extension's 128k default and never compacts before overflowing)
     - anything else (openrouter/<vendor>/<m>, anthropic/<m>, ...) -> passed
       through; pi resolves "provider/id" itself and reads the provider's
       API key env var (e.g. OPENROUTER_API_KEY).
@@ -54,11 +57,16 @@ def pi_config(model: str | None, mcp_servers: list[str],
     if model:
         provider, _, model_id = model.partition("/")
         if provider in LOCAL_PROVIDERS and model_id:
+            model_def: dict = {"id": model_id}
+            loaded = environment.PROVIDER_DETAILS[provider](model_id).get("context_length")
+            if loaded:
+                model_def["contextWindow"] = loaded
+                model_def["maxTokens"] = min(16384, loaded // 2)
             config["providers"] = {provider: {
                 **LOCAL_PROVIDERS[provider],
                 "api": "openai-completions",
                 "compat": {"supportsDeveloperRole": False, "supportsReasoningEffort": False},
-                "models": [{"id": model_id}],
+                "models": [model_def],
             }}
         flags = ["--model", model]
     servers = mcp_server_commands(mcp_servers)
