@@ -99,11 +99,11 @@ def test_chat_runs_refuse_a_small_loaded_context(monkeypatch):
 def test_reasoning_question_only_for_models_that_reason(monkeypatch, capsys):
     from crucible import reasoning, wizard
     monkeypatch.setattr(wizard, "choose", lambda question, options, default=0: "high")
-    monkeypatch.setattr(reasoning, "supports", lambda model: True)
+    monkeypatch.setattr(reasoning, "levels", lambda model: reasoning.LEVELS)
     assert wizard.ask_reasoning("openrouter/qwen/qwen3.8-27b") == "high"   # asked
-    monkeypatch.setattr(reasoning, "supports", lambda model: False)
+    monkeypatch.setattr(reasoning, "levels", lambda model: ("default",))
     assert wizard.ask_reasoning("lmstudio/plain-model") == "default"       # not asked
-    monkeypatch.setattr(reasoning, "supports", lambda model: None)
+    monkeypatch.setattr(reasoning, "levels", lambda model: None)
     assert wizard.ask_reasoning("lmstudio/not-loaded") == "default"        # not asked, says why
     assert "Couldn't tell" in capsys.readouterr().out
 
@@ -116,3 +116,19 @@ def test_openrouter_support_comes_from_supported_parameters(monkeypatch):
     assert reasoning.supports("openrouter/a/thinks") is True
     assert reasoning.supports("openrouter/a/plain") is False
     assert reasoning.supports("openrouter/a/missing") is None
+
+
+def test_lmstudio_reasoning_options_become_levels():
+    from crucible.reasoning import lmstudio_options_to_levels as to_levels
+    assert to_levels(["off", "on"]) == ("default", "off")                     # qwen3.5, gemma 4
+    assert to_levels(["low", "medium", "high"]) == ("default", "low", "medium", "high")  # gpt-oss
+    assert to_levels(["low", "medium", "high", "xhigh"]) == ("default", "low", "medium", "high")
+
+
+def test_wizard_offers_only_the_levels_the_model_takes(monkeypatch):
+    from crucible import reasoning, wizard
+    offered = []
+    monkeypatch.setattr(wizard, "choose", lambda q, options, default=0: offered.extend(v for _, v in options) or "off")
+    monkeypatch.setattr(reasoning, "levels", lambda model: ("default", "off"))
+    assert wizard.ask_reasoning("lmstudio/qwen/qwen3.5-9b") == "off"
+    assert offered == ["default", "off"]

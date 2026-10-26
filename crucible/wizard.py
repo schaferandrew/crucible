@@ -269,19 +269,18 @@ def ask_reasoning(model: str, limited_by: str | None = None) -> str:
     if limited_by:
         print(f"  ({limited_by} can't set a reasoning level, so this run uses the model's default.)")
         return "default"
-    can_reason = reasoning.supports(model)
-    if can_reason is False:
-        return "default"
-    if can_reason is None:
+    allowed = reasoning.levels(model)
+    if allowed is None:
         print("  (Couldn't tell whether this model reasons, so it runs at its default; "
               "pass --reasoning to choose a level.)")
         return "default"
-    return choose("Reasoning (thinking)? Each level shows as its own model on the dashboard.", [
-        ("Model default (whatever the model does on its own)", "default"),
-        ("Off: answer without thinking (fast)", "off"),
-        ("Low", "low"), ("Medium", "medium"),
-        ("High: think hardest (slowest; hard tests can hit the 20-minute cap)", "high"),
-    ])
+    if len(allowed) == 1:
+        return "default"  # doesn't reason: nothing to choose
+    labels = {"default": "Model default (whatever the model does on its own)",
+              "off": "Off: answer without thinking (fast)", "low": "Low", "medium": "Medium",
+              "high": "High: think hardest (slowest; hard tests can hit the 20-minute cap)"}
+    return choose("Reasoning (thinking)? Each level shows as its own model on the dashboard.",
+                  [(labels[level], level) for level in allowed])
 
 
 def ask_harness() -> str:

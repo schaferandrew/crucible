@@ -416,9 +416,13 @@ def main() -> None:
             print(line)
     problem = planner.reasoning_problem(plan)
     if not problem and plan.reasoning != "default":
-        from crucible.reasoning import supports
-        if supports(plan.model) is False:
+        from crucible.reasoning import levels
+        allowed = levels(plan.model)
+        if allowed == ("default",):
             problem = f"{plan.model} doesn't reason, so there's no reasoning level to set; drop --reasoning."
+        elif allowed and plan.reasoning not in allowed:
+            problem = (f"{plan.model} doesn't take reasoning {plan.reasoning}; it accepts: "
+                       f"{', '.join(level for level in allowed if level != 'default')} (or the default).")
     if problem:
         print(problem)
         return
