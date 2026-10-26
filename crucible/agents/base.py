@@ -26,8 +26,12 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 # need no setup.
 BUILTIN_MCP_SERVERS = {
     "mock-data": REPO_ROOT / "fixtures" / "mock-mcp-server" / "mock_server.py",
+    "mock-calendar": REPO_ROOT / "crucible" / "mcp_servers" / "calendar_server.py",
     "web": REPO_ROOT / "crucible" / "mcp_servers" / "web_server.py",
 }
+# Servers that serve one of several datasets: "mock-calendar:forge" in a prompt
+# launches the server with --dataset forge. The model sees only the server name.
+DATASET_SERVERS = {"mock-calendar"}
 
 # Instruction sent alongside the attached prompt.txt (the prompt itself travels as a file)
 TASK_INSTRUCTION = "Complete the benchmark task described in the attached prompt.txt file."
@@ -71,22 +75,36 @@ class Launch:
     env: dict[str, str] = field(default_factory=dict)
 
 
+def split_server_spec(spec: str) -> tuple[str, str | None]:
+    """"mock-calendar:forge" -> ("mock-calendar", "forge"); "web" -> ("web", None)."""
+    name, _, dataset = spec.partition(":")
+    return name, dataset or None
+
+
 def available_mcp_servers(servers: list[str]) -> list[str]:
-    """The declared MCP servers crucible can actually provide."""
-    return [name for name in servers
-            if name in BUILTIN_MCP_SERVERS and BUILTIN_MCP_SERVERS[name].exists()]
+    """The declared MCP servers (specs, as declared) crucible can actually provide."""
+    def provided(spec: str) -> bool:
+        name, dataset = split_server_spec(spec)
+        return (name in BUILTIN_MCP_SERVERS and BUILTIN_MCP_SERVERS[name].exists()
+                and (dataset is not None or name not in DATASET_SERVERS))
+    return [spec for spec in servers if provided(spec)]
 
 
 def mcp_server_commands(servers: list[str]) -> dict[str, list[str]]:
-    """Launch commands for the declared MCP servers that crucible provides.
+    """Launch commands, keyed by server name, for the declared servers crucible provides.
 
     Uses the current interpreter explicitly, so the server runs on the same Python as crucible.
     """
     available = available_mcp_servers(servers)
-    for name in servers:
-        if name not in available:
-            print(f"[WARN] MCP server '{name}' unavailable; its tools are disabled")
-    return {name: [sys.executable, str(BUILTIN_MCP_SERVERS[name])] for name in available}
+    for spec in servers:
+        if spec not in available:
+            print(f"[WARN] MCP server '{spec}' unavailable; its tools are disabled")
+    commands = {}
+    for spec in available:
+        name, dataset = split_server_spec(spec)
+        commands[name] = [sys.executable, str(BUILTIN_MCP_SERVERS[name]),
+                          *(["--dataset", dataset] if name in DATASET_SERVERS and dataset else [])]
+    return commands
 
 
 class Agent:

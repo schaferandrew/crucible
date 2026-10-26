@@ -259,7 +259,7 @@ CI (`.github/workflows/tests.yml`) runs the suite on Linux and macOS with pi ins
 - `crucible/models.py` / `crucible/providers.py` — Model resolution; provider table (list models, stream completions)
 - `crucible/metrics.py` — Metrics in `meta.json` (tests, tool calls, tokens, latency, cost)
 - `crucible/cost.py` — Run cost: billed OpenRouter usage or the agent's own estimate
-- `crucible/mcp_servers/` — MCP servers crucible ships to agents (`web_server.py`: `web_fetch`, `web_search`)
+- `crucible/mcp_servers/` — MCP servers crucible ships to agents (`web_server.py`: `web_fetch`, `web_search`; `calendar_server.py`: mock calendar for TASK-4 to TASK-6)
 - `crucible/console.py` — What `crucible run` prints
 - `crucible/procs.py` — Process launch and tree-kill (macOS, Linux)
 - `crucible/session.py` — Normalized session events, transcript, tool-call counting
@@ -314,6 +314,39 @@ Both are `null` when unknown.
 ### Web tools (RSCH-2)
 
 RSCH-2 and RSCH-2b declare crucible's web MCP server (`mcp_servers: [web]`, `crucible/mcp_servers/web_server.py`), so every agent gets the same `web_fetch` tool (HTTP GET; HTML reduced to text) rather than whatever its harness ships. `web_search` (Brave Search API) is offered only when `BRAVE_SEARCH_API_KEY` is set. `meta.json` records `tools.mcp_servers` and `tools.builtin_web` (opencode still has its own `webfetch`), so you can see what each run could reach.
+
+### Calendar scheduling tests (TASK-4 to TASK-6)
+
+Three everyday tasks (`crucible run everyday` runs them with the other TASK tests) test tool use against a mock calendar MCP server (`crucible/mcp_servers/calendar_server.py`) that imitates the Google Calendar MCP servers people really use, so models meet the tools and data shapes they will meet in practice:
+
+| Tool | Real-world counterpart |
+|------|------------------------|
+| `list_calendars` | calendar list: `id` (email), `summary`, `description`, `timeZone`, `accessRole` |
+| `list_events` | `events.list`: `calendarId`, `startTime`, `endTime`, `timeZone`, `fullText`, `eventType`, `orderBy`, paging |
+| `get_event`, `search_events` | `events.get`; keyword search of the primary calendar |
+| `get_freebusy` | `freebusy.query`: busy blocks per calendar, no details |
+| `get_current_time` | offered by community servers; the dataset's "now" |
+
+Events are Google Event resources (`start`/`end` as `{dateTime, timeZone}` or `{date}`, `status`, `transparency`, `eventType`, `attendees[].responseStatus`). As in real life, colleagues share free/busy only: `list_events` on their calendar fails with 403 and `get_freebusy` is how you see them, while your own calendar is read as events. Declined events, transparent ("free") events and out-of-office time behave as Google does. Like the real servers, nothing finds a time several people share; there is no `suggest_time`, and the model intersects calendars itself.
+
+A prompt picks its world with a dataset suffix:
+
+```yaml
+mcp_servers:
+  - mock-calendar:forge     # fixtures/mock-calendar/forge.json
+```
+
+A dataset fixes "now" (so tests never depend on the real date), the calendars and their events. Working hours are not exposed by the tools (nor by the real ones), and the prompts only say the meeting is for work: inferring business hours (9 to 5 in each person's own time zone, found in `list_calendars`) is part of the test.
+
+| Test | Dataset | Task |
+|------|---------|------|
+| TASK-4 | `spark` | "Am I free at 3:30?" One calendar; an event ends at exactly 3:30. |
+| TASK-5 | `pair` | An hour with Jamie this week: read my events, then Jamie's busy blocks. My declined and "free" events look busy. |
+| TASK-6 | `forge` | An hour for a team of 16 in two weeks: holiday, out-of-office, a New York teammate, non-team calendars to leave out, declined and "free" decoys. |
+
+Each prompt's YAML comments hold the ground truth, and `free_starts()` in the server computes it for tests and graders. The datasets are regenerated with `python fixtures/mock-calendar/build.py`, which re-checks them against that oracle.
+
+Caveat: harnesses may put the real current date in the model's context, which disagrees with the dataset's "now". The tests expect the model to ask the calendar for the time.
 
 ### Verified MCP permutations (TASK-2)
 
