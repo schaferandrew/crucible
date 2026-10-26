@@ -13,3 +13,6 @@ dist/
 build/
 .poolside/
 runs-archive/
+
+# The results bundle schema is source, not a run result
+!crucible/schemas/results.schema.json
