@@ -7,8 +7,8 @@ from __future__ import annotations
 
 DEVICES = {
     "Ironwood": {"cpu": "Apple M1 Pro", "gpu": None, "ram_gb": 32.0},
-    # Specs to fill in: run on Whitehall itself, or read from its system information
-    "Whitehall": {"cpu": None, "gpu": None, "ram_gb": None},
+    # DDR5 runs without EXPO, so models spilling out of VRAM run slower than the RAM allows
+    "Whitehall": {"cpu": "AMD Ryzen 7 7700", "gpu": "NVIDIA RTX 5070 Ti 16GB", "ram_gb": 32.0},
 }
 
 # LM Link device names that aren't the machine's name (rename with `lms link set-device-name`)
