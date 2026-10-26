@@ -155,6 +155,10 @@
           "summary": {
             "type": "string"
           },
+          "prompt": {
+            "type": "string",
+            "description": "The full prompt the model is given"
+          },
           "scoring": {
             "type": "string",
             "enum": [

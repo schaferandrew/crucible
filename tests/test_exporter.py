@@ -65,3 +65,9 @@ def test_invalid_run_is_left_out(tmp_path):
     meta["invalid"] = {"reason": "stale server on the fixture port"}
     meta_path.write_text(json.dumps(meta))
     assert exporter.export(runs)["runs"] == []
+
+
+def test_tests_carry_the_full_prompt():
+    t = next(t for t in exporter.export_tests() if t["id"] == "HIST-2")
+    assert t["prompt"] == workspace.load_prompt("HIST-2")["prompt"].strip()
+    assert t["prompt"].startswith(t["summary"])

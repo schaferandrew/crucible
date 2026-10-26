@@ -52,6 +52,7 @@ def export_tests() -> list[dict]:
             "tier": p.get("tier"), "status": p.get("status"), "version": p.get("version"),
             "rubric_version": p.get("rubric_version"), "needs_tools": bool(p.get("needs_tools", True)),
             "summary": _first_sentence(p.get("prompt", "")),
+            "prompt": (p.get("prompt") or "").strip(),
             "scoring": "checks" if checks.fully_checked(p) else "judge",
             "rules": [c.get("rule", c["type"]) for c in p.get("checks") or []],
         })
