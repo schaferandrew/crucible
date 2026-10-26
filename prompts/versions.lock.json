@@ -217,11 +217,11 @@
     "rubric_hash": "f6ab32399662966b"
   },
   "MATH-4": {
-    "version": 1,
-    "content_hash": "66f9d5821dc2b8cd",
-    "prompt_hash": "3bf3571d90fcddb0",
-    "rubric_version": 1,
-    "rubric_hash": "883dcf83459d6c3c"
+    "version": 2,
+    "content_hash": "d205d3bad1048689",
+    "prompt_hash": "01f6bf5e5f9cd084",
+    "rubric_version": 2,
+    "rubric_hash": "ef4c3db9d4f7ff0a"
   },
   "RSCH-1": {
     "version": 1,
