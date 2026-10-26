@@ -2,6 +2,8 @@
 
 A personal benchmark suite for AI models on real-world tasks: writing, math, geography, history, general knowledge, coding, research and everyday tasks on your own data. Built to answer "how good is this local model at the things I actually do?", with cloud models as a reference.
 
+Releases and what changed in each: [CHANGELOG.md](CHANGELOG.md). Version 1.0.0 renamed every test ID; [docs/test-id-map.json](docs/test-id-map.json) maps the old ones.
+
 ## Install
 
 Crucible needs Python 3.9+ and [uv](https://docs.astral.sh/uv/) (or plain pip).
