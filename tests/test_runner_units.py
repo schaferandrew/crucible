@@ -4,16 +4,17 @@ import sys
 import pytest
 import yaml
 
-from crucible import console, metrics, procs, session
+from crucible import console, cost, metrics, procs, session, workspace
 from crucible.agents import AGENTS, Agent, RunContext
 from crucible.agents import pi as pi_agent
-from crucible.agents import pool as pool_agent
+from crucible.agents.base import available_mcp_servers
+from crucible.mcp_servers import web_server
 
 
 def _ctx(tmp_path, **overrides):
     workspace = tmp_path / "workspace"
     workspace.mkdir(exist_ok=True)
-    fields = dict(test_id="C1", run_id="m/coding/C1/ts", run_dir=tmp_path,
+    fields = dict(test_id="CODE-1", run_id="m/coding/CODE-1/ts", run_dir=tmp_path,
                   workspace=workspace, prompt_file=workspace / "prompt.txt",
                   model=None, watch=False, timeout=60, title="ts_C1_m")
     fields.update(overrides)
@@ -108,12 +109,6 @@ class TestPiLaunch:
         assert "-p" not in launch.cmd
         assert "@prompt.txt" in launch.cmd
 
-    def test_args_are_single_line(self, tmp_path):
-        # Windows .cmd shims truncate multi-line arguments
-        for watch in (False, True):
-            launch = AGENTS["pi"].launch(_ctx(tmp_path, watch=watch, mcp_servers=["mock-data"]))
-            assert all("\n" not in arg for arg in launch.cmd)
-
 
 class TestPiValidate:
     def test_openrouter_needs_key(self, monkeypatch):
@@ -125,6 +120,57 @@ class TestPiValidate:
 
 
 class TestOpenCodeLaunch:
+    @pytest.fixture(autouse=True)
+    def catalog(self, monkeypatch):
+        """opencode's model catalog, without shelling out to opencode."""
+        from crucible.agents import opencode as opencode_agent
+        monkeypatch.setattr(opencode_agent, "_known_models", lambda provider: frozenset({"openrouter/x/y"}))
+        monkeypatch.setattr(opencode_agent.providers, "fetch_openrouter_pricing", lambda model_id: (0.06, 0.12))
+        monkeypatch.setattr(opencode_agent, "_major_version", lambda: 1)
+
+    def test_v1_runs_with_dir_flag(self, tmp_path):
+        launch = AGENTS["opencode"].launch(_ctx(tmp_path, model="openrouter/x/y"))
+        assert "--dir" in launch.cmd and "--standalone" not in launch.cmd and launch.cwd is None
+
+    def test_v2_runs_standalone_in_the_workspace(self, tmp_path, monkeypatch):
+        from crucible.agents import opencode as opencode_agent
+        monkeypatch.setattr(opencode_agent, "_major_version", lambda: 2)
+        ctx = _ctx(tmp_path, model="openrouter/x/y", mcp_servers=["mock-data"])
+        launch = AGENTS["opencode"].launch(ctx)
+        # --standalone: the shared 2.x background service never sees a run's config
+        assert launch.cmd[:5] == ["opencode", "run", "--standalone", "--format", "json"]
+        assert "--dir" not in launch.cmd and launch.cwd == ctx.workspace
+        assert launch.env["PWD"] == str(ctx.workspace)
+        assert "OPENCODE_CONFIG_CONTENT" in launch.env
+        watch = AGENTS["opencode"].launch(_ctx(tmp_path, watch=True))
+        assert watch.cmd[:2] == ["opencode", "--standalone"]
+
+    def test_v2_export_reading(self, tmp_path):
+        from crucible.agents import opencode as opencode_agent
+        (tmp_path / "session.json").write_text(json.dumps({"info": {}, "messages": [
+            {"type": "user", "text": "do it", "time": {"created": 1000}},
+            {"type": "assistant", "time": {"created": 1000, "streamed": 2500, "completed": 4000},
+             "content": [{"type": "tool", "name": "read"}, {"type": "text", "text": "done"}],
+             "cost": 0.01, "tokens": {"input": 10, "output": 4, "reasoning": 2}},
+            {"type": "idle", "outcome": "succeeded"},
+        ]}), encoding="utf-8")
+        agent = AGENTS["opencode"]
+        assert agent.token_usage(tmp_path) == (10, 6)
+        assert agent.cost_estimate(tmp_path) == 0.01
+        assert agent.response_timings(tmp_path) == [{"ttft_s": 1.5, "duration_s": 3.0}]
+        session = json.loads((tmp_path / "session.json").read_text())
+        assert opencode_agent.message_texts(session) == ["done"]
+        assert session_mod_count(tmp_path / "session.json") == 1
+
+    def test_v2_transcript_from_export(self):
+        from crucible.agents import opencode as opencode_agent
+        lines = opencode_agent.transcript_v2({"messages": [
+            {"type": "assistant", "content": [
+                {"type": "tool", "name": "bash", "state": {"input": {"command": "npm test"},
+                                                          "content": [{"type": "text", "text": "12 passed"}]}},
+                {"type": "text", "text": "All green."}]}]})
+        assert lines == ["⏺ bash(command=npm test)", "  ⎿ 12 passed", "⏺ All green."]
+
     def test_mcp_via_config_content(self, tmp_path):
         launch = AGENTS["opencode"].launch(_ctx(tmp_path, mcp_servers=["mock-data"],
                                                 model="openrouter/x/y"))
@@ -132,9 +178,18 @@ class TestOpenCodeLaunch:
         assert config["mcp"]["mock-data"]["command"][0] == sys.executable
         assert launch.cmd[-2:] == ["-m", "openrouter/x/y"]
 
-    def test_watch_args_are_single_line(self, tmp_path):
-        launch = AGENTS["opencode"].launch(_ctx(tmp_path, watch=True))
-        assert all("\n" not in arg for arg in launch.cmd)
+    def test_catalogued_openrouter_model_passes_through(self, tmp_path):
+        launch = AGENTS["opencode"].launch(_ctx(tmp_path, model="openrouter/x/y"))
+        assert "OPENCODE_CONFIG_CONTENT" not in launch.env
+
+    def test_uncatalogued_openrouter_model_routed_via_compatible_provider(self, tmp_path):
+        launch = AGENTS["opencode"].launch(_ctx(tmp_path, model="openrouter/new/model-1"))
+        provider = json.loads(launch.env["OPENCODE_CONFIG_CONTENT"])["provider"]["openrouter-extra"]
+        assert provider["options"]["baseURL"] == "https://openrouter.ai/api/v1"
+        # The key is referenced, never written into the config (or command.sh)
+        assert provider["options"]["apiKey"] == "{env:OPENROUTER_API_KEY}"
+        assert provider["models"]["new/model-1"]["cost"] == {"input": 0.06, "output": 0.12}
+        assert launch.cmd[-2:] == ["-m", "openrouter-extra/new/model-1"]
 
     def test_token_usage(self, tmp_path):
         (tmp_path / "session.json").write_text(json.dumps({"messages": [
@@ -142,6 +197,10 @@ class TestOpenCodeLaunch:
             {"info": {"tokens": {"input": 7, "output": 3}}},
         ]}), encoding="utf-8")
         assert AGENTS["opencode"].token_usage(tmp_path) == (12, 6)
+
+
+def session_mod_count(path):
+    return session.count_tool_calls(path)
 
 
 class TestCountToolCalls:
@@ -172,7 +231,6 @@ class TestCountToolCalls:
 class TestProcs:
     def test_timeout_kills_process_tree(self, tmp_path):
         # Parent spawns a grandchild; both must die on timeout
-        # (marker path goes in argv: Windows backslashes break string literals)
         marker = tmp_path / "survived"
         grandchild = "import sys, time; time.sleep(3); open(sys.argv[1], 'w')"
         script = (
@@ -195,149 +253,8 @@ class TestProcs:
         assert text == "export X='{\"k\": 1}'\npi 'a b'"
 
     def test_format_command_redacts_secrets(self):
-        text = procs.format_command(["pool"], {"POOLSIDE_API_KEY": "sk-1", "MODEL": "m"})
+        text = procs.format_command(["pi"], {"OPENROUTER_API_KEY": "sk-1", "MODEL": "m"})
         assert "sk-1" not in text and "MODEL=m" in text
-
-
-class TestPoolConfig:
-    def test_tenant_mode(self):
-        for model in (None, "pool"):
-            mode = pool_agent.pool_mode(model)
-            assert mode.env == {} and mode.exec_flags == [] and mode.standalone_model is None
-
-    def test_ollama_standalone_pins_base_url(self, monkeypatch):
-        # With tenant credentials present, pool ignores settings.yaml's
-        # api_url — the base URL must be pinned or inference silently goes
-        # to Poolside cloud instead of ollama
-        monkeypatch.delenv("POOLSIDE_API_KEY", raising=False)
-        mode = pool_agent.pool_mode("ollama/laguna-xs-2.1:nvfp4")
-        assert mode.env["POOLSIDE_STANDALONE_MODEL"] == "laguna-xs-2.1:nvfp4"
-        assert mode.env["POOLSIDE_STANDALONE_BASE_URL"] == pool_agent.OLLAMA_OPENAI_API
-        assert mode.env["POOLSIDE_API_KEY"] == "ollama"
-        assert mode.exec_flags == [] and mode.standalone_model == "laguna-xs-2.1:nvfp4"
-
-    def test_openrouter_standalone(self, monkeypatch):
-        monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
-        mode = pool_agent.pool_mode("openrouter/deepseek/deepseek-v4-flash")
-        assert mode.env["POOLSIDE_API_KEY"] == "test-key"
-        assert mode.env["POOLSIDE_STANDALONE_BASE_URL"] == pool_agent.OPENROUTER_API
-        assert mode.standalone_model == "deepseek/deepseek-v4-flash"
-        assert mode.exec_flags == ["--sandbox", "disabled"]
-
-    def test_openrouter_key_never_lands_in_command_sh(self, monkeypatch):
-        monkeypatch.setenv("OPENROUTER_API_KEY", "sk-secret")
-        mode = pool_agent.pool_mode("openrouter/x/y")
-        assert "sk-secret" not in procs.format_command(["pool"], mode.env)
-
-    def test_validate_openrouter_needs_key(self, monkeypatch):
-        monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
-        assert AGENTS["pool"].validate("openrouter/x/y", {})
-        assert AGENTS["pool"].validate(None, {}) is None
-
-
-class TestPoolLaunch:
-    def test_headless(self, tmp_path):
-        ctx = _ctx(tmp_path)
-        cmd = AGENTS["pool"].launch(ctx).cmd
-        assert cmd[:2] == ["pool", "exec"] and "--unsafe-auto-allow" in cmd
-        assert cmd[-2:] == ["-o", "json"]
-
-    def test_watch_single_line_and_auto_approve(self, tmp_path):
-        cmd = AGENTS["pool"].launch(_ctx(tmp_path, watch=True, model="ollama/m")).cmd
-        assert "always-allow" in cmd and cmd[cmd.index("-m") + 1] == "m"
-        assert all("\n" not in arg for arg in cmd)
-
-    def test_exit_4_is_task_failed(self):
-        assert AGENTS["pool"].status({"timed_out": False, "returncode": 4}).startswith("TASK FAILED")
-        assert AGENTS["pool"].status({"timed_out": False, "returncode": 0}) == "COMPLETE"
-
-
-class TestPoolMcpSettings:
-    def test_add_then_remove_restores_user_settings(self, tmp_path, monkeypatch):
-        settings = tmp_path / "settings.yaml"
-        settings.write_text("theme: dark\n", encoding="utf-8")
-        monkeypatch.setattr(pool_agent, "POOL_SETTINGS", settings)
-        added = pool_agent.add_mcp_servers(["mock-data"])
-        assert added == ["mock-data"]
-        entry = yaml.safe_load(settings.read_text(encoding="utf-8"))["mcp_servers"]["mock-data"]
-        # pool rejects a list-valued command (verified against pool 1.0.16)
-        assert entry["command"] == sys.executable and isinstance(entry["args"], list)
-        pool_agent.remove_mcp_servers(added)
-        assert settings.read_text(encoding="utf-8") == "theme: dark\n"
-
-    def test_existing_entry_left_alone(self, tmp_path, monkeypatch):
-        settings = tmp_path / "settings.yaml"
-        settings.write_text("mcp_servers:\n  mock-data:\n    command: [mine]\n", encoding="utf-8")
-        monkeypatch.setattr(pool_agent, "POOL_SETTINGS", settings)
-        assert pool_agent.add_mcp_servers(["mock-data"]) == []
-        assert "mine" in settings.read_text(encoding="utf-8")
-
-    def test_prepare_cleans_up_on_error(self, tmp_path, monkeypatch):
-        settings = tmp_path / "settings.yaml"
-        monkeypatch.setattr(pool_agent, "POOL_SETTINGS", settings)
-        with pytest.raises(KeyboardInterrupt):
-            with AGENTS["pool"].prepare(_ctx(tmp_path, mcp_servers=["mock-data"])):
-                assert "mock-data" in settings.read_text(encoding="utf-8")
-                raise KeyboardInterrupt
-        assert "mock-data" not in settings.read_text(encoding="utf-8")
-
-
-class TestPoolCaptures:
-    def test_split_output(self, tmp_path):
-        (tmp_path / "stdout.txt").write_text("\n".join([
-            json.dumps({"type": "assistantMessage", "message": "hello"}),
-            json.dumps({"type": "toolCall", "name": "shell", "args": {"cmd": "ls"}}),
-            '{"type":"toolCallResult","res',  # truncated by a timeout
-        ]) + "\n", encoding="utf-8")
-        pool_agent.split_output(tmp_path)
-        assert len(json.loads((tmp_path / "session.json").read_text())) == 2
-        assert "⏺ shell(cmd=ls)" in (tmp_path / "stdout.txt").read_text(encoding="utf-8")
-
-    def test_non_json_stdout_untouched(self, tmp_path):
-        (tmp_path / "stdout.txt").write_text("plain text\n", encoding="utf-8")
-        pool_agent.split_output(tmp_path)
-        assert not (tmp_path / "session.json").exists()
-
-    def test_watch_trajectory_export_and_tokens(self, tmp_path, monkeypatch):
-        trajectories = tmp_path / "trajectories"
-        trajectories.mkdir()
-        monkeypatch.setenv("CRUCIBLE_POOL_TRAJECTORIES_DIR", str(trajectories))
-        ctx = _ctx(tmp_path, watch=True)
-        (trajectories / "trajectory-standalone_1.ndjson").write_text("\n".join(json.dumps(e) for e in [
-            {"type": "session.start", "session_start": {"working_directories": [str(ctx.workspace)]}},
-            {"type": "tool_call.inference.start", "step_id": "s1",
-             "timestamp": "2026-10-24T14:59:25.6823085Z"},
-            {"type": "tool_call.parsed", "tool_call_parsed": {"name": "get_news", "args": {}}},
-            {"type": "tool_call.inference.end", "step_id": "s1",
-             "timestamp": "2026-10-24T14:59:27.1823085Z",
-             "tool_call_inference_end": {"input_tokens": 40, "output_tokens": 4}},
-            {"type": "tool_call.result", "tool_call_result": {"tool_name": "get_news", "observation": "MN news"}},
-            {"type": "assistant_message.end", "assistant_message_end": {"assistant_message": "Done"}},
-        ]) + "\n", encoding="utf-8")
-        AGENTS["pool"].collect(ctx)
-        assert [e["type"] for e in json.loads((tmp_path / "session.json").read_text())] == \
-            ["toolCall", "toolCallResult", "assistantMessage"]
-        assert AGENTS["pool"].token_usage(tmp_path) == (40, 4)
-        (timing,) = AGENTS["pool"].response_timings(tmp_path)
-        assert timing["ttft_s"] is None and abs(timing["duration_s"] - 1.5) < 1e-6
-
-    def test_trajectory_dir_per_platform(self, monkeypatch):
-        # Locations printed by `pool config` on each OS (pool 1.0.16)
-        monkeypatch.delenv("CRUCIBLE_POOL_TRAJECTORIES_DIR", raising=False)
-        monkeypatch.delenv("XDG_STATE_HOME", raising=False)
-        monkeypatch.setattr(pool_agent.sys, "platform", "linux")
-        assert pool_agent.trajectory_dir().parts[-4:] == (".local", "state", "poolside", "trajectories")
-        monkeypatch.setattr(pool_agent.sys, "platform", "darwin")
-        assert pool_agent.trajectory_dir().parts[-4:] == ("Library", "Application Support",
-                                                          "poolside", "trajectories")
-
-    def test_other_workspace_trajectory_ignored(self, tmp_path, monkeypatch):
-        trajectories = tmp_path / "trajectories"
-        trajectories.mkdir()
-        monkeypatch.setenv("CRUCIBLE_POOL_TRAJECTORIES_DIR", str(trajectories))
-        (trajectories / "trajectory-x.ndjson").write_text(json.dumps(
-            {"session_start": {"working_directories": ["/elsewhere"]}}) + "\n", encoding="utf-8")
-        assert pool_agent.find_trajectory(str(tmp_path / "workspace")) is None
 
 
 class TestRegistry:
@@ -393,3 +310,96 @@ class TestTiming:
         line = console.metrics_summary({"ttft_s": 0.21, "ttft_avg_s": 0.3, "model_responses": 3,
                                         "response_time_avg_s": 1.5})
         assert line == "TTFT 0.21s (avg 0.30s), 3 model responses, avg 1.50s"
+
+
+class TestCost:
+    def test_billed_delta_for_openrouter(self):
+        usage = iter([1.25, 1.2875])
+        with cost.BilledCost("openrouter/x/y", read_usage=lambda: next(usage)) as bill:
+            pass
+        assert bill.usd == 0.0375
+
+    def test_billed_waits_for_lagging_usage(self):
+        usage = iter([2.0, 2.0, 2.01])
+        sleeps = []
+        with cost.BilledCost("openrouter/x/y", read_usage=lambda: next(usage),
+                             sleep=sleeps.append) as bill:
+            pass
+        assert bill.usd == 0.01 and len(sleeps) == 1
+
+    def test_not_billed_for_other_providers_or_unreachable(self):
+        with cost.BilledCost("ollama/qwen3", read_usage=lambda: 1 / 0) as local:
+            pass
+        with cost.BilledCost("openrouter/x/y", read_usage=lambda: None) as offline:
+            pass
+        assert local.usd is None and offline.usd is None
+
+    def test_billed_off_for_parallel_sweeps(self, monkeypatch):
+        monkeypatch.setenv("CRUCIBLE_BILLED_COST", "0")
+        with cost.BilledCost("openrouter/x/y", read_usage=lambda: 1 / 0) as bill:
+            pass
+        assert bill.usd is None
+
+    def test_billed_beats_estimate(self):
+        assert cost.run_cost("pi", 0.5, 0.4) == {"cost_usd": 0.4, "cost_source": "openrouter_billed"}
+        assert cost.run_cost("pi", 0.5, None) == {"cost_usd": 0.5, "cost_source": "pi_estimate"}
+        assert cost.run_cost("pi", None, None) == {"cost_usd": None, "cost_source": None}
+
+    def test_pi_estimate_sums_usage_cost(self, tmp_path):
+        priced = {**USAGE, "cost": {"total": 0.002}}
+        entries = [e if e.get("message", {}).get("role") != "assistant" else
+                   {**e, "message": {**e["message"], "usage": priced}} for e in PI_ENTRIES]
+        _pi_session(tmp_path, entries)
+        assert AGENTS["pi"].cost_estimate(tmp_path) == pytest.approx(0.004)
+
+    def test_pi_estimate_unknown_without_cost(self, tmp_path):
+        _pi_session(tmp_path, PI_ENTRIES)
+        assert AGENTS["pi"].cost_estimate(tmp_path) is None
+
+    def test_opencode_estimate(self, tmp_path):
+        (tmp_path / "session.json").write_text(json.dumps({"messages": [
+            {"info": {"role": "user"}},
+            {"info": {"role": "assistant", "cost": 0.01}},
+            {"info": {"role": "assistant", "cost": 0.02}},
+        ]}), encoding="utf-8")
+        assert AGENTS["opencode"].cost_estimate(tmp_path) == pytest.approx(0.03)
+
+    def test_metrics_line_shows_cost(self):
+        assert console.metrics_summary({"cost_usd": 0.01234, "cost_source": "pi_estimate"}) == \
+            "cost $0.0123 (pi_estimate)"
+
+    def test_metrics_include_cost(self, tmp_path):
+        m = metrics.extract_metrics(tmp_path, AGENTS["pi"], billed_usd=0.1)
+        assert (m["cost_usd"], m["cost_source"]) == (0.1, "openrouter_billed")
+
+
+class TestWebMcpServer:
+    def _call(self, name, **arguments):
+        return web_server.handle({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+                                  "params": {"name": name, "arguments": arguments}})["result"]
+
+    def test_search_listed_only_with_key(self, monkeypatch):
+        monkeypatch.delenv("BRAVE_SEARCH_API_KEY", raising=False)
+        listed = web_server.handle({"id": 1, "method": "tools/list"})["result"]["tools"]
+        assert [t["name"] for t in listed] == ["web_fetch"]
+        monkeypatch.setenv("BRAVE_SEARCH_API_KEY", "k")
+        listed = web_server.handle({"id": 1, "method": "tools/list"})["result"]["tools"]
+        assert {t["name"] for t in listed} == {"web_search", "web_fetch"}
+
+    def test_bad_input_is_a_tool_error(self):
+        assert self._call("web_fetch", url="file:///etc/passwd")["isError"] is True
+        assert self._call("web_fetch")["isError"] is True  # missing url
+
+    def test_fetch_reduces_html_and_truncates(self, monkeypatch):
+        page = "<html><style>x{}</style><script>evil()</script><p>Hello &amp; hi</p></html>"
+        monkeypatch.setattr(web_server, "_get", lambda url, headers=None: (200, "text/html", page))
+        text = self._call("web_fetch", url="https://example.com", max_chars=9)["content"][0]["text"]
+        assert text.startswith("HTTP 200 (text/html)\n\nHello & h") and "evil" not in text
+        assert "[truncated at 9 characters]" in text
+
+    def test_notifications_get_no_response(self):
+        assert web_server.handle({"method": "notifications/initialized"}) is None
+
+    def test_declared_and_recorded(self):
+        assert "web" in workspace.load_prompt("RSCH-2")["mcp_servers"]
+        assert available_mcp_servers(["web", "mock-data", "nope"]) == ["web", "mock-data"]

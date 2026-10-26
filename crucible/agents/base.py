@@ -26,12 +26,30 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 # need no setup.
 BUILTIN_MCP_SERVERS = {
     "mock-data": REPO_ROOT / "fixtures" / "mock-mcp-server" / "mock_server.py",
+    "mock-calendar": REPO_ROOT / "crucible" / "mcp_servers" / "calendar_server.py",
+    "web": REPO_ROOT / "crucible" / "mcp_servers" / "web_server.py",
 }
+# Servers that serve one of several datasets: "mock-calendar:forge" in a prompt
+# launches the server with --dataset forge. The model sees only the server name.
+DATASET_SERVERS = {"mock-calendar"}
 
-# Instruction sent alongside the attached prompt.txt. Kept to one line: on
-# Windows npm CLIs are .cmd shims, and cmd.exe truncates multi-line arguments.
+# Instruction sent alongside the attached prompt.txt (the prompt itself travels as a file)
 TASK_INSTRUCTION = "Complete the benchmark task described in the attached prompt.txt file."
 WATCH_INSTRUCTION = "Read prompt.txt in the current directory and complete the benchmark task it describes."
+
+
+def agent_environ() -> dict[str, str]:
+    """os.environ minus crucible's own virtualenv.
+
+    `uv run crucible` puts crucible's .venv first on PATH; an agent inheriting it runs
+    crucible's Python and learns where crucible lives (graders, rubrics, other runs).
+    """
+    env = dict(os.environ)
+    venv = env.pop("VIRTUAL_ENV", None) or str(REPO_ROOT / ".venv")
+    env.pop("VIRTUAL_ENV_PROMPT", None)
+    parts = [p for p in env.get("PATH", "").split(os.pathsep) if p and not p.startswith(venv)]
+    env["PATH"] = os.pathsep.join(parts)
+    return env
 
 
 @dataclass
@@ -47,6 +65,7 @@ class RunContext:
     workspace: Path | None = None   # None for agents with uses_workspace = False
     mcp_servers: list[str] = field(default_factory=list)
     fixtures: list[str] = field(default_factory=list)
+    reasoning: str = "default"      # a level from crucible.reasoning
 
 
 @dataclass
@@ -57,19 +76,35 @@ class Launch:
     env: dict[str, str] = field(default_factory=dict)
 
 
-def mcp_server_commands(servers: list[str]) -> dict[str, list[str]]:
-    """Launch commands for the declared MCP servers that crucible provides.
+def split_server_spec(spec: str) -> tuple[str, str | None]:
+    """"mock-calendar:forge" -> ("mock-calendar", "forge"); "web" -> ("web", None)."""
+    name, _, dataset = spec.partition(":")
+    return name, dataset or None
 
-    Uses the current interpreter explicitly: Windows has no shebang support,
-    and it keeps the server on the same Python everywhere.
+
+def available_mcp_servers(servers: list[str]) -> list[str]:
+    """The declared MCP servers (specs, as declared) crucible can actually provide."""
+    def provided(spec: str) -> bool:
+        name, dataset = split_server_spec(spec)
+        return (name in BUILTIN_MCP_SERVERS and BUILTIN_MCP_SERVERS[name].exists()
+                and (dataset is not None or name not in DATASET_SERVERS))
+    return [spec for spec in servers if provided(spec)]
+
+
+def mcp_server_commands(servers: list[str]) -> dict[str, list[str]]:
+    """Launch commands, keyed by server name, for the declared servers crucible provides.
+
+    Uses the current interpreter explicitly, so the server runs on the same Python as crucible.
     """
+    available = available_mcp_servers(servers)
+    for spec in servers:
+        if spec not in available:
+            print(f"[WARN] MCP server '{spec}' unavailable; its tools are disabled")
     commands = {}
-    for name in servers:
-        script = BUILTIN_MCP_SERVERS.get(name)
-        if script is None or not script.exists():
-            print(f"[WARN] MCP server '{name}' unavailable; its tools are disabled")
-            continue
-        commands[name] = [sys.executable, str(script)]
+    for spec in available:
+        name, dataset = split_server_spec(spec)
+        commands[name] = [sys.executable, str(BUILTIN_MCP_SERVERS[name]),
+                          *(["--dataset", dataset] if name in DATASET_SERVERS and dataset else [])]
     return commands
 
 
@@ -82,13 +117,21 @@ class Agent:
     default_model: str | None = None
     # Whether the runner builds workspace/ (seeded repo + fixtures) for it
     uses_workspace: bool = True
+    # Reasoning levels this harness can set; "default" (leave it to the model) always works
+    reasoning_levels: tuple[str, ...] = ("default",)
+    # Web tools the harness ships on its own (recorded in meta.json, since
+    # they decide what E6-style tasks measure); None = not known
+    builtin_web_tools: list[str] | None = None
 
     # ---- checks ----------------------------------------------------------
 
-    def check(self, model: str | None, prompt_def: dict) -> str | None:
+    def check(self, model: str | None, prompt_def: dict, reasoning: str = "default") -> str | None:
         """Why this run cannot work (shown to the user), or None."""
         if self.executable and shutil.which(self.executable) is None:
             return f"'{self.executable}' not found on PATH. Install it with: {self.install_hint}"
+        if reasoning not in self.reasoning_levels:
+            return (f"{self.name} can't set the reasoning level (it supports: {', '.join(self.reasoning_levels)}); "
+                    "use the model default, or another harness")
         return self.validate(model, prompt_def)
 
     def validate(self, model: str | None, prompt_def: dict) -> str | None:
@@ -105,7 +148,7 @@ class Agent:
         """
         with self.prepare(ctx):
             launch = self.launch(ctx)
-            env = {**os.environ, **launch.env}
+            env = {**agent_environ(), **launch.env}
             (ctx.run_dir / "command.sh").write_text(
                 "#!/bin/bash\n" + procs.format_command(launch.cmd, launch.env) + "\n",
                 encoding="utf-8")
@@ -144,6 +187,13 @@ class Agent:
     # ---- metrics (read back from the run dir) ----------------------------
 
     def token_usage(self, run_dir: Path) -> tuple[int, int] | None:
+        return None
+
+    def cost_estimate(self, run_dir: Path) -> float | None:
+        """USD the agent itself reports for the run (its own price list), or None.
+
+        See crucible.cost: billed OpenRouter usage takes precedence.
+        """
         return None
 
     def response_timings(self, run_dir: Path) -> list[dict]:

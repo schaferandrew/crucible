@@ -1,0 +1,63 @@
+test_id: CODE-11
+needs_tools: true
+category: coding_repo
+area: coding
+tier: forge
+version: 3
+rubric_version: 3
+status: provisional
+auto_grade: true
+repo: conduit-monorepo
+grader: forge/CODE-11
+prompt: |
+  This is Conduit, a RealWorld (realworld.how) monorepo: an Express API in apps/api, a React app in apps/web, and shared types and validation in packages/shared. Read README.md first.
+
+  Product brief: editorial review
+
+  We're adding an editorial step before articles go public. Authors write drafts, send them for review, and editors either approve them or send them back with feedback. The rules that matter:
+
+  - The public must never see work that hasn't been approved. Not the article, not that it exists, not anything derived from it.
+  - Editors review other people's work. No one approves their own.
+  - Feedback is a conversation between the author and the editors. Nobody else should ever see it.
+  - Authors need to see where each of their articles stands and why something was sent back.
+  - Existing RealWorld clients must keep working. apps/api/test/realworld.contract.test.ts must stay green and unmodified.
+
+  The mobile team has already built against this client contract, so match it exactly:
+  - Article JSON gains `status` ("draft", "in_review" or "published") and `reviewComment` (string or null).
+  - POST /api/articles accepts an optional "status": "draft". Without it, articles publish immediately, as today.
+  - POST /api/articles/:slug/submit (draft to in_review), POST /api/articles/:slug/approve (in_review to published) and POST /api/articles/:slug/reject with body { "review": { "comment": "..." } } (in_review back to draft). Each returns { article }. Transitions that don't apply are a 422 in the usual error envelope; callers who aren't allowed get 403.
+  - GET /api/articles/review-queue: what editors need to review, oldest first, as { articles, articlesCount }.
+  - GET /api/user/articles: the signed-in user's own articles of every status, newest first, with an optional ?status= filter.
+  - Editors are configured by username: createApp(db, { editors: ["ada"] }), and server.ts reads a comma-separated EDITORS environment variable.
+
+  On the web app, editors need a screen to work through the review queue, and authors need to see their articles' status and feedback and submit drafts. Keep it simple: the API rules are what matter.
+
+  Some of this brief may conflict with how the app behaves today. Where it does, choose the option that keeps existing clients working and keeps unapproved work private, and explain each call you made. Add tests for the rules, keep every existing test passing, and finish with a summary of what you changed and what you'd flag in code review.
+rubric:
+- criterion: Client contract
+  max_score: 3
+  hidden_tests: contract
+  description: 'Hidden tests: the review workflow the web client relies on.'
+- criterion: Unapproved work stays private
+  max_score: 2
+  hidden_tests: 'rules: unapproved work stays private'
+  description: 'Hidden tests: drafts and reviews never leak through lists, feeds, tags, comments or favorites.'
+- criterion: Rules found, not given
+  max_score: 2
+  hidden_tests: 'rules: found in the brief'
+  description: 'Hidden tests: no self-approval, private feedback, renames stay in review.'
+- criterion: Regression tests
+  max_score: 1
+  hidden_tests: regression
+  description: The model's new or changed tests pass on its fix and at least one fails on the seeded code.
+- criterion: Existing tests still pass
+  max_score: 1
+  hidden_tests: existing
+  description: The repo's own test suites pass with the model's changes.
+- criterion: Contract suite untouched
+  max_score: 1
+  hidden_tests: contract_unchanged
+  cap_if_failed: 4
+  description: apps/api/test/realworld.contract.test.ts is exactly as seeded; modifying it caps the score at 4.
+critical_failure: Modifying the contract suite caps the score at 4. Every criterion is scored by hidden tests or checks; write-ups
+  aren't scored yet.

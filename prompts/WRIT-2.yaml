@@ -1,0 +1,56 @@
+test_id: WRIT-2
+needs_tools: false
+category: writing
+area: writing
+tier: temper
+version: 1
+rubric_version: 2
+status: active
+auto_grade: false
+repo: null
+prompt: |
+  Give me 20 character names for a contemporary novel. Do not use famous fictional characters, celebrities, or obvious fantasy-generator names. Make the list varied in sound, age, gender, and social background. Add one short sentence describing the feel of each name.
+checks:
+  - id: answered
+    type: non_empty
+    min_words: 60
+    rule: "Produces a substantive answer (at least 60 words)."
+  - id: twenty_names
+    type: list_items
+    min: 20
+    rule: "Lists at least 20 names as list items."
+  - id: distinct_names
+    type: list_items
+    distinct: true
+    distinct_within: 20
+    rule: "No name appears twice in the list of 20 (a later recap of favorites is fine)."
+  - id: each_described
+    type: list_items
+    each_matches: '\S+\s*(—|–|-|:)\s*\S+'
+    rule: "Every name is followed by a short description (after a dash or colon)."
+  - id: no_famous_names
+    type: forbidden_patterns
+    patterns: ['\b(harry potter|hermione|katniss|sherlock|gatsby|atticus finch|holden caulfield|elizabeth bennet|frodo|bilbo|gandalf|daenerys|jon snow|bella swan|edward cullen|lisbeth salander|jay gatsby|scout finch|walter white|don draper|carrie bradshaw|taylor swift|beyonc|oprah|kardashian|elon musk|barack obama|tony stark|bruce wayne|peter parker|clark kent)\b']
+    rule: "Uses no famous fictional characters or celebrities (checked against a blocklist)."
+rubric:
+  - criterion: "Answered"
+    max_score: 1
+    check: answered
+    description: "A substantive answer."
+  - criterion: "Twenty names"
+    max_score: 3
+    check: twenty_names
+    description: "At least 20 names."
+  - criterion: "Distinct"
+    max_score: 2
+    check: distinct_names
+    description: "No repeats."
+  - criterion: "Each described"
+    max_score: 2
+    check: each_described
+    description: "A short description for each name."
+  - criterion: "No famous names"
+    max_score: 2
+    check: no_famous_names
+    description: "No blocklisted famous names."
+critical_failure: null

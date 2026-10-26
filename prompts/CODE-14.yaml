@@ -1,0 +1,47 @@
+test_id: CODE-14
+needs_tools: true
+category: coding_debug
+area: coding
+tier: forge
+version: 1
+rubric_version: 2
+status: provisional
+auto_grade: true
+repo: conduit-invites
+grader: forge/CODE-14
+prompt: |
+  This is Conduit, a RealWorld (realworld.how) monorepo: an Express API in apps/api, a React app in apps/web, and shared types in packages/shared. Read README.md first.
+
+  Support has escalated a problem with contributor invites: invited contributors can't start the work their editors assigned them. incident/support-notes.md has what they collected. The feature's design is in docs/invites.md, and Legal's requirements are in docs/legal-contributor-terms.md.
+
+  Find out what's going on and fix it properly:
+  - Invited contributors should be able to get to the editor, and regular sign-ups should keep working exactly as they do today.
+  - Accounts that are already affected must work after the fix, without anyone editing data by hand.
+  - Where the design doc, Legal's requirements and the current behavior disagree, decide what the right behavior is, implement it, and explain your reasoning.
+  - Reproduce the problem in a test before you fix it, and add tests that would have caught it. Keep every existing test passing, including apps/api/test/realworld.contract.test.ts, unmodified.
+
+  Finish with a short write-up: the root cause, the decisions you made and why, and anything you'd flag in code review.
+rubric:
+- criterion: No one gets stuck
+  max_score: 4
+  hidden_tests: loop.web.grader.test.tsx
+  description: 'Hidden web tests: every kind of user lands in the right place with no loop, including accounts already stuck.'
+- criterion: Invited sign-ups
+  max_score: 3
+  hidden_tests: invites.grader.test.ts
+  description: 'Hidden API tests: accepting an invite records the terms; invited emails claim their account once.'
+- criterion: Regression tests
+  max_score: 1
+  hidden_tests: regression
+  description: The model's new or changed tests pass on its fix and at least one fails on the seeded code.
+- criterion: Existing tests still pass
+  max_score: 1
+  hidden_tests: existing
+  description: The repo's own test suites pass with the model's changes.
+- criterion: Contract suite untouched
+  max_score: 1
+  hidden_tests: contract_unchanged
+  cap_if_failed: 4
+  description: apps/api/test/realworld.contract.test.ts is exactly as seeded; modifying it caps the score at 4.
+critical_failure: Modifying the contract suite caps the score at 4. Every criterion is scored by hidden tests or checks; write-ups
+  aren't scored yet.

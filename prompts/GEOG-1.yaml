@@ -1,0 +1,47 @@
+test_id: GEOG-1
+needs_tools: false
+category: geography
+area: geography
+tier: spark
+version: 1
+rubric_version: 1
+status: provisional
+auto_grade: false
+repo: null
+prompt: 'What is the capital of each of these countries? Answer with one line per country, in the form `Country: Capital`.
+
+
+  Australia, Canada, Brazil, Nigeria, Türkiye, Switzerland
+
+  '
+checks:
+- id: capitals
+  type: required_patterns
+  patterns:
+  - \bcanberra\b
+  - \bottawa\b
+  - \bbras[ií]lia\b
+  - \babuja\b
+  - \bankara\b
+  - \bbern\b
+  rule: 'Names all six capitals: Canberra, Ottawa, Brasília, Abuja, Ankara, Bern.'
+- id: no_big_city_traps
+  type: forbidden_patterns
+  patterns:
+  - (?im)^\W*australia\W*[:–—-]\W*sydney
+  - (?im)^\W*canada\W*[:–—-]\W*toronto
+  - (?im)^\W*brazil\W*[:–—-]\W*(rio|s[aã]o paulo)
+  - (?im)^\W*nigeria\W*[:–—-]\W*lagos
+  - (?im)^\W*t[uü]rk(iye|ey)\W*[:–—-]\W*istanbul
+  - (?im)^\W*switzerland\W*[:–—-]\W*(zurich|z[uü]rich|geneva)
+  rule: Never gives the largest city as the capital (Sydney, Toronto, Rio/São Paulo, Lagos, Istanbul, Zürich/Geneva).
+rubric:
+- criterion: Capitals
+  max_score: 6
+  check: capitals
+  description: 'Names all six capitals: Canberra, Ottawa, Brasília, Abuja, Ankara, Bern.'
+- criterion: No big-city traps
+  max_score: 4
+  check: no_big_city_traps
+  description: Never gives the largest city as the capital (Sydney, Toronto, Rio/São Paulo, Lagos, Istanbul, Zürich/Geneva).
+critical_failure: null

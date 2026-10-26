@@ -1,19 +1,20 @@
+"""Evals: a model's grade of an agent response is scored by closeness to a hidden reference grade."""
 import json
 
 import pytest
 
-from crucible import evals, scorer, workspace
-from crucible.taxonomy import validate_category
+from crucible import checks, evals, workspace
 
-EVAL_IDS = [t for t in workspace.all_test_ids() if t.startswith("V")]
+EVAL_IDS = [t for t in workspace.all_test_ids() if t.startswith("EVAL-")]
+CHECK = {"id": "grade", "type": "grade_closeness", "scale": [0, 10], "actual_score": 7, "falloff": 5}
 
 
 class TestParseGrade:
     def test_final_grade_line(self):
         assert evals.parse_grade("Reasoning...\nGRADE: 7", 0, 10) == 7
 
-    def test_decimal_and_markdown_decoration(self):
-        assert evals.parse_grade("**Grade:** 6.5", 0, 10) == 6.5
+    def test_decimal(self):
+        assert evals.parse_grade("Grade: 6.5", 0, 10) == 6.5
 
     def test_last_grade_wins(self):
         assert evals.parse_grade("GRADE: 3\nOn reflection...\nGRADE: 8", 0, 10) == 8
@@ -27,73 +28,73 @@ class TestParseGrade:
         assert evals.parse_grade("GRADE: -2", 0, 10) is None
 
 
-class TestClosenessPoints:
-    def test_exact_match_is_full_points(self):
-        assert evals.closeness_points(7, 7, 10) == 10
+class TestCloseness:
+    def test_exact_match_is_full(self):
+        assert evals.closeness(7, 7) == 1
 
-    def test_points_fall_linearly_with_error(self):
-        assert evals.closeness_points(8, 7, 10) == 8
-        assert evals.closeness_points(5, 7, 10) == 6
-        assert evals.closeness_points(6.5, 7, 10) == 9
+    def test_falls_linearly_with_error(self):
+        assert evals.closeness(8, 7) == 0.8
+        assert evals.closeness(5, 7) == 0.6
+        assert evals.closeness(6.5, 7) == 0.9
 
     def test_symmetric_and_floored_at_zero(self):
-        assert evals.closeness_points(4, 7, 10) == evals.closeness_points(10, 7, 10) == 4
-        assert evals.closeness_points(0, 9, 10) == 0
+        assert evals.closeness(4, 7) == evals.closeness(10, 7) == 0.4
+        assert evals.closeness(0, 9) == 0
 
     def test_no_grade_is_zero(self):
-        assert evals.closeness_points(None, 7, 10) == 0
+        assert evals.closeness(None, 7) == 0
 
 
-class TestScoreEval:
-    PROMPT = {
-        "eval": {"scale": [0, 10], "actual_score": 7, "falloff": 5},
-        "rubric": [{"criterion": "Grade accuracy", "max_score": 10}],
-    }
+class TestGradeCloseness:
+    def test_reports_partial_credit(self):
+        passed, detail, share = evals.grade_closeness(CHECK, "Criterion 1 is met.\nGRADE: 6")
+        assert (passed, share) == (False, 0.8)
+        assert detail == "graded 6, reference 7 (off by 1)"
 
-    def test_scores_and_keeps_reasoning(self):
-        scores = evals.score_eval(self.PROMPT, "Criterion 1 is met.\nCriterion 2 is not.\nGRADE: 6")
-        assert scores["Grade accuracy"] == 8
-        assert scores["_eval"] == {
-            "predicted": 6, "actual": 7.0, "error": 1.0, "points": 8, "max_points": 10,
-            "parsed": True, "reasoning": "Criterion 1 is met.\nCriterion 2 is not.",
-        }
+    def test_exact_match_passes(self):
+        assert evals.grade_closeness(CHECK, "GRADE: 7")[0] is True
 
-    def test_unparseable_grade_scores_zero_and_is_flagged(self):
-        scores = evals.score_eval(self.PROMPT, "I think it's pretty good overall.")
-        assert scores["Grade accuracy"] == 0
-        assert scores["_eval"]["parsed"] is False
-        assert scores["_eval"]["predicted"] is None
+    def test_unparseable_grade_scores_zero(self):
+        passed, detail, share = evals.grade_closeness(CHECK, "I think it is pretty good.")
+        assert (passed, share) == (False, 0.0)
+        assert "no valid GRADE line" in detail
+
+    def test_custom_scale_and_falloff(self):
+        check = {**CHECK, "scale": [0, 100], "actual_score": 80, "falloff": 20}
+        assert evals.grade_closeness(check, "GRADE: 70")[2] == 0.5
+        assert evals.grade_closeness(check, "GRADE: 101")[2] == 0.0
 
 
-class TestScoreRun:
-    def test_run_is_graded_without_prompting(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("builtins.input", lambda *_: pytest.fail("evals must not prompt"))
-        run_dir = tmp_path / "m" / "evals" / "V3" / "20260101_000000"
-        run_dir.mkdir(parents=True)
-        (run_dir / "meta.json").write_text(json.dumps({"test_id": "V3", "run_id": "r"}))
-        (run_dir / "stdout.txt").write_text("It is wrong about O(log n).\nGRADE: 2", encoding="utf-8")
+class TestScoring:
+    def test_partial_credit_flows_into_the_criterion_score(self):
+        prompt = {"checks": [CHECK], "rubric": [{"criterion": "Grade accuracy", "max_score": 10, "check": "grade"}]}
+        results = checks.run_checks(prompt, "Reasoning.\n**GRADE: 6**")
+        assert checks.criterion_scores(prompt, results) == {"Grade accuracy": 8.0}
 
-        results = json.loads(scorer.score_run(run_dir).read_text())
+    def test_run_is_scored_without_a_judge(self, tmp_path):
+        prompt = workspace.load_prompt("EVAL-3")
+        run_dir = tmp_path / "run"
+        run_dir.mkdir()
+        (run_dir / "meta.json").write_text(json.dumps({"run_id": "r", "test_id": "EVAL-3"}))
+        (run_dir / "stdout.txt").write_text("It claims O(n log n), which is wrong.\nGRADE: 2", encoding="utf-8")
 
-        scores = results["scores"]
-        assert scores["Grade accuracy"] == 8  # off by 1 from the hidden score of 1
-        assert scores["_overall"] == 8
-        assert scores["_eval"]["reasoning"] == "It is wrong about O(log n)."
-        reasoning = (run_dir / evals.REASONING_FILENAME).read_text(encoding="utf-8")
-        assert "It is wrong about O(log n)." in reasoning
-        assert "Predicted **2**, actual **1**" in reasoning
+        record = checks.save_check_score(run_dir, prompt, checks.check_results(run_dir, prompt))
+
+        assert record["scores"]["Grade accuracy"] == 8  # off by 1 from the reference grade of 1
+        assert record["scores"]["_overall"] == 8
+        assert "wrong" in record["checked_text"]  # the reasoning is kept for people to read
 
 
 @pytest.mark.parametrize("test_id", EVAL_IDS)
 class TestEvalPrompts:
-    def test_declares_valid_eval_config(self, test_id):
+    def test_is_fully_checked_and_in_range(self, test_id):
         prompt = workspace.load_prompt(test_id)
-        validate_category(prompt["category"])
-        assert prompt["category"] == "evals"
+        assert prompt["category"] == "evals" and prompt["area"] == "evals"
         assert prompt["needs_tools"] is False
-        lo, hi = prompt["eval"]["scale"]
-        assert lo <= prompt["eval"]["actual_score"] <= hi
-        assert len(prompt["rubric"]) == 1
+        assert checks.fully_checked(prompt)
+        (check,) = prompt["checks"]
+        lo, hi = check["scale"]
+        assert check["type"] == "grade_closeness" and lo <= check["actual_score"] <= hi
 
     def test_hidden_score_is_not_shown_to_the_model(self, test_id):
         prompt = workspace.load_prompt(test_id)
@@ -102,5 +103,5 @@ class TestEvalPrompts:
         assert "GRADE:" in prompt["prompt"]
 
 
-def test_there_are_eval_prompts():
-    assert EVAL_IDS == ["V1", "V2", "V3"]
+def test_there_are_three_eval_prompts():
+    assert EVAL_IDS == ["EVAL-1", "EVAL-2", "EVAL-3"]

@@ -1,13 +1,8 @@
-"""Cross-platform subprocess helpers (macOS, Linux, Windows).
+"""Subprocess helpers (macOS and Linux).
 
-Agents are launched in their own process group so a timeout or Ctrl+C can
-tear down the whole tree (agent + MCP servers + shells it spawned):
-
-- POSIX: start_new_session + killpg(SIGTERM), escalating to SIGKILL
-- Windows: CREATE_NEW_PROCESS_GROUP + `taskkill /T /F`
-
-npm-installed CLIs (pi, opencode) are `.cmd` shims on Windows that Popen
-cannot find by bare name, so executables are resolved with shutil.which.
+Agents are launched in their own session so a timeout or Ctrl+C can tear down
+the whole tree (agent + MCP servers + shells it spawned): killpg(SIGTERM),
+escalating to SIGKILL.
 """
 from __future__ import annotations
 
@@ -18,11 +13,8 @@ import signal
 import subprocess
 from pathlib import Path
 
-IS_WINDOWS = os.name == "nt"
-
-
 def resolve_executable(name: str) -> str:
-    """Absolute path to an executable on PATH (honours PATHEXT on Windows)."""
+    """Absolute path to an executable on PATH."""
     path = shutil.which(name)
     if path is None:
         raise FileNotFoundError(f"'{name}' not found on PATH")
@@ -49,14 +41,6 @@ def kill_tree(proc: subprocess.Popen, grace: int = 10) -> None:
     """Terminate proc and everything it spawned; best effort, never raises."""
     if proc.poll() is not None:
         return
-    if IS_WINDOWS:
-        subprocess.run(["taskkill", "/T", "/F", "/PID", str(proc.pid)],
-                       capture_output=True, check=False)
-        try:
-            proc.wait(timeout=grace)
-        except subprocess.TimeoutExpired:
-            proc.kill()
-        return
     try:
         os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
         proc.wait(timeout=grace)
@@ -68,22 +52,11 @@ def kill_tree(proc: subprocess.Popen, grace: int = 10) -> None:
 
 
 def spawn(cmd: list[str], *, cwd: Path | str | None = None, env: dict | None = None,
-          stdin=None, stdout=None, stderr=None,
-          interactive: bool = False) -> subprocess.Popen:
-    """Start cmd in its own process group.
-
-    interactive=True is for TUIs: on Windows they must stay in the console's
-    process group to receive keyboard input, so no new group is created.
-    (TUIs put the console in raw mode, so Ctrl+C reaches the TUI as a key.)
-    """
+          stdin=None, stdout=None, stderr=None) -> subprocess.Popen:
+    """Start cmd in its own session, so kill_tree can stop everything it spawns."""
     cmd = [resolve_executable(cmd[0]), *cmd[1:]]
-    kwargs: dict = {"cwd": cwd, "env": env, "stdin": stdin, "stdout": stdout, "stderr": stderr}
-    if IS_WINDOWS:
-        if not interactive:
-            kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
-    else:
-        kwargs["start_new_session"] = True
-    return subprocess.Popen(cmd, **kwargs)
+    return subprocess.Popen(cmd, cwd=cwd, env=env, stdin=stdin, stdout=stdout, stderr=stderr,
+                            start_new_session=True)
 
 
 def wait(proc: subprocess.Popen, timeout: int, label: str) -> dict:
@@ -124,5 +97,5 @@ def run_logged(cmd: list[str], run_dir: Path, timeout: int, label: str, *,
 def run_interactive(cmd: list[str], timeout: int, label: str, *,
                     cwd: Path | str | None = None, env: dict | None = None) -> dict:
     """Run an agent TUI attached to the terminal; output is not captured."""
-    proc = spawn(cmd, cwd=cwd, env=env, interactive=True)
+    proc = spawn(cmd, cwd=cwd, env=env)
     return wait(proc, timeout, label)

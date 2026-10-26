@@ -1,0 +1,73 @@
+test_id: CODE-13
+needs_tools: true
+category: coding_debug
+area: coding
+tier: forge
+version: 2
+rubric_version: 3
+status: provisional
+auto_grade: true
+repo: conduit-incident
+grader: forge/CODE-13
+prompt: |
+  You're on call for Conduit, a RealWorld (realworld.how) monorepo: an Express API in apps/api, a React app in apps/web, shared code in packages/shared. Read README.md first.
+
+  Support escalated this ticket this morning:
+
+    "Since yesterday's deploy, several users report that articles show as 'favorited' when they never favorited them, and the follow button shows the wrong state on author profiles. Two authors also say edits to their articles don't show up for a while, and one says a deleted article was still readable. It isn't consistent: refreshing sometimes fixes it."
+
+  The production logs from the last two days are in incident/logs/ (API access log, application log, deploy log). They're large, so search them rather than reading them end to end. incident/ticket-notes.md has what support collected.
+
+  Do all of the following:
+  1. Find the root cause (or causes) and confirm each one against the logs.
+  2. Fix it properly in the code. Keep the intent of the change that introduced it if that intent is sound, and don't just revert or disable things wholesale. Keep createApp(db, { responseCacheTtlMs }) as the switch that turns caching on: server.ts and the load tests rely on it.
+  3. Add regression tests that fail before your fix and pass after it. Keep every existing test passing, including apps/api/test/realworld.contract.test.ts, unmodified.
+  4. Write incident/POSTMORTEM.md covering: a timeline with timestamps taken from the logs (deploy, first affected request, first user report), the root cause, how many distinct users were served another user's personalized data (count it from the logs, and say how you counted), impact, the fix, and follow-up actions.
+checks:
+- id: postmortem_timeline
+  type: required_patterns
+  file: incident/POSTMORTEM.md
+  patterns:
+  - '16:42:10'
+  - '16:44:15'
+  - '18:06:01'
+  rule: The postmortem's timeline has the deploy (16:42:10), first affected request (16:44:15) and first report (18:06:01)
+    from the logs.
+- id: postmortem_count
+  type: required_patterns
+  file: incident/POSTMORTEM.md
+  patterns:
+  - \b(371|481)\b
+  rule: The postmortem counts 371 affected users (or 481, counting anonymous-stored responses).
+rubric:
+- criterion: Per-viewer fields
+  max_score: 3
+  hidden_tests: per-viewer fields
+  description: 'Hidden tests: favorited and following are never shared through the cache.'
+- criterion: Writes visible immediately
+  max_score: 2
+  hidden_tests: writes are visible
+  description: 'Hidden tests: updates, deletes, favorites, follows and new articles show at once.'
+- criterion: Postmortem timeline
+  max_score: 1
+  check: postmortem_timeline
+  description: incident/POSTMORTEM.md has the deploy, first affected request and first report times from the logs.
+- criterion: Postmortem count
+  max_score: 1
+  check: postmortem_count
+  description: incident/POSTMORTEM.md counts the affected users correctly (371, or 481 with the method stated).
+- criterion: Regression tests
+  max_score: 1
+  hidden_tests: regression
+  description: The model's new or changed tests pass on its fix and at least one fails on the seeded code.
+- criterion: Existing tests still pass
+  max_score: 1
+  hidden_tests: existing
+  description: The repo's own test suites pass with the model's changes.
+- criterion: Contract suite untouched
+  max_score: 1
+  hidden_tests: contract_unchanged
+  cap_if_failed: 4
+  description: apps/api/test/realworld.contract.test.ts is exactly as seeded; modifying it caps the score at 4.
+critical_failure: Modifying the contract suite caps the score at 4. Every criterion is scored by hidden tests or checks; write-ups
+  aren't scored yet.
