@@ -336,7 +336,7 @@ mcp_servers:
   - mock-calendar:forge     # fixtures/mock-calendar/forge.json
 ```
 
-A dataset fixes "now" (so tests never depend on the real date), the calendars and their events. Working hours are not exposed by the tools (nor by the real ones), so the prompts state "9 to 5" and the model finds each person's time zone in `list_calendars`.
+A dataset fixes "now" (so tests never depend on the real date), the calendars and their events. Working hours are not exposed by the tools (nor by the real ones), and the prompts only say the meeting is for work: inferring business hours (9 to 5 in each person's own time zone, found in `list_calendars`) is part of the test.
 
 | Test | Dataset | Task |
 |------|---------|------|
