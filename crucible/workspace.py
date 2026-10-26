@@ -99,7 +99,7 @@ def setup_workspace(run_dir: Path, prompt_def: dict) -> Path:
     try:
         link.symlink_to(workspace, target_is_directory=True)
     except OSError:
-        # e.g. Windows without symlink rights: fall back to working inside the run dir
+        # e.g. a filesystem without symlinks: fall back to working inside the run dir
         print("  Warning: could not link an outside workspace; the agent will work inside crucible's checkout")
         shutil.rmtree(workspace)
         workspace = link

@@ -109,12 +109,6 @@ class TestPiLaunch:
         assert "-p" not in launch.cmd
         assert "@prompt.txt" in launch.cmd
 
-    def test_args_are_single_line(self, tmp_path):
-        # Windows .cmd shims truncate multi-line arguments
-        for watch in (False, True):
-            launch = AGENTS["pi"].launch(_ctx(tmp_path, watch=watch, mcp_servers=["mock-data"]))
-            assert all("\n" not in arg for arg in launch.cmd)
-
 
 class TestPiValidate:
     def test_openrouter_needs_key(self, monkeypatch):
@@ -197,10 +191,6 @@ class TestOpenCodeLaunch:
         assert provider["models"]["new/model-1"]["cost"] == {"input": 0.06, "output": 0.12}
         assert launch.cmd[-2:] == ["-m", "openrouter-extra/new/model-1"]
 
-    def test_watch_args_are_single_line(self, tmp_path):
-        launch = AGENTS["opencode"].launch(_ctx(tmp_path, watch=True))
-        assert all("\n" not in arg for arg in launch.cmd)
-
     def test_token_usage(self, tmp_path):
         (tmp_path / "session.json").write_text(json.dumps({"messages": [
             {"info": {"tokens": {"input": 5, "output": 2, "reasoning": 1}}},
@@ -241,7 +231,6 @@ class TestCountToolCalls:
 class TestProcs:
     def test_timeout_kills_process_tree(self, tmp_path):
         # Parent spawns a grandchild; both must die on timeout
-        # (marker path goes in argv: Windows backslashes break string literals)
         marker = tmp_path / "survived"
         grandchild = "import sys, time; time.sleep(3); open(sys.argv[1], 'w')"
         script = (

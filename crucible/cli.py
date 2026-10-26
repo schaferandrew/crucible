@@ -68,12 +68,6 @@ COMMANDS = {
 
 
 def main():
-    # Windows writes piped output in the legacy code page (cp1252); emit
-    # UTF-8 everywhere and never crash on glyphs a console cannot show.
-    for stream in (sys.stdout, sys.stderr):
-        if hasattr(stream, "reconfigure"):
-            stream.reconfigure(encoding="utf-8", errors="replace")
-
     cmd, rest = (sys.argv[1], sys.argv[2:]) if len(sys.argv) > 1 else (None, [])
     if cmd in (None, "-h", "--help", "help"):
         _print_help()

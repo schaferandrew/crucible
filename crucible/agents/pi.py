@@ -9,11 +9,9 @@ config is never touched:
 - -e pi_extension.ts (+ --no-extensions for hermetic runs): registers local
   providers (ollama, LM Studio) and bridges declared MCP servers into native
   pi tools, configured via the CRUCIBLE_PI_CONFIG env var.
-- The prompt is attached as @prompt.txt rather than passed inline, which keeps
-  arguments single-line for Windows' .cmd shims.
+- The prompt is attached as @prompt.txt rather than passed inline.
 
 pi has no tool-approval prompts, so watch runs never stall on permissions.
-On Windows pi needs a bash (Git for Windows) for its bash tool.
 """
 from __future__ import annotations
 

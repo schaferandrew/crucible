@@ -2,8 +2,8 @@
 """`crucible run` with no test: asks what to run, one question at a time.
 
 Menus take arrow keys, the number shown next to an option, or its first letter, then Enter. They
-are drawn with prompt_toolkit (the library behind IPython), which works the same on macOS, Linux
-and Windows terminals; where it can't draw a menu, the questions fall back to typed numbers.
+are drawn with prompt_toolkit (the library behind IPython); where it can't draw a menu, the
+questions fall back to typed numbers.
 Flags given on the command line answer their question, so it isn't asked.
 """
 from __future__ import annotations

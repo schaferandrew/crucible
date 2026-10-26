@@ -62,8 +62,7 @@ def _tree_bytes(path: Path) -> list[bytes]:
     """Relative paths and contents of every file under path, CRLF-normalized for cross-OS stability."""
     if not path.exists():
         return [b"<missing>", path.name.encode()]
-    # Sorted by path parts, not Path objects: Windows compares paths case-insensitively, which
-    # would hash the same files in a different order than macOS and Linux
+    # Sorted by path parts, so the order (and the hash) never depends on how a filesystem compares names
     files = [path] if path.is_file() else sorted(
         (p for p in path.rglob("*") if p.is_file() and not SKIP_DIRS.intersection(p.relative_to(path).parts)),
         key=lambda p: p.relative_to(path).parts)

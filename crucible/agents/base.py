@@ -29,8 +29,7 @@ BUILTIN_MCP_SERVERS = {
     "web": REPO_ROOT / "crucible" / "mcp_servers" / "web_server.py",
 }
 
-# Instruction sent alongside the attached prompt.txt. Kept to one line: on
-# Windows npm CLIs are .cmd shims, and cmd.exe truncates multi-line arguments.
+# Instruction sent alongside the attached prompt.txt (the prompt itself travels as a file)
 TASK_INSTRUCTION = "Complete the benchmark task described in the attached prompt.txt file."
 WATCH_INSTRUCTION = "Read prompt.txt in the current directory and complete the benchmark task it describes."
 
@@ -81,8 +80,7 @@ def available_mcp_servers(servers: list[str]) -> list[str]:
 def mcp_server_commands(servers: list[str]) -> dict[str, list[str]]:
     """Launch commands for the declared MCP servers that crucible provides.
 
-    Uses the current interpreter explicitly: Windows has no shebang support,
-    and it keeps the server on the same Python everywhere.
+    Uses the current interpreter explicitly, so the server runs on the same Python as crucible.
     """
     available = available_mcp_servers(servers)
     for name in servers:

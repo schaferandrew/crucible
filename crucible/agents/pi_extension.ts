@@ -40,7 +40,6 @@ class StdioMcpClient {
 		this.proc = spawn(cmd, args, {
 			env: { ...process.env, ...(config.env ?? {}) },
 			stdio: ["pipe", "pipe", "pipe"],
-			windowsHide: true,
 		});
 		this.proc.on("error", (err) => this.failAll(err));
 		this.proc.on("exit", (code) => this.failAll(new Error(`MCP server ${name} exited (${code})`)));

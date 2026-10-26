@@ -48,7 +48,7 @@ def _cpu() -> str | None:
 
 
 def _gpu() -> str | None:
-    if sys.platform.startswith("linux") or sys.platform == "win32":
+    if sys.platform.startswith("linux"):
         return _run(["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader"])
     return None  # Apple silicon: the GPU is the CPU's, with unified memory
 

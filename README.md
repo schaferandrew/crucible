@@ -21,7 +21,7 @@ uv tool install --editable .
 
 If an older `pip install -e .` left a `crucible` on your PATH (check with `which crucible`), remove it first with `pip uninstall crucible`, or it may run without its dependencies (for example, menus that fall back to typed numbers).
 
-Without uv: `python -m venv .venv`, activate it (`source .venv/bin/activate`, or `.\.venv\Scripts\Activate.ps1` in PowerShell), then `pip install -e .` and run `crucible --help`. If PowerShell blocks the activate script, run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` first.
+Without uv: `python -m venv .venv`, `source .venv/bin/activate`, then `pip install -e .` and run `crucible --help`.
 
 Agentic tests also need an agent harness on PATH (chat tests don't):
 
@@ -29,8 +29,6 @@ Agentic tests also need an agent harness on PATH (chat tests don't):
 npm install -g opencode-ai                                      # opencode (the default)
 npm install -g --ignore-scripts @earendil-works/pi-coding-agent # pi
 ```
-
-> **Windows + pi:** pi's `bash` tool needs a bash shell; install [Git for Windows](https://git-scm.com/download/win) (pi finds Git Bash automatically).
 
 ## Providers
 
@@ -63,7 +61,7 @@ With no arguments, `crucible run` asks what to run, one question at a time:
 5. **Watch?** Only offered for three or fewer agentic tests (see watch mode below).
 6. **Skip what's already done?** When some tests already have a run of their current version for this model.
 
-Menus take arrow keys, the number next to an option, or its first letter (press it again for the next match), then Enter; yes/no questions are `y`/`n`. They're drawn with prompt_toolkit, which works the same in macOS, Linux and Windows terminals. Where a menu can't be drawn the questions fall back to typed numbers, and say why. Before starting, the wizard prints the plan and the one-line command that repeats it without the questions.
+Menus take arrow keys, the number next to an option, or its first letter (press it again for the next match), then Enter; yes/no questions are `y`/`n`. They're drawn with prompt_toolkit. Where a menu can't be drawn the questions fall back to typed numbers, and say why. Before starting, the wizard prints the plan and the one-line command that repeats it without the questions.
 
 ### The same thing with flags
 
@@ -243,7 +241,7 @@ crucible report --all --output results.md
 python -m pip install -e . pytest
 python -m pytest            # unit + end-to-end tests (pi's runs when `pi` is on PATH)
 ```
-CI (`.github/workflows/tests.yml`) runs the suite on Linux, macOS and Windows with pi installed.
+CI (`.github/workflows/tests.yml`) runs the suite on Linux and macOS with pi installed. Crucible supports macOS and Linux only.
 
 ## Structure
 
@@ -263,7 +261,7 @@ CI (`.github/workflows/tests.yml`) runs the suite on Linux, macOS and Windows wi
 - `crucible/cost.py` — Run cost: billed OpenRouter usage or the agent's own estimate
 - `crucible/mcp_servers/` — MCP servers crucible ships to agents (`web_server.py`: `web_fetch`, `web_search`)
 - `crucible/console.py` — What `crucible run` prints
-- `crucible/procs.py` — Cross-platform process launch / tree-kill (macOS, Linux, Windows)
+- `crucible/procs.py` — Process launch and tree-kill (macOS, Linux)
 - `crucible/session.py` — Normalized session events, transcript, tool-call counting
 - `crucible/scorer.py` — Interactive scoring (`score_run`)
 - `crucible/reporter.py` — Comparison report generator
@@ -327,11 +325,9 @@ All combinations below ran against the mock MCP server; "✓" means the mock too
 | opencode| headless | openrouter/deepseek/deepseek-v4-flash    | 032424           | ✓      | n/a (run pre-dated token capture wiring) |
 | opencode| watch    | openrouter/deepseek/deepseek-v4-flash    | 041420           | ✓      | n/a (run pre-dated token capture wiring) |
 
-
-pi runs are covered end-to-end by `tests/test_pi_integration.py`, which drives the real pi CLI against a scripted OpenAI-compatible model (`tests/fake_openai.py`) through the mock MCP server, on Linux, macOS and Windows in CI.
+pi runs are covered end-to-end by `tests/test_pi_integration.py`, which drives the real pi CLI against a scripted OpenAI-compatible model (`tests/fake_openai.py`) through the mock MCP server, on Linux and macOS in CI.
 
 ### Pitfalls learned
 
 - **Rubrics must live in a top-level `rubric:` key**, never inside `prompt:` — otherwise the agent sees the eval criteria (fixed for TASK-2; all prompts scanned).
 - **Stale global `crucible` install**: an editable install pointing at a different checkout silently runs old code (symptom: "MCP not available" despite everything else working). Check with `pip show crucible | grep -i editable`.
-- **Windows argument mangling**: npm CLIs are `.cmd` shims on Windows and cmd.exe truncates multi-line arguments, so prompts are always attached as `prompt.txt` (never passed inline) and per-run config travels in env vars.
