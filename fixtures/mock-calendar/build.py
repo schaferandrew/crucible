@@ -9,10 +9,10 @@ documented answers cannot drift apart.
     python fixtures/mock-calendar/build.py
 
 Datasets (the scheduling tests that use each):
-  spark - A1, "am I free at 3:30?": one calendar, one boundary trap.
-  pair  - A2, find an hour for two people this week: read my events, then
+  spark - TASK-4, "am I free at 3:30?": one calendar, one boundary trap.
+  pair  - TASK-5, find an hour for two people this week: read my events, then
           Jamie's busy blocks.
-  forge - A3, find an hour for a team of 16 over the next two weeks.
+  forge - TASK-6, find an hour for a team of 16 over the next two weeks.
 """
 from __future__ import annotations
 

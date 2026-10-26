@@ -8,7 +8,7 @@ import pytest
 from crucible import workspace
 from crucible.agents.base import REPO_ROOT, available_mcp_servers, mcp_server_commands, split_server_spec
 from crucible.mcp_servers import calendar_server as cs
-from crucible.taxonomy import suite_for, validate_category
+from crucible.taxonomy import mode_for, validate_area, validate_category
 
 SERVER = REPO_ROOT / "crucible" / "mcp_servers" / "calendar_server.py"
 
@@ -223,7 +223,7 @@ class TestFreeBusy:
 
 
 class TestDatasetAnswers:
-    """The ground truth quoted in prompts A1-A3 (keep in sync with their comments)."""
+    """The ground truth quoted in prompts TASK-4 to TASK-6 (keep in sync with their comments)."""
 
     def test_spark_is_free_at_3_30(self, spark):
         assert spark.busy("alex@example.com", at("09-01", "15:30"), at("09-01", "15:31")) == []
@@ -257,7 +257,7 @@ class TestDatasetAnswers:
 
 
 class TestWiring:
-    A_TESTS = {"A1": "spark", "A2": "pair", "A3": "forge"}
+    CALENDAR_TESTS = {"TASK-4": "spark", "TASK-5": "pair", "TASK-6": "forge"}
 
     def test_spec_parsing(self):
         assert split_server_spec("mock-calendar:forge") == ("mock-calendar", "forge")
@@ -271,12 +271,13 @@ class TestWiring:
     def test_calendar_server_needs_a_dataset(self):
         assert available_mcp_servers(["mock-calendar", "mock-calendar:spark"]) == ["mock-calendar:spark"]
 
-    @pytest.mark.parametrize("test_id,dataset", A_TESTS.items())
+    @pytest.mark.parametrize("test_id,dataset", CALENDAR_TESTS.items())
     def test_prompts_declare_an_existing_dataset(self, test_id, dataset):
         prompt = workspace.load_prompt(test_id)
         assert prompt["mcp_servers"] == [f"mock-calendar:{dataset}"]
         assert (cs.DATASET_DIR / f"{dataset}.json").is_file()
         assert available_mcp_servers(prompt["mcp_servers"]) == prompt["mcp_servers"]
         validate_category(prompt["category"])
-        assert suite_for(test_id) == "agentic"
+        validate_area(prompt)
+        assert mode_for(prompt) == "agentic" and prompt["area"] == "everyday"
         assert sum(r["max_score"] for r in prompt["rubric"]) == 10

@@ -1,8 +1,13 @@
-test_id: A2
+test_id: TASK-5
 needs_tools: true
 mcp_servers:
   - mock-calendar:pair
 category: long_agent
+area: everyday
+tier: temper
+version: 1
+rubric_version: 1
+status: provisional
 auto_grade: true
 repo: null
 # Dataset pair (fixtures/mock-calendar/pair.json). "Now" is Mon 2026-08-31 8:30 AM.

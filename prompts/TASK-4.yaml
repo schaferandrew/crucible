@@ -1,8 +1,13 @@
-test_id: A1
+test_id: TASK-4
 needs_tools: true
 mcp_servers:
   - mock-calendar:spark
 category: everyday
+area: everyday
+tier: spark
+version: 1
+rubric_version: 1
+status: provisional
 auto_grade: true
 repo: null
 # Dataset spark (fixtures/mock-calendar/spark.json). "Now" is Tue 2026-09-01 11:20 AM.

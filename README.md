@@ -259,7 +259,7 @@ CI (`.github/workflows/tests.yml`) runs the suite on Linux and macOS with pi ins
 - `crucible/models.py` / `crucible/providers.py` — Model resolution; provider table (list models, stream completions)
 - `crucible/metrics.py` — Metrics in `meta.json` (tests, tool calls, tokens, latency, cost)
 - `crucible/cost.py` — Run cost: billed OpenRouter usage or the agent's own estimate
-- `crucible/mcp_servers/` — MCP servers crucible ships to agents (`web_server.py`: `web_fetch`, `web_search`; `calendar_server.py`: mock calendar for A1-A3)
+- `crucible/mcp_servers/` — MCP servers crucible ships to agents (`web_server.py`: `web_fetch`, `web_search`; `calendar_server.py`: mock calendar for TASK-4 to TASK-6)
 - `crucible/console.py` — What `crucible run` prints
 - `crucible/procs.py` — Process launch and tree-kill (macOS, Linux)
 - `crucible/session.py` — Normalized session events, transcript, tool-call counting
@@ -315,9 +315,9 @@ Both are `null` when unknown.
 
 RSCH-2 and RSCH-2b declare crucible's web MCP server (`mcp_servers: [web]`, `crucible/mcp_servers/web_server.py`), so every agent gets the same `web_fetch` tool (HTTP GET; HTML reduced to text) rather than whatever its harness ships. `web_search` (Brave Search API) is offered only when `BRAVE_SEARCH_API_KEY` is set. `meta.json` records `tools.mcp_servers` and `tools.builtin_web` (opencode still has its own `webfetch`), so you can see what each run could reach.
 
-### Calendar scheduling tests (A1-A3)
+### Calendar scheduling tests (TASK-4 to TASK-6)
 
-The `agentic` suite (`crucible run agentic`) tests tool use against a mock calendar MCP server (`crucible/mcp_servers/calendar_server.py`) that imitates the Google Calendar MCP servers people really use, so models meet the tools and data shapes they will meet in practice:
+Three everyday tasks (`crucible run everyday` runs them with the other TASK tests) test tool use against a mock calendar MCP server (`crucible/mcp_servers/calendar_server.py`) that imitates the Google Calendar MCP servers people really use, so models meet the tools and data shapes they will meet in practice:
 
 | Tool | Real-world counterpart |
 |------|------------------------|
@@ -340,9 +340,9 @@ A dataset fixes "now" (so tests never depend on the real date), the calendars an
 
 | Test | Dataset | Task |
 |------|---------|------|
-| A1 | `spark` | "Am I free at 3:30?" One calendar; an event ends at exactly 3:30. |
-| A2 | `pair` | An hour with Jamie this week: read my events, then Jamie's busy blocks. My declined and "free" events look busy. |
-| A3 | `forge` | An hour for a team of 16 in two weeks: holiday, out-of-office, a New York teammate, non-team calendars to leave out, declined and "free" decoys. |
+| TASK-4 | `spark` | "Am I free at 3:30?" One calendar; an event ends at exactly 3:30. |
+| TASK-5 | `pair` | An hour with Jamie this week: read my events, then Jamie's busy blocks. My declined and "free" events look busy. |
+| TASK-6 | `forge` | An hour for a team of 16 in two weeks: holiday, out-of-office, a New York teammate, non-team calendars to leave out, declined and "free" decoys. |
 
 Each prompt's YAML comments hold the ground truth, and `free_starts()` in the server computes it for tests and graders. The datasets are regenerated with `python fixtures/mock-calendar/build.py`, which re-checks them against that oracle.
 

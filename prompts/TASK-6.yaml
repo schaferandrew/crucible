@@ -1,8 +1,13 @@
-test_id: A3
+test_id: TASK-6
 needs_tools: true
 mcp_servers:
   - mock-calendar:forge
 category: long_agent
+area: everyday
+tier: forge
+version: 1
+rubric_version: 1
+status: provisional
 auto_grade: true
 repo: null
 # Dataset forge (fixtures/mock-calendar/forge.json). "Now" is Mon 2026-08-31 8:30 AM.
