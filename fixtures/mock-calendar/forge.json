@@ -1,0 +1,5503 @@
+{
+  "name": "forge",
+  "timezone": "America/Chicago",
+  "utc_offset": "-05:00",
+  "now": "2026-08-31T08:30:00-05:00",
+  "owner": "alex@example.com",
+  "tools": [
+    "get_current_time",
+    "list_calendars",
+    "list_events",
+    "get_free_busy"
+  ],
+  "calendars": [
+    {
+      "id": "alex@example.com",
+      "name": "Alex Rivera",
+      "email": "alex@example.com",
+      "team": "Platform",
+      "type": "person",
+      "timezone": "America/Chicago",
+      "utc_offset": "-05:00",
+      "working_hours": {
+        "start": "09:00",
+        "end": "17:00"
+      },
+      "events": [
+        {
+          "id": "alex-2",
+          "summary": "Platform standup",
+          "start": "2026-08-31T10:30:00-05:00",
+          "end": "2026-08-31T11:00:00-05:00"
+        },
+        {
+          "id": "alex-3",
+          "summary": "Code review",
+          "start": "2026-08-31T11:30:00-05:00",
+          "end": "2026-08-31T13:00:00-05:00"
+        },
+        {
+          "id": "alex-4",
+          "summary": "Incident review",
+          "start": "2026-08-31T14:00:00-05:00",
+          "end": "2026-08-31T14:30:00-05:00"
+        },
+        {
+          "id": "alex-5",
+          "summary": "Office hours",
+          "start": "2026-08-31T16:00:00-05:00",
+          "end": "2026-08-31T17:30:00-05:00"
+        },
+        {
+          "id": "alex-9",
+          "summary": "Roadmap",
+          "start": "2026-09-01T09:30:00-05:00",
+          "end": "2026-09-01T10:00:00-05:00"
+        },
+        {
+          "id": "alex-6",
+          "summary": "Platform standup",
+          "start": "2026-09-01T10:30:00-05:00",
+          "end": "2026-09-01T11:00:00-05:00"
+        },
+        {
+          "id": "alex-8",
+          "summary": "Office hours",
+          "start": "2026-09-01T10:30:00-05:00",
+          "end": "2026-09-01T11:00:00-05:00"
+        },
+        {
+          "id": "alex-7",
+          "summary": "Customer call",
+          "start": "2026-09-01T15:00:00-05:00",
+          "end": "2026-09-01T16:30:00-05:00"
+        },
+        {
+          "id": "alex-10",
+          "summary": "Platform standup",
+          "start": "2026-09-02T10:30:00-05:00",
+          "end": "2026-09-02T11:00:00-05:00"
+        },
+        {
+          "id": "alex-13",
+          "summary": "Planning",
+          "start": "2026-09-02T11:30:00-05:00",
+          "end": "2026-09-02T12:00:00-05:00"
+        },
+        {
+          "id": "alex-11",
+          "summary": "Training",
+          "start": "2026-09-02T12:30:00-05:00",
+          "end": "2026-09-02T13:00:00-05:00"
+        },
+        {
+          "id": "alex-12",
+          "summary": "Retro",
+          "start": "2026-09-02T16:00:00-05:00",
+          "end": "2026-09-02T17:00:00-05:00"
+        },
+        {
+          "id": "alex-17",
+          "summary": "1:1",
+          "start": "2026-09-03T09:30:00-05:00",
+          "end": "2026-09-03T10:30:00-05:00"
+        },
+        {
+          "id": "alex-14",
+          "summary": "Platform standup",
+          "start": "2026-09-03T10:30:00-05:00",
+          "end": "2026-09-03T11:00:00-05:00"
+        },
+        {
+          "id": "alex-15",
+          "summary": "Demo prep",
+          "start": "2026-09-03T11:30:00-05:00",
+          "end": "2026-09-03T12:30:00-05:00"
+        },
+        {
+          "id": "alex-16",
+          "summary": "Retro",
+          "start": "2026-09-03T12:00:00-05:00",
+          "end": "2026-09-03T13:30:00-05:00"
+        },
+        {
+          "id": "alex-21",
+          "summary": "Interview",
+          "start": "2026-09-04T09:00:00-05:00",
+          "end": "2026-09-04T10:00:00-05:00"
+        },
+        {
+          "id": "alex-18",
+          "summary": "Platform standup",
+          "start": "2026-09-04T10:30:00-05:00",
+          "end": "2026-09-04T11:00:00-05:00"
+        },
+        {
+          "id": "alex-19",
+          "summary": "Design review",
+          "start": "2026-09-04T11:00:00-05:00",
+          "end": "2026-09-04T12:00:00-05:00"
+        },
+        {
+          "id": "alex-22",
+          "summary": "1:1",
+          "start": "2026-09-04T12:30:00-05:00",
+          "end": "2026-09-04T13:30:00-05:00"
+        },
+        {
+          "id": "alex-20",
+          "summary": "Roadmap",
+          "start": "2026-09-04T16:00:00-05:00",
+          "end": "2026-09-04T17:30:00-05:00"
+        },
+        {
+          "id": "alex-1",
+          "summary": "Labor Day",
+          "start": "2026-09-07T00:00:00-05:00",
+          "end": "2026-09-08T00:00:00-05:00",
+          "all_day": true
+        },
+        {
+          "id": "alex-25",
+          "summary": "Code review",
+          "start": "2026-09-08T09:30:00-05:00",
+          "end": "2026-09-08T10:30:00-05:00"
+        },
+        {
+          "id": "alex-23",
+          "summary": "Platform standup",
+          "start": "2026-09-08T10:30:00-05:00",
+          "end": "2026-09-08T11:00:00-05:00"
+        },
+        {
+          "id": "alex-24",
+          "summary": "Training",
+          "start": "2026-09-08T13:00:00-05:00",
+          "end": "2026-09-08T14:00:00-05:00"
+        },
+        {
+          "id": "alex-26",
+          "summary": "Platform standup",
+          "start": "2026-09-09T10:30:00-05:00",
+          "end": "2026-09-09T11:00:00-05:00"
+        },
+        {
+          "id": "alex-27",
+          "summary": "Roadmap",
+          "start": "2026-09-09T12:00:00-05:00",
+          "end": "2026-09-09T13:30:00-05:00"
+        },
+        {
+          "id": "alex-29",
+          "summary": "Office hours",
+          "start": "2026-09-09T13:00:00-05:00",
+          "end": "2026-09-09T13:30:00-05:00"
+        },
+        {
+          "id": "alex-28",
+          "summary": "Code review",
+          "start": "2026-09-09T13:30:00-05:00",
+          "end": "2026-09-09T14:30:00-05:00"
+        },
+        {
+          "id": "alex-32",
+          "summary": "Retro",
+          "start": "2026-09-10T09:00:00-05:00",
+          "end": "2026-09-10T10:30:00-05:00"
+        },
+        {
+          "id": "alex-33",
+          "summary": "Planning",
+          "start": "2026-09-10T09:30:00-05:00",
+          "end": "2026-09-10T11:00:00-05:00"
+        },
+        {
+          "id": "alex-30",
+          "summary": "Platform standup",
+          "start": "2026-09-10T10:30:00-05:00",
+          "end": "2026-09-10T11:00:00-05:00"
+        },
+        {
+          "id": "alex-31",
+          "summary": "Training",
+          "start": "2026-09-10T15:00:00-05:00",
+          "end": "2026-09-10T15:30:00-05:00"
+        },
+        {
+          "id": "alex-35",
+          "summary": "Incident review",
+          "start": "2026-09-11T10:00:00-05:00",
+          "end": "2026-09-11T11:00:00-05:00"
+        },
+        {
+          "id": "alex-34",
+          "summary": "Platform standup",
+          "start": "2026-09-11T10:30:00-05:00",
+          "end": "2026-09-11T11:00:00-05:00"
+        },
+        {
+          "id": "alex-38",
+          "summary": "Roadmap",
+          "start": "2026-09-11T12:30:00-05:00",
+          "end": "2026-09-11T14:00:00-05:00"
+        },
+        {
+          "id": "alex-37",
+          "summary": "Retro",
+          "start": "2026-09-11T14:30:00-05:00",
+          "end": "2026-09-11T15:30:00-05:00"
+        },
+        {
+          "id": "alex-36",
+          "summary": "Retro",
+          "start": "2026-09-11T15:30:00-05:00",
+          "end": "2026-09-11T16:00:00-05:00"
+        },
+        {
+          "id": "alex-39",
+          "summary": "Platform standup",
+          "start": "2026-09-14T10:30:00-05:00",
+          "end": "2026-09-14T11:00:00-05:00"
+        },
+        {
+          "id": "alex-43",
+          "summary": "Training",
+          "start": "2026-09-14T10:30:00-05:00",
+          "end": "2026-09-14T11:30:00-05:00"
+        },
+        {
+          "id": "alex-44",
+          "summary": "Sync",
+          "start": "2026-09-14T11:00:00-05:00",
+          "end": "2026-09-14T11:30:00-05:00"
+        },
+        {
+          "id": "alex-40",
+          "summary": "Code review",
+          "start": "2026-09-14T12:00:00-05:00",
+          "end": "2026-09-14T13:00:00-05:00"
+        },
+        {
+          "id": "alex-42",
+          "summary": "Planning",
+          "start": "2026-09-14T12:30:00-05:00",
+          "end": "2026-09-14T13:30:00-05:00"
+        },
+        {
+          "id": "alex-41",
+          "summary": "Vendor call",
+          "start": "2026-09-14T15:00:00-05:00",
+          "end": "2026-09-14T16:30:00-05:00"
+        }
+      ]
+    },
+    {
+      "id": "jamie@example.com",
+      "name": "Jamie Chen",
+      "email": "jamie@example.com",
+      "team": "Platform",
+      "type": "person",
+      "timezone": "America/Chicago",
+      "utc_offset": "-05:00",
+      "working_hours": {
+        "start": "09:00",
+        "end": "17:00"
+      },
+      "events": [
+        {
+          "id": "jamie-2",
+          "summary": "Platform standup",
+          "start": "2026-08-31T10:30:00-05:00",
+          "end": "2026-08-31T11:00:00-05:00"
+        },
+        {
+          "id": "jamie-5",
+          "summary": "Roadmap",
+          "start": "2026-08-31T11:30:00-05:00",
+          "end": "2026-08-31T12:00:00-05:00"
+        },
+        {
+          "id": "jamie-3",
+          "summary": "Customer call",
+          "start": "2026-08-31T14:00:00-05:00",
+          "end": "2026-08-31T15:30:00-05:00"
+        },
+        {
+          "id": "jamie-4",
+          "summary": "Customer call",
+          "start": "2026-08-31T15:00:00-05:00",
+          "end": "2026-08-31T16:30:00-05:00"
+        },
+        {
+          "id": "jamie-6",
+          "summary": "Platform standup",
+          "start": "2026-09-01T10:30:00-05:00",
+          "end": "2026-09-01T11:00:00-05:00"
+        },
+        {
+          "id": "jamie-7",
+          "summary": "Code review",
+          "start": "2026-09-01T15:00:00-05:00",
+          "end": "2026-09-01T16:00:00-05:00"
+        },
+        {
+          "id": "jamie-8",
+          "summary": "Interview",
+          "start": "2026-09-01T15:30:00-05:00",
+          "end": "2026-09-01T16:30:00-05:00"
+        },
+        {
+          "id": "jamie-9",
+          "summary": "Platform standup",
+          "start": "2026-09-02T10:30:00-05:00",
+          "end": "2026-09-02T11:00:00-05:00"
+        },
+        {
+          "id": "jamie-12",
+          "summary": "Planning",
+          "start": "2026-09-02T12:30:00-05:00",
+          "end": "2026-09-02T13:00:00-05:00"
+        },
+        {
+          "id": "jamie-11",
+          "summary": "Roadmap",
+          "start": "2026-09-02T14:30:00-05:00",
+          "end": "2026-09-02T16:00:00-05:00"
+        },
+        {
+          "id": "jamie-13",
+          "summary": "1:1",
+          "start": "2026-09-02T15:30:00-05:00",
+          "end": "2026-09-02T16:30:00-05:00"
+        },
+        {
+          "id": "jamie-10",
+          "summary": "Customer call",
+          "start": "2026-09-02T16:00:00-05:00",
+          "end": "2026-09-02T16:30:00-05:00"
+        },
+        {
+          "id": "jamie-16",
+          "summary": "Vendor call",
+          "start": "2026-09-03T09:30:00-05:00",
+          "end": "2026-09-03T10:00:00-05:00"
+        },
+        {
+          "id": "jamie-18",
+          "summary": "Customer call",
+          "start": "2026-09-03T09:30:00-05:00",
+          "end": "2026-09-03T10:00:00-05:00"
+        },
+        {
+          "id": "jamie-17",
+          "summary": "Sync",
+          "start": "2026-09-03T10:00:00-05:00",
+          "end": "2026-09-03T11:00:00-05:00"
+        },
+        {
+          "id": "jamie-14",
+          "summary": "Platform standup",
+          "start": "2026-09-03T10:30:00-05:00",
+          "end": "2026-09-03T11:00:00-05:00"
+        },
+        {
+          "id": "jamie-15",
+          "summary": "Interview",
+          "start": "2026-09-03T11:00:00-05:00",
+          "end": "2026-09-03T12:00:00-05:00"
+        },
+        {
+          "id": "jamie-22",
+          "summary": "Sync",
+          "start": "2026-09-04T09:30:00-05:00",
+          "end": "2026-09-04T11:00:00-05:00"
+        },
+        {
+          "id": "jamie-19",
+          "summary": "Platform standup",
+          "start": "2026-09-04T10:30:00-05:00",
+          "end": "2026-09-04T11:00:00-05:00"
+        },
+        {
+          "id": "jamie-20",
+          "summary": "Office hours",
+          "start": "2026-09-04T13:00:00-05:00",
+          "end": "2026-09-04T13:30:00-05:00"
+        },
+        {
+          "id": "jamie-24",
+          "summary": "Design review",
+          "start": "2026-09-04T14:00:00-05:00",
+          "end": "2026-09-04T15:00:00-05:00"
+        },
+        {
+          "id": "jamie-21",
+          "summary": "Incident review",
+          "start": "2026-09-04T15:00:00-05:00",
+          "end": "2026-09-04T15:30:00-05:00"
+        },
+        {
+          "id": "jamie-23",
+          "summary": "Roadmap",
+          "start": "2026-09-04T15:00:00-05:00",
+          "end": "2026-09-04T16:30:00-05:00"
+        },
+        {
+          "id": "jamie-1",
+          "summary": "Labor Day",
+          "start": "2026-09-07T00:00:00-05:00",
+          "end": "2026-09-08T00:00:00-05:00",
+          "all_day": true
+        },
+        {
+          "id": "jamie-25",
+          "summary": "Platform standup",
+          "start": "2026-09-08T10:30:00-05:00",
+          "end": "2026-09-08T11:00:00-05:00"
+        },
+        {
+          "id": "jamie-26",
+          "summary": "Vendor call",
+          "start": "2026-09-08T13:30:00-05:00",
+          "end": "2026-09-08T14:30:00-05:00"
+        },
+        {
+          "id": "jamie-27",
+          "summary": "Code review",
+          "start": "2026-09-08T14:30:00-05:00",
+          "end": "2026-09-08T15:00:00-05:00"
+        },
+        {
+          "id": "jamie-31",
+          "summary": "Retro",
+          "start": "2026-09-09T09:30:00-05:00",
+          "end": "2026-09-09T10:30:00-05:00"
+        },
+        {
+          "id": "jamie-28",
+          "summary": "Platform standup",
+          "start": "2026-09-09T10:30:00-05:00",
+          "end": "2026-09-09T11:00:00-05:00"
+        },
+        {
+          "id": "jamie-29",
+          "summary": "Design review",
+          "start": "2026-09-09T12:30:00-05:00",
+          "end": "2026-09-09T14:00:00-05:00"
+        },
+        {
+          "id": "jamie-30",
+          "summary": "Roadmap",
+          "start": "2026-09-09T13:30:00-05:00",
+          "end": "2026-09-09T15:00:00-05:00"
+        },
+        {
+          "id": "jamie-32",
+          "summary": "Platform standup",
+          "start": "2026-09-10T10:30:00-05:00",
+          "end": "2026-09-10T11:00:00-05:00"
+        },
+        {
+          "id": "jamie-35",
+          "summary": "Planning",
+          "start": "2026-09-10T13:00:00-05:00",
+          "end": "2026-09-10T14:00:00-05:00"
+        },
+        {
+          "id": "jamie-34",
+          "summary": "Roadmap",
+          "start": "2026-09-10T15:00:00-05:00",
+          "end": "2026-09-10T16:30:00-05:00"
+        },
+        {
+          "id": "jamie-33",
+          "summary": "Demo prep",
+          "start": "2026-09-10T16:00:00-05:00",
+          "end": "2026-09-10T16:30:00-05:00"
+        },
+        {
+          "id": "jamie-38",
+          "summary": "Planning",
+          "start": "2026-09-11T09:00:00-05:00",
+          "end": "2026-09-11T09:30:00-05:00"
+        },
+        {
+          "id": "jamie-36",
+          "summary": "Platform standup",
+          "start": "2026-09-11T10:30:00-05:00",
+          "end": "2026-09-11T11:00:00-05:00"
+        },
+        {
+          "id": "jamie-37",
+          "summary": "Planning",
+          "start": "2026-09-11T13:00:00-05:00",
+          "end": "2026-09-11T13:30:00-05:00"
+        },
+        {
+          "id": "jamie-39",
+          "summary": "Sync",
+          "start": "2026-09-11T16:00:00-05:00",
+          "end": "2026-09-11T16:30:00-05:00"
+        },
+        {
+          "id": "jamie-42",
+          "summary": "Code review",
+          "start": "2026-09-14T09:00:00-05:00",
+          "end": "2026-09-14T09:30:00-05:00"
+        },
+        {
+          "id": "jamie-40",
+          "summary": "Platform standup",
+          "start": "2026-09-14T10:30:00-05:00",
+          "end": "2026-09-14T11:00:00-05:00"
+        },
+        {
+          "id": "jamie-44",
+          "summary": "Interview",
+          "start": "2026-09-14T11:00:00-05:00",
+          "end": "2026-09-14T12:00:00-05:00"
+        },
+        {
+          "id": "jamie-43",
+          "summary": "Retro",
+          "start": "2026-09-14T12:30:00-05:00",
+          "end": "2026-09-14T13:30:00-05:00"
+        },
+        {
+          "id": "jamie-41",
+          "summary": "Demo prep",
+          "start": "2026-09-14T14:00:00-05:00",
+          "end": "2026-09-14T15:00:00-05:00"
+        }
+      ]
+    },
+    {
+      "id": "priya@example.com",
+      "name": "Priya Nair",
+      "email": "priya@example.com",
+      "team": "Platform",
+      "type": "person",
+      "timezone": "America/Chicago",
+      "utc_offset": "-05:00",
+      "working_hours": {
+        "start": "09:00",
+        "end": "17:00"
+      },
+      "events": [
+        {
+          "id": "priya-4",
+          "summary": "Platform standup",
+          "start": "2026-08-31T10:30:00-05:00",
+          "end": "2026-08-31T11:00:00-05:00"
+        },
+        {
+          "id": "priya-5",
+          "summary": "Office hours",
+          "start": "2026-08-31T12:30:00-05:00",
+          "end": "2026-08-31T13:30:00-05:00"
+        },
+        {
+          "id": "priya-6",
+          "summary": "Design review",
+          "start": "2026-08-31T13:30:00-05:00",
+          "end": "2026-08-31T14:00:00-05:00"
+        },
+        {
+          "id": "priya-7",
+          "summary": "Incident review",
+          "start": "2026-08-31T13:30:00-05:00",
+          "end": "2026-08-31T15:00:00-05:00"
+        },
+        {
+          "id": "priya-8",
+          "summary": "Platform standup",
+          "start": "2026-09-01T10:30:00-05:00",
+          "end": "2026-09-01T11:00:00-05:00"
+        },
+        {
+          "id": "priya-9",
+          "summary": "Code review",
+          "start": "2026-09-01T10:30:00-05:00",
+          "end": "2026-09-01T11:00:00-05:00"
+        },
+        {
+          "id": "priya-10",
+          "summary": "Incident review",
+          "start": "2026-09-01T12:00:00-05:00",
+          "end": "2026-09-01T12:30:00-05:00"
+        },
+        {
+          "id": "priya-11",
+          "summary": "Platform standup",
+          "start": "2026-09-02T10:30:00-05:00",
+          "end": "2026-09-02T11:00:00-05:00"
+        },
+        {
+          "id": "priya-13",
+          "summary": "Training",
+          "start": "2026-09-02T14:00:00-05:00",
+          "end": "2026-09-02T15:30:00-05:00"
+        },
+        {
+          "id": "priya-15",
+          "summary": "Design review",
+          "start": "2026-09-02T14:30:00-05:00",
+          "end": "2026-09-02T15:00:00-05:00"
+        },
+        {
+          "id": "priya-14",
+          "summary": "Customer call",
+          "start": "2026-09-02T15:30:00-05:00",
+          "end": "2026-09-02T16:00:00-05:00"
+        },
+        {
+          "id": "priya-12",
+          "summary": "Sync",
+          "start": "2026-09-02T16:00:00-05:00",
+          "end": "2026-09-02T16:30:00-05:00"
+        },
+        {
+          "id": "priya-19",
+          "summary": "Planning",
+          "start": "2026-09-03T10:00:00-05:00",
+          "end": "2026-09-03T10:30:00-05:00"
+        },
+        {
+          "id": "priya-16",
+          "summary": "Platform standup",
+          "start": "2026-09-03T10:30:00-05:00",
+          "end": "2026-09-03T11:00:00-05:00"
+        },
+        {
+          "id": "priya-20",
+          "summary": "Code review",
+          "start": "2026-09-03T11:00:00-05:00",
+          "end": "2026-09-03T12:00:00-05:00"
+        },
+        {
+          "id": "priya-21",
+          "summary": "Planning",
+          "start": "2026-09-03T12:00:00-05:00",
+          "end": "2026-09-03T12:30:00-05:00"
+        },
+        {
+          "id": "priya-17",
+          "summary": "Demo prep",
+          "start": "2026-09-03T13:00:00-05:00",
+          "end": "2026-09-03T13:30:00-05:00"
+        },
+        {
+          "id": "priya-18",
+          "summary": "Design review",
+          "start": "2026-09-03T16:00:00-05:00",
+          "end": "2026-09-03T17:30:00-05:00"
+        },
+        {
+          "id": "priya-23",
+          "summary": "Design review",
+          "start": "2026-09-04T10:00:00-05:00",
+          "end": "2026-09-04T11:00:00-05:00"
+        },
+        {
+          "id": "priya-22",
+          "summary": "Platform standup",
+          "start": "2026-09-04T10:30:00-05:00",
+          "end": "2026-09-04T11:00:00-05:00"
+        },
+        {
+          "id": "priya-24",
+          "summary": "Customer call",
+          "start": "2026-09-04T11:00:00-05:00",
+          "end": "2026-09-04T12:00:00-05:00"
+        },
+        {
+          "id": "priya-26",
+          "summary": "Interview",
+          "start": "2026-09-04T12:30:00-05:00",
+          "end": "2026-09-04T13:00:00-05:00"
+        },
+        {
+          "id": "priya-25",
+          "summary": "Roadmap",
+          "start": "2026-09-04T15:00:00-05:00",
+          "end": "2026-09-04T16:00:00-05:00"
+        },
+        {
+          "id": "priya-1",
+          "summary": "Labor Day",
+          "start": "2026-09-07T00:00:00-05:00",
+          "end": "2026-09-08T00:00:00-05:00",
+          "all_day": true
+        },
+        {
+          "id": "priya-31",
+          "summary": "Customer call",
+          "start": "2026-09-08T09:00:00-05:00",
+          "end": "2026-09-08T09:30:00-05:00"
+        },
+        {
+          "id": "priya-27",
+          "summary": "Platform standup",
+          "start": "2026-09-08T10:30:00-05:00",
+          "end": "2026-09-08T11:00:00-05:00"
+        },
+        {
+          "id": "priya-28",
+          "summary": "1:1",
+          "start": "2026-09-08T12:30:00-05:00",
+          "end": "2026-09-08T13:30:00-05:00"
+        },
+        {
+          "id": "priya-29",
+          "summary": "Demo prep",
+          "start": "2026-09-08T13:00:00-05:00",
+          "end": "2026-09-08T14:30:00-05:00"
+        },
+        {
+          "id": "priya-30",
+          "summary": "Incident review",
+          "start": "2026-09-08T15:30:00-05:00",
+          "end": "2026-09-08T16:00:00-05:00"
+        },
+        {
+          "id": "priya-34",
+          "summary": "Training",
+          "start": "2026-09-09T09:00:00-05:00",
+          "end": "2026-09-09T10:00:00-05:00"
+        },
+        {
+          "id": "priya-35",
+          "summary": "Code review",
+          "start": "2026-09-09T10:00:00-05:00",
+          "end": "2026-09-09T11:00:00-05:00"
+        },
+        {
+          "id": "priya-32",
+          "summary": "Platform standup",
+          "start": "2026-09-09T10:30:00-05:00",
+          "end": "2026-09-09T11:00:00-05:00"
+        },
+        {
+          "id": "priya-33",
+          "summary": "Code review",
+          "start": "2026-09-09T11:30:00-05:00",
+          "end": "2026-09-09T12:30:00-05:00"
+        },
+        {
+          "id": "priya-2",
+          "summary": "Out of office",
+          "start": "2026-09-10T00:00:00-05:00",
+          "end": "2026-09-11T00:00:00-05:00",
+          "all_day": true
+        },
+        {
+          "id": "priya-3",
+          "summary": "Out of office",
+          "start": "2026-09-11T00:00:00-05:00",
+          "end": "2026-09-12T00:00:00-05:00",
+          "all_day": true
+        },
+        {
+          "id": "priya-36",
+          "summary": "Platform standup",
+          "start": "2026-09-14T10:30:00-05:00",
+          "end": "2026-09-14T11:00:00-05:00"
+        },
+        {
+          "id": "priya-37",
+          "summary": "Office hours",
+          "start": "2026-09-14T10:30:00-05:00",
+          "end": "2026-09-14T11:00:00-05:00"
+        },
+        {
+          "id": "priya-40",
+          "summary": "Roadmap",
+          "start": "2026-09-14T10:30:00-05:00",
+          "end": "2026-09-14T12:00:00-05:00"
+        },
+        {
+          "id": "priya-41",
+          "summary": "Retro",
+          "start": "2026-09-14T13:30:00-05:00",
+          "end": "2026-09-14T14:30:00-05:00"
+        },
+        {
+          "id": "priya-38",
+          "summary": "Code review",
+          "start": "2026-09-14T14:30:00-05:00",
+          "end": "2026-09-14T15:30:00-05:00"
+        },
+        {
+          "id": "priya-39",
+          "summary": "Vendor call",
+          "start": "2026-09-14T15:00:00-05:00",
+          "end": "2026-09-14T16:30:00-05:00"
+        }
+      ]
+    },
+    {
+      "id": "marcus@example.com",
+      "name": "Marcus Webb",
+      "email": "marcus@example.com",
+      "team": "Platform",
+      "type": "person",
+      "timezone": "America/New_York",
+      "utc_offset": "-04:00",
+      "working_hours": {
+        "start": "09:00",
+        "end": "17:00"
+      },
+      "events": [
+        {
+          "id": "marcus-6",
+          "summary": "Vendor call",
+          "start": "2026-08-31T09:00:00-05:00",
+          "end": "2026-08-31T10:00:00-05:00"
+        },
+        {
+          "id": "marcus-3",
+          "summary": "Demo prep",
+          "start": "2026-08-31T10:00:00-05:00",
+          "end": "2026-08-31T10:30:00-05:00"
+        },
+        {
+          "id": "marcus-5",
+          "summary": "Retro",
+          "start": "2026-08-31T10:00:00-05:00",
+          "end": "2026-08-31T10:30:00-05:00"
+        },
+        {
+          "id": "marcus-2",
+          "summary": "Platform standup",
+          "start": "2026-08-31T10:30:00-05:00",
+          "end": "2026-08-31T11:00:00-05:00"
+        },
+        {
+          "id": "marcus-4",
+          "summary": "Planning",
+          "start": "2026-08-31T11:00:00-05:00",
+          "end": "2026-08-31T11:30:00-05:00"
+        },
+        {
+          "id": "marcus-7",
+          "summary": "Retro",
+          "start": "2026-08-31T15:00:00-05:00",
+          "end": "2026-08-31T15:30:00-05:00"
+        },
+        {
+          "id": "marcus-9",
+          "summary": "Interview",
+          "start": "2026-09-01T09:30:00-05:00",
+          "end": "2026-09-01T11:00:00-05:00"
+        },
+        {
+          "id": "marcus-11",
+          "summary": "Interview",
+          "start": "2026-09-01T09:30:00-05:00",
+          "end": "2026-09-01T10:30:00-05:00"
+        },
+        {
+          "id": "marcus-13",
+          "summary": "Planning",
+          "start": "2026-09-01T09:30:00-05:00",
+          "end": "2026-09-01T10:00:00-05:00"
+        },
+        {
+          "id": "marcus-12",
+          "summary": "Roadmap",
+          "start": "2026-09-01T10:00:00-05:00",
+          "end": "2026-09-01T11:00:00-05:00"
+        },
+        {
+          "id": "marcus-8",
+          "summary": "Platform standup",
+          "start": "2026-09-01T10:30:00-05:00",
+          "end": "2026-09-01T11:00:00-05:00"
+        },
+        {
+          "id": "marcus-10",
+          "summary": "Training",
+          "start": "2026-09-01T11:00:00-05:00",
+          "end": "2026-09-01T12:30:00-05:00"
+        },
+        {
+          "id": "marcus-14",
+          "summary": "Platform standup",
+          "start": "2026-09-02T10:30:00-05:00",
+          "end": "2026-09-02T11:00:00-05:00"
+        },
+        {
+          "id": "marcus-15",
+          "summary": "Sync",
+          "start": "2026-09-02T12:00:00-05:00",
+          "end": "2026-09-02T12:30:00-05:00"
+        },
+        {
+          "id": "marcus-18",
+          "summary": "Interview",
+          "start": "2026-09-03T09:00:00-05:00",
+          "end": "2026-09-03T10:00:00-05:00"
+        },
+        {
+          "id": "marcus-16",
+          "summary": "Platform standup",
+          "start": "2026-09-03T10:30:00-05:00",
+          "end": "2026-09-03T11:00:00-05:00"
+        },
+        {
+          "id": "marcus-17",
+          "summary": "Interview",
+          "start": "2026-09-03T16:00:00-05:00",
+          "end": "2026-09-03T17:00:00-05:00"
+        },
+        {
+          "id": "marcus-19",
+          "summary": "Platform standup",
+          "start": "2026-09-04T10:30:00-05:00",
+          "end": "2026-09-04T11:00:00-05:00"
+        },
+        {
+          "id": "marcus-20",
+          "summary": "Customer call",
+          "start": "2026-09-04T10:30:00-05:00",
+          "end": "2026-09-04T12:00:00-05:00"
+        },
+        {
+          "id": "marcus-24",
+          "summary": "Sync",
+          "start": "2026-09-04T11:00:00-05:00",
+          "end": "2026-09-04T12:00:00-05:00"
+        },
+        {
+          "id": "marcus-22",
+          "summary": "Retro",
+          "start": "2026-09-04T11:30:00-05:00",
+          "end": "2026-09-04T13:00:00-05:00"
+        },
+        {
+          "id": "marcus-21",
+          "summary": "Retro",
+          "start": "2026-09-04T12:00:00-05:00",
+          "end": "2026-09-04T12:30:00-05:00"
+        },
+        {
+          "id": "marcus-23",
+          "summary": "Planning",
+          "start": "2026-09-04T16:00:00-05:00",
+          "end": "2026-09-04T17:00:00-05:00"
+        },
+        {
+          "id": "marcus-1",
+          "summary": "Labor Day",
+          "start": "2026-09-07T00:00:00-05:00",
+          "end": "2026-09-08T00:00:00-05:00",
+          "all_day": true
+        },
+        {
+          "id": "marcus-25",
+          "summary": "Platform standup",
+          "start": "2026-09-08T10:30:00-05:00",
+          "end": "2026-09-08T11:00:00-05:00"
+        },
+        {
+          "id": "marcus-26",
+          "summary": "Sync",
+          "start": "2026-09-08T14:30:00-05:00",
+          "end": "2026-09-08T15:30:00-05:00"
+        },
+        {
+          "id": "marcus-30",
+          "summary": "Office hours",
+          "start": "2026-09-09T09:30:00-05:00",
+          "end": "2026-09-09T10:00:00-05:00"
+        },
+        {
+          "id": "marcus-27",
+          "summary": "Platform standup",
+          "start": "2026-09-09T10:30:00-05:00",
+          "end": "2026-09-09T11:00:00-05:00"
+        },
+        {
+          "id": "marcus-28",
+          "summary": "Incident review",
+          "start": "2026-09-09T13:00:00-05:00",
+          "end": "2026-09-09T14:00:00-05:00"
+        },
+        {
+          "id": "marcus-29",
+          "summary": "Vendor call",
+          "start": "2026-09-09T13:00:00-05:00",
+          "end": "2026-09-09T13:30:00-05:00"
+        },
+        {
+          "id": "marcus-32",
+          "summary": "Design review",
+          "start": "2026-09-10T09:30:00-05:00",
+          "end": "2026-09-10T10:00:00-05:00"
+        },
+        {
+          "id": "marcus-31",
+          "summary": "Platform standup",
+          "start": "2026-09-10T10:30:00-05:00",
+          "end": "2026-09-10T11:00:00-05:00"
+        },
+        {
+          "id": "marcus-33",
+          "summary": "Office hours",
+          "start": "2026-09-10T13:00:00-05:00",
+          "end": "2026-09-10T14:00:00-05:00"
+        },
+        {
+          "id": "marcus-34",
+          "summary": "Sync",
+          "start": "2026-09-10T14:00:00-05:00",
+          "end": "2026-09-10T15:00:00-05:00"
+        },
+        {
+          "id": "marcus-35",
+          "summary": "Platform standup",
+          "start": "2026-09-11T10:30:00-05:00",
+          "end": "2026-09-11T11:00:00-05:00"
+        },
+        {
+          "id": "marcus-38",
+          "summary": "Retro",
+          "start": "2026-09-11T10:30:00-05:00",
+          "end": "2026-09-11T11:30:00-05:00"
+        },
+        {
+          "id": "marcus-39",
+          "summary": "Design review",
+          "start": "2026-09-11T10:30:00-05:00",
+          "end": "2026-09-11T11:00:00-05:00"
+        },
+        {
+          "id": "marcus-37",
+          "summary": "Planning",
+          "start": "2026-09-11T12:00:00-05:00",
+          "end": "2026-09-11T13:00:00-05:00"
+        },
+        {
+          "id": "marcus-36",
+          "summary": "Interview",
+          "start": "2026-09-11T13:30:00-05:00",
+          "end": "2026-09-11T14:00:00-05:00"
+        },
+        {
+          "id": "marcus-41",
+          "summary": "Retro",
+          "start": "2026-09-14T09:00:00-05:00",
+          "end": "2026-09-14T10:30:00-05:00"
+        },
+        {
+          "id": "marcus-44",
+          "summary": "Roadmap",
+          "start": "2026-09-14T09:00:00-05:00",
+          "end": "2026-09-14T09:30:00-05:00"
+        },
+        {
+          "id": "marcus-40",
+          "summary": "Platform standup",
+          "start": "2026-09-14T10:30:00-05:00",
+          "end": "2026-09-14T11:00:00-05:00"
+        },
+        {
+          "id": "marcus-42",
+          "summary": "Roadmap",
+          "start": "2026-09-14T13:00:00-05:00",
+          "end": "2026-09-14T14:00:00-05:00"
+        },
+        {
+          "id": "marcus-45",
+          "summary": "Planning",
+          "start": "2026-09-14T13:00:00-05:00",
+          "end": "2026-09-14T14:00:00-05:00"
+        },
+        {
+          "id": "marcus-43",
+          "summary": "Incident review",
+          "start": "2026-09-14T15:00:00-05:00",
+          "end": "2026-09-14T15:30:00-05:00"
+        }
+      ]
+    },
+    {
+      "id": "dana@example.com",
+      "name": "Dana Kowalski",
+      "email": "dana@example.com",
+      "team": "Platform",
+      "type": "person",
+      "timezone": "America/Chicago",
+      "utc_offset": "-05:00",
+      "working_hours": {
+        "start": "09:00",
+        "end": "17:00"
+      },
+      "events": [
+        {
+          "id": "dana-5",
+          "summary": "Sync",
+          "start": "2026-08-31T10:00:00-05:00",
+          "end": "2026-08-31T11:30:00-05:00"
+        },
+        {
+          "id": "dana-2",
+          "summary": "Platform standup",
+          "start": "2026-08-31T10:30:00-05:00",
+          "end": "2026-08-31T11:00:00-05:00"
+        },
+        {
+          "id": "dana-3",
+          "summary": "Retro",
+          "start": "2026-08-31T11:30:00-05:00",
+          "end": "2026-08-31T12:00:00-05:00"
+        },
+        {
+          "id": "dana-4",
+          "summary": "Training",
+          "start": "2026-08-31T13:30:00-05:00",
+          "end": "2026-08-31T14:00:00-05:00"
+        },
+        {
+          "id": "dana-6",
+          "summary": "Training",
+          "start": "2026-08-31T14:00:00-05:00",
+          "end": "2026-08-31T15:30:00-05:00"
+        },
+        {
+          "id": "dana-7",
+          "summary": "Platform standup",
+          "start": "2026-09-01T10:30:00-05:00",
+          "end": "2026-09-01T11:00:00-05:00"
+        },
+        {
+          "id": "dana-8",
+          "summary": "Demo prep",
+          "start": "2026-09-01T11:30:00-05:00",
+          "end": "2026-09-01T13:00:00-05:00"
+        },
+        {
+          "id": "dana-48",
+          "summary": "Vendor sync (cancelled)",
+          "start": "2026-09-01T13:00:00-05:00",
+          "end": "2026-09-01T14:00:00-05:00",
+          "status": "cancelled"
+        },
+        {
+          "id": "dana-9",
+          "summary": "Sync",
+          "start": "2026-09-01T14:30:00-05:00",
+          "end": "2026-09-01T15:30:00-05:00"
+        },
+        {
+          "id": "dana-12",
+          "summary": "Vendor call",
+          "start": "2026-09-02T10:00:00-05:00",
+          "end": "2026-09-02T11:00:00-05:00"
+        },
+        {
+          "id": "dana-10",
+          "summary": "Platform standup",
+          "start": "2026-09-02T10:30:00-05:00",
+          "end": "2026-09-02T11:00:00-05:00"
+        },
+        {
+          "id": "dana-13",
+          "summary": "Code review",
+          "start": "2026-09-02T11:30:00-05:00",
+          "end": "2026-09-02T12:00:00-05:00"
+        },
+        {
+          "id": "dana-11",
+          "summary": "Training",
+          "start": "2026-09-02T14:00:00-05:00",
+          "end": "2026-09-02T15:30:00-05:00"
+        },
+        {
+          "id": "dana-14",
+          "summary": "Platform standup",
+          "start": "2026-09-03T10:30:00-05:00",
+          "end": "2026-09-03T11:00:00-05:00"
+        },
+        {
+          "id": "dana-15",
+          "summary": "Interview",
+          "start": "2026-09-03T11:30:00-05:00",
+          "end": "2026-09-03T12:00:00-05:00"
+        },
+        {
+          "id": "dana-16",
+          "summary": "Retro",
+          "start": "2026-09-03T11:30:00-05:00",
+          "end": "2026-09-03T12:30:00-05:00"
+        },
+        {
+          "id": "dana-17",
+          "summary": "Demo prep",
+          "start": "2026-09-03T12:30:00-05:00",
+          "end": "2026-09-03T14:00:00-05:00"
+        },
+        {
+          "id": "dana-18",
+          "summary": "Roadmap",
+          "start": "2026-09-03T12:30:00-05:00",
+          "end": "2026-09-03T14:00:00-05:00"
+        },
+        {
+          "id": "dana-20",
+          "summary": "Design review",
+          "start": "2026-09-04T10:00:00-05:00",
+          "end": "2026-09-04T11:00:00-05:00"
+        },
+        {
+          "id": "dana-19",
+          "summary": "Platform standup",
+          "start": "2026-09-04T10:30:00-05:00",
+          "end": "2026-09-04T11:00:00-05:00"
+        },
+        {
+          "id": "dana-21",
+          "summary": "Interview",
+          "start": "2026-09-04T12:30:00-05:00",
+          "end": "2026-09-04T13:00:00-05:00"
+        },
+        {
+          "id": "dana-22",
+          "summary": "Vendor call",
+          "start": "2026-09-04T15:30:00-05:00",
+          "end": "2026-09-04T17:00:00-05:00"
+        },
+        {
+          "id": "dana-1",
+          "summary": "Labor Day",
+          "start": "2026-09-07T00:00:00-05:00",
+          "end": "2026-09-08T00:00:00-05:00",
+          "all_day": true
+        },
+        {
+          "id": "dana-25",
+          "summary": "Roadmap",
+          "start": "2026-09-08T10:00:00-05:00",
+          "end": "2026-09-08T10:30:00-05:00"
+        },
+        {
+          "id": "dana-23",
+          "summary": "Platform standup",
+          "start": "2026-09-08T10:30:00-05:00",
+          "end": "2026-09-08T11:00:00-05:00"
+        },
+        {
+          "id": "dana-26",
+          "summary": "Design review",
+          "start": "2026-09-08T14:30:00-05:00",
+          "end": "2026-09-08T15:30:00-05:00"
+        },
+        {
+          "id": "dana-24",
+          "summary": "Retro",
+          "start": "2026-09-08T15:00:00-05:00",
+          "end": "2026-09-08T15:30:00-05:00"
+        },
+        {
+          "id": "dana-27",
+          "summary": "Platform standup",
+          "start": "2026-09-09T10:30:00-05:00",
+          "end": "2026-09-09T11:00:00-05:00"
+        },
+        {
+          "id": "dana-30",
+          "summary": "Sync",
+          "start": "2026-09-09T11:00:00-05:00",
+          "end": "2026-09-09T12:30:00-05:00"
+        },
+        {
+          "id": "dana-31",
+          "summary": "Code review",
+          "start": "2026-09-09T12:00:00-05:00",
+          "end": "2026-09-09T13:00:00-05:00"
+        },
+        {
+          "id": "dana-29",
+          "summary": "Training",
+          "start": "2026-09-09T13:00:00-05:00",
+          "end": "2026-09-09T13:30:00-05:00"
+        },
+        {
+          "id": "dana-28",
+          "summary": "Sync",
+          "start": "2026-09-09T14:30:00-05:00",
+          "end": "2026-09-09T15:00:00-05:00"
+        },
+        {
+          "id": "dana-37",
+          "summary": "Retro",
+          "start": "2026-09-10T09:00:00-05:00",
+          "end": "2026-09-10T10:30:00-05:00"
+        },
+        {
+          "id": "dana-34",
+          "summary": "Design review",
+          "start": "2026-09-10T09:30:00-05:00",
+          "end": "2026-09-10T10:00:00-05:00"
+        },
+        {
+          "id": "dana-32",
+          "summary": "Platform standup",
+          "start": "2026-09-10T10:30:00-05:00",
+          "end": "2026-09-10T11:00:00-05:00"
+        },
+        {
+          "id": "dana-36",
+          "summary": "Roadmap",
+          "start": "2026-09-10T13:00:00-05:00",
+          "end": "2026-09-10T14:00:00-05:00"
+        },
+        {
+          "id": "dana-35",
+          "summary": "Interview",
+          "start": "2026-09-10T14:30:00-05:00",
+          "end": "2026-09-10T15:30:00-05:00"
+        },
+        {
+          "id": "dana-33",
+          "summary": "Code review",
+          "start": "2026-09-10T15:00:00-05:00",
+          "end": "2026-09-10T15:30:00-05:00"
+        },
+        {
+          "id": "dana-39",
+          "summary": "Roadmap",
+          "start": "2026-09-11T10:00:00-05:00",
+          "end": "2026-09-11T11:00:00-05:00"
+        },
+        {
+          "id": "dana-41",
+          "summary": "Incident review",
+          "start": "2026-09-11T10:00:00-05:00",
+          "end": "2026-09-11T11:00:00-05:00"
+        },
+        {
+          "id": "dana-38",
+          "summary": "Platform standup",
+          "start": "2026-09-11T10:30:00-05:00",
+          "end": "2026-09-11T11:00:00-05:00"
+        },
+        {
+          "id": "dana-40",
+          "summary": "Interview",
+          "start": "2026-09-11T13:00:00-05:00",
+          "end": "2026-09-11T14:00:00-05:00"
+        },
+        {
+          "id": "dana-47",
+          "summary": "Code review",
+          "start": "2026-09-14T10:00:00-05:00",
+          "end": "2026-09-14T11:00:00-05:00"
+        },
+        {
+          "id": "dana-42",
+          "summary": "Platform standup",
+          "start": "2026-09-14T10:30:00-05:00",
+          "end": "2026-09-14T11:00:00-05:00"
+        },
+        {
+          "id": "dana-45",
+          "summary": "Design review",
+          "start": "2026-09-14T11:30:00-05:00",
+          "end": "2026-09-14T13:00:00-05:00"
+        },
+        {
+          "id": "dana-44",
+          "summary": "Planning",
+          "start": "2026-09-14T13:30:00-05:00",
+          "end": "2026-09-14T14:30:00-05:00"
+        },
+        {
+          "id": "dana-43",
+          "summary": "Training",
+          "start": "2026-09-14T14:00:00-05:00",
+          "end": "2026-09-14T14:30:00-05:00"
+        },
+        {
+          "id": "dana-46",
+          "summary": "Sync",
+          "start": "2026-09-14T14:30:00-05:00",
+          "end": "2026-09-14T16:00:00-05:00"
+        }
+      ]
+    },
+    {
+      "id": "theo@example.com",
+      "name": "Theo Martin",
+      "email": "theo@example.com",
+      "team": "Platform",
+      "type": "person",
+      "timezone": "America/Chicago",
+      "utc_offset": "-05:00",
+      "working_hours": {
+        "start": "09:00",
+        "end": "17:00"
+      },
+      "events": [
+        {
+          "id": "theo-3",
+          "summary": "1:1",
+          "start": "2026-08-31T10:00:00-05:00",
+          "end": "2026-08-31T10:30:00-05:00"
+        },
+        {
+          "id": "theo-2",
+          "summary": "Platform standup",
+          "start": "2026-08-31T10:30:00-05:00",
+          "end": "2026-08-31T11:00:00-05:00"
+        },
+        {
+          "id": "theo-5",
+          "summary": "Interview",
+          "start": "2026-08-31T11:30:00-05:00",
+          "end": "2026-08-31T12:00:00-05:00"
+        },
+        {
+          "id": "theo-4",
+          "summary": "Training",
+          "start": "2026-08-31T13:00:00-05:00",
+          "end": "2026-08-31T13:30:00-05:00"
+        },
+        {
+          "id": "theo-6",
+          "summary": "Platform standup",
+          "start": "2026-09-01T10:30:00-05:00",
+          "end": "2026-09-01T11:00:00-05:00"
+        },
+        {
+          "id": "theo-7",
+          "summary": "Design review",
+          "start": "2026-09-01T10:30:00-05:00",
+          "end": "2026-09-01T12:00:00-05:00"
+        },
+        {
+          "id": "theo-8",
+          "summary": "1:1",
+          "start": "2026-09-01T10:30:00-05:00",
+          "end": "2026-09-01T11:00:00-05:00"
+        },
+        {
+          "id": "theo-9",
+          "summary": "1:1",
+          "start": "2026-09-01T11:30:00-05:00",
+          "end": "2026-09-01T12:30:00-05:00"
+        },
+        {
+          "id": "theo-51",
+          "summary": "Lunch & learn (optional)",
+          "start": "2026-09-01T13:30:00-05:00",
+          "end": "2026-09-01T14:30:00-05:00",
+          "transparency": "transparent"
+        },
+        {
+          "id": "theo-10",
+          "summary": "Platform standup",
+          "start": "2026-09-02T10:30:00-05:00",
+          "end": "2026-09-02T11:00:00-05:00"
+        },
+        {
+          "id": "theo-11",
+          "summary": "Roadmap",
+          "start": "2026-09-02T11:00:00-05:00",
+          "end": "2026-09-02T12:30:00-05:00"
+        },
+        {
+          "id": "theo-13",
+          "summary": "1:1",
+          "start": "2026-09-02T12:30:00-05:00",
+          "end": "2026-09-02T13:30:00-05:00"
+        },
+        {
+          "id": "theo-14",
+          "summary": "Incident review",
+          "start": "2026-09-02T13:00:00-05:00",
+          "end": "2026-09-02T14:30:00-05:00"
+        },
+        {
+          "id": "theo-12",
+          "summary": "Interview",
+          "start": "2026-09-02T14:00:00-05:00",
+          "end": "2026-09-02T14:30:00-05:00"
+        },
+        {
+          "id": "theo-17",
+          "summary": "Demo prep",
+          "start": "2026-09-03T09:30:00-05:00",
+          "end": "2026-09-03T10:00:00-05:00"
+        },
+        {
+          "id": "theo-18",
+          "summary": "Demo prep",
+          "start": "2026-09-03T09:30:00-05:00",
+          "end": "2026-09-03T10:30:00-05:00"
+        },
+        {
+          "id": "theo-15",
+          "summary": "Platform standup",
+          "start": "2026-09-03T10:30:00-05:00",
+          "end": "2026-09-03T11:00:00-05:00"
+        },
+        {
+          "id": "theo-16",
+          "summary": "Interview",
+          "start": "2026-09-03T16:00:00-05:00",
+          "end": "2026-09-03T17:30:00-05:00"
+        },
+        {
+          "id": "theo-19",
+          "summary": "Platform standup",
+          "start": "2026-09-04T10:30:00-05:00",
+          "end": "2026-09-04T11:00:00-05:00"
+        },
+        {
+          "id": "theo-20",
+          "summary": "Design review",
+          "start": "2026-09-04T11:00:00-05:00",
+          "end": "2026-09-04T11:30:00-05:00"
+        },
+        {
+          "id": "theo-21",
+          "summary": "Code review",
+          "start": "2026-09-04T11:30:00-05:00",
+          "end": "2026-09-04T12:30:00-05:00"
+        },
+        {
+          "id": "theo-22",
+          "summary": "Interview",
+          "start": "2026-09-04T13:00:00-05:00",
+          "end": "2026-09-04T14:00:00-05:00"
+        },
+        {
+          "id": "theo-23",
+          "summary": "Planning",
+          "start": "2026-09-04T16:00:00-05:00",
+          "end": "2026-09-04T17:00:00-05:00"
+        },
+        {
+          "id": "theo-1",
+          "summary": "Labor Day",
+          "start": "2026-09-07T00:00:00-05:00",
+          "end": "2026-09-08T00:00:00-05:00",
+          "all_day": true
+        },
+        {
+          "id": "theo-25",
+          "summary": "Demo prep",
+          "start": "2026-09-08T10:00:00-05:00",
+          "end": "2026-09-08T10:30:00-05:00"
+        },
+        {
+          "id": "theo-24",
+          "summary": "Platform standup",
+          "start": "2026-09-08T10:30:00-05:00",
+          "end": "2026-09-08T11:00:00-05:00"
+        },
+        {
+          "id": "theo-26",
+          "summary": "Training",
+          "start": "2026-09-08T12:30:00-05:00",
+          "end": "2026-09-08T13:00:00-05:00"
+        },
+        {
+          "id": "theo-27",
+          "summary": "Demo prep",
+          "start": "2026-09-08T14:30:00-05:00",
+          "end": "2026-09-08T15:30:00-05:00"
+        },
+        {
+          "id": "theo-28",
+          "summary": "Planning",
+          "start": "2026-09-08T15:00:00-05:00",
+          "end": "2026-09-08T16:00:00-05:00"
+        },
+        {
+          "id": "theo-34",
+          "summary": "Roadmap",
+          "start": "2026-09-09T09:30:00-05:00",
+          "end": "2026-09-09T10:30:00-05:00"
+        },
+        {
+          "id": "theo-29",
+          "summary": "Platform standup",
+          "start": "2026-09-09T10:30:00-05:00",
+          "end": "2026-09-09T11:00:00-05:00"
+        },
+        {
+          "id": "theo-33",
+          "summary": "Training",
+          "start": "2026-09-09T11:00:00-05:00",
+          "end": "2026-09-09T12:00:00-05:00"
+        },
+        {
+          "id": "theo-30",
+          "summary": "Design review",
+          "start": "2026-09-09T12:00:00-05:00",
+          "end": "2026-09-09T12:30:00-05:00"
+        },
+        {
+          "id": "theo-31",
+          "summary": "Retro",
+          "start": "2026-09-09T12:30:00-05:00",
+          "end": "2026-09-09T14:00:00-05:00"
+        },
+        {
+          "id": "theo-32",
+          "summary": "Planning",
+          "start": "2026-09-09T14:30:00-05:00",
+          "end": "2026-09-09T15:00:00-05:00"
+        },
+        {
+          "id": "theo-35",
+          "summary": "Platform standup",
+          "start": "2026-09-10T10:30:00-05:00",
+          "end": "2026-09-10T11:00:00-05:00"
+        },
+        {
+          "id": "theo-36",
+          "summary": "Code review",
+          "start": "2026-09-10T11:00:00-05:00",
+          "end": "2026-09-10T11:30:00-05:00"
+        },
+        {
+          "id": "theo-38",
+          "summary": "Code review",
+          "start": "2026-09-10T11:30:00-05:00",
+          "end": "2026-09-10T12:00:00-05:00"
+        },
+        {
+          "id": "theo-37",
+          "summary": "Incident review",
+          "start": "2026-09-10T14:00:00-05:00",
+          "end": "2026-09-10T15:00:00-05:00"
+        },
+        {
+          "id": "theo-39",
+          "summary": "Roadmap",
+          "start": "2026-09-10T15:00:00-05:00",
+          "end": "2026-09-10T15:30:00-05:00"
+        },
+        {
+          "id": "theo-40",
+          "summary": "Platform standup",
+          "start": "2026-09-11T10:30:00-05:00",
+          "end": "2026-09-11T11:00:00-05:00"
+        },
+        {
+          "id": "theo-42",
+          "summary": "Sync",
+          "start": "2026-09-11T12:00:00-05:00",
+          "end": "2026-09-11T13:00:00-05:00"
+        },
+        {
+          "id": "theo-44",
+          "summary": "1:1",
+          "start": "2026-09-11T12:00:00-05:00",
+          "end": "2026-09-11T13:00:00-05:00"
+        },
+        {
+          "id": "theo-43",
+          "summary": "Retro",
+          "start": "2026-09-11T13:00:00-05:00",
+          "end": "2026-09-11T14:00:00-05:00"
+        },
+        {
+          "id": "theo-41",
+          "summary": "Retro",
+          "start": "2026-09-11T13:30:00-05:00",
+          "end": "2026-09-11T14:30:00-05:00"
+        },
+        {
+          "id": "theo-45",
+          "summary": "Platform standup",
+          "start": "2026-09-14T10:30:00-05:00",
+          "end": "2026-09-14T11:00:00-05:00"
+        },
+        {
+          "id": "theo-48",
+          "summary": "Interview",
+          "start": "2026-09-14T10:30:00-05:00",
+          "end": "2026-09-14T11:30:00-05:00"
+        },
+        {
+          "id": "theo-49",
+          "summary": "Sync",
+          "start": "2026-09-14T14:00:00-05:00",
+          "end": "2026-09-14T15:00:00-05:00"
+        },
+        {
+          "id": "theo-46",
+          "summary": "Retro",
+          "start": "2026-09-14T15:00:00-05:00",
+          "end": "2026-09-14T16:00:00-05:00"
+        },
+        {
+          "id": "theo-47",
+          "summary": "Code review",
+          "start": "2026-09-14T15:30:00-05:00",
+          "end": "2026-09-14T17:00:00-05:00"
+        },
+        {
+          "id": "theo-50",
+          "summary": "Vendor call",
+          "start": "2026-09-14T16:00:00-05:00",
+          "end": "2026-09-14T17:00:00-05:00"
+        }
+      ]
+    },
+    {
+      "id": "lena@example.com",
+      "name": "Lena Fischer",
+      "email": "lena@example.com",
+      "team": "Platform",
+      "type": "person",
+      "timezone": "America/Chicago",
+      "utc_offset": "-05:00",
+      "working_hours": {
+        "start": "09:00",
+        "end": "17:00"
+      },
+      "events": [
+        {
+          "id": "lena-3",
+          "summary": "Code review",
+          "start": "2026-08-31T09:00:00-05:00",
+          "end": "2026-08-31T10:00:00-05:00"
+        },
+        {
+          "id": "lena-2",
+          "summary": "Platform standup",
+          "start": "2026-08-31T10:30:00-05:00",
+          "end": "2026-08-31T11:00:00-05:00"
+        },
+        {
+          "id": "lena-5",
+          "summary": "Retro",
+          "start": "2026-08-31T11:30:00-05:00",
+          "end": "2026-08-31T13:00:00-05:00"
+        },
+        {
+          "id": "lena-4",
+          "summary": "Design review",
+          "start": "2026-08-31T14:30:00-05:00",
+          "end": "2026-08-31T15:30:00-05:00"
+        },
+        {
+          "id": "lena-9",
+          "summary": "Demo prep",
+          "start": "2026-09-01T09:00:00-05:00",
+          "end": "2026-09-01T09:30:00-05:00"
+        },
+        {
+          "id": "lena-6",
+          "summary": "Platform standup",
+          "start": "2026-09-01T10:30:00-05:00",
+          "end": "2026-09-01T11:00:00-05:00"
+        },
+        {
+          "id": "lena-10",
+          "summary": "Retro",
+          "start": "2026-09-01T10:30:00-05:00",
+          "end": "2026-09-01T11:00:00-05:00"
+        },
+        {
+          "id": "lena-7",
+          "summary": "Training",
+          "start": "2026-09-01T12:00:00-05:00",
+          "end": "2026-09-01T13:00:00-05:00"
+        },
+        {
+          "id": "lena-11",
+          "summary": "Interview",
+          "start": "2026-09-01T15:30:00-05:00",
+          "end": "2026-09-01T16:30:00-05:00"
+        },
+        {
+          "id": "lena-8",
+          "summary": "Interview",
+          "start": "2026-09-01T16:00:00-05:00",
+          "end": "2026-09-01T17:00:00-05:00"
+        },
+        {
+          "id": "lena-12",
+          "summary": "Platform standup",
+          "start": "2026-09-02T10:30:00-05:00",
+          "end": "2026-09-02T11:00:00-05:00"
+        },
+        {
+          "id": "lena-14",
+          "summary": "Roadmap",
+          "start": "2026-09-02T12:30:00-05:00",
+          "end": "2026-09-02T14:00:00-05:00"
+        },
+        {
+          "id": "lena-15",
+          "summary": "1:1",
+          "start": "2026-09-02T13:30:00-05:00",
+          "end": "2026-09-02T14:30:00-05:00"
+        },
+        {
+          "id": "lena-13",
+          "summary": "Demo prep",
+          "start": "2026-09-02T15:00:00-05:00",
+          "end": "2026-09-02T15:30:00-05:00"
+        },
+        {
+          "id": "lena-18",
+          "summary": "Incident review",
+          "start": "2026-09-03T10:00:00-05:00",
+          "end": "2026-09-03T11:00:00-05:00"
+        },
+        {
+          "id": "lena-16",
+          "summary": "Platform standup",
+          "start": "2026-09-03T10:30:00-05:00",
+          "end": "2026-09-03T11:00:00-05:00"
+        },
+        {
+          "id": "lena-19",
+          "summary": "Office hours",
+          "start": "2026-09-03T12:30:00-05:00",
+          "end": "2026-09-03T13:00:00-05:00"
+        },
+        {
+          "id": "lena-17",
+          "summary": "1:1",
+          "start": "2026-09-03T13:00:00-05:00",
+          "end": "2026-09-03T13:30:00-05:00"
+        },
+        {
+          "id": "lena-50",
+          "summary": "Design crit (cancelled)",
+          "start": "2026-09-03T14:00:00-05:00",
+          "end": "2026-09-03T15:00:00-05:00",
+          "status": "cancelled"
+        },
+        {
+          "id": "lena-24",
+          "summary": "Roadmap",
+          "start": "2026-09-04T09:30:00-05:00",
+          "end": "2026-09-04T10:00:00-05:00"
+        },
+        {
+          "id": "lena-20",
+          "summary": "Platform standup",
+          "start": "2026-09-04T10:30:00-05:00",
+          "end": "2026-09-04T11:00:00-05:00"
+        },
+        {
+          "id": "lena-21",
+          "summary": "Office hours",
+          "start": "2026-09-04T11:00:00-05:00",
+          "end": "2026-09-04T11:30:00-05:00"
+        },
+        {
+          "id": "lena-22",
+          "summary": "Retro",
+          "start": "2026-09-04T12:00:00-05:00",
+          "end": "2026-09-04T13:30:00-05:00"
+        },
+        {
+          "id": "lena-25",
+          "summary": "Design review",
+          "start": "2026-09-04T12:00:00-05:00",
+          "end": "2026-09-04T12:30:00-05:00"
+        },
+        {
+          "id": "lena-23",
+          "summary": "Design review",
+          "start": "2026-09-04T13:30:00-05:00",
+          "end": "2026-09-04T15:00:00-05:00"
+        },
+        {
+          "id": "lena-1",
+          "summary": "Labor Day",
+          "start": "2026-09-07T00:00:00-05:00",
+          "end": "2026-09-08T00:00:00-05:00",
+          "all_day": true
+        },
+        {
+          "id": "lena-26",
+          "summary": "Platform standup",
+          "start": "2026-09-08T10:30:00-05:00",
+          "end": "2026-09-08T11:00:00-05:00"
+        },
+        {
+          "id": "lena-29",
+          "summary": "Roadmap",
+          "start": "2026-09-08T13:30:00-05:00",
+          "end": "2026-09-08T14:30:00-05:00"
+        },
+        {
+          "id": "lena-28",
+          "summary": "Interview",
+          "start": "2026-09-08T14:00:00-05:00",
+          "end": "2026-09-08T15:00:00-05:00"
+        },
+        {
+          "id": "lena-27",
+          "summary": "Incident review",
+          "start": "2026-09-08T14:30:00-05:00",
+          "end": "2026-09-08T16:00:00-05:00"
+        },
+        {
+          "id": "lena-30",
+          "summary": "Platform standup",
+          "start": "2026-09-09T10:30:00-05:00",
+          "end": "2026-09-09T11:00:00-05:00"
+        },
+        {
+          "id": "lena-32",
+          "summary": "Retro",
+          "start": "2026-09-09T11:00:00-05:00",
+          "end": "2026-09-09T11:30:00-05:00"
+        },
+        {
+          "id": "lena-33",
+          "summary": "Sync",
+          "start": "2026-09-09T12:30:00-05:00",
+          "end": "2026-09-09T13:00:00-05:00"
+        },
+        {
+          "id": "lena-34",
+          "summary": "Roadmap",
+          "start": "2026-09-09T12:30:00-05:00",
+          "end": "2026-09-09T13:30:00-05:00"
+        },
+        {
+          "id": "lena-31",
+          "summary": "Training",
+          "start": "2026-09-09T16:00:00-05:00",
+          "end": "2026-09-09T17:00:00-05:00"
+        },
+        {
+          "id": "lena-35",
+          "summary": "Platform standup",
+          "start": "2026-09-10T10:30:00-05:00",
+          "end": "2026-09-10T11:00:00-05:00"
+        },
+        {
+          "id": "lena-36",
+          "summary": "Roadmap",
+          "start": "2026-09-10T10:30:00-05:00",
+          "end": "2026-09-10T11:30:00-05:00"
+        },
+        {
+          "id": "lena-38",
+          "summary": "Sync",
+          "start": "2026-09-10T10:30:00-05:00",
+          "end": "2026-09-10T12:00:00-05:00"
+        },
+        {
+          "id": "lena-37",
+          "summary": "Roadmap",
+          "start": "2026-09-10T13:00:00-05:00",
+          "end": "2026-09-10T14:00:00-05:00"
+        },
+        {
+          "id": "lena-39",
+          "summary": "Training",
+          "start": "2026-09-10T15:30:00-05:00",
+          "end": "2026-09-10T16:30:00-05:00"
+        },
+        {
+          "id": "lena-40",
+          "summary": "Platform standup",
+          "start": "2026-09-11T10:30:00-05:00",
+          "end": "2026-09-11T11:00:00-05:00"
+        },
+        {
+          "id": "lena-42",
+          "summary": "Customer call",
+          "start": "2026-09-11T13:00:00-05:00",
+          "end": "2026-09-11T14:00:00-05:00"
+        },
+        {
+          "id": "lena-43",
+          "summary": "Training",
+          "start": "2026-09-11T13:30:00-05:00",
+          "end": "2026-09-11T14:00:00-05:00"
+        },
+        {
+          "id": "lena-41",
+          "summary": "Retro",
+          "start": "2026-09-11T14:30:00-05:00",
+          "end": "2026-09-11T16:00:00-05:00"
+        },
+        {
+          "id": "lena-48",
+          "summary": "Training",
+          "start": "2026-09-14T09:30:00-05:00",
+          "end": "2026-09-14T11:00:00-05:00"
+        },
+        {
+          "id": "lena-44",
+          "summary": "Platform standup",
+          "start": "2026-09-14T10:30:00-05:00",
+          "end": "2026-09-14T11:00:00-05:00"
+        },
+        {
+          "id": "lena-47",
+          "summary": "Design review",
+          "start": "2026-09-14T11:30:00-05:00",
+          "end": "2026-09-14T12:30:00-05:00"
+        },
+        {
+          "id": "lena-46",
+          "summary": "Retro",
+          "start": "2026-09-14T12:30:00-05:00",
+          "end": "2026-09-14T13:30:00-05:00"
+        },
+        {
+          "id": "lena-45",
+          "summary": "Interview",
+          "start": "2026-09-14T13:00:00-05:00",
+          "end": "2026-09-14T14:30:00-05:00"
+        },
+        {
+          "id": "lena-49",
+          "summary": "Demo prep",
+          "start": "2026-09-14T15:00:00-05:00",
+          "end": "2026-09-14T15:30:00-05:00"
+        }
+      ]
+    },
+    {
+      "id": "omar@example.com",
+      "name": "Omar Haddad",
+      "email": "omar@example.com",
+      "team": "Platform",
+      "type": "person",
+      "timezone": "America/Chicago",
+      "utc_offset": "-05:00",
+      "working_hours": {
+        "start": "09:00",
+        "end": "17:00"
+      },
+      "events": [
+        {
+          "id": "omar-6",
+          "summary": "Incident review",
+          "start": "2026-08-31T09:00:00-05:00",
+          "end": "2026-08-31T10:00:00-05:00"
+        },
+        {
+          "id": "omar-5",
+          "summary": "Incident review",
+          "start": "2026-08-31T09:30:00-05:00",
+          "end": "2026-08-31T11:00:00-05:00"
+        },
+        {
+          "id": "omar-2",
+          "summary": "Platform standup",
+          "start": "2026-08-31T10:30:00-05:00",
+          "end": "2026-08-31T11:00:00-05:00"
+        },
+        {
+          "id": "omar-3",
+          "summary": "Code review",
+          "start": "2026-08-31T15:30:00-05:00",
+          "end": "2026-08-31T17:00:00-05:00"
+        },
+        {
+          "id": "omar-4",
+          "summary": "Retro",
+          "start": "2026-08-31T15:30:00-05:00",
+          "end": "2026-08-31T16:30:00-05:00"
+        },
+        {
+          "id": "omar-7",
+          "summary": "Platform standup",
+          "start": "2026-09-01T10:30:00-05:00",
+          "end": "2026-09-01T11:00:00-05:00"
+        },
+        {
+          "id": "omar-8",
+          "summary": "Design review",
+          "start": "2026-09-01T15:30:00-05:00",
+          "end": "2026-09-01T17:00:00-05:00"
+        },
+        {
+          "id": "omar-9",
+          "summary": "Platform standup",
+          "start": "2026-09-02T10:30:00-05:00",
+          "end": "2026-09-02T11:00:00-05:00"
+        },
+        {
+          "id": "omar-11",
+          "summary": "Interview",
+          "start": "2026-09-02T13:00:00-05:00",
+          "end": "2026-09-02T14:00:00-05:00"
+        },
+        {
+          "id": "omar-13",
+          "summary": "Incident review",
+          "start": "2026-09-02T13:30:00-05:00",
+          "end": "2026-09-02T15:00:00-05:00"
+        },
+        {
+          "id": "omar-12",
+          "summary": "Code review",
+          "start": "2026-09-02T14:00:00-05:00",
+          "end": "2026-09-02T15:00:00-05:00"
+        },
+        {
+          "id": "omar-10",
+          "summary": "Design review",
+          "start": "2026-09-02T15:00:00-05:00",
+          "end": "2026-09-02T16:00:00-05:00"
+        },
+        {
+          "id": "omar-14",
+          "summary": "Platform standup",
+          "start": "2026-09-03T10:30:00-05:00",
+          "end": "2026-09-03T11:00:00-05:00"
+        },
+        {
+          "id": "omar-15",
+          "summary": "Platform standup",
+          "start": "2026-09-04T10:30:00-05:00",
+          "end": "2026-09-04T11:00:00-05:00"
+        },
+        {
+          "id": "omar-16",
+          "summary": "Sync",
+          "start": "2026-09-04T15:00:00-05:00",
+          "end": "2026-09-04T16:30:00-05:00"
+        },
+        {
+          "id": "omar-17",
+          "summary": "Roadmap",
+          "start": "2026-09-04T15:00:00-05:00",
+          "end": "2026-09-04T15:30:00-05:00"
+        },
+        {
+          "id": "omar-18",
+          "summary": "Training",
+          "start": "2026-09-04T15:00:00-05:00",
+          "end": "2026-09-04T16:00:00-05:00"
+        },
+        {
+          "id": "omar-1",
+          "summary": "Labor Day",
+          "start": "2026-09-07T00:00:00-05:00",
+          "end": "2026-09-08T00:00:00-05:00",
+          "all_day": true
+        },
+        {
+          "id": "omar-20",
+          "summary": "Code review",
+          "start": "2026-09-08T10:00:00-05:00",
+          "end": "2026-09-08T11:00:00-05:00"
+        },
+        {
+          "id": "omar-19",
+          "summary": "Platform standup",
+          "start": "2026-09-08T10:30:00-05:00",
+          "end": "2026-09-08T11:00:00-05:00"
+        },
+        {
+          "id": "omar-22",
+          "summary": "Design review",
+          "start": "2026-09-08T12:30:00-05:00",
+          "end": "2026-09-08T13:00:00-05:00"
+        },
+        {
+          "id": "omar-21",
+          "summary": "Design review",
+          "start": "2026-09-08T14:30:00-05:00",
+          "end": "2026-09-08T15:30:00-05:00"
+        },
+        {
+          "id": "omar-24",
+          "summary": "Retro",
+          "start": "2026-09-09T09:00:00-05:00",
+          "end": "2026-09-09T09:30:00-05:00"
+        },
+        {
+          "id": "omar-27",
+          "summary": "Incident review",
+          "start": "2026-09-09T09:00:00-05:00",
+          "end": "2026-09-09T10:00:00-05:00"
+        },
+        {
+          "id": "omar-25",
+          "summary": "Retro",
+          "start": "2026-09-09T10:00:00-05:00",
+          "end": "2026-09-09T11:00:00-05:00"
+        },
+        {
+          "id": "omar-23",
+          "summary": "Platform standup",
+          "start": "2026-09-09T10:30:00-05:00",
+          "end": "2026-09-09T11:00:00-05:00"
+        },
+        {
+          "id": "omar-28",
+          "summary": "Code review",
+          "start": "2026-09-09T13:00:00-05:00",
+          "end": "2026-09-09T14:00:00-05:00"
+        },
+        {
+          "id": "omar-26",
+          "summary": "Code review",
+          "start": "2026-09-09T13:30:00-05:00",
+          "end": "2026-09-09T14:30:00-05:00"
+        },
+        {
+          "id": "omar-44",
+          "summary": "Focus block",
+          "start": "2026-09-09T15:00:00-05:00",
+          "end": "2026-09-09T16:00:00-05:00",
+          "transparency": "transparent"
+        },
+        {
+          "id": "omar-29",
+          "summary": "Platform standup",
+          "start": "2026-09-10T10:30:00-05:00",
+          "end": "2026-09-10T11:00:00-05:00"
+        },
+        {
+          "id": "omar-30",
+          "summary": "Design review",
+          "start": "2026-09-10T12:30:00-05:00",
+          "end": "2026-09-10T13:30:00-05:00"
+        },
+        {
+          "id": "omar-32",
+          "summary": "Sync",
+          "start": "2026-09-10T14:30:00-05:00",
+          "end": "2026-09-10T16:00:00-05:00"
+        },
+        {
+          "id": "omar-31",
+          "summary": "Design review",
+          "start": "2026-09-10T16:00:00-05:00",
+          "end": "2026-09-10T17:00:00-05:00"
+        },
+        {
+          "id": "omar-34",
+          "summary": "1:1",
+          "start": "2026-09-11T09:00:00-05:00",
+          "end": "2026-09-11T09:30:00-05:00"
+        },
+        {
+          "id": "omar-33",
+          "summary": "Platform standup",
+          "start": "2026-09-11T10:30:00-05:00",
+          "end": "2026-09-11T11:00:00-05:00"
+        },
+        {
+          "id": "omar-35",
+          "summary": "Training",
+          "start": "2026-09-11T11:30:00-05:00",
+          "end": "2026-09-11T13:00:00-05:00"
+        },
+        {
+          "id": "omar-36",
+          "summary": "Interview",
+          "start": "2026-09-11T14:30:00-05:00",
+          "end": "2026-09-11T15:30:00-05:00"
+        },
+        {
+          "id": "omar-37",
+          "summary": "Design review",
+          "start": "2026-09-11T15:00:00-05:00",
+          "end": "2026-09-11T15:30:00-05:00"
+        },
+        {
+          "id": "omar-38",
+          "summary": "Platform standup",
+          "start": "2026-09-14T10:30:00-05:00",
+          "end": "2026-09-14T11:00:00-05:00"
+        },
+        {
+          "id": "omar-39",
+          "summary": "Planning",
+          "start": "2026-09-14T10:30:00-05:00",
+          "end": "2026-09-14T11:00:00-05:00"
+        },
+        {
+          "id": "omar-42",
+          "summary": "Incident review",
+          "start": "2026-09-14T10:30:00-05:00",
+          "end": "2026-09-14T11:30:00-05:00"
+        },
+        {
+          "id": "omar-43",
+          "summary": "Code review",
+          "start": "2026-09-14T11:30:00-05:00",
+          "end": "2026-09-14T12:00:00-05:00"
+        },
+        {
+          "id": "omar-40",
+          "summary": "Incident review",
+          "start": "2026-09-14T14:00:00-05:00",
+          "end": "2026-09-14T15:00:00-05:00"
+        },
+        {
+          "id": "omar-41",
+          "summary": "Incident review",
+          "start": "2026-09-14T15:30:00-05:00",
+          "end": "2026-09-14T16:00:00-05:00"
+        }
+      ]
+    },
+    {
+      "id": "chloe@example.com",
+      "name": "Chloe Bennett",
+      "email": "chloe@example.com",
+      "team": "Platform",
+      "type": "person",
+      "timezone": "America/Chicago",
+      "utc_offset": "-05:00",
+      "working_hours": {
+        "start": "09:00",
+        "end": "17:00"
+      },
+      "events": [
+        {
+          "id": "chloe-2",
+          "summary": "Platform standup",
+          "start": "2026-08-31T10:30:00-05:00",
+          "end": "2026-08-31T11:00:00-05:00"
+        },
+        {
+          "id": "chloe-5",
+          "summary": "Retro",
+          "start": "2026-08-31T10:30:00-05:00",
+          "end": "2026-08-31T11:30:00-05:00"
+        },
+        {
+          "id": "chloe-3",
+          "summary": "Customer call",
+          "start": "2026-08-31T14:30:00-05:00",
+          "end": "2026-08-31T15:30:00-05:00"
+        },
+        {
+          "id": "chloe-6",
+          "summary": "Code review",
+          "start": "2026-08-31T14:30:00-05:00",
+          "end": "2026-08-31T15:30:00-05:00"
+        },
+        {
+          "id": "chloe-4",
+          "summary": "Vendor call",
+          "start": "2026-08-31T15:30:00-05:00",
+          "end": "2026-08-31T16:30:00-05:00"
+        },
+        {
+          "id": "chloe-12",
+          "summary": "Design review",
+          "start": "2026-09-01T10:00:00-05:00",
+          "end": "2026-09-01T10:30:00-05:00"
+        },
+        {
+          "id": "chloe-7",
+          "summary": "Platform standup",
+          "start": "2026-09-01T10:30:00-05:00",
+          "end": "2026-09-01T11:00:00-05:00"
+        },
+        {
+          "id": "chloe-8",
+          "summary": "Incident review",
+          "start": "2026-09-01T12:30:00-05:00",
+          "end": "2026-09-01T13:00:00-05:00"
+        },
+        {
+          "id": "chloe-9",
+          "summary": "1:1",
+          "start": "2026-09-01T14:30:00-05:00",
+          "end": "2026-09-01T15:00:00-05:00"
+        },
+        {
+          "id": "chloe-11",
+          "summary": "Vendor call",
+          "start": "2026-09-01T14:30:00-05:00",
+          "end": "2026-09-01T16:00:00-05:00"
+        },
+        {
+          "id": "chloe-10",
+          "summary": "Interview",
+          "start": "2026-09-01T15:00:00-05:00",
+          "end": "2026-09-01T15:30:00-05:00"
+        },
+        {
+          "id": "chloe-13",
+          "summary": "Platform standup",
+          "start": "2026-09-02T10:30:00-05:00",
+          "end": "2026-09-02T11:00:00-05:00"
+        },
+        {
+          "id": "chloe-16",
+          "summary": "Retro",
+          "start": "2026-09-02T13:00:00-05:00",
+          "end": "2026-09-02T13:30:00-05:00"
+        },
+        {
+          "id": "chloe-14",
+          "summary": "Incident review",
+          "start": "2026-09-02T14:00:00-05:00",
+          "end": "2026-09-02T15:00:00-05:00"
+        },
+        {
+          "id": "chloe-15",
+          "summary": "Sync",
+          "start": "2026-09-02T16:00:00-05:00",
+          "end": "2026-09-02T17:00:00-05:00"
+        },
+        {
+          "id": "chloe-19",
+          "summary": "Code review",
+          "start": "2026-09-03T09:00:00-05:00",
+          "end": "2026-09-03T10:00:00-05:00"
+        },
+        {
+          "id": "chloe-17",
+          "summary": "Platform standup",
+          "start": "2026-09-03T10:30:00-05:00",
+          "end": "2026-09-03T11:00:00-05:00"
+        },
+        {
+          "id": "chloe-18",
+          "summary": "Planning",
+          "start": "2026-09-03T11:00:00-05:00",
+          "end": "2026-09-03T12:00:00-05:00"
+        },
+        {
+          "id": "chloe-21",
+          "summary": "Design review",
+          "start": "2026-09-03T11:30:00-05:00",
+          "end": "2026-09-03T12:30:00-05:00"
+        },
+        {
+          "id": "chloe-20",
+          "summary": "Training",
+          "start": "2026-09-03T12:30:00-05:00",
+          "end": "2026-09-03T13:30:00-05:00"
+        },
+        {
+          "id": "chloe-22",
+          "summary": "Platform standup",
+          "start": "2026-09-04T10:30:00-05:00",
+          "end": "2026-09-04T11:00:00-05:00"
+        },
+        {
+          "id": "chloe-24",
+          "summary": "Customer call",
+          "start": "2026-09-04T10:30:00-05:00",
+          "end": "2026-09-04T11:30:00-05:00"
+        },
+        {
+          "id": "chloe-25",
+          "summary": "Retro",
+          "start": "2026-09-04T12:00:00-05:00",
+          "end": "2026-09-04T13:30:00-05:00"
+        },
+        {
+          "id": "chloe-23",
+          "summary": "Code review",
+          "start": "2026-09-04T15:00:00-05:00",
+          "end": "2026-09-04T15:30:00-05:00"
+        },
+        {
+          "id": "chloe-1",
+          "summary": "Labor Day",
+          "start": "2026-09-07T00:00:00-05:00",
+          "end": "2026-09-08T00:00:00-05:00",
+          "all_day": true
+        },
+        {
+          "id": "chloe-27",
+          "summary": "Interview",
+          "start": "2026-09-08T09:00:00-05:00",
+          "end": "2026-09-08T10:30:00-05:00"
+        },
+        {
+          "id": "chloe-29",
+          "summary": "Customer call",
+          "start": "2026-09-08T09:30:00-05:00",
+          "end": "2026-09-08T10:30:00-05:00"
+        },
+        {
+          "id": "chloe-26",
+          "summary": "Platform standup",
+          "start": "2026-09-08T10:30:00-05:00",
+          "end": "2026-09-08T11:00:00-05:00"
+        },
+        {
+          "id": "chloe-28",
+          "summary": "Retro",
+          "start": "2026-09-08T15:00:00-05:00",
+          "end": "2026-09-08T16:00:00-05:00"
+        },
+        {
+          "id": "chloe-32",
+          "summary": "Office hours",
+          "start": "2026-09-09T09:00:00-05:00",
+          "end": "2026-09-09T09:30:00-05:00"
+        },
+        {
+          "id": "chloe-33",
+          "summary": "Code review",
+          "start": "2026-09-09T09:00:00-05:00",
+          "end": "2026-09-09T09:30:00-05:00"
+        },
+        {
+          "id": "chloe-31",
+          "summary": "Roadmap",
+          "start": "2026-09-09T09:30:00-05:00",
+          "end": "2026-09-09T10:30:00-05:00"
+        },
+        {
+          "id": "chloe-35",
+          "summary": "Demo prep",
+          "start": "2026-09-09T09:30:00-05:00",
+          "end": "2026-09-09T10:30:00-05:00"
+        },
+        {
+          "id": "chloe-30",
+          "summary": "Platform standup",
+          "start": "2026-09-09T10:30:00-05:00",
+          "end": "2026-09-09T11:00:00-05:00"
+        },
+        {
+          "id": "chloe-34",
+          "summary": "Office hours",
+          "start": "2026-09-09T16:00:00-05:00",
+          "end": "2026-09-09T17:00:00-05:00"
+        },
+        {
+          "id": "chloe-39",
+          "summary": "Interview",
+          "start": "2026-09-10T09:00:00-05:00",
+          "end": "2026-09-10T09:30:00-05:00"
+        },
+        {
+          "id": "chloe-40",
+          "summary": "1:1",
+          "start": "2026-09-10T10:00:00-05:00",
+          "end": "2026-09-10T10:30:00-05:00"
+        },
+        {
+          "id": "chloe-36",
+          "summary": "Platform standup",
+          "start": "2026-09-10T10:30:00-05:00",
+          "end": "2026-09-10T11:00:00-05:00"
+        },
+        {
+          "id": "chloe-41",
+          "summary": "Design review",
+          "start": "2026-09-10T12:00:00-05:00",
+          "end": "2026-09-10T12:30:00-05:00"
+        },
+        {
+          "id": "chloe-38",
+          "summary": "Code review",
+          "start": "2026-09-10T13:30:00-05:00",
+          "end": "2026-09-10T14:30:00-05:00"
+        },
+        {
+          "id": "chloe-37",
+          "summary": "Customer call",
+          "start": "2026-09-10T15:00:00-05:00",
+          "end": "2026-09-10T16:30:00-05:00"
+        },
+        {
+          "id": "chloe-44",
+          "summary": "Demo prep",
+          "start": "2026-09-11T09:00:00-05:00",
+          "end": "2026-09-11T09:30:00-05:00"
+        },
+        {
+          "id": "chloe-47",
+          "summary": "Customer call",
+          "start": "2026-09-11T10:00:00-05:00",
+          "end": "2026-09-11T11:00:00-05:00"
+        },
+        {
+          "id": "chloe-42",
+          "summary": "Platform standup",
+          "start": "2026-09-11T10:30:00-05:00",
+          "end": "2026-09-11T11:00:00-05:00"
+        },
+        {
+          "id": "chloe-45",
+          "summary": "1:1",
+          "start": "2026-09-11T13:30:00-05:00",
+          "end": "2026-09-11T15:00:00-05:00"
+        },
+        {
+          "id": "chloe-46",
+          "summary": "Vendor call",
+          "start": "2026-09-11T14:30:00-05:00",
+          "end": "2026-09-11T15:30:00-05:00"
+        },
+        {
+          "id": "chloe-43",
+          "summary": "Sync",
+          "start": "2026-09-11T15:30:00-05:00",
+          "end": "2026-09-11T16:30:00-05:00"
+        },
+        {
+          "id": "chloe-48",
+          "summary": "Platform standup",
+          "start": "2026-09-14T10:30:00-05:00",
+          "end": "2026-09-14T11:00:00-05:00"
+        },
+        {
+          "id": "chloe-50",
+          "summary": "Incident review",
+          "start": "2026-09-14T10:30:00-05:00",
+          "end": "2026-09-14T11:30:00-05:00"
+        },
+        {
+          "id": "chloe-49",
+          "summary": "Vendor call",
+          "start": "2026-09-14T11:30:00-05:00",
+          "end": "2026-09-14T12:30:00-05:00"
+        },
+        {
+          "id": "chloe-51",
+          "summary": "Planning",
+          "start": "2026-09-14T13:00:00-05:00",
+          "end": "2026-09-14T14:00:00-05:00"
+        }
+      ]
+    },
+    {
+      "id": "ravi@example.com",
+      "name": "Ravi Patel",
+      "email": "ravi@example.com",
+      "team": "Platform",
+      "type": "person",
+      "timezone": "America/Chicago",
+      "utc_offset": "-05:00",
+      "working_hours": {
+        "start": "09:00",
+        "end": "17:00"
+      },
+      "events": [
+        {
+          "id": "ravi-4",
+          "summary": "Incident review",
+          "start": "2026-08-31T10:00:00-05:00",
+          "end": "2026-08-31T11:00:00-05:00"
+        },
+        {
+          "id": "ravi-2",
+          "summary": "Platform standup",
+          "start": "2026-08-31T10:30:00-05:00",
+          "end": "2026-08-31T11:00:00-05:00"
+        },
+        {
+          "id": "ravi-3",
+          "summary": "Office hours",
+          "start": "2026-08-31T12:30:00-05:00",
+          "end": "2026-08-31T13:00:00-05:00"
+        },
+        {
+          "id": "ravi-5",
+          "summary": "Office hours",
+          "start": "2026-08-31T15:00:00-05:00",
+          "end": "2026-08-31T15:30:00-05:00"
+        },
+        {
+          "id": "ravi-7",
+          "summary": "Incident review",
+          "start": "2026-09-01T09:00:00-05:00",
+          "end": "2026-09-01T10:00:00-05:00"
+        },
+        {
+          "id": "ravi-6",
+          "summary": "Platform standup",
+          "start": "2026-09-01T10:30:00-05:00",
+          "end": "2026-09-01T11:00:00-05:00"
+        },
+        {
+          "id": "ravi-8",
+          "summary": "Code review",
+          "start": "2026-09-01T12:00:00-05:00",
+          "end": "2026-09-01T12:30:00-05:00"
+        },
+        {
+          "id": "ravi-9",
+          "summary": "Platform standup",
+          "start": "2026-09-02T10:30:00-05:00",
+          "end": "2026-09-02T11:00:00-05:00"
+        },
+        {
+          "id": "ravi-11",
+          "summary": "Interview",
+          "start": "2026-09-02T10:30:00-05:00",
+          "end": "2026-09-02T12:00:00-05:00"
+        },
+        {
+          "id": "ravi-12",
+          "summary": "Training",
+          "start": "2026-09-02T11:00:00-05:00",
+          "end": "2026-09-02T12:00:00-05:00"
+        },
+        {
+          "id": "ravi-13",
+          "summary": "Sync",
+          "start": "2026-09-02T14:30:00-05:00",
+          "end": "2026-09-02T16:00:00-05:00"
+        },
+        {
+          "id": "ravi-10",
+          "summary": "Roadmap",
+          "start": "2026-09-02T15:00:00-05:00",
+          "end": "2026-09-02T15:30:00-05:00"
+        },
+        {
+          "id": "ravi-15",
+          "summary": "1:1",
+          "start": "2026-09-03T10:00:00-05:00",
+          "end": "2026-09-03T11:30:00-05:00"
+        },
+        {
+          "id": "ravi-14",
+          "summary": "Platform standup",
+          "start": "2026-09-03T10:30:00-05:00",
+          "end": "2026-09-03T11:00:00-05:00"
+        },
+        {
+          "id": "ravi-17",
+          "summary": "Design review",
+          "start": "2026-09-04T09:30:00-05:00",
+          "end": "2026-09-04T11:00:00-05:00"
+        },
+        {
+          "id": "ravi-19",
+          "summary": "Demo prep",
+          "start": "2026-09-04T09:30:00-05:00",
+          "end": "2026-09-04T10:00:00-05:00"
+        },
+        {
+          "id": "ravi-16",
+          "summary": "Platform standup",
+          "start": "2026-09-04T10:30:00-05:00",
+          "end": "2026-09-04T11:00:00-05:00"
+        },
+        {
+          "id": "ravi-21",
+          "summary": "Sync",
+          "start": "2026-09-04T10:30:00-05:00",
+          "end": "2026-09-04T11:00:00-05:00"
+        },
+        {
+          "id": "ravi-20",
+          "summary": "Sync",
+          "start": "2026-09-04T12:00:00-05:00",
+          "end": "2026-09-04T13:00:00-05:00"
+        },
+        {
+          "id": "ravi-18",
+          "summary": "Demo prep",
+          "start": "2026-09-04T12:30:00-05:00",
+          "end": "2026-09-04T13:30:00-05:00"
+        },
+        {
+          "id": "ravi-1",
+          "summary": "Labor Day",
+          "start": "2026-09-07T00:00:00-05:00",
+          "end": "2026-09-08T00:00:00-05:00",
+          "all_day": true
+        },
+        {
+          "id": "ravi-24",
+          "summary": "Design review",
+          "start": "2026-09-08T09:30:00-05:00",
+          "end": "2026-09-08T10:30:00-05:00"
+        },
+        {
+          "id": "ravi-22",
+          "summary": "Platform standup",
+          "start": "2026-09-08T10:30:00-05:00",
+          "end": "2026-09-08T11:00:00-05:00"
+        },
+        {
+          "id": "ravi-23",
+          "summary": "Code review",
+          "start": "2026-09-08T15:00:00-05:00",
+          "end": "2026-09-08T15:30:00-05:00"
+        },
+        {
+          "id": "ravi-26",
+          "summary": "Code review",
+          "start": "2026-09-09T09:30:00-05:00",
+          "end": "2026-09-09T10:30:00-05:00"
+        },
+        {
+          "id": "ravi-25",
+          "summary": "Platform standup",
+          "start": "2026-09-09T10:30:00-05:00",
+          "end": "2026-09-09T11:00:00-05:00"
+        },
+        {
+          "id": "ravi-27",
+          "summary": "Interview",
+          "start": "2026-09-09T14:00:00-05:00",
+          "end": "2026-09-09T14:30:00-05:00"
+        },
+        {
+          "id": "ravi-28",
+          "summary": "Platform standup",
+          "start": "2026-09-10T10:30:00-05:00",
+          "end": "2026-09-10T11:00:00-05:00"
+        },
+        {
+          "id": "ravi-31",
+          "summary": "Sync",
+          "start": "2026-09-10T10:30:00-05:00",
+          "end": "2026-09-10T11:30:00-05:00"
+        },
+        {
+          "id": "ravi-32",
+          "summary": "Design review",
+          "start": "2026-09-10T11:00:00-05:00",
+          "end": "2026-09-10T11:30:00-05:00"
+        },
+        {
+          "id": "ravi-29",
+          "summary": "Retro",
+          "start": "2026-09-10T12:30:00-05:00",
+          "end": "2026-09-10T14:00:00-05:00"
+        },
+        {
+          "id": "ravi-44",
+          "summary": "Customer onsite",
+          "start": "2026-09-10T13:00:00-05:00",
+          "end": "2026-09-10T15:00:00-05:00"
+        },
+        {
+          "id": "ravi-33",
+          "summary": "Roadmap",
+          "start": "2026-09-10T14:00:00-05:00",
+          "end": "2026-09-10T14:30:00-05:00"
+        },
+        {
+          "id": "ravi-30",
+          "summary": "Training",
+          "start": "2026-09-10T16:00:00-05:00",
+          "end": "2026-09-10T16:30:00-05:00"
+        },
+        {
+          "id": "ravi-35",
+          "summary": "Office hours",
+          "start": "2026-09-11T09:00:00-05:00",
+          "end": "2026-09-11T10:00:00-05:00"
+        },
+        {
+          "id": "ravi-34",
+          "summary": "Platform standup",
+          "start": "2026-09-11T10:30:00-05:00",
+          "end": "2026-09-11T11:00:00-05:00"
+        },
+        {
+          "id": "ravi-36",
+          "summary": "Customer call",
+          "start": "2026-09-11T14:00:00-05:00",
+          "end": "2026-09-11T14:30:00-05:00"
+        },
+        {
+          "id": "ravi-37",
+          "summary": "1:1",
+          "start": "2026-09-11T16:00:00-05:00",
+          "end": "2026-09-11T17:00:00-05:00"
+        },
+        {
+          "id": "ravi-38",
+          "summary": "Platform standup",
+          "start": "2026-09-14T10:30:00-05:00",
+          "end": "2026-09-14T11:00:00-05:00"
+        },
+        {
+          "id": "ravi-43",
+          "summary": "Code review",
+          "start": "2026-09-14T11:30:00-05:00",
+          "end": "2026-09-14T12:00:00-05:00"
+        },
+        {
+          "id": "ravi-40",
+          "summary": "Office hours",
+          "start": "2026-09-14T13:00:00-05:00",
+          "end": "2026-09-14T14:30:00-05:00"
+        },
+        {
+          "id": "ravi-41",
+          "summary": "Customer call",
+          "start": "2026-09-14T13:00:00-05:00",
+          "end": "2026-09-14T13:30:00-05:00"
+        },
+        {
+          "id": "ravi-39",
+          "summary": "Design review",
+          "start": "2026-09-14T14:30:00-05:00",
+          "end": "2026-09-14T16:00:00-05:00"
+        },
+        {
+          "id": "ravi-42",
+          "summary": "Code review",
+          "start": "2026-09-14T15:30:00-05:00",
+          "end": "2026-09-14T16:00:00-05:00"
+        }
+      ]
+    },
+    {
+      "id": "sofia@example.com",
+      "name": "Sofia Alvarez",
+      "email": "sofia@example.com",
+      "team": "Platform",
+      "type": "person",
+      "timezone": "America/Chicago",
+      "utc_offset": "-05:00",
+      "working_hours": {
+        "start": "09:00",
+        "end": "17:00"
+      },
+      "events": [
+        {
+          "id": "sofia-4",
+          "summary": "Planning",
+          "start": "2026-08-31T09:00:00-05:00",
+          "end": "2026-08-31T09:30:00-05:00"
+        },
+        {
+          "id": "sofia-2",
+          "summary": "Platform standup",
+          "start": "2026-08-31T10:30:00-05:00",
+          "end": "2026-08-31T11:00:00-05:00"
+        },
+        {
+          "id": "sofia-5",
+          "summary": "1:1",
+          "start": "2026-08-31T12:00:00-05:00",
+          "end": "2026-08-31T13:30:00-05:00"
+        },
+        {
+          "id": "sofia-3",
+          "summary": "Incident review",
+          "start": "2026-08-31T12:30:00-05:00",
+          "end": "2026-08-31T13:00:00-05:00"
+        },
+        {
+          "id": "sofia-6",
+          "summary": "Design review",
+          "start": "2026-08-31T12:30:00-05:00",
+          "end": "2026-08-31T14:00:00-05:00"
+        },
+        {
+          "id": "sofia-7",
+          "summary": "Platform standup",
+          "start": "2026-09-01T10:30:00-05:00",
+          "end": "2026-09-01T11:00:00-05:00"
+        },
+        {
+          "id": "sofia-8",
+          "summary": "Code review",
+          "start": "2026-09-01T10:30:00-05:00",
+          "end": "2026-09-01T11:00:00-05:00"
+        },
+        {
+          "id": "sofia-9",
+          "summary": "Demo prep",
+          "start": "2026-09-01T10:30:00-05:00",
+          "end": "2026-09-01T12:00:00-05:00"
+        },
+        {
+          "id": "sofia-10",
+          "summary": "Roadmap",
+          "start": "2026-09-01T11:30:00-05:00",
+          "end": "2026-09-01T12:30:00-05:00"
+        },
+        {
+          "id": "sofia-11",
+          "summary": "Platform standup",
+          "start": "2026-09-02T10:30:00-05:00",
+          "end": "2026-09-02T11:00:00-05:00"
+        },
+        {
+          "id": "sofia-13",
+          "summary": "Vendor call",
+          "start": "2026-09-02T11:30:00-05:00",
+          "end": "2026-09-02T12:00:00-05:00"
+        },
+        {
+          "id": "sofia-12",
+          "summary": "Customer call",
+          "start": "2026-09-02T14:00:00-05:00",
+          "end": "2026-09-02T14:30:00-05:00"
+        },
+        {
+          "id": "sofia-14",
+          "summary": "Office hours",
+          "start": "2026-09-02T15:00:00-05:00",
+          "end": "2026-09-02T15:30:00-05:00"
+        },
+        {
+          "id": "sofia-15",
+          "summary": "Demo prep",
+          "start": "2026-09-02T15:30:00-05:00",
+          "end": "2026-09-02T17:00:00-05:00"
+        },
+        {
+          "id": "sofia-16",
+          "summary": "Platform standup",
+          "start": "2026-09-03T10:30:00-05:00",
+          "end": "2026-09-03T11:00:00-05:00"
+        },
+        {
+          "id": "sofia-19",
+          "summary": "Training",
+          "start": "2026-09-04T10:00:00-05:00",
+          "end": "2026-09-04T10:30:00-05:00"
+        },
+        {
+          "id": "sofia-17",
+          "summary": "Platform standup",
+          "start": "2026-09-04T10:30:00-05:00",
+          "end": "2026-09-04T11:00:00-05:00"
+        },
+        {
+          "id": "sofia-20",
+          "summary": "Vendor call",
+          "start": "2026-09-04T12:00:00-05:00",
+          "end": "2026-09-04T12:30:00-05:00"
+        },
+        {
+          "id": "sofia-18",
+          "summary": "1:1",
+          "start": "2026-09-04T12:30:00-05:00",
+          "end": "2026-09-04T14:00:00-05:00"
+        },
+        {
+          "id": "sofia-43",
+          "summary": "Dentist",
+          "start": "2026-09-04T14:00:00-05:00",
+          "end": "2026-09-04T15:00:00-05:00"
+        },
+        {
+          "id": "sofia-1",
+          "summary": "Labor Day",
+          "start": "2026-09-07T00:00:00-05:00",
+          "end": "2026-09-08T00:00:00-05:00",
+          "all_day": true
+        },
+        {
+          "id": "sofia-21",
+          "summary": "Platform standup",
+          "start": "2026-09-08T10:30:00-05:00",
+          "end": "2026-09-08T11:00:00-05:00"
+        },
+        {
+          "id": "sofia-23",
+          "summary": "Code review",
+          "start": "2026-09-08T13:30:00-05:00",
+          "end": "2026-09-08T14:30:00-05:00"
+        },
+        {
+          "id": "sofia-22",
+          "summary": "Retro",
+          "start": "2026-09-08T14:00:00-05:00",
+          "end": "2026-09-08T15:00:00-05:00"
+        },
+        {
+          "id": "sofia-24",
+          "summary": "Sync",
+          "start": "2026-09-08T14:30:00-05:00",
+          "end": "2026-09-08T16:00:00-05:00"
+        },
+        {
+          "id": "sofia-25",
+          "summary": "Platform standup",
+          "start": "2026-09-09T10:30:00-05:00",
+          "end": "2026-09-09T11:00:00-05:00"
+        },
+        {
+          "id": "sofia-26",
+          "summary": "1:1",
+          "start": "2026-09-09T11:00:00-05:00",
+          "end": "2026-09-09T11:30:00-05:00"
+        },
+        {
+          "id": "sofia-27",
+          "summary": "Roadmap",
+          "start": "2026-09-09T12:00:00-05:00",
+          "end": "2026-09-09T12:30:00-05:00"
+        },
+        {
+          "id": "sofia-28",
+          "summary": "Retro",
+          "start": "2026-09-09T13:30:00-05:00",
+          "end": "2026-09-09T15:00:00-05:00"
+        },
+        {
+          "id": "sofia-29",
+          "summary": "Roadmap",
+          "start": "2026-09-09T13:30:00-05:00",
+          "end": "2026-09-09T14:00:00-05:00"
+        },
+        {
+          "id": "sofia-31",
+          "summary": "Vendor call",
+          "start": "2026-09-10T09:00:00-05:00",
+          "end": "2026-09-10T10:00:00-05:00"
+        },
+        {
+          "id": "sofia-33",
+          "summary": "Retro",
+          "start": "2026-09-10T09:30:00-05:00",
+          "end": "2026-09-10T10:00:00-05:00"
+        },
+        {
+          "id": "sofia-32",
+          "summary": "Office hours",
+          "start": "2026-09-10T10:00:00-05:00",
+          "end": "2026-09-10T11:00:00-05:00"
+        },
+        {
+          "id": "sofia-30",
+          "summary": "Platform standup",
+          "start": "2026-09-10T10:30:00-05:00",
+          "end": "2026-09-10T11:00:00-05:00"
+        },
+        {
+          "id": "sofia-37",
+          "summary": "Sync",
+          "start": "2026-09-11T09:30:00-05:00",
+          "end": "2026-09-11T10:00:00-05:00"
+        },
+        {
+          "id": "sofia-34",
+          "summary": "Platform standup",
+          "start": "2026-09-11T10:30:00-05:00",
+          "end": "2026-09-11T11:00:00-05:00"
+        },
+        {
+          "id": "sofia-36",
+          "summary": "1:1",
+          "start": "2026-09-11T13:00:00-05:00",
+          "end": "2026-09-11T14:00:00-05:00"
+        },
+        {
+          "id": "sofia-38",
+          "summary": "Roadmap",
+          "start": "2026-09-11T13:30:00-05:00",
+          "end": "2026-09-11T15:00:00-05:00"
+        },
+        {
+          "id": "sofia-35",
+          "summary": "Office hours",
+          "start": "2026-09-11T15:00:00-05:00",
+          "end": "2026-09-11T15:30:00-05:00"
+        },
+        {
+          "id": "sofia-42",
+          "summary": "Retro",
+          "start": "2026-09-14T10:00:00-05:00",
+          "end": "2026-09-14T11:00:00-05:00"
+        },
+        {
+          "id": "sofia-39",
+          "summary": "Platform standup",
+          "start": "2026-09-14T10:30:00-05:00",
+          "end": "2026-09-14T11:00:00-05:00"
+        },
+        {
+          "id": "sofia-40",
+          "summary": "Sync",
+          "start": "2026-09-14T12:00:00-05:00",
+          "end": "2026-09-14T13:00:00-05:00"
+        },
+        {
+          "id": "sofia-41",
+          "summary": "Roadmap",
+          "start": "2026-09-14T12:30:00-05:00",
+          "end": "2026-09-14T14:00:00-05:00"
+        }
+      ]
+    },
+    {
+      "id": "ben@example.com",
+      "name": "Ben Thompson",
+      "email": "ben@example.com",
+      "team": "Platform",
+      "type": "person",
+      "timezone": "America/Chicago",
+      "utc_offset": "-05:00",
+      "working_hours": {
+        "start": "09:00",
+        "end": "17:00"
+      },
+      "events": [
+        {
+          "id": "ben-3",
+          "summary": "Office hours",
+          "start": "2026-08-31T09:00:00-05:00",
+          "end": "2026-08-31T10:00:00-05:00"
+        },
+        {
+          "id": "ben-45",
+          "summary": "Training",
+          "start": "2026-08-31T09:00:00-05:00",
+          "end": "2026-08-31T17:00:00-05:00"
+        },
+        {
+          "id": "ben-4",
+          "summary": "Incident review",
+          "start": "2026-08-31T09:30:00-05:00",
+          "end": "2026-08-31T10:00:00-05:00"
+        },
+        {
+          "id": "ben-2",
+          "summary": "Platform standup",
+          "start": "2026-08-31T10:30:00-05:00",
+          "end": "2026-08-31T11:00:00-05:00"
+        },
+        {
+          "id": "ben-7",
+          "summary": "Customer call",
+          "start": "2026-08-31T12:00:00-05:00",
+          "end": "2026-08-31T13:00:00-05:00"
+        },
+        {
+          "id": "ben-6",
+          "summary": "Training",
+          "start": "2026-08-31T15:00:00-05:00",
+          "end": "2026-08-31T15:30:00-05:00"
+        },
+        {
+          "id": "ben-5",
+          "summary": "Customer call",
+          "start": "2026-08-31T15:30:00-05:00",
+          "end": "2026-08-31T16:30:00-05:00"
+        },
+        {
+          "id": "ben-8",
+          "summary": "Platform standup",
+          "start": "2026-09-01T10:30:00-05:00",
+          "end": "2026-09-01T11:00:00-05:00"
+        },
+        {
+          "id": "ben-10",
+          "summary": "Roadmap",
+          "start": "2026-09-01T12:00:00-05:00",
+          "end": "2026-09-01T13:00:00-05:00"
+        },
+        {
+          "id": "ben-9",
+          "summary": "Roadmap",
+          "start": "2026-09-01T14:30:00-05:00",
+          "end": "2026-09-01T15:30:00-05:00"
+        },
+        {
+          "id": "ben-11",
+          "summary": "Training",
+          "start": "2026-09-01T15:30:00-05:00",
+          "end": "2026-09-01T16:30:00-05:00"
+        },
+        {
+          "id": "ben-12",
+          "summary": "Platform standup",
+          "start": "2026-09-02T10:30:00-05:00",
+          "end": "2026-09-02T11:00:00-05:00"
+        },
+        {
+          "id": "ben-14",
+          "summary": "Vendor call",
+          "start": "2026-09-02T10:30:00-05:00",
+          "end": "2026-09-02T11:30:00-05:00"
+        },
+        {
+          "id": "ben-13",
+          "summary": "Incident review",
+          "start": "2026-09-02T13:00:00-05:00",
+          "end": "2026-09-02T13:30:00-05:00"
+        },
+        {
+          "id": "ben-15",
+          "summary": "Platform standup",
+          "start": "2026-09-03T10:30:00-05:00",
+          "end": "2026-09-03T11:00:00-05:00"
+        },
+        {
+          "id": "ben-16",
+          "summary": "Design review",
+          "start": "2026-09-03T10:30:00-05:00",
+          "end": "2026-09-03T11:30:00-05:00"
+        },
+        {
+          "id": "ben-17",
+          "summary": "Design review",
+          "start": "2026-09-03T10:30:00-05:00",
+          "end": "2026-09-03T11:30:00-05:00"
+        },
+        {
+          "id": "ben-18",
+          "summary": "Platform standup",
+          "start": "2026-09-04T10:30:00-05:00",
+          "end": "2026-09-04T11:00:00-05:00"
+        },
+        {
+          "id": "ben-22",
+          "summary": "Interview",
+          "start": "2026-09-04T12:00:00-05:00",
+          "end": "2026-09-04T13:00:00-05:00"
+        },
+        {
+          "id": "ben-19",
+          "summary": "Incident review",
+          "start": "2026-09-04T13:00:00-05:00",
+          "end": "2026-09-04T14:00:00-05:00"
+        },
+        {
+          "id": "ben-20",
+          "summary": "Roadmap",
+          "start": "2026-09-04T13:30:00-05:00",
+          "end": "2026-09-04T15:00:00-05:00"
+        },
+        {
+          "id": "ben-23",
+          "summary": "Incident review",
+          "start": "2026-09-04T15:30:00-05:00",
+          "end": "2026-09-04T16:30:00-05:00"
+        },
+        {
+          "id": "ben-21",
+          "summary": "Code review",
+          "start": "2026-09-04T16:00:00-05:00",
+          "end": "2026-09-04T17:30:00-05:00"
+        },
+        {
+          "id": "ben-1",
+          "summary": "Labor Day",
+          "start": "2026-09-07T00:00:00-05:00",
+          "end": "2026-09-08T00:00:00-05:00",
+          "all_day": true
+        },
+        {
+          "id": "ben-24",
+          "summary": "Platform standup",
+          "start": "2026-09-08T10:30:00-05:00",
+          "end": "2026-09-08T11:00:00-05:00"
+        },
+        {
+          "id": "ben-25",
+          "summary": "Sync",
+          "start": "2026-09-08T13:00:00-05:00",
+          "end": "2026-09-08T14:00:00-05:00"
+        },
+        {
+          "id": "ben-26",
+          "summary": "Training",
+          "start": "2026-09-08T14:30:00-05:00",
+          "end": "2026-09-08T16:00:00-05:00"
+        },
+        {
+          "id": "ben-28",
+          "summary": "Planning",
+          "start": "2026-09-09T10:00:00-05:00",
+          "end": "2026-09-09T11:00:00-05:00"
+        },
+        {
+          "id": "ben-27",
+          "summary": "Platform standup",
+          "start": "2026-09-09T10:30:00-05:00",
+          "end": "2026-09-09T11:00:00-05:00"
+        },
+        {
+          "id": "ben-29",
+          "summary": "Platform standup",
+          "start": "2026-09-10T10:30:00-05:00",
+          "end": "2026-09-10T11:00:00-05:00"
+        },
+        {
+          "id": "ben-31",
+          "summary": "Demo prep",
+          "start": "2026-09-10T11:00:00-05:00",
+          "end": "2026-09-10T11:30:00-05:00"
+        },
+        {
+          "id": "ben-34",
+          "summary": "Vendor call",
+          "start": "2026-09-10T12:00:00-05:00",
+          "end": "2026-09-10T12:30:00-05:00"
+        },
+        {
+          "id": "ben-30",
+          "summary": "Office hours",
+          "start": "2026-09-10T12:30:00-05:00",
+          "end": "2026-09-10T13:00:00-05:00"
+        },
+        {
+          "id": "ben-33",
+          "summary": "Training",
+          "start": "2026-09-10T13:00:00-05:00",
+          "end": "2026-09-10T14:00:00-05:00"
+        },
+        {
+          "id": "ben-32",
+          "summary": "Interview",
+          "start": "2026-09-10T13:30:00-05:00",
+          "end": "2026-09-10T15:00:00-05:00"
+        },
+        {
+          "id": "ben-35",
+          "summary": "Platform standup",
+          "start": "2026-09-11T10:30:00-05:00",
+          "end": "2026-09-11T11:00:00-05:00"
+        },
+        {
+          "id": "ben-39",
+          "summary": "Demo prep",
+          "start": "2026-09-11T11:30:00-05:00",
+          "end": "2026-09-11T12:30:00-05:00"
+        },
+        {
+          "id": "ben-40",
+          "summary": "Incident review",
+          "start": "2026-09-11T12:00:00-05:00",
+          "end": "2026-09-11T13:30:00-05:00"
+        },
+        {
+          "id": "ben-37",
+          "summary": "Demo prep",
+          "start": "2026-09-11T13:00:00-05:00",
+          "end": "2026-09-11T14:00:00-05:00"
+        },
+        {
+          "id": "ben-38",
+          "summary": "Code review",
+          "start": "2026-09-11T14:00:00-05:00",
+          "end": "2026-09-11T15:30:00-05:00"
+        },
+        {
+          "id": "ben-36",
+          "summary": "Training",
+          "start": "2026-09-11T16:00:00-05:00",
+          "end": "2026-09-11T17:30:00-05:00"
+        },
+        {
+          "id": "ben-46",
+          "summary": "Training",
+          "start": "2026-09-14T09:00:00-05:00",
+          "end": "2026-09-14T17:00:00-05:00"
+        },
+        {
+          "id": "ben-41",
+          "summary": "Platform standup",
+          "start": "2026-09-14T10:30:00-05:00",
+          "end": "2026-09-14T11:00:00-05:00"
+        },
+        {
+          "id": "ben-42",
+          "summary": "Planning",
+          "start": "2026-09-14T12:00:00-05:00",
+          "end": "2026-09-14T13:30:00-05:00"
+        },
+        {
+          "id": "ben-43",
+          "summary": "Interview",
+          "start": "2026-09-14T12:00:00-05:00",
+          "end": "2026-09-14T13:30:00-05:00"
+        },
+        {
+          "id": "ben-44",
+          "summary": "Code review",
+          "start": "2026-09-14T15:30:00-05:00",
+          "end": "2026-09-14T16:00:00-05:00"
+        }
+      ]
+    },
+    {
+      "id": "nina@example.com",
+      "name": "Nina Petrov",
+      "email": "nina@example.com",
+      "team": "Platform",
+      "type": "person",
+      "timezone": "America/Chicago",
+      "utc_offset": "-05:00",
+      "working_hours": {
+        "start": "09:00",
+        "end": "17:00"
+      },
+      "events": [
+        {
+          "id": "nina-2",
+          "summary": "Platform standup",
+          "start": "2026-08-31T10:30:00-05:00",
+          "end": "2026-08-31T11:00:00-05:00"
+        },
+        {
+          "id": "nina-5",
+          "summary": "Design review",
+          "start": "2026-08-31T10:30:00-05:00",
+          "end": "2026-08-31T11:00:00-05:00"
+        },
+        {
+          "id": "nina-3",
+          "summary": "Training",
+          "start": "2026-08-31T12:00:00-05:00",
+          "end": "2026-08-31T13:00:00-05:00"
+        },
+        {
+          "id": "nina-6",
+          "summary": "Planning",
+          "start": "2026-08-31T12:30:00-05:00",
+          "end": "2026-08-31T14:00:00-05:00"
+        },
+        {
+          "id": "nina-7",
+          "summary": "Planning",
+          "start": "2026-08-31T12:30:00-05:00",
+          "end": "2026-08-31T13:00:00-05:00"
+        },
+        {
+          "id": "nina-4",
+          "summary": "1:1",
+          "start": "2026-08-31T14:30:00-05:00",
+          "end": "2026-08-31T15:00:00-05:00"
+        },
+        {
+          "id": "nina-10",
+          "summary": "Incident review",
+          "start": "2026-09-01T09:30:00-05:00",
+          "end": "2026-09-01T10:00:00-05:00"
+        },
+        {
+          "id": "nina-8",
+          "summary": "Platform standup",
+          "start": "2026-09-01T10:30:00-05:00",
+          "end": "2026-09-01T11:00:00-05:00"
+        },
+        {
+          "id": "nina-9",
+          "summary": "Sync",
+          "start": "2026-09-01T10:30:00-05:00",
+          "end": "2026-09-01T11:30:00-05:00"
+        },
+        {
+          "id": "nina-11",
+          "summary": "Customer call",
+          "start": "2026-09-01T12:00:00-05:00",
+          "end": "2026-09-01T12:30:00-05:00"
+        },
+        {
+          "id": "nina-12",
+          "summary": "Platform standup",
+          "start": "2026-09-02T10:30:00-05:00",
+          "end": "2026-09-02T11:00:00-05:00"
+        },
+        {
+          "id": "nina-14",
+          "summary": "Roadmap",
+          "start": "2026-09-02T10:30:00-05:00",
+          "end": "2026-09-02T11:30:00-05:00"
+        },
+        {
+          "id": "nina-17",
+          "summary": "Customer call",
+          "start": "2026-09-02T11:30:00-05:00",
+          "end": "2026-09-02T12:00:00-05:00"
+        },
+        {
+          "id": "nina-13",
+          "summary": "Planning",
+          "start": "2026-09-02T13:00:00-05:00",
+          "end": "2026-09-02T13:30:00-05:00"
+        },
+        {
+          "id": "nina-15",
+          "summary": "1:1",
+          "start": "2026-09-02T16:00:00-05:00",
+          "end": "2026-09-02T16:30:00-05:00"
+        },
+        {
+          "id": "nina-16",
+          "summary": "Demo prep",
+          "start": "2026-09-02T16:00:00-05:00",
+          "end": "2026-09-02T16:30:00-05:00"
+        },
+        {
+          "id": "nina-20",
+          "summary": "Training",
+          "start": "2026-09-03T09:30:00-05:00",
+          "end": "2026-09-03T10:00:00-05:00"
+        },
+        {
+          "id": "nina-18",
+          "summary": "Platform standup",
+          "start": "2026-09-03T10:30:00-05:00",
+          "end": "2026-09-03T11:00:00-05:00"
+        },
+        {
+          "id": "nina-21",
+          "summary": "Design review",
+          "start": "2026-09-03T11:30:00-05:00",
+          "end": "2026-09-03T13:00:00-05:00"
+        },
+        {
+          "id": "nina-19",
+          "summary": "Retro",
+          "start": "2026-09-03T12:00:00-05:00",
+          "end": "2026-09-03T12:30:00-05:00"
+        },
+        {
+          "id": "nina-23",
+          "summary": "Incident review",
+          "start": "2026-09-04T09:30:00-05:00",
+          "end": "2026-09-04T10:30:00-05:00"
+        },
+        {
+          "id": "nina-24",
+          "summary": "Customer call",
+          "start": "2026-09-04T10:00:00-05:00",
+          "end": "2026-09-04T11:00:00-05:00"
+        },
+        {
+          "id": "nina-22",
+          "summary": "Platform standup",
+          "start": "2026-09-04T10:30:00-05:00",
+          "end": "2026-09-04T11:00:00-05:00"
+        },
+        {
+          "id": "nina-25",
+          "summary": "Code review",
+          "start": "2026-09-04T15:30:00-05:00",
+          "end": "2026-09-04T16:00:00-05:00"
+        },
+        {
+          "id": "nina-1",
+          "summary": "Labor Day",
+          "start": "2026-09-07T00:00:00-05:00",
+          "end": "2026-09-08T00:00:00-05:00",
+          "all_day": true
+        },
+        {
+          "id": "nina-28",
+          "summary": "Planning",
+          "start": "2026-09-08T09:00:00-05:00",
+          "end": "2026-09-08T10:00:00-05:00"
+        },
+        {
+          "id": "nina-26",
+          "summary": "Platform standup",
+          "start": "2026-09-08T10:30:00-05:00",
+          "end": "2026-09-08T11:00:00-05:00"
+        },
+        {
+          "id": "nina-29",
+          "summary": "Sync",
+          "start": "2026-09-08T12:30:00-05:00",
+          "end": "2026-09-08T13:30:00-05:00"
+        },
+        {
+          "id": "nina-27",
+          "summary": "1:1",
+          "start": "2026-09-08T15:00:00-05:00",
+          "end": "2026-09-08T15:30:00-05:00"
+        },
+        {
+          "id": "nina-32",
+          "summary": "Planning",
+          "start": "2026-09-09T09:30:00-05:00",
+          "end": "2026-09-09T10:00:00-05:00"
+        },
+        {
+          "id": "nina-34",
+          "summary": "Vendor call",
+          "start": "2026-09-09T09:30:00-05:00",
+          "end": "2026-09-09T10:30:00-05:00"
+        },
+        {
+          "id": "nina-33",
+          "summary": "Retro",
+          "start": "2026-09-09T10:00:00-05:00",
+          "end": "2026-09-09T11:00:00-05:00"
+        },
+        {
+          "id": "nina-30",
+          "summary": "Platform standup",
+          "start": "2026-09-09T10:30:00-05:00",
+          "end": "2026-09-09T11:00:00-05:00"
+        },
+        {
+          "id": "nina-31",
+          "summary": "Vendor call",
+          "start": "2026-09-09T12:30:00-05:00",
+          "end": "2026-09-09T13:30:00-05:00"
+        },
+        {
+          "id": "nina-38",
+          "summary": "Office hours",
+          "start": "2026-09-10T09:00:00-05:00",
+          "end": "2026-09-10T09:30:00-05:00"
+        },
+        {
+          "id": "nina-37",
+          "summary": "Design review",
+          "start": "2026-09-10T09:30:00-05:00",
+          "end": "2026-09-10T10:30:00-05:00"
+        },
+        {
+          "id": "nina-35",
+          "summary": "Platform standup",
+          "start": "2026-09-10T10:30:00-05:00",
+          "end": "2026-09-10T11:00:00-05:00"
+        },
+        {
+          "id": "nina-36",
+          "summary": "Planning",
+          "start": "2026-09-10T13:00:00-05:00",
+          "end": "2026-09-10T13:30:00-05:00"
+        },
+        {
+          "id": "nina-39",
+          "summary": "Roadmap",
+          "start": "2026-09-10T13:30:00-05:00",
+          "end": "2026-09-10T14:30:00-05:00"
+        },
+        {
+          "id": "nina-40",
+          "summary": "Demo prep",
+          "start": "2026-09-10T15:00:00-05:00",
+          "end": "2026-09-10T16:00:00-05:00"
+        },
+        {
+          "id": "nina-41",
+          "summary": "Platform standup",
+          "start": "2026-09-11T10:30:00-05:00",
+          "end": "2026-09-11T11:00:00-05:00"
+        },
+        {
+          "id": "nina-42",
+          "summary": "Interview",
+          "start": "2026-09-11T14:30:00-05:00",
+          "end": "2026-09-11T15:00:00-05:00"
+        },
+        {
+          "id": "nina-43",
+          "summary": "Planning",
+          "start": "2026-09-11T16:00:00-05:00",
+          "end": "2026-09-11T16:30:00-05:00"
+        },
+        {
+          "id": "nina-44",
+          "summary": "Office hours",
+          "start": "2026-09-11T16:00:00-05:00",
+          "end": "2026-09-11T16:30:00-05:00"
+        },
+        {
+          "id": "nina-50",
+          "summary": "Planning",
+          "start": "2026-09-14T10:00:00-05:00",
+          "end": "2026-09-14T11:30:00-05:00"
+        },
+        {
+          "id": "nina-45",
+          "summary": "Platform standup",
+          "start": "2026-09-14T10:30:00-05:00",
+          "end": "2026-09-14T11:00:00-05:00"
+        },
+        {
+          "id": "nina-46",
+          "summary": "Planning",
+          "start": "2026-09-14T11:00:00-05:00",
+          "end": "2026-09-14T12:00:00-05:00"
+        },
+        {
+          "id": "nina-48",
+          "summary": "Incident review",
+          "start": "2026-09-14T13:30:00-05:00",
+          "end": "2026-09-14T14:30:00-05:00"
+        },
+        {
+          "id": "nina-49",
+          "summary": "Code review",
+          "start": "2026-09-14T14:30:00-05:00",
+          "end": "2026-09-14T16:00:00-05:00"
+        },
+        {
+          "id": "nina-47",
+          "summary": "Training",
+          "start": "2026-09-14T15:30:00-05:00",
+          "end": "2026-09-14T17:00:00-05:00"
+        }
+      ]
+    },
+    {
+      "id": "caleb@example.com",
+      "name": "Caleb Wright",
+      "email": "caleb@example.com",
+      "team": "Platform",
+      "type": "person",
+      "timezone": "America/Chicago",
+      "utc_offset": "-05:00",
+      "working_hours": {
+        "start": "09:00",
+        "end": "17:00"
+      },
+      "events": [
+        {
+          "id": "caleb-3",
+          "summary": "Office hours",
+          "start": "2026-08-31T09:00:00-05:00",
+          "end": "2026-08-31T10:30:00-05:00"
+        },
+        {
+          "id": "caleb-2",
+          "summary": "Platform standup",
+          "start": "2026-08-31T10:30:00-05:00",
+          "end": "2026-08-31T11:00:00-05:00"
+        },
+        {
+          "id": "caleb-4",
+          "summary": "Customer call",
+          "start": "2026-08-31T11:00:00-05:00",
+          "end": "2026-08-31T12:30:00-05:00"
+        },
+        {
+          "id": "caleb-5",
+          "summary": "Vendor call",
+          "start": "2026-08-31T11:00:00-05:00",
+          "end": "2026-08-31T12:00:00-05:00"
+        },
+        {
+          "id": "caleb-6",
+          "summary": "Incident review",
+          "start": "2026-08-31T15:30:00-05:00",
+          "end": "2026-08-31T16:30:00-05:00"
+        },
+        {
+          "id": "caleb-9",
+          "summary": "Training",
+          "start": "2026-09-01T10:00:00-05:00",
+          "end": "2026-09-01T11:00:00-05:00"
+        },
+        {
+          "id": "caleb-7",
+          "summary": "Platform standup",
+          "start": "2026-09-01T10:30:00-05:00",
+          "end": "2026-09-01T11:00:00-05:00"
+        },
+        {
+          "id": "caleb-10",
+          "summary": "1:1",
+          "start": "2026-09-01T11:00:00-05:00",
+          "end": "2026-09-01T12:00:00-05:00"
+        },
+        {
+          "id": "caleb-11",
+          "summary": "Incident review",
+          "start": "2026-09-01T15:30:00-05:00",
+          "end": "2026-09-01T17:00:00-05:00"
+        },
+        {
+          "id": "caleb-8",
+          "summary": "Customer call",
+          "start": "2026-09-01T16:00:00-05:00",
+          "end": "2026-09-01T17:30:00-05:00"
+        },
+        {
+          "id": "caleb-12",
+          "summary": "Platform standup",
+          "start": "2026-09-02T10:30:00-05:00",
+          "end": "2026-09-02T11:00:00-05:00"
+        },
+        {
+          "id": "caleb-15",
+          "summary": "Retro",
+          "start": "2026-09-02T11:30:00-05:00",
+          "end": "2026-09-02T12:00:00-05:00"
+        },
+        {
+          "id": "caleb-14",
+          "summary": "Vendor call",
+          "start": "2026-09-02T13:30:00-05:00",
+          "end": "2026-09-02T14:30:00-05:00"
+        },
+        {
+          "id": "caleb-13",
+          "summary": "Office hours",
+          "start": "2026-09-02T16:00:00-05:00",
+          "end": "2026-09-02T16:30:00-05:00"
+        },
+        {
+          "id": "caleb-16",
+          "summary": "Platform standup",
+          "start": "2026-09-03T10:30:00-05:00",
+          "end": "2026-09-03T11:00:00-05:00"
+        },
+        {
+          "id": "caleb-19",
+          "summary": "Demo prep",
+          "start": "2026-09-03T11:30:00-05:00",
+          "end": "2026-09-03T12:30:00-05:00"
+        },
+        {
+          "id": "caleb-17",
+          "summary": "Office hours",
+          "start": "2026-09-03T12:00:00-05:00",
+          "end": "2026-09-03T13:00:00-05:00"
+        },
+        {
+          "id": "caleb-18",
+          "summary": "Planning",
+          "start": "2026-09-03T12:30:00-05:00",
+          "end": "2026-09-03T14:00:00-05:00"
+        },
+        {
+          "id": "caleb-23",
+          "summary": "Planning",
+          "start": "2026-09-04T09:00:00-05:00",
+          "end": "2026-09-04T10:00:00-05:00"
+        },
+        {
+          "id": "caleb-20",
+          "summary": "Platform standup",
+          "start": "2026-09-04T10:30:00-05:00",
+          "end": "2026-09-04T11:00:00-05:00"
+        },
+        {
+          "id": "caleb-25",
+          "summary": "Sync",
+          "start": "2026-09-04T11:00:00-05:00",
+          "end": "2026-09-04T12:00:00-05:00"
+        },
+        {
+          "id": "caleb-21",
+          "summary": "Interview",
+          "start": "2026-09-04T12:30:00-05:00",
+          "end": "2026-09-04T14:00:00-05:00"
+        },
+        {
+          "id": "caleb-22",
+          "summary": "Interview",
+          "start": "2026-09-04T13:30:00-05:00",
+          "end": "2026-09-04T14:30:00-05:00"
+        },
+        {
+          "id": "caleb-24",
+          "summary": "Demo prep",
+          "start": "2026-09-04T14:30:00-05:00",
+          "end": "2026-09-04T15:30:00-05:00"
+        },
+        {
+          "id": "caleb-1",
+          "summary": "Labor Day",
+          "start": "2026-09-07T00:00:00-05:00",
+          "end": "2026-09-08T00:00:00-05:00",
+          "all_day": true
+        },
+        {
+          "id": "caleb-26",
+          "summary": "Platform standup",
+          "start": "2026-09-08T10:30:00-05:00",
+          "end": "2026-09-08T11:00:00-05:00"
+        },
+        {
+          "id": "caleb-27",
+          "summary": "Sync",
+          "start": "2026-09-08T12:00:00-05:00",
+          "end": "2026-09-08T13:00:00-05:00"
+        },
+        {
+          "id": "caleb-30",
+          "summary": "1:1",
+          "start": "2026-09-08T13:00:00-05:00",
+          "end": "2026-09-08T13:30:00-05:00"
+        },
+        {
+          "id": "caleb-28",
+          "summary": "Training",
+          "start": "2026-09-08T13:30:00-05:00",
+          "end": "2026-09-08T14:00:00-05:00"
+        },
+        {
+          "id": "caleb-29",
+          "summary": "Code review",
+          "start": "2026-09-08T14:30:00-05:00",
+          "end": "2026-09-08T15:30:00-05:00"
+        },
+        {
+          "id": "caleb-35",
+          "summary": "Design review",
+          "start": "2026-09-09T09:30:00-05:00",
+          "end": "2026-09-09T10:00:00-05:00"
+        },
+        {
+          "id": "caleb-31",
+          "summary": "Platform standup",
+          "start": "2026-09-09T10:30:00-05:00",
+          "end": "2026-09-09T11:00:00-05:00"
+        },
+        {
+          "id": "caleb-34",
+          "summary": "Sync",
+          "start": "2026-09-09T10:30:00-05:00",
+          "end": "2026-09-09T11:00:00-05:00"
+        },
+        {
+          "id": "caleb-33",
+          "summary": "Sync",
+          "start": "2026-09-09T11:00:00-05:00",
+          "end": "2026-09-09T12:00:00-05:00"
+        },
+        {
+          "id": "caleb-32",
+          "summary": "Planning",
+          "start": "2026-09-09T12:00:00-05:00",
+          "end": "2026-09-09T13:00:00-05:00"
+        },
+        {
+          "id": "caleb-39",
+          "summary": "Code review",
+          "start": "2026-09-10T09:30:00-05:00",
+          "end": "2026-09-10T11:00:00-05:00"
+        },
+        {
+          "id": "caleb-36",
+          "summary": "Platform standup",
+          "start": "2026-09-10T10:30:00-05:00",
+          "end": "2026-09-10T11:00:00-05:00"
+        },
+        {
+          "id": "caleb-38",
+          "summary": "Customer call",
+          "start": "2026-09-10T13:30:00-05:00",
+          "end": "2026-09-10T15:00:00-05:00"
+        },
+        {
+          "id": "caleb-37",
+          "summary": "Training",
+          "start": "2026-09-10T14:30:00-05:00",
+          "end": "2026-09-10T15:30:00-05:00"
+        },
+        {
+          "id": "caleb-44",
+          "summary": "1:1",
+          "start": "2026-09-11T09:30:00-05:00",
+          "end": "2026-09-11T10:00:00-05:00"
+        },
+        {
+          "id": "caleb-40",
+          "summary": "Platform standup",
+          "start": "2026-09-11T10:30:00-05:00",
+          "end": "2026-09-11T11:00:00-05:00"
+        },
+        {
+          "id": "caleb-42",
+          "summary": "1:1",
+          "start": "2026-09-11T11:00:00-05:00",
+          "end": "2026-09-11T11:30:00-05:00"
+        },
+        {
+          "id": "caleb-41",
+          "summary": "Sync",
+          "start": "2026-09-11T14:00:00-05:00",
+          "end": "2026-09-11T15:30:00-05:00"
+        },
+        {
+          "id": "caleb-45",
+          "summary": "Office hours",
+          "start": "2026-09-11T15:00:00-05:00",
+          "end": "2026-09-11T15:30:00-05:00"
+        },
+        {
+          "id": "caleb-43",
+          "summary": "Incident review",
+          "start": "2026-09-11T15:30:00-05:00",
+          "end": "2026-09-11T16:30:00-05:00"
+        },
+        {
+          "id": "caleb-48",
+          "summary": "Training",
+          "start": "2026-09-14T10:00:00-05:00",
+          "end": "2026-09-14T11:00:00-05:00"
+        },
+        {
+          "id": "caleb-46",
+          "summary": "Platform standup",
+          "start": "2026-09-14T10:30:00-05:00",
+          "end": "2026-09-14T11:00:00-05:00"
+        },
+        {
+          "id": "caleb-49",
+          "summary": "Demo prep",
+          "start": "2026-09-14T13:00:00-05:00",
+          "end": "2026-09-14T13:30:00-05:00"
+        },
+        {
+          "id": "caleb-47",
+          "summary": "Sync",
+          "start": "2026-09-14T14:30:00-05:00",
+          "end": "2026-09-14T15:30:00-05:00"
+        },
+        {
+          "id": "caleb-50",
+          "summary": "Planning",
+          "start": "2026-09-14T15:00:00-05:00",
+          "end": "2026-09-14T16:00:00-05:00"
+        },
+        {
+          "id": "caleb-51",
+          "summary": "Code review",
+          "start": "2026-09-14T16:00:00-05:00",
+          "end": "2026-09-14T17:00:00-05:00"
+        }
+      ]
+    },
+    {
+      "id": "mei@example.com",
+      "name": "Mei Tanaka",
+      "email": "mei@example.com",
+      "team": "Platform",
+      "type": "person",
+      "timezone": "America/Chicago",
+      "utc_offset": "-05:00",
+      "working_hours": {
+        "start": "09:00",
+        "end": "17:00"
+      },
+      "events": [
+        {
+          "id": "mei-2",
+          "summary": "Platform standup",
+          "start": "2026-08-31T10:30:00-05:00",
+          "end": "2026-08-31T11:00:00-05:00"
+        },
+        {
+          "id": "mei-5",
+          "summary": "Roadmap",
+          "start": "2026-08-31T11:00:00-05:00",
+          "end": "2026-08-31T11:30:00-05:00"
+        },
+        {
+          "id": "mei-7",
+          "summary": "Vendor call",
+          "start": "2026-08-31T13:30:00-05:00",
+          "end": "2026-08-31T14:30:00-05:00"
+        },
+        {
+          "id": "mei-6",
+          "summary": "Design review",
+          "start": "2026-08-31T14:00:00-05:00",
+          "end": "2026-08-31T15:30:00-05:00"
+        },
+        {
+          "id": "mei-3",
+          "summary": "Incident review",
+          "start": "2026-08-31T15:30:00-05:00",
+          "end": "2026-08-31T16:30:00-05:00"
+        },
+        {
+          "id": "mei-4",
+          "summary": "Planning",
+          "start": "2026-08-31T16:00:00-05:00",
+          "end": "2026-08-31T16:30:00-05:00"
+        },
+        {
+          "id": "mei-9",
+          "summary": "Office hours",
+          "start": "2026-09-01T09:30:00-05:00",
+          "end": "2026-09-01T10:30:00-05:00"
+        },
+        {
+          "id": "mei-8",
+          "summary": "Platform standup",
+          "start": "2026-09-01T10:30:00-05:00",
+          "end": "2026-09-01T11:00:00-05:00"
+        },
+        {
+          "id": "mei-10",
+          "summary": "Customer call",
+          "start": "2026-09-01T12:00:00-05:00",
+          "end": "2026-09-01T13:00:00-05:00"
+        },
+        {
+          "id": "mei-13",
+          "summary": "Incident review",
+          "start": "2026-09-02T10:00:00-05:00",
+          "end": "2026-09-02T11:00:00-05:00"
+        },
+        {
+          "id": "mei-11",
+          "summary": "Platform standup",
+          "start": "2026-09-02T10:30:00-05:00",
+          "end": "2026-09-02T11:00:00-05:00"
+        },
+        {
+          "id": "mei-12",
+          "summary": "Demo prep",
+          "start": "2026-09-02T11:00:00-05:00",
+          "end": "2026-09-02T11:30:00-05:00"
+        },
+        {
+          "id": "mei-14",
+          "summary": "Code review",
+          "start": "2026-09-02T11:00:00-05:00",
+          "end": "2026-09-02T12:00:00-05:00"
+        },
+        {
+          "id": "mei-16",
+          "summary": "Interview",
+          "start": "2026-09-03T10:00:00-05:00",
+          "end": "2026-09-03T10:30:00-05:00"
+        },
+        {
+          "id": "mei-17",
+          "summary": "Sync",
+          "start": "2026-09-03T10:00:00-05:00",
+          "end": "2026-09-03T11:00:00-05:00"
+        },
+        {
+          "id": "mei-15",
+          "summary": "Platform standup",
+          "start": "2026-09-03T10:30:00-05:00",
+          "end": "2026-09-03T11:00:00-05:00"
+        },
+        {
+          "id": "mei-20",
+          "summary": "1:1",
+          "start": "2026-09-03T11:30:00-05:00",
+          "end": "2026-09-03T12:30:00-05:00"
+        },
+        {
+          "id": "mei-19",
+          "summary": "1:1",
+          "start": "2026-09-03T12:30:00-05:00",
+          "end": "2026-09-03T13:30:00-05:00"
+        },
+        {
+          "id": "mei-18",
+          "summary": "Incident review",
+          "start": "2026-09-03T16:00:00-05:00",
+          "end": "2026-09-03T16:30:00-05:00"
+        },
+        {
+          "id": "mei-23",
+          "summary": "Code review",
+          "start": "2026-09-04T09:30:00-05:00",
+          "end": "2026-09-04T10:30:00-05:00"
+        },
+        {
+          "id": "mei-21",
+          "summary": "Platform standup",
+          "start": "2026-09-04T10:30:00-05:00",
+          "end": "2026-09-04T11:00:00-05:00"
+        },
+        {
+          "id": "mei-24",
+          "summary": "Interview",
+          "start": "2026-09-04T10:30:00-05:00",
+          "end": "2026-09-04T11:00:00-05:00"
+        },
+        {
+          "id": "mei-22",
+          "summary": "Retro",
+          "start": "2026-09-04T11:30:00-05:00",
+          "end": "2026-09-04T13:00:00-05:00"
+        },
+        {
+          "id": "mei-1",
+          "summary": "Labor Day",
+          "start": "2026-09-07T00:00:00-05:00",
+          "end": "2026-09-08T00:00:00-05:00",
+          "all_day": true
+        },
+        {
+          "id": "mei-26",
+          "summary": "Code review",
+          "start": "2026-09-08T09:30:00-05:00",
+          "end": "2026-09-08T10:30:00-05:00"
+        },
+        {
+          "id": "mei-25",
+          "summary": "Platform standup",
+          "start": "2026-09-08T10:30:00-05:00",
+          "end": "2026-09-08T11:00:00-05:00"
+        },
+        {
+          "id": "mei-27",
+          "summary": "Training",
+          "start": "2026-09-08T13:00:00-05:00",
+          "end": "2026-09-08T13:30:00-05:00"
+        },
+        {
+          "id": "mei-28",
+          "summary": "Vendor call",
+          "start": "2026-09-08T13:00:00-05:00",
+          "end": "2026-09-08T13:30:00-05:00"
+        },
+        {
+          "id": "mei-31",
+          "summary": "Code review",
+          "start": "2026-09-09T10:00:00-05:00",
+          "end": "2026-09-09T10:30:00-05:00"
+        },
+        {
+          "id": "mei-29",
+          "summary": "Platform standup",
+          "start": "2026-09-09T10:30:00-05:00",
+          "end": "2026-09-09T11:00:00-05:00"
+        },
+        {
+          "id": "mei-32",
+          "summary": "Planning",
+          "start": "2026-09-09T11:00:00-05:00",
+          "end": "2026-09-09T11:30:00-05:00"
+        },
+        {
+          "id": "mei-33",
+          "summary": "Retro",
+          "start": "2026-09-09T11:00:00-05:00",
+          "end": "2026-09-09T12:30:00-05:00"
+        },
+        {
+          "id": "mei-30",
+          "summary": "Design review",
+          "start": "2026-09-09T11:30:00-05:00",
+          "end": "2026-09-09T12:00:00-05:00"
+        },
+        {
+          "id": "mei-34",
+          "summary": "Incident review",
+          "start": "2026-09-09T12:30:00-05:00",
+          "end": "2026-09-09T13:30:00-05:00"
+        },
+        {
+          "id": "mei-35",
+          "summary": "Platform standup",
+          "start": "2026-09-10T10:30:00-05:00",
+          "end": "2026-09-10T11:00:00-05:00"
+        },
+        {
+          "id": "mei-37",
+          "summary": "Retro",
+          "start": "2026-09-10T12:30:00-05:00",
+          "end": "2026-09-10T13:00:00-05:00"
+        },
+        {
+          "id": "mei-38",
+          "summary": "Office hours",
+          "start": "2026-09-10T13:30:00-05:00",
+          "end": "2026-09-10T14:00:00-05:00"
+        },
+        {
+          "id": "mei-36",
+          "summary": "Interview",
+          "start": "2026-09-10T15:00:00-05:00",
+          "end": "2026-09-10T15:30:00-05:00"
+        },
+        {
+          "id": "mei-39",
+          "summary": "Platform standup",
+          "start": "2026-09-11T10:30:00-05:00",
+          "end": "2026-09-11T11:00:00-05:00"
+        },
+        {
+          "id": "mei-43",
+          "summary": "Retro",
+          "start": "2026-09-11T11:00:00-05:00",
+          "end": "2026-09-11T12:00:00-05:00"
+        },
+        {
+          "id": "mei-41",
+          "summary": "Training",
+          "start": "2026-09-11T13:00:00-05:00",
+          "end": "2026-09-11T14:00:00-05:00"
+        },
+        {
+          "id": "mei-40",
+          "summary": "Sync",
+          "start": "2026-09-11T15:00:00-05:00",
+          "end": "2026-09-11T16:30:00-05:00"
+        },
+        {
+          "id": "mei-42",
+          "summary": "Vendor call",
+          "start": "2026-09-11T16:00:00-05:00",
+          "end": "2026-09-11T16:30:00-05:00"
+        },
+        {
+          "id": "mei-44",
+          "summary": "Platform standup",
+          "start": "2026-09-14T10:30:00-05:00",
+          "end": "2026-09-14T11:00:00-05:00"
+        },
+        {
+          "id": "mei-46",
+          "summary": "Planning",
+          "start": "2026-09-14T11:00:00-05:00",
+          "end": "2026-09-14T12:00:00-05:00"
+        },
+        {
+          "id": "mei-45",
+          "summary": "Design review",
+          "start": "2026-09-14T16:00:00-05:00",
+          "end": "2026-09-14T17:00:00-05:00"
+        },
+        {
+          "id": "mei-47",
+          "summary": "Incident review",
+          "start": "2026-09-14T16:00:00-05:00",
+          "end": "2026-09-14T16:30:00-05:00"
+        }
+      ]
+    },
+    {
+      "id": "eli@example.com",
+      "name": "Eli Brooks",
+      "email": "eli@example.com",
+      "team": "Platform",
+      "type": "person",
+      "timezone": "America/Chicago",
+      "utc_offset": "-05:00",
+      "working_hours": {
+        "start": "09:00",
+        "end": "17:00"
+      },
+      "events": [
+        {
+          "id": "eli-3",
+          "summary": "Retro",
+          "start": "2026-08-31T09:30:00-05:00",
+          "end": "2026-08-31T10:30:00-05:00"
+        },
+        {
+          "id": "eli-2",
+          "summary": "Platform standup",
+          "start": "2026-08-31T10:30:00-05:00",
+          "end": "2026-08-31T11:00:00-05:00"
+        },
+        {
+          "id": "eli-6",
+          "summary": "Vendor call",
+          "start": "2026-08-31T11:00:00-05:00",
+          "end": "2026-08-31T11:30:00-05:00"
+        },
+        {
+          "id": "eli-5",
+          "summary": "Roadmap",
+          "start": "2026-08-31T12:30:00-05:00",
+          "end": "2026-08-31T13:30:00-05:00"
+        },
+        {
+          "id": "eli-4",
+          "summary": "1:1",
+          "start": "2026-08-31T15:30:00-05:00",
+          "end": "2026-08-31T16:30:00-05:00"
+        },
+        {
+          "id": "eli-7",
+          "summary": "Platform standup",
+          "start": "2026-09-01T10:30:00-05:00",
+          "end": "2026-09-01T11:00:00-05:00"
+        },
+        {
+          "id": "eli-9",
+          "summary": "1:1",
+          "start": "2026-09-01T15:00:00-05:00",
+          "end": "2026-09-01T16:00:00-05:00"
+        },
+        {
+          "id": "eli-8",
+          "summary": "Roadmap",
+          "start": "2026-09-01T16:00:00-05:00",
+          "end": "2026-09-01T16:30:00-05:00"
+        },
+        {
+          "id": "eli-10",
+          "summary": "Retro",
+          "start": "2026-09-01T16:00:00-05:00",
+          "end": "2026-09-01T16:30:00-05:00"
+        },
+        {
+          "id": "eli-11",
+          "summary": "Platform standup",
+          "start": "2026-09-02T10:30:00-05:00",
+          "end": "2026-09-02T11:00:00-05:00"
+        },
+        {
+          "id": "eli-13",
+          "summary": "Retro",
+          "start": "2026-09-02T10:30:00-05:00",
+          "end": "2026-09-02T11:00:00-05:00"
+        },
+        {
+          "id": "eli-12",
+          "summary": "Sync",
+          "start": "2026-09-02T16:00:00-05:00",
+          "end": "2026-09-02T17:30:00-05:00"
+        },
+        {
+          "id": "eli-15",
+          "summary": "Customer call",
+          "start": "2026-09-03T09:30:00-05:00",
+          "end": "2026-09-03T10:30:00-05:00"
+        },
+        {
+          "id": "eli-14",
+          "summary": "Platform standup",
+          "start": "2026-09-03T10:30:00-05:00",
+          "end": "2026-09-03T11:00:00-05:00"
+        },
+        {
+          "id": "eli-17",
+          "summary": "Vendor call",
+          "start": "2026-09-03T11:30:00-05:00",
+          "end": "2026-09-03T13:00:00-05:00"
+        },
+        {
+          "id": "eli-16",
+          "summary": "Retro",
+          "start": "2026-09-03T13:00:00-05:00",
+          "end": "2026-09-03T14:00:00-05:00"
+        },
+        {
+          "id": "eli-18",
+          "summary": "Sync",
+          "start": "2026-09-03T13:30:00-05:00",
+          "end": "2026-09-03T14:00:00-05:00"
+        },
+        {
+          "id": "eli-19",
+          "summary": "Platform standup",
+          "start": "2026-09-04T10:30:00-05:00",
+          "end": "2026-09-04T11:00:00-05:00"
+        },
+        {
+          "id": "eli-22",
+          "summary": "Retro",
+          "start": "2026-09-04T12:00:00-05:00",
+          "end": "2026-09-04T12:30:00-05:00"
+        },
+        {
+          "id": "eli-21",
+          "summary": "Vendor call",
+          "start": "2026-09-04T12:30:00-05:00",
+          "end": "2026-09-04T13:30:00-05:00"
+        },
+        {
+          "id": "eli-23",
+          "summary": "Training",
+          "start": "2026-09-04T14:00:00-05:00",
+          "end": "2026-09-04T15:00:00-05:00"
+        },
+        {
+          "id": "eli-20",
+          "summary": "Vendor call",
+          "start": "2026-09-04T15:30:00-05:00",
+          "end": "2026-09-04T17:00:00-05:00"
+        },
+        {
+          "id": "eli-1",
+          "summary": "Labor Day",
+          "start": "2026-09-07T00:00:00-05:00",
+          "end": "2026-09-08T00:00:00-05:00",
+          "all_day": true
+        },
+        {
+          "id": "eli-24",
+          "summary": "Platform standup",
+          "start": "2026-09-08T10:30:00-05:00",
+          "end": "2026-09-08T11:00:00-05:00"
+        },
+        {
+          "id": "eli-25",
+          "summary": "Interview",
+          "start": "2026-09-08T14:00:00-05:00",
+          "end": "2026-09-08T15:30:00-05:00"
+        },
+        {
+          "id": "eli-26",
+          "summary": "Code review",
+          "start": "2026-09-08T15:00:00-05:00",
+          "end": "2026-09-08T16:00:00-05:00"
+        },
+        {
+          "id": "eli-27",
+          "summary": "Platform standup",
+          "start": "2026-09-09T10:30:00-05:00",
+          "end": "2026-09-09T11:00:00-05:00"
+        },
+        {
+          "id": "eli-29",
+          "summary": "Retro",
+          "start": "2026-09-09T12:30:00-05:00",
+          "end": "2026-09-09T13:00:00-05:00"
+        },
+        {
+          "id": "eli-30",
+          "summary": "Customer call",
+          "start": "2026-09-09T13:30:00-05:00",
+          "end": "2026-09-09T14:00:00-05:00"
+        },
+        {
+          "id": "eli-28",
+          "summary": "Planning",
+          "start": "2026-09-09T14:00:00-05:00",
+          "end": "2026-09-09T14:30:00-05:00"
+        },
+        {
+          "id": "eli-33",
+          "summary": "1:1",
+          "start": "2026-09-10T09:30:00-05:00",
+          "end": "2026-09-10T10:30:00-05:00"
+        },
+        {
+          "id": "eli-31",
+          "summary": "Platform standup",
+          "start": "2026-09-10T10:30:00-05:00",
+          "end": "2026-09-10T11:00:00-05:00"
+        },
+        {
+          "id": "eli-34",
+          "summary": "Incident review",
+          "start": "2026-09-10T11:00:00-05:00",
+          "end": "2026-09-10T11:30:00-05:00"
+        },
+        {
+          "id": "eli-32",
+          "summary": "Planning",
+          "start": "2026-09-10T15:30:00-05:00",
+          "end": "2026-09-10T16:30:00-05:00"
+        },
+        {
+          "id": "eli-38",
+          "summary": "Sync",
+          "start": "2026-09-11T09:00:00-05:00",
+          "end": "2026-09-11T09:30:00-05:00"
+        },
+        {
+          "id": "eli-35",
+          "summary": "Platform standup",
+          "start": "2026-09-11T10:30:00-05:00",
+          "end": "2026-09-11T11:00:00-05:00"
+        },
+        {
+          "id": "eli-36",
+          "summary": "Roadmap",
+          "start": "2026-09-11T10:30:00-05:00",
+          "end": "2026-09-11T11:00:00-05:00"
+        },
+        {
+          "id": "eli-37",
+          "summary": "Retro",
+          "start": "2026-09-11T10:30:00-05:00",
+          "end": "2026-09-11T11:30:00-05:00"
+        },
+        {
+          "id": "eli-39",
+          "summary": "Customer call",
+          "start": "2026-09-11T14:30:00-05:00",
+          "end": "2026-09-11T16:00:00-05:00"
+        },
+        {
+          "id": "eli-41",
+          "summary": "Demo prep",
+          "start": "2026-09-14T10:00:00-05:00",
+          "end": "2026-09-14T11:00:00-05:00"
+        },
+        {
+          "id": "eli-44",
+          "summary": "Demo prep",
+          "start": "2026-09-14T10:00:00-05:00",
+          "end": "2026-09-14T11:00:00-05:00"
+        },
+        {
+          "id": "eli-40",
+          "summary": "Platform standup",
+          "start": "2026-09-14T10:30:00-05:00",
+          "end": "2026-09-14T11:00:00-05:00"
+        },
+        {
+          "id": "eli-43",
+          "summary": "Roadmap",
+          "start": "2026-09-14T10:30:00-05:00",
+          "end": "2026-09-14T12:00:00-05:00"
+        },
+        {
+          "id": "eli-42",
+          "summary": "Training",
+          "start": "2026-09-14T14:00:00-05:00",
+          "end": "2026-09-14T14:30:00-05:00"
+        }
+      ]
+    },
+    {
+      "id": "jordan@example.com",
+      "name": "Jordan Lee",
+      "email": "jordan@example.com",
+      "team": "Design",
+      "type": "person",
+      "timezone": "America/Chicago",
+      "utc_offset": "-05:00",
+      "working_hours": {
+        "start": "09:00",
+        "end": "17:00"
+      },
+      "events": [
+        {
+          "id": "jordan-4",
+          "summary": "Planning",
+          "start": "2026-08-31T10:30:00-05:00",
+          "end": "2026-08-31T11:00:00-05:00"
+        },
+        {
+          "id": "jordan-2",
+          "summary": "Training",
+          "start": "2026-08-31T11:00:00-05:00",
+          "end": "2026-08-31T12:00:00-05:00"
+        },
+        {
+          "id": "jordan-3",
+          "summary": "Planning",
+          "start": "2026-08-31T12:00:00-05:00",
+          "end": "2026-08-31T13:30:00-05:00"
+        },
+        {
+          "id": "jordan-5",
+          "summary": "Training",
+          "start": "2026-08-31T12:00:00-05:00",
+          "end": "2026-08-31T13:00:00-05:00"
+        },
+        {
+          "id": "jordan-6",
+          "summary": "Vendor call",
+          "start": "2026-09-01T13:30:00-05:00",
+          "end": "2026-09-01T15:00:00-05:00"
+        },
+        {
+          "id": "jordan-7",
+          "summary": "Demo prep",
+          "start": "2026-09-01T13:30:00-05:00",
+          "end": "2026-09-01T15:00:00-05:00"
+        },
+        {
+          "id": "jordan-8",
+          "summary": "Roadmap",
+          "start": "2026-09-01T14:30:00-05:00",
+          "end": "2026-09-01T15:30:00-05:00"
+        },
+        {
+          "id": "jordan-11",
+          "summary": "Vendor call",
+          "start": "2026-09-02T09:30:00-05:00",
+          "end": "2026-09-02T10:00:00-05:00"
+        },
+        {
+          "id": "jordan-12",
+          "summary": "1:1",
+          "start": "2026-09-02T11:00:00-05:00",
+          "end": "2026-09-02T11:30:00-05:00"
+        },
+        {
+          "id": "jordan-9",
+          "summary": "Vendor call",
+          "start": "2026-09-02T14:30:00-05:00",
+          "end": "2026-09-02T15:00:00-05:00"
+        },
+        {
+          "id": "jordan-10",
+          "summary": "Code review",
+          "start": "2026-09-02T16:00:00-05:00",
+          "end": "2026-09-02T17:00:00-05:00"
+        },
+        {
+          "id": "jordan-13",
+          "summary": "Vendor call",
+          "start": "2026-09-03T10:00:00-05:00",
+          "end": "2026-09-03T10:30:00-05:00"
+        },
+        {
+          "id": "jordan-15",
+          "summary": "Customer call",
+          "start": "2026-09-03T13:30:00-05:00",
+          "end": "2026-09-03T14:30:00-05:00"
+        },
+        {
+          "id": "jordan-14",
+          "summary": "Roadmap",
+          "start": "2026-09-03T15:00:00-05:00",
+          "end": "2026-09-03T15:30:00-05:00"
+        },
+        {
+          "id": "jordan-16",
+          "summary": "Sync",
+          "start": "2026-09-03T15:30:00-05:00",
+          "end": "2026-09-03T16:30:00-05:00"
+        },
+        {
+          "id": "jordan-18",
+          "summary": "Roadmap",
+          "start": "2026-09-04T09:30:00-05:00",
+          "end": "2026-09-04T10:00:00-05:00"
+        },
+        {
+          "id": "jordan-20",
+          "summary": "Demo prep",
+          "start": "2026-09-04T14:30:00-05:00",
+          "end": "2026-09-04T15:00:00-05:00"
+        },
+        {
+          "id": "jordan-17",
+          "summary": "Vendor call",
+          "start": "2026-09-04T15:30:00-05:00",
+          "end": "2026-09-04T16:30:00-05:00"
+        },
+        {
+          "id": "jordan-19",
+          "summary": "Interview",
+          "start": "2026-09-04T15:30:00-05:00",
+          "end": "2026-09-04T16:30:00-05:00"
+        },
+        {
+          "id": "jordan-1",
+          "summary": "Labor Day",
+          "start": "2026-09-07T00:00:00-05:00",
+          "end": "2026-09-08T00:00:00-05:00",
+          "all_day": true
+        },
+        {
+          "id": "jordan-23",
+          "summary": "Vendor call",
+          "start": "2026-09-08T09:30:00-05:00",
+          "end": "2026-09-08T10:00:00-05:00"
+        },
+        {
+          "id": "jordan-22",
+          "summary": "Planning",
+          "start": "2026-09-08T12:00:00-05:00",
+          "end": "2026-09-08T13:00:00-05:00"
+        },
+        {
+          "id": "jordan-24",
+          "summary": "1:1",
+          "start": "2026-09-08T14:00:00-05:00",
+          "end": "2026-09-08T15:00:00-05:00"
+        },
+        {
+          "id": "jordan-21",
+          "summary": "Code review",
+          "start": "2026-09-08T16:00:00-05:00",
+          "end": "2026-09-08T17:30:00-05:00"
+        },
+        {
+          "id": "jordan-25",
+          "summary": "Training",
+          "start": "2026-09-09T09:00:00-05:00",
+          "end": "2026-09-09T10:30:00-05:00"
+        },
+        {
+          "id": "jordan-26",
+          "summary": "Interview",
+          "start": "2026-09-09T10:00:00-05:00",
+          "end": "2026-09-09T10:30:00-05:00"
+        },
+        {
+          "id": "jordan-28",
+          "summary": "Office hours",
+          "start": "2026-09-09T10:30:00-05:00",
+          "end": "2026-09-09T11:30:00-05:00"
+        },
+        {
+          "id": "jordan-29",
+          "summary": "Sync",
+          "start": "2026-09-09T14:00:00-05:00",
+          "end": "2026-09-09T15:00:00-05:00"
+        },
+        {
+          "id": "jordan-27",
+          "summary": "Interview",
+          "start": "2026-09-09T15:00:00-05:00",
+          "end": "2026-09-09T16:30:00-05:00"
+        },
+        {
+          "id": "jordan-30",
+          "summary": "Office hours",
+          "start": "2026-09-10T11:00:00-05:00",
+          "end": "2026-09-10T11:30:00-05:00"
+        },
+        {
+          "id": "jordan-32",
+          "summary": "Customer call",
+          "start": "2026-09-10T12:30:00-05:00",
+          "end": "2026-09-10T13:30:00-05:00"
+        },
+        {
+          "id": "jordan-33",
+          "summary": "Demo prep",
+          "start": "2026-09-10T13:00:00-05:00",
+          "end": "2026-09-10T13:30:00-05:00"
+        },
+        {
+          "id": "jordan-34",
+          "summary": "Roadmap",
+          "start": "2026-09-10T13:00:00-05:00",
+          "end": "2026-09-10T13:30:00-05:00"
+        },
+        {
+          "id": "jordan-31",
+          "summary": "Demo prep",
+          "start": "2026-09-10T16:00:00-05:00",
+          "end": "2026-09-10T17:00:00-05:00"
+        },
+        {
+          "id": "jordan-37",
+          "summary": "Demo prep",
+          "start": "2026-09-11T11:30:00-05:00",
+          "end": "2026-09-11T12:30:00-05:00"
+        },
+        {
+          "id": "jordan-35",
+          "summary": "Design review",
+          "start": "2026-09-11T12:00:00-05:00",
+          "end": "2026-09-11T12:30:00-05:00"
+        },
+        {
+          "id": "jordan-36",
+          "summary": "Office hours",
+          "start": "2026-09-11T12:00:00-05:00",
+          "end": "2026-09-11T12:30:00-05:00"
+        },
+        {
+          "id": "jordan-38",
+          "summary": "Vendor call",
+          "start": "2026-09-11T13:00:00-05:00",
+          "end": "2026-09-11T13:30:00-05:00"
+        },
+        {
+          "id": "jordan-39",
+          "summary": "Sync",
+          "start": "2026-09-14T09:00:00-05:00",
+          "end": "2026-09-14T09:30:00-05:00"
+        },
+        {
+          "id": "jordan-41",
+          "summary": "Retro",
+          "start": "2026-09-14T09:00:00-05:00",
+          "end": "2026-09-14T10:00:00-05:00"
+        },
+        {
+          "id": "jordan-42",
+          "summary": "Sync",
+          "start": "2026-09-14T10:00:00-05:00",
+          "end": "2026-09-14T10:30:00-05:00"
+        },
+        {
+          "id": "jordan-43",
+          "summary": "Demo prep",
+          "start": "2026-09-14T12:30:00-05:00",
+          "end": "2026-09-14T13:00:00-05:00"
+        },
+        {
+          "id": "jordan-40",
+          "summary": "Vendor call",
+          "start": "2026-09-14T16:00:00-05:00",
+          "end": "2026-09-14T16:30:00-05:00"
+        }
+      ]
+    },
+    {
+      "id": "sam@example.com",
+      "name": "Sam Okafor",
+      "email": "sam@example.com",
+      "team": "Design",
+      "type": "person",
+      "timezone": "America/Chicago",
+      "utc_offset": "-05:00",
+      "working_hours": {
+        "start": "09:00",
+        "end": "17:00"
+      },
+      "events": [
+        {
+          "id": "sam-2",
+          "summary": "Customer call",
+          "start": "2026-08-31T13:30:00-05:00",
+          "end": "2026-08-31T14:00:00-05:00"
+        },
+        {
+          "id": "sam-3",
+          "summary": "Incident review",
+          "start": "2026-08-31T15:00:00-05:00",
+          "end": "2026-08-31T15:30:00-05:00"
+        },
+        {
+          "id": "sam-4",
+          "summary": "Design review",
+          "start": "2026-08-31T15:00:00-05:00",
+          "end": "2026-08-31T16:30:00-05:00"
+        },
+        {
+          "id": "sam-5",
+          "summary": "Sync",
+          "start": "2026-09-01T10:30:00-05:00",
+          "end": "2026-09-01T11:00:00-05:00"
+        },
+        {
+          "id": "sam-7",
+          "summary": "Roadmap",
+          "start": "2026-09-01T10:30:00-05:00",
+          "end": "2026-09-01T11:00:00-05:00"
+        },
+        {
+          "id": "sam-6",
+          "summary": "Sync",
+          "start": "2026-09-01T11:30:00-05:00",
+          "end": "2026-09-01T12:30:00-05:00"
+        },
+        {
+          "id": "sam-8",
+          "summary": "Customer call",
+          "start": "2026-09-01T13:00:00-05:00",
+          "end": "2026-09-01T14:30:00-05:00"
+        },
+        {
+          "id": "sam-12",
+          "summary": "Roadmap",
+          "start": "2026-09-02T09:30:00-05:00",
+          "end": "2026-09-02T10:00:00-05:00"
+        },
+        {
+          "id": "sam-9",
+          "summary": "Vendor call",
+          "start": "2026-09-02T14:30:00-05:00",
+          "end": "2026-09-02T16:00:00-05:00"
+        },
+        {
+          "id": "sam-11",
+          "summary": "Training",
+          "start": "2026-09-02T14:30:00-05:00",
+          "end": "2026-09-02T15:30:00-05:00"
+        },
+        {
+          "id": "sam-10",
+          "summary": "Planning",
+          "start": "2026-09-02T15:00:00-05:00",
+          "end": "2026-09-02T15:30:00-05:00"
+        },
+        {
+          "id": "sam-15",
+          "summary": "Code review",
+          "start": "2026-09-03T09:00:00-05:00",
+          "end": "2026-09-03T09:30:00-05:00"
+        },
+        {
+          "id": "sam-14",
+          "summary": "Design review",
+          "start": "2026-09-03T09:30:00-05:00",
+          "end": "2026-09-03T10:00:00-05:00"
+        },
+        {
+          "id": "sam-13",
+          "summary": "1:1",
+          "start": "2026-09-03T10:30:00-05:00",
+          "end": "2026-09-03T11:30:00-05:00"
+        },
+        {
+          "id": "sam-16",
+          "summary": "Sync",
+          "start": "2026-09-03T10:30:00-05:00",
+          "end": "2026-09-03T11:00:00-05:00"
+        },
+        {
+          "id": "sam-17",
+          "summary": "Sync",
+          "start": "2026-09-04T09:00:00-05:00",
+          "end": "2026-09-04T09:30:00-05:00"
+        },
+        {
+          "id": "sam-18",
+          "summary": "Design review",
+          "start": "2026-09-04T09:00:00-05:00",
+          "end": "2026-09-04T10:00:00-05:00"
+        },
+        {
+          "id": "sam-19",
+          "summary": "Demo prep",
+          "start": "2026-09-04T12:00:00-05:00",
+          "end": "2026-09-04T12:30:00-05:00"
+        },
+        {
+          "id": "sam-20",
+          "summary": "Planning",
+          "start": "2026-09-04T12:30:00-05:00",
+          "end": "2026-09-04T13:00:00-05:00"
+        },
+        {
+          "id": "sam-1",
+          "summary": "Labor Day",
+          "start": "2026-09-07T00:00:00-05:00",
+          "end": "2026-09-08T00:00:00-05:00",
+          "all_day": true
+        },
+        {
+          "id": "sam-21",
+          "summary": "Interview",
+          "start": "2026-09-08T09:30:00-05:00",
+          "end": "2026-09-08T10:30:00-05:00"
+        },
+        {
+          "id": "sam-22",
+          "summary": "Incident review",
+          "start": "2026-09-08T10:00:00-05:00",
+          "end": "2026-09-08T11:30:00-05:00"
+        },
+        {
+          "id": "sam-23",
+          "summary": "1:1",
+          "start": "2026-09-08T16:00:00-05:00",
+          "end": "2026-09-08T16:30:00-05:00"
+        },
+        {
+          "id": "sam-24",
+          "summary": "Planning",
+          "start": "2026-09-08T16:00:00-05:00",
+          "end": "2026-09-08T16:30:00-05:00"
+        },
+        {
+          "id": "sam-25",
+          "summary": "Vendor call",
+          "start": "2026-09-09T09:00:00-05:00",
+          "end": "2026-09-09T10:30:00-05:00"
+        },
+        {
+          "id": "sam-28",
+          "summary": "Demo prep",
+          "start": "2026-09-09T09:00:00-05:00",
+          "end": "2026-09-09T10:00:00-05:00"
+        },
+        {
+          "id": "sam-26",
+          "summary": "Demo prep",
+          "start": "2026-09-09T09:30:00-05:00",
+          "end": "2026-09-09T10:00:00-05:00"
+        },
+        {
+          "id": "sam-27",
+          "summary": "Customer call",
+          "start": "2026-09-09T13:30:00-05:00",
+          "end": "2026-09-09T14:30:00-05:00"
+        },
+        {
+          "id": "sam-31",
+          "summary": "Training",
+          "start": "2026-09-10T10:30:00-05:00",
+          "end": "2026-09-10T12:00:00-05:00"
+        },
+        {
+          "id": "sam-32",
+          "summary": "Vendor call",
+          "start": "2026-09-10T13:00:00-05:00",
+          "end": "2026-09-10T13:30:00-05:00"
+        },
+        {
+          "id": "sam-29",
+          "summary": "Office hours",
+          "start": "2026-09-10T13:30:00-05:00",
+          "end": "2026-09-10T14:00:00-05:00"
+        },
+        {
+          "id": "sam-30",
+          "summary": "Design review",
+          "start": "2026-09-10T14:30:00-05:00",
+          "end": "2026-09-10T16:00:00-05:00"
+        },
+        {
+          "id": "sam-33",
+          "summary": "Sync",
+          "start": "2026-09-11T10:30:00-05:00",
+          "end": "2026-09-11T11:30:00-05:00"
+        },
+        {
+          "id": "sam-35",
+          "summary": "Code review",
+          "start": "2026-09-11T14:00:00-05:00",
+          "end": "2026-09-11T14:30:00-05:00"
+        },
+        {
+          "id": "sam-34",
+          "summary": "Customer call",
+          "start": "2026-09-11T15:30:00-05:00",
+          "end": "2026-09-11T16:00:00-05:00"
+        },
+        {
+          "id": "sam-36",
+          "summary": "Code review",
+          "start": "2026-09-14T09:30:00-05:00",
+          "end": "2026-09-14T10:30:00-05:00"
+        },
+        {
+          "id": "sam-37",
+          "summary": "Design review",
+          "start": "2026-09-14T15:30:00-05:00",
+          "end": "2026-09-14T16:00:00-05:00"
+        },
+        {
+          "id": "sam-38",
+          "summary": "Training",
+          "start": "2026-09-14T15:30:00-05:00",
+          "end": "2026-09-14T17:00:00-05:00"
+        },
+        {
+          "id": "sam-39",
+          "summary": "Office hours",
+          "start": "2026-09-14T16:00:00-05:00",
+          "end": "2026-09-14T17:30:00-05:00"
+        }
+      ]
+    },
+    {
+      "id": "room-atlas@example.com",
+      "name": "Atlas (12 seats)",
+      "email": "room-atlas@example.com",
+      "team": "Facilities",
+      "type": "resource",
+      "timezone": "America/Chicago",
+      "utc_offset": "-05:00",
+      "working_hours": {
+        "start": "09:00",
+        "end": "17:00"
+      },
+      "events": [
+        {
+          "id": "room-atlas-4",
+          "summary": "Training",
+          "start": "2026-08-31T12:00:00-05:00",
+          "end": "2026-08-31T13:00:00-05:00"
+        },
+        {
+          "id": "room-atlas-2",
+          "summary": "Customer call",
+          "start": "2026-08-31T16:00:00-05:00",
+          "end": "2026-08-31T17:00:00-05:00"
+        },
+        {
+          "id": "room-atlas-3",
+          "summary": "Retro",
+          "start": "2026-08-31T16:00:00-05:00",
+          "end": "2026-08-31T16:30:00-05:00"
+        },
+        {
+          "id": "room-atlas-5",
+          "summary": "Code review",
+          "start": "2026-09-01T11:30:00-05:00",
+          "end": "2026-09-01T12:30:00-05:00"
+        },
+        {
+          "id": "room-atlas-7",
+          "summary": "Incident review",
+          "start": "2026-09-01T12:00:00-05:00",
+          "end": "2026-09-01T13:00:00-05:00"
+        },
+        {
+          "id": "room-atlas-8",
+          "summary": "1:1",
+          "start": "2026-09-01T15:30:00-05:00",
+          "end": "2026-09-01T16:30:00-05:00"
+        },
+        {
+          "id": "room-atlas-6",
+          "summary": "Sync",
+          "start": "2026-09-01T16:00:00-05:00",
+          "end": "2026-09-01T17:00:00-05:00"
+        },
+        {
+          "id": "room-atlas-9",
+          "summary": "Demo prep",
+          "start": "2026-09-02T12:30:00-05:00",
+          "end": "2026-09-02T13:30:00-05:00"
+        },
+        {
+          "id": "room-atlas-12",
+          "summary": "Roadmap",
+          "start": "2026-09-02T12:30:00-05:00",
+          "end": "2026-09-02T13:00:00-05:00"
+        },
+        {
+          "id": "room-atlas-10",
+          "summary": "Design review",
+          "start": "2026-09-02T15:30:00-05:00",
+          "end": "2026-09-02T17:00:00-05:00"
+        },
+        {
+          "id": "room-atlas-11",
+          "summary": "Office hours",
+          "start": "2026-09-02T16:00:00-05:00",
+          "end": "2026-09-02T17:00:00-05:00"
+        },
+        {
+          "id": "room-atlas-14",
+          "summary": "Customer call",
+          "start": "2026-09-03T11:00:00-05:00",
+          "end": "2026-09-03T11:30:00-05:00"
+        },
+        {
+          "id": "room-atlas-16",
+          "summary": "Training",
+          "start": "2026-09-03T11:00:00-05:00",
+          "end": "2026-09-03T11:30:00-05:00"
+        },
+        {
+          "id": "room-atlas-13",
+          "summary": "Design review",
+          "start": "2026-09-03T14:30:00-05:00",
+          "end": "2026-09-03T15:00:00-05:00"
+        },
+        {
+          "id": "room-atlas-17",
+          "summary": "Planning",
+          "start": "2026-09-03T14:30:00-05:00",
+          "end": "2026-09-03T15:30:00-05:00"
+        },
+        {
+          "id": "room-atlas-15",
+          "summary": "Planning",
+          "start": "2026-09-03T16:00:00-05:00",
+          "end": "2026-09-03T16:30:00-05:00"
+        },
+        {
+          "id": "room-atlas-19",
+          "summary": "Demo prep",
+          "start": "2026-09-04T09:00:00-05:00",
+          "end": "2026-09-04T10:30:00-05:00"
+        },
+        {
+          "id": "room-atlas-20",
+          "summary": "Code review",
+          "start": "2026-09-04T10:00:00-05:00",
+          "end": "2026-09-04T10:30:00-05:00"
+        },
+        {
+          "id": "room-atlas-18",
+          "summary": "Office hours",
+          "start": "2026-09-04T13:00:00-05:00",
+          "end": "2026-09-04T13:30:00-05:00"
+        },
+        {
+          "id": "room-atlas-1",
+          "summary": "Closed",
+          "start": "2026-09-07T00:00:00-05:00",
+          "end": "2026-09-08T00:00:00-05:00",
+          "all_day": true
+        },
+        {
+          "id": "room-atlas-25",
+          "summary": "Code review",
+          "start": "2026-09-08T12:00:00-05:00",
+          "end": "2026-09-08T12:30:00-05:00"
+        },
+        {
+          "id": "room-atlas-23",
+          "summary": "Sync",
+          "start": "2026-09-08T14:00:00-05:00",
+          "end": "2026-09-08T14:30:00-05:00"
+        },
+        {
+          "id": "room-atlas-22",
+          "summary": "Design review",
+          "start": "2026-09-08T14:30:00-05:00",
+          "end": "2026-09-08T15:30:00-05:00"
+        },
+        {
+          "id": "room-atlas-24",
+          "summary": "Design review",
+          "start": "2026-09-08T14:30:00-05:00",
+          "end": "2026-09-08T15:30:00-05:00"
+        },
+        {
+          "id": "room-atlas-21",
+          "summary": "Vendor call",
+          "start": "2026-09-08T16:00:00-05:00",
+          "end": "2026-09-08T16:30:00-05:00"
+        },
+        {
+          "id": "room-atlas-26",
+          "summary": "Demo prep",
+          "start": "2026-09-09T12:30:00-05:00",
+          "end": "2026-09-09T13:00:00-05:00"
+        },
+        {
+          "id": "room-atlas-28",
+          "summary": "Sync",
+          "start": "2026-09-09T14:30:00-05:00",
+          "end": "2026-09-09T15:30:00-05:00"
+        },
+        {
+          "id": "room-atlas-27",
+          "summary": "Retro",
+          "start": "2026-09-09T16:00:00-05:00",
+          "end": "2026-09-09T17:30:00-05:00"
+        },
+        {
+          "id": "room-atlas-29",
+          "summary": "Code review",
+          "start": "2026-09-10T09:00:00-05:00",
+          "end": "2026-09-10T09:30:00-05:00"
+        },
+        {
+          "id": "room-atlas-32",
+          "summary": "Interview",
+          "start": "2026-09-10T11:00:00-05:00",
+          "end": "2026-09-10T11:30:00-05:00"
+        },
+        {
+          "id": "room-atlas-30",
+          "summary": "Retro",
+          "start": "2026-09-10T13:00:00-05:00",
+          "end": "2026-09-10T14:30:00-05:00"
+        },
+        {
+          "id": "room-atlas-31",
+          "summary": "Sync",
+          "start": "2026-09-10T13:00:00-05:00",
+          "end": "2026-09-10T14:00:00-05:00"
+        },
+        {
+          "id": "room-atlas-35",
+          "summary": "Interview",
+          "start": "2026-09-11T10:30:00-05:00",
+          "end": "2026-09-11T11:00:00-05:00"
+        },
+        {
+          "id": "room-atlas-33",
+          "summary": "Sync",
+          "start": "2026-09-11T12:30:00-05:00",
+          "end": "2026-09-11T14:00:00-05:00"
+        },
+        {
+          "id": "room-atlas-34",
+          "summary": "Incident review",
+          "start": "2026-09-11T15:30:00-05:00",
+          "end": "2026-09-11T16:00:00-05:00"
+        },
+        {
+          "id": "room-atlas-38",
+          "summary": "Code review",
+          "start": "2026-09-14T10:30:00-05:00",
+          "end": "2026-09-14T11:30:00-05:00"
+        },
+        {
+          "id": "room-atlas-36",
+          "summary": "Interview",
+          "start": "2026-09-14T12:00:00-05:00",
+          "end": "2026-09-14T13:30:00-05:00"
+        },
+        {
+          "id": "room-atlas-37",
+          "summary": "Vendor call",
+          "start": "2026-09-14T16:00:00-05:00",
+          "end": "2026-09-14T17:00:00-05:00"
+        }
+      ]
+    }
+  ]
+}

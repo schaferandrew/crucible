@@ -1,0 +1,293 @@
+{
+  "name": "pair",
+  "timezone": "America/Chicago",
+  "utc_offset": "-05:00",
+  "now": "2026-08-31T08:30:00-05:00",
+  "owner": "alex@example.com",
+  "tools": [
+    "get_current_time",
+    "list_calendars",
+    "list_events"
+  ],
+  "calendars": [
+    {
+      "id": "alex@example.com",
+      "name": "Alex Rivera",
+      "email": "alex@example.com",
+      "team": "Platform",
+      "type": "person",
+      "timezone": "America/Chicago",
+      "utc_offset": "-05:00",
+      "working_hours": {
+        "start": "09:00",
+        "end": "17:00"
+      },
+      "events": [
+        {
+          "id": "alex-1",
+          "summary": "Standup",
+          "start": "2026-08-31T09:00:00-05:00",
+          "end": "2026-08-31T09:30:00-05:00",
+          "location": "Zoom"
+        },
+        {
+          "id": "alex-11",
+          "summary": "Roadmap workshop",
+          "start": "2026-08-31T10:00:00-05:00",
+          "end": "2026-08-31T12:00:00-05:00",
+          "location": "Conference Room A"
+        },
+        {
+          "id": "alex-2",
+          "summary": "Lunch",
+          "start": "2026-08-31T12:00:00-05:00",
+          "end": "2026-08-31T13:00:00-05:00"
+        },
+        {
+          "id": "alex-12",
+          "summary": "Design review",
+          "start": "2026-08-31T13:00:00-05:00",
+          "end": "2026-08-31T14:00:00-05:00",
+          "location": "Conference Room A"
+        },
+        {
+          "id": "alex-13",
+          "summary": "Customer call",
+          "start": "2026-08-31T15:00:00-05:00",
+          "end": "2026-08-31T16:30:00-05:00",
+          "location": "Zoom"
+        },
+        {
+          "id": "alex-3",
+          "summary": "Standup",
+          "start": "2026-09-01T09:00:00-05:00",
+          "end": "2026-09-01T09:30:00-05:00",
+          "location": "Zoom"
+        },
+        {
+          "id": "alex-14",
+          "summary": "1:1 with manager",
+          "start": "2026-09-01T11:00:00-05:00",
+          "end": "2026-09-01T12:00:00-05:00"
+        },
+        {
+          "id": "alex-4",
+          "summary": "Lunch",
+          "start": "2026-09-01T12:00:00-05:00",
+          "end": "2026-09-01T13:00:00-05:00"
+        },
+        {
+          "id": "alex-15",
+          "summary": "Offsite prep",
+          "start": "2026-09-01T14:00:00-05:00",
+          "end": "2026-09-01T17:00:00-05:00",
+          "location": "Conference Room B"
+        },
+        {
+          "id": "alex-5",
+          "summary": "Standup",
+          "start": "2026-09-02T09:00:00-05:00",
+          "end": "2026-09-02T09:30:00-05:00",
+          "location": "Zoom"
+        },
+        {
+          "id": "alex-16",
+          "summary": "Interview loop",
+          "start": "2026-09-02T09:30:00-05:00",
+          "end": "2026-09-02T11:30:00-05:00",
+          "location": "Conference Room C"
+        },
+        {
+          "id": "alex-6",
+          "summary": "Lunch",
+          "start": "2026-09-02T12:00:00-05:00",
+          "end": "2026-09-02T13:00:00-05:00"
+        },
+        {
+          "id": "alex-17",
+          "summary": "Planning",
+          "start": "2026-09-02T13:00:00-05:00",
+          "end": "2026-09-02T14:00:00-05:00",
+          "location": "Conference Room A"
+        },
+        {
+          "id": "alex-7",
+          "summary": "Standup",
+          "start": "2026-09-03T09:00:00-05:00",
+          "end": "2026-09-03T09:30:00-05:00",
+          "location": "Zoom"
+        },
+        {
+          "id": "alex-18",
+          "summary": "Sprint review",
+          "start": "2026-09-03T10:00:00-05:00",
+          "end": "2026-09-03T11:00:00-05:00",
+          "location": "Zoom"
+        },
+        {
+          "id": "alex-8",
+          "summary": "Lunch",
+          "start": "2026-09-03T12:00:00-05:00",
+          "end": "2026-09-03T13:00:00-05:00"
+        },
+        {
+          "id": "alex-19",
+          "summary": "Focus time (cancelled)",
+          "start": "2026-09-03T13:00:00-05:00",
+          "end": "2026-09-03T15:00:00-05:00",
+          "status": "cancelled"
+        },
+        {
+          "id": "alex-20",
+          "summary": "Project review",
+          "start": "2026-09-03T15:00:00-05:00",
+          "end": "2026-09-03T16:00:00-05:00",
+          "location": "Zoom"
+        },
+        {
+          "id": "alex-21",
+          "summary": "Priya's birthday",
+          "start": "2026-09-04T00:00:00-05:00",
+          "end": "2026-09-05T00:00:00-05:00",
+          "all_day": true,
+          "transparency": "transparent"
+        },
+        {
+          "id": "alex-9",
+          "summary": "Standup",
+          "start": "2026-09-04T09:00:00-05:00",
+          "end": "2026-09-04T09:30:00-05:00",
+          "location": "Zoom"
+        },
+        {
+          "id": "alex-10",
+          "summary": "Lunch",
+          "start": "2026-09-04T12:00:00-05:00",
+          "end": "2026-09-04T13:00:00-05:00"
+        }
+      ]
+    },
+    {
+      "id": "jamie@example.com",
+      "name": "Jamie Chen",
+      "email": "jamie@example.com",
+      "team": "Platform",
+      "type": "person",
+      "timezone": "America/Chicago",
+      "utc_offset": "-05:00",
+      "working_hours": {
+        "start": "09:00",
+        "end": "17:00"
+      },
+      "events": [
+        {
+          "id": "jamie-6",
+          "summary": "Hiring sync",
+          "start": "2026-08-31T09:00:00-05:00",
+          "end": "2026-08-31T11:00:00-05:00",
+          "location": "Zoom"
+        },
+        {
+          "id": "jamie-1",
+          "summary": "Lunch",
+          "start": "2026-08-31T12:00:00-05:00",
+          "end": "2026-08-31T13:00:00-05:00"
+        },
+        {
+          "id": "jamie-7",
+          "summary": "Board prep",
+          "start": "2026-08-31T14:00:00-05:00",
+          "end": "2026-08-31T17:00:00-05:00",
+          "location": "Conference Room D"
+        },
+        {
+          "id": "jamie-8",
+          "summary": "Vendor call",
+          "start": "2026-09-01T09:30:00-05:00",
+          "end": "2026-09-01T10:30:00-05:00",
+          "location": "Zoom"
+        },
+        {
+          "id": "jamie-2",
+          "summary": "Lunch",
+          "start": "2026-09-01T12:00:00-05:00",
+          "end": "2026-09-01T13:00:00-05:00"
+        },
+        {
+          "id": "jamie-9",
+          "summary": "Quarterly planning",
+          "start": "2026-09-01T13:00:00-05:00",
+          "end": "2026-09-01T14:30:00-05:00",
+          "location": "Conference Room A"
+        },
+        {
+          "id": "jamie-10",
+          "summary": "Offsite workshop",
+          "start": "2026-09-02T09:00:00-05:00",
+          "end": "2026-09-02T12:00:00-05:00",
+          "location": "Downtown office"
+        },
+        {
+          "id": "jamie-3",
+          "summary": "Lunch",
+          "start": "2026-09-02T12:00:00-05:00",
+          "end": "2026-09-02T13:00:00-05:00"
+        },
+        {
+          "id": "jamie-11",
+          "summary": "Budget review",
+          "start": "2026-09-02T14:00:00-05:00",
+          "end": "2026-09-02T15:30:00-05:00",
+          "location": "Conference Room B"
+        },
+        {
+          "id": "jamie-12",
+          "summary": "Sprint review",
+          "start": "2026-09-03T09:30:00-05:00",
+          "end": "2026-09-03T10:30:00-05:00",
+          "location": "Zoom"
+        },
+        {
+          "id": "jamie-13",
+          "summary": "1:1 with Alex (cancelled)",
+          "start": "2026-09-03T11:00:00-05:00",
+          "end": "2026-09-03T12:00:00-05:00",
+          "status": "cancelled"
+        },
+        {
+          "id": "jamie-4",
+          "summary": "Lunch",
+          "start": "2026-09-03T12:00:00-05:00",
+          "end": "2026-09-03T13:00:00-05:00"
+        },
+        {
+          "id": "jamie-14",
+          "summary": "Roadmap review",
+          "start": "2026-09-03T14:00:00-05:00",
+          "end": "2026-09-03T16:00:00-05:00",
+          "location": "Conference Room A"
+        },
+        {
+          "id": "jamie-15",
+          "summary": "Team retro",
+          "start": "2026-09-04T09:00:00-05:00",
+          "end": "2026-09-04T10:30:00-05:00",
+          "location": "Zoom"
+        },
+        {
+          "id": "jamie-5",
+          "summary": "Lunch",
+          "start": "2026-09-04T12:00:00-05:00",
+          "end": "2026-09-04T13:00:00-05:00"
+        },
+        {
+          "id": "jamie-16",
+          "summary": "Customer demo",
+          "start": "2026-09-04T13:30:00-05:00",
+          "end": "2026-09-04T15:00:00-05:00",
+          "location": "Zoom"
+        }
+      ]
+    }
+  ]
+}

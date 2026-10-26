@@ -259,7 +259,7 @@ CI (`.github/workflows/tests.yml`) runs the suite on Linux and macOS with pi ins
 - `crucible/models.py` / `crucible/providers.py` — Model resolution; provider table (list models, stream completions)
 - `crucible/metrics.py` — Metrics in `meta.json` (tests, tool calls, tokens, latency, cost)
 - `crucible/cost.py` — Run cost: billed OpenRouter usage or the agent's own estimate
-- `crucible/mcp_servers/` — MCP servers crucible ships to agents (`web_server.py`: `web_fetch`, `web_search`)
+- `crucible/mcp_servers/` — MCP servers crucible ships to agents (`web_server.py`: `web_fetch`, `web_search`; `calendar_server.py`: mock calendar for A1-A3)
 - `crucible/console.py` — What `crucible run` prints
 - `crucible/procs.py` — Process launch and tree-kill (macOS, Linux)
 - `crucible/session.py` — Normalized session events, transcript, tool-call counting
@@ -314,6 +314,27 @@ Both are `null` when unknown.
 ### Web tools (RSCH-2)
 
 RSCH-2 and RSCH-2b declare crucible's web MCP server (`mcp_servers: [web]`, `crucible/mcp_servers/web_server.py`), so every agent gets the same `web_fetch` tool (HTTP GET; HTML reduced to text) rather than whatever its harness ships. `web_search` (Brave Search API) is offered only when `BRAVE_SEARCH_API_KEY` is set. `meta.json` records `tools.mcp_servers` and `tools.builtin_web` (opencode still has its own `webfetch`), so you can see what each run could reach.
+
+### Calendar scheduling tests (A1-A3)
+
+The `agentic` suite (`crucible run agentic`) tests tool use against a mock calendar MCP server (`crucible/mcp_servers/calendar_server.py`). Unlike `mock-data`, whose tools return one static blob, its tools take arguments (`list_events`, `get_free_busy`, `list_calendars`, `get_current_time`), so the model has to query and combine results. A prompt picks its world with a dataset suffix:
+
+```yaml
+mcp_servers:
+  - mock-calendar:forge     # fixtures/mock-calendar/forge.json
+```
+
+A dataset fixes "now" (so tests never depend on the real date), the calendars, their events, and which tools are offered (`pair` withholds `get_free_busy`, so the model must do the interval math itself).
+
+| Test | Dataset | Task | Tools offered |
+|------|---------|------|---------------|
+| A1 | `spark` | "Am I free at 3:30?" - one calendar; an event ends at exactly 3:30 | `get_current_time`, `list_events` |
+| A2 | `pair` | An hour with Jamie this week - cancelled and "free" events look busy | + `list_calendars` |
+| A3 | `forge` | An hour for a team of 16 in two weeks - holiday, vacation, a New York teammate, non-team calendars to leave out | + `get_free_busy` |
+
+Event `status` (`cancelled`) and `transparency` (`transparent` = shown as free) are returned to the model; the server's `get_free_busy` treats both as not busy. Each prompt's YAML comments hold the ground truth, and `free_starts()` in the server computes it for tests and graders. The datasets are regenerated with `python fixtures/mock-calendar/build.py`, which re-checks them against that oracle.
+
+Caveat: harnesses may put the real current date in the model's context, which disagrees with the dataset's "now". The tests expect the model to ask the calendar for the time.
 
 ### Verified MCP permutations (TASK-2)
 

@@ -1,0 +1,31 @@
+test_id: A2
+needs_tools: true
+mcp_servers:
+  - mock-calendar:pair
+category: long_agent
+auto_grade: true
+repo: null
+# Dataset pair (fixtures/mock-calendar/pair.json). "Now" is Mon 2026-08-31 8:30 AM.
+# Ground truth: 60-minute starts (30-minute grid, 9-5 weekdays, both free):
+#   Wed 15:30 16:00 | Thu 11:00 13:00 16:00 | Fri 10:30 11:00 15:00 15:30 16:00
+# Nothing works Monday or Tuesday. Thu 11:00 depends on Jamie's cancelled 1:1,
+# Thu 13:00 on Alex's cancelled focus time, Fri on a transparent all-day birthday.
+prompt: |
+  I need to meet up with Jamie for an hour sometime this week. Find a time that works for both of us.
+rubric:
+  - criterion: "Only valid times"
+    max_score: 4
+    description: "Every proposed time is free on both calendars, within 9-5, and after now. Starts must come from the ground-truth list."
+  - criterion: "Reads event status correctly"
+    max_score: 2
+    description: "Treats cancelled and transparent (shown as free) events as not blocking, e.g. offers Thu 11:00 or 1:00 PM, or Friday."
+  - criterion: "Concrete options"
+    max_score: 2
+    description: "Offers two or three specific date/time options rather than a single guess or general advice."
+  - criterion: "Completeness"
+    max_score: 1
+    description: "Does not claim nothing works, and does not rule out valid days (Wed, Thu, Fri)."
+  - criterion: "Clear answer"
+    max_score: 1
+    description: "Day, date and time are unambiguous, with the time zone or assumptions stated."
+critical_failure: "Recommending a time that conflicts with a real event on either calendar caps score at 4."

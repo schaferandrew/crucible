@@ -1,0 +1,35 @@
+test_id: A3
+needs_tools: true
+mcp_servers:
+  - mock-calendar:forge
+category: long_agent
+auto_grade: true
+repo: null
+# Dataset forge (fixtures/mock-calendar/forge.json). "Now" is Mon 2026-08-31 8:30 AM.
+# "My team" = the 16 Platform calendars (Alex is the user). Not the Design
+# people (jordan, sam) or the Atlas room. Ground truth, 60-minute starts:
+#   Tue 9/1 13:00 13:30 | Wed 9/2 09:00 | Thu 9/3 14:00 14:30 15:00
+#   Tue 9/8 11:00       | Wed 9/9 15:00
+# Traps: Labor Day 9/7; Priya out 9/10-9/11; Marcus is in New York (works 9-5
+# Eastern = until 4 PM Central), so Tue 9/8 4-5 PM looks empty but fails;
+# cancelled/transparent events sit on the 9/1, 9/3 and 9/9 windows; nothing is
+# free on 8/31 or 9/14 so both readings of "next two weeks" agree.
+prompt: |
+  Find an hour in the next two weeks when everyone on my team can meet. Give me your top three options.
+rubric:
+  - criterion: "Identifies the team"
+    max_score: 2
+    description: "Uses exactly the 16 Platform team calendars; does not include the Design people or the Atlas room, and does not drop anyone."
+  - criterion: "Only valid options"
+    max_score: 4
+    description: "Every option is free for all 16 and inside everyone's working hours, including Marcus's (ends 4 PM Central). Starts must come from the ground-truth list."
+  - criterion: "Handles the constraints"
+    max_score: 2
+    description: "Accounts for Labor Day, Priya's time off, Marcus's time zone, and cancelled or transparent events that do not block."
+  - criterion: "Completeness"
+    max_score: 1
+    description: "Finds the valid windows rather than giving up or offering fewer than three when at least three exist."
+  - criterion: "Clear, ranked answer"
+    max_score: 1
+    description: "Three options with day, date and time, ranked with a brief reason."
+critical_failure: "Recommending a time when anyone on the team is busy or outside their working hours caps score at 4."
