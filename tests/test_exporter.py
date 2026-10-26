@@ -4,7 +4,7 @@ import json
 from crucible import exporter, workspace
 
 
-def _run(tmp_path, test_version, rubric_version, agent_overall=8.0):
+def _run(tmp_path, test_version, rubric_version, agent_overall=8.0, inference=None):
     run_dir = tmp_path / "m" / "everyday" / "KNOW-1" / "20260101_000000"
     run_dir.mkdir(parents=True)
     (run_dir / "meta.json").write_text(json.dumps({
@@ -12,8 +12,9 @@ def _run(tmp_path, test_version, rubric_version, agent_overall=8.0):
         "model": "lmstudio/m", "status": "COMPLETE", "timed_out": False, "elapsed_time": 1.0,
         "test": {"version": test_version},
         "environment": {"machine": {"hostname": "Ironwood", "cpu": "Apple MATH-1 Pro", "ram_gb": 32.0},
-                        "inference": {"provider": "lmstudio", "local": True, "same_machine": True,
-                                      "endpoint_host": "10.0.0.5", "quantization": "Q4_0", "context_length": 8192}},
+                        "inference": inference or {"provider": "lmstudio", "local": True, "same_machine": True,
+                                                   "endpoint_host": "10.0.0.5", "quantization": "Q4_0",
+                                                   "context_length": 8192}},
         "metrics": {"tokens_out": 12},
     }))
     (run_dir / "agent_results.json").write_text(json.dumps({
@@ -33,6 +34,15 @@ def test_current_run_counts(tmp_path):
     assert "endpoint_host" not in run["inference"]
     test = next(t for t in data["tests"] if t["id"] == "KNOW-1")
     assert test["tier"] and test["version"] == p["version"]
+
+
+def test_lm_link_run_reports_the_serving_machine(tmp_path):
+    p = workspace.load_prompt("KNOW-1")
+    served = {"provider": "lmstudio", "local": True, "same_machine": False, "served_via": "LM Link",
+              "device": "Whitehall", "quantization": "Q4_K_M"}
+    (run,) = exporter.export(_run(tmp_path, p["version"], p["rubric_version"], inference=served))["runs"]
+    assert run["hardware"]["hostname"] == "Whitehall"
+    assert run["inference"]["device"] == "Whitehall"
 
 
 def test_older_test_version_does_not_count(tmp_path):

@@ -63,19 +63,20 @@ def test_judge_cannot_override_a_check(tmp_path, w3):
     assert results["scores"]["_overall"] < 10
 
 
-def test_lm_link_models_are_told_apart_from_local_weights(tmp_path):
+def test_lm_link_device_comes_from_the_cli():
     from crucible import environment
-    models = tmp_path / "models"
-    (models / "mlx-community" / "Muse-Glimmer-30B-4bit").mkdir(parents=True)
-    (models / "lmstudio-community" / "Muse-Glimmer-30B-GGUF").mkdir(parents=True)
-    (models / "poolside" / "Laguna-XS-2.1-NVFP4-mlx").mkdir(parents=True)
-    here = lambda m, f: environment.lmstudio_weights_here(m, f, models)
-    assert here("mlx-community/muse-glimmer-30b", "mlx") is True
-    assert here("meta/muse-glimmer", "gguf") is True
-    assert here("laguna-xs-2.1-mlx", "mlx") is True
-    assert here("laguna-xs-2.1", "gguf") is False      # same model, other format: not here
-    assert here("qwen3.8-27b", "gguf") is False        # only reachable over LM Link
-    assert environment.lmstudio_weights_here("x", "gguf", tmp_path / "missing") is None
+    link = {"deviceIdentifier": "here", "deviceName": "Ironwood.local",
+            "peers": [{"deviceIdentifier": "far", "deviceName": "DESKTOP-D2J5PM9"}]}
+    remote = [{"identifier": "qwen/qwen3.5-9b", "modelKey": "qwen/qwen3.5-9b", "deviceIdentifier": "far"}]
+    local = [{"identifier": "gemma", "modelKey": "gemma", "deviceIdentifier": "here"}]
+    assert environment.lmstudio_device("qwen/qwen3.5-9b", remote, link) == {
+        "device": "Whitehall", "same_machine": False, "served_via": "LM Link"}
+    assert environment.lmstudio_device("gemma", local, link) == {"device": "Ironwood", "same_machine": True}
+    # Not loaded, loaded on both devices, or no CLI: unknown, never a guess
+    assert environment.lmstudio_device("other", remote, link) == {}
+    both = remote + [{**remote[0], "deviceIdentifier": "here"}]
+    assert environment.lmstudio_device("qwen/qwen3.5-9b", both, link) == {}
+    assert environment.lmstudio_device("qwen/qwen3.5-9b", None, None) == {}
 
 
 def test_test_counts_use_the_final_summary(tmp_path):

@@ -18,7 +18,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
-from crucible import checks, versioning, workspace
+from crucible import checks, hardware, versioning, workspace
 from crucible.agents import AGENTS
 from crucible.judge import CAVEAT as AGENT_CAVEAT
 from crucible.taxonomy import AREAS, CATEGORY_WEIGHTS, MODE_HARNESSES, MODE_LABELS, MODES, TIERS, mode_for
@@ -98,6 +98,18 @@ def _hidden_tests(run_dir: Path) -> dict | None:
     }
 
 
+def _hardware(machine: dict, inference: dict) -> dict | None:
+    """The machine that ran inference: this one, or the LM Link device that served the model.
+
+    Hostname is the machine's short name (e.g. Ironwood); never the endpoint address.
+    """
+    if inference.get("same_machine") is False:
+        device = inference.get("device")
+        return hardware.specs(device) or ({"hostname": device, "cpu": None, "gpu": None, "ram_gb": None}
+                                          if device else None)
+    return {k: machine.get(k) for k in ("hostname", "cpu", "gpu", "ram_gb")} if machine else None
+
+
 def export_run(run_dir: Path, tests: dict[str, dict]) -> dict | None:
     meta = _read_json(run_dir / "meta.json")
     # meta["invalid"] marks a run whose environment was broken (e.g. a stale server), not a model failure
@@ -145,10 +157,9 @@ def export_run(run_dir: Path, tests: dict[str, dict]) -> dict | None:
         "hidden_tests": _hidden_tests(run_dir),
         # Whether this run belongs in aggregates under the current test set
         "counts": current and test["status"] == "active",
-        # Hostname is the machine's short name (e.g. Ironwood); never the endpoint address
-        "hardware": {k: machine.get(k) for k in ("hostname", "cpu", "gpu", "ram_gb")} if machine else None,
+        "hardware": _hardware(machine, inference),
         "inference": {k: inference.get(k) for k in ("provider", "local", "same_machine", "served_via",
-                                                     "remote_host", "quantization", "context_length")} if inference else None,
+                                                     "device", "quantization", "context_length")} if inference else None,
         **{key: metrics.get(key) for key in METRIC_KEYS},
     }
 
