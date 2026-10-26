@@ -11,7 +11,7 @@ documented answers cannot drift apart.
 Datasets (the scheduling tests that use each):
   spark - A1, "am I free at 3:30?": one calendar, one boundary trap.
   pair  - A2, find an hour for two people this week: read my events, then
-          Jamie's open windows.
+          Jamie's busy blocks.
   forge - A3, find an hour for a team of 16 over the next two weeks.
 """
 from __future__ import annotations
@@ -28,6 +28,9 @@ from crucible.mcp_servers.calendar_server import Calendar, free_starts  # noqa: 
 
 OFFSET = "-05:00"   # America/Chicago in September (CDT)
 WORKING_HOURS = {"start": "09:00", "end": "17:00"}
+# Every dataset offers the whole real tool set; a connector never hides tools per task.
+# (suggest_time, which real connectors also have, is deliberately absent.)
+TOOLS = ["get_current_time", "list_calendars", "list_events", "get_event", "search_events", "get_freebusy"]
 
 
 def at(day: str, hhmm: str) -> str:
@@ -35,7 +38,12 @@ def at(day: str, hhmm: str) -> str:
 
 
 class Person:
-    """A calendar. Event times are Central wall-clock; utc_offset only sets working hours."""
+    """A calendar. Event times are Central wall-clock; utc_offset only sets working hours.
+
+    Events are stored as Google Calendar Event resources, exactly what the
+    server returns. Keywords: location, transparency ("transparent" = shown as
+    free), event_type, declined (the owner declined it, so it does not block).
+    """
 
     def __init__(self, cal_id: str, name: str, team: str = "Platform", **extra):
         self.cal = {"id": cal_id, "name": name, "email": cal_id, "team": team,
@@ -43,19 +51,41 @@ class Person:
                     "working_hours": dict(WORKING_HOURS), "events": [], **extra}
         self._n = 0
 
-    def add(self, day: str, start: str, end: str, summary: str, **extra) -> "Person":
+    def _event(self, summary: str, start: dict, end: dict, location=None, transparency=None,
+               event_type=None, declined=False) -> "Person":
         self._n += 1
-        self.cal["events"].append({"id": f"{self.cal['id'].split('@')[0]}-{self._n}", "summary": summary,
-                                   "start": at(day, start), "end": at(day, end), **extra})
+        event = {"kind": "calendar#event", "id": f"{self.cal['id'].split('@')[0]}{self._n:03d}",
+                 "status": "confirmed", "summary": summary, "start": start, "end": end,
+                 "organizer": {"email": self.cal["id"], "self": True}}
+        if location:
+            event["location"] = location
+        if transparency:
+            event["transparency"] = transparency
+        if event_type:
+            event["eventType"] = event_type
+        if declined:
+            event["attendees"] = [{"email": self.cal["id"], "self": True, "responseStatus": "declined"},
+                                  {"email": "organizer@example.com", "organizer": True,
+                                   "responseStatus": "accepted"}]
+            event["organizer"] = {"email": "organizer@example.com"}
+        self.cal["events"].append(event)
         return self
+
+    def add(self, day: str, start: str, end: str, summary: str, **extra) -> "Person":
+        zone = "America/Chicago"
+        return self._event(summary, {"dateTime": at(day, start), "timeZone": zone},
+                           {"dateTime": at(day, end), "timeZone": zone}, **extra)
 
     def all_day(self, day: str, summary: str, **extra) -> "Person":
         nxt = (date.fromisoformat(day) + timedelta(days=1)).isoformat()
-        self._n += 1
-        self.cal["events"].append({"id": f"{self.cal['id'].split('@')[0]}-{self._n}", "summary": summary,
-                                   "start": at(day, "00:00"), "end": at(nxt, "00:00"),
-                                   "all_day": True, **extra})
-        return self
+        return self._event(summary, {"date": day}, {"date": nxt}, **extra)
+
+    def out_of_office(self, day: str, summary: str = "Out of office") -> "Person":
+        """Google's out-of-office events are timed, not all-day."""
+        nxt = (date.fromisoformat(day) + timedelta(days=1)).isoformat()
+        zone = "America/Chicago"
+        return self._event(summary, {"dateTime": at(day, "00:00"), "timeZone": zone},
+                           {"dateTime": at(nxt, "00:00"), "timeZone": zone}, event_type="outOfOffice")
 
 
 def dataset(name: str, now: str, calendars: list[Person], tools: list[str], owner: str) -> dict:
@@ -65,7 +95,7 @@ def dataset(name: str, now: str, calendars: list[Person], tools: list[str], owne
 
 def write(data: dict) -> Calendar:
     for cal in data["calendars"]:
-        cal["events"].sort(key=lambda e: e["start"])
+        cal["events"].sort(key=lambda e: e["start"].get("dateTime") or e["start"]["date"] + "T00:00:00")
     (HERE / f"{data['name']}.json").write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
     return Calendar(data)
 
@@ -85,12 +115,12 @@ def build_spark() -> dict:
     alex.add("2026-09-01", "16:00", "17:00", "Customer call", location="Zoom")
     alex.add("2026-09-02", "15:00", "16:00", "Budget review", location="Conference Room B")
     return dataset("spark", at("2026-09-01", "11:20"), [alex], owner=alex.cal["id"],
-                   tools=["get_current_time", "list_events"])
+                   tools=TOOLS)
 
 
 # --------------------------------------------------------------------------
 # pair: an hour for Alex and Jamie "this week" (Mon 8:30 AM, through Friday).
-# Traps: a cancelled event and a "free" (transparent) event that look busy,
+# Traps: a declined event and a "free" (transparent) event that look busy,
 # lunches, and an afternoon that is blocked for Jamie only.
 # --------------------------------------------------------------------------
 
@@ -109,9 +139,9 @@ def build_pair() -> dict:
     alex.add("2026-09-02", "09:30", "11:30", "Interview loop", location="Conference Room C")
     alex.add("2026-09-02", "13:00", "14:00", "Planning", location="Conference Room A")
     alex.add("2026-09-03", "10:00", "11:00", "Sprint review", location="Zoom")
-    alex.add("2026-09-03", "13:00", "15:00", "Focus time (cancelled)", status="cancelled")
+    alex.add("2026-09-03", "13:00", "15:00", "Design sync (declined)", declined=True)
     alex.add("2026-09-03", "15:00", "16:00", "Project review", location="Zoom")
-    alex.all_day("2026-09-04", "Priya's birthday", transparency="transparent")
+    alex.all_day("2026-09-04", "Priya's birthday", transparency="transparent", event_type="birthday")
     jamie.add("2026-08-31", "09:00", "11:00", "Hiring sync", location="Zoom")
     jamie.add("2026-08-31", "14:00", "17:00", "Board prep", location="Conference Room D")
     jamie.add("2026-09-01", "09:30", "10:30", "Vendor call", location="Zoom")
@@ -119,12 +149,12 @@ def build_pair() -> dict:
     jamie.add("2026-09-02", "09:00", "12:00", "Offsite workshop", location="Downtown office")
     jamie.add("2026-09-02", "14:00", "15:30", "Budget review", location="Conference Room B")
     jamie.add("2026-09-03", "09:30", "10:30", "Sprint review", location="Zoom")
-    jamie.add("2026-09-03", "11:00", "12:00", "1:1 with Alex (cancelled)", status="cancelled")
+    jamie.add("2026-09-03", "11:00", "12:00", "1:1 with Alex (declined)", declined=True)
     jamie.add("2026-09-03", "14:00", "16:00", "Roadmap review", location="Conference Room A")
     jamie.add("2026-09-04", "09:00", "10:30", "Team retro", location="Zoom")
     jamie.add("2026-09-04", "13:30", "15:00", "Customer demo", location="Zoom")
     return dataset("pair", at("2026-08-31", "08:30"), [alex, jamie], owner=alex.cal["id"],
-                   tools=["get_current_time", "list_calendars", "list_events", "get_availability"])
+                   tools=TOOLS)
 
 
 # --------------------------------------------------------------------------
@@ -132,7 +162,7 @@ def build_pair() -> dict:
 # 8/31 8:30 AM). Labor Day (9/7) is a holiday. Every working day is filled
 # with seeded random meetings except a few protected windows that are free for
 # all 16, so the answer is the intersection of 16 calendars, not a lucky
-# glance. Traps: cancelled/"free" events inside the answers, a teammate on
+# glance. Traps: declined/"free" events inside the answers, a teammate on
 # vacation 9/10-9/11, a teammate in New York (working hours end at 4 PM
 # Central), a 4-5 PM window that is empty on every calendar but outside that
 # teammate's hours, and three non-team calendars that must be left out.
@@ -187,7 +217,7 @@ def build_forge() -> dict:
         person.all_day(HOLIDAY, "Labor Day")
         if person.cal["id"] == "priya@example.com":
             for day in ("2026-09-10", "2026-09-11"):
-                person.all_day(day, "Out of office")
+                person.out_of_office(day)
         for day in DAYS:
             if person.cal["id"] == "priya@example.com" and day in ("2026-09-10", "2026-09-11"):
                 continue
@@ -195,11 +225,11 @@ def build_forge() -> dict:
                 person.add(day, "10:30", "11:00", "Platform standup")
             _random_day(rng, person, day, protected if person in people else [])
 
-    # Cancelled / "free" events sitting on an open window: not busy, but they look it
+    # Declined / "free" events sitting on an open window: not busy, but they look it
     by_id = {p.cal["id"]: p for p in people}
-    by_id["dana@example.com"].add("2026-09-01", "13:00", "14:00", "Vendor sync (cancelled)", status="cancelled")
+    by_id["dana@example.com"].add("2026-09-01", "13:00", "14:00", "Vendor sync (declined)", declined=True)
     by_id["theo@example.com"].add("2026-09-01", "13:30", "14:30", "Lunch & learn (optional)", transparency="transparent")
-    by_id["lena@example.com"].add("2026-09-03", "14:00", "15:00", "Design crit (cancelled)", status="cancelled")
+    by_id["lena@example.com"].add("2026-09-03", "14:00", "15:00", "Design crit (declined)", declined=True)
     by_id["omar@example.com"].add("2026-09-09", "15:00", "16:00", "Focus block", transparency="transparent")
     # Near misses: exactly one person blocks an otherwise open stretch
     by_id["ravi@example.com"].add("2026-09-10", "13:00", "15:00", "Customer onsite")
@@ -215,7 +245,7 @@ def build_forge() -> dict:
 
     calendars = people + outsiders + [room]
     return dataset("forge", at("2026-08-31", "08:30"), calendars, owner="alex@example.com",
-                   tools=["get_current_time", "list_calendars", "list_events", "get_availability"])
+                   tools=TOOLS)
 
 
 # --------------------------------------------------------------------------

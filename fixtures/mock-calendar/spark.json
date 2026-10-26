@@ -6,7 +6,11 @@
   "owner": "alex@example.com",
   "tools": [
     "get_current_time",
-    "list_events"
+    "list_calendars",
+    "list_events",
+    "get_event",
+    "search_events",
+    "get_freebusy"
   ],
   "calendars": [
     {
@@ -23,44 +27,116 @@
       },
       "events": [
         {
-          "id": "alex-1",
+          "kind": "calendar#event",
+          "id": "alex001",
+          "status": "confirmed",
           "summary": "Standup",
-          "start": "2026-09-01T09:00:00-05:00",
-          "end": "2026-09-01T09:30:00-05:00",
+          "start": {
+            "dateTime": "2026-09-01T09:00:00-05:00",
+            "timeZone": "America/Chicago"
+          },
+          "end": {
+            "dateTime": "2026-09-01T09:30:00-05:00",
+            "timeZone": "America/Chicago"
+          },
+          "organizer": {
+            "email": "alex@example.com",
+            "self": true
+          },
           "location": "Zoom"
         },
         {
-          "id": "alex-2",
+          "kind": "calendar#event",
+          "id": "alex002",
+          "status": "confirmed",
           "summary": "1:1 with Jamie",
-          "start": "2026-09-01T11:00:00-05:00",
-          "end": "2026-09-01T12:00:00-05:00",
+          "start": {
+            "dateTime": "2026-09-01T11:00:00-05:00",
+            "timeZone": "America/Chicago"
+          },
+          "end": {
+            "dateTime": "2026-09-01T12:00:00-05:00",
+            "timeZone": "America/Chicago"
+          },
+          "organizer": {
+            "email": "alex@example.com",
+            "self": true
+          },
           "location": "Zoom"
         },
         {
-          "id": "alex-3",
+          "kind": "calendar#event",
+          "id": "alex003",
+          "status": "confirmed",
           "summary": "Lunch",
-          "start": "2026-09-01T12:00:00-05:00",
-          "end": "2026-09-01T13:00:00-05:00"
+          "start": {
+            "dateTime": "2026-09-01T12:00:00-05:00",
+            "timeZone": "America/Chicago"
+          },
+          "end": {
+            "dateTime": "2026-09-01T13:00:00-05:00",
+            "timeZone": "America/Chicago"
+          },
+          "organizer": {
+            "email": "alex@example.com",
+            "self": true
+          }
         },
         {
-          "id": "alex-4",
+          "kind": "calendar#event",
+          "id": "alex004",
+          "status": "confirmed",
           "summary": "Design review",
-          "start": "2026-09-01T14:00:00-05:00",
-          "end": "2026-09-01T15:30:00-05:00",
+          "start": {
+            "dateTime": "2026-09-01T14:00:00-05:00",
+            "timeZone": "America/Chicago"
+          },
+          "end": {
+            "dateTime": "2026-09-01T15:30:00-05:00",
+            "timeZone": "America/Chicago"
+          },
+          "organizer": {
+            "email": "alex@example.com",
+            "self": true
+          },
           "location": "Conference Room A"
         },
         {
-          "id": "alex-5",
+          "kind": "calendar#event",
+          "id": "alex005",
+          "status": "confirmed",
           "summary": "Customer call",
-          "start": "2026-09-01T16:00:00-05:00",
-          "end": "2026-09-01T17:00:00-05:00",
+          "start": {
+            "dateTime": "2026-09-01T16:00:00-05:00",
+            "timeZone": "America/Chicago"
+          },
+          "end": {
+            "dateTime": "2026-09-01T17:00:00-05:00",
+            "timeZone": "America/Chicago"
+          },
+          "organizer": {
+            "email": "alex@example.com",
+            "self": true
+          },
           "location": "Zoom"
         },
         {
-          "id": "alex-6",
+          "kind": "calendar#event",
+          "id": "alex006",
+          "status": "confirmed",
           "summary": "Budget review",
-          "start": "2026-09-02T15:00:00-05:00",
-          "end": "2026-09-02T16:00:00-05:00",
+          "start": {
+            "dateTime": "2026-09-02T15:00:00-05:00",
+            "timeZone": "America/Chicago"
+          },
+          "end": {
+            "dateTime": "2026-09-02T16:00:00-05:00",
+            "timeZone": "America/Chicago"
+          },
+          "organizer": {
+            "email": "alex@example.com",
+            "self": true
+          },
           "location": "Conference Room B"
         }
       ]
