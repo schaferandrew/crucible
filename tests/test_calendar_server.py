@@ -47,11 +47,11 @@ class TestProtocol:
         def listed(cal):
             return [t["name"] for t in cs.handle({"id": 1, "method": "tools/list"}, cal)["result"]["tools"]]
         assert listed(spark) == ["get_current_time", "list_events"]
-        assert "get_free_busy" in listed(forge)
+        assert listed(forge) == ["get_current_time", "list_calendars", "list_events", "get_availability"]
 
     def test_withheld_tool_is_unknown(self, spark):
         reply = cs.handle({"id": 1, "method": "tools/call",
-                           "params": {"name": "get_free_busy", "arguments": {}}}, spark)
+                           "params": {"name": "get_availability", "arguments": {}}}, spark)
         assert reply["error"]["code"] == -32601
 
     def test_notifications_get_no_response(self, spark):
@@ -111,26 +111,45 @@ class TestQueries:
         marcus = next(c for c in calendars if c["id"] == "marcus@example.com")
         assert marcus["timezone"] == "America/New_York"
 
-    def test_free_busy_skips_cancelled_and_transparent_and_merges(self, pair):
-        fb = pair.get_free_busy(["alex@example.com", "jamie@example.com"],
-                                at("09-03", "00:00"), at("09-04", "00:00"))
-        alex = fb["calendars"]["alex@example.com"]["busy"]
-        # the cancelled 13:00-15:00 focus time is not busy; sprint review and project review are
-        assert [(b["start"][11:16], b["end"][11:16]) for b in alex] == [
-            ("09:00", "09:30"), ("10:00", "11:00"), ("12:00", "13:00"), ("15:00", "16:00")]
-        jamie = fb["calendars"]["jamie@example.com"]["busy"]
-        assert ("11:00", "12:00") not in [(b["start"][11:16], b["end"][11:16]) for b in jamie]
+    def test_other_calendars_share_availability_only(self, pair):
+        result, _ = call(pair, "list_events", calendar_id="jamie@example.com",
+                         time_min=at("09-03", "00:00"), time_max=at("09-04", "00:00"))
+        assert result["isError"] is True and "get_availability" in result["content"][0]["text"]
 
-    def test_free_busy_tool_over_the_protocol(self, forge):
-        _, fb = call(forge, "get_free_busy", calendar_ids=["alex@example.com", "marcus@example.com"],
-                     time_min=at("09-07", "00:00"), time_max=at("09-08", "00:00"))
-        assert set(fb["calendars"]) == {"alex@example.com", "marcus@example.com"}
-        assert fb["calendars"]["alex@example.com"]["busy"] == [   # Labor Day, all day
-            {"start": at("09-07", "00:00"), "end": at("09-08", "00:00")}]
-        assert call(forge, "get_free_busy", calendar_ids=[], time_min=at("09-07", "00:00"),
+    def test_availability_is_open_windows_in_working_hours(self, pair):
+        _, found = call(pair, "get_availability", calendar_ids=["primary", "jamie@example.com"],
+                        time_min=at("09-03", "00:00"), time_max=at("09-04", "00:00"))
+        def windows(cid):
+            return [(w["start"][11:16], w["end"][11:16]) for w in found["calendars"][cid]["free"]]
+        # Alex: the cancelled 13:00-15:00 focus time and the transparent birthday do not block
+        assert windows("primary") == [("09:30", "10:00"), ("11:00", "12:00"), ("13:00", "15:00"), ("16:00", "17:00")]
+        # Jamie: events are hidden, and the cancelled 11:00 1:1 does not block
+        assert windows("jamie@example.com") == [("09:00", "09:30"), ("10:30", "12:00"), ("13:00", "14:00"),
+                                                ("16:00", "17:00")]
+
+    def test_availability_clips_to_range_and_skips_weekends(self, pair):
+        _, found = call(pair, "get_availability", calendar_ids=["jamie@example.com"],
+                        time_min=at("09-03", "16:30"), time_max=at("09-07", "00:00"))
+        free = found["calendars"]["jamie@example.com"]["free"]
+        assert [(w["start"][5:16], w["end"][5:16]) for w in free] == [
+            ("09-03T16:30", "09-03T17:00"), ("09-04T10:30", "09-04T12:00"), ("09-04T13:00", "09-04T13:30"),
+            ("09-04T15:00", "09-04T17:00")]   # nothing on the weekend that follows
+
+    def test_availability_follows_each_owners_working_hours(self, forge):
+        _, found = call(forge, "get_availability", calendar_ids=["marcus@example.com", "alex@example.com"],
+                        time_min=at("09-08", "00:00"), time_max=at("09-09", "00:00"))
+        marcus, alex = (found["calendars"][c]["free"] for c in ("marcus@example.com", "alex@example.com"))
+        assert marcus and max(w["end"] for w in marcus).endswith("T16:00:00-05:00")   # 5 PM in New York
+        assert max(w["end"] for w in alex).endswith("T17:00:00-05:00")
+
+    def test_labor_day_leaves_no_availability(self, forge):
+        _, found = call(forge, "get_availability", calendar_ids=["alex@example.com", "marcus@example.com"],
+                        time_min=at("09-07", "00:00"), time_max=at("09-08", "00:00"))
+        assert [c["free"] for c in found["calendars"].values()] == [[], []]
+        assert call(forge, "get_availability", calendar_ids=[], time_min=at("09-07", "00:00"),
                     time_max=at("09-08", "00:00"))[0]["isError"] is True
 
-    def test_free_busy_clips_to_range(self, spark):
+    def test_busy_clips_to_range(self, spark):
         busy = spark.busy("alex@example.com", at("09-01", "14:30"), at("09-01", "16:30"))
         assert [(b["start"][11:16], b["end"][11:16]) for b in busy] == [("14:30", "15:30"), ("16:00", "16:30")]
 

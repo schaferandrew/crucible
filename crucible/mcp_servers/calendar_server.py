@@ -7,11 +7,16 @@ who exists, what "now" is, and every event. Unlike mock-data's static dumps,
 the tools take arguments (calendar, time range) the way real calendar MCP
 servers do, so a model has to query rather than read one blob.
 
-A dataset also declares which `tools` it offers, so a test can withhold
-get_free_busy and make the model do the interval math itself. Stdlib only.
+It works like the calendar MCP servers people actually use: the user's own
+calendar is read as events (list_events), while colleagues' calendars are shared
+for availability only, so the model reads their open windows (get_availability)
+and cannot see their events. There is deliberately no tool that intersects
+several people's time; the model does that. A dataset declares which `tools`
+it offers. Stdlib only.
 
-Tools: get_current_time, list_calendars, list_events, get_free_busy.
-Busy means status != "cancelled" and transparency != "transparent".
+Tools: get_current_time, list_calendars, list_events (own calendar only),
+get_availability (any calendar: open windows inside its working hours).
+A time is busy unless its event is cancelled or marked transparent.
 """
 from __future__ import annotations
 
@@ -34,27 +39,29 @@ TOOLS = {
         "inputSchema": {"type": "object", "properties": {}},
     },
     "list_events": {
-        "description": ("List events on one calendar that overlap a time range, ordered by start time. "
+        "description": ("List events on the user's own calendar that overlap a time range, ordered by "
+                        "start time. Other people's calendars are shared for availability only. "
                         "Cancelled events and events marked transparent (shown as free) are included "
                         "with their status so the caller can tell."),
         "inputSchema": {
             "type": "object",
             "properties": {
-                "calendar_id": {"type": "string", "description": "Calendar id (default: the user's own, \"primary\")"},
+                "calendar_id": {"type": "string", "description": "The user's own calendar id (default \"primary\")"},
                 "time_min": {"type": "string", "description": "ISO 8601 start of range (inclusive)"},
                 "time_max": {"type": "string", "description": "ISO 8601 end of range (exclusive)"},
             },
             "required": ["time_min", "time_max"],
         },
     },
-    "get_free_busy": {
-        "description": ("Get the busy intervals of several calendars in one call. Cancelled and "
-                        "transparent events are excluded; overlapping events are merged."),
+    "get_availability": {
+        "description": ("Get when each of several calendars is open: the free windows inside each owner's "
+                        "working hours over a time range, in order. Works for calendars shared with the "
+                        "user, whose events are not visible. Busy time is not listed."),
         "inputSchema": {
             "type": "object",
             "properties": {
                 "calendar_ids": {"type": "array", "items": {"type": "string"},
-                                 "description": "Calendar ids to check"},
+                                 "description": "Calendar ids to check (\"primary\" is the user's own)"},
                 "time_min": {"type": "string", "description": "ISO 8601 start of range (inclusive)"},
                 "time_max": {"type": "string", "description": "ISO 8601 end of range (exclusive)"},
             },
@@ -157,6 +164,9 @@ class Calendar:
 
     def list_events(self, time_min: str, time_max: str, calendar_id: str | None = None) -> dict:
         cal = self.calendar(calendar_id)
+        if cal["id"] != self.owner:
+            raise ToolError(f"No access to {cal['id']}'s events: that calendar is shared for availability "
+                            "only. Use get_availability.")
         return {"calendar_id": cal["id"], "time_zone": self.timezone_name,
                 "events": [{"id": e["id"], "summary": e["summary"], "start": e["start"], "end": e["end"],
                             "status": e.get("status", "confirmed"),
@@ -164,12 +174,43 @@ class Calendar:
                             **{k: e[k] for k in ("all_day", "location", "attendees") if k in e}}
                            for e in self.events(calendar_id, time_min, time_max)]}
 
-    def get_free_busy(self, calendar_ids: list, time_min: str, time_max: str) -> dict:
+    def get_availability(self, calendar_ids: list, time_min: str, time_max: str) -> dict:
         if not isinstance(calendar_ids, list) or not calendar_ids:
             raise ToolError("calendar_ids must be a non-empty list")
-        return {"time_min": time_min, "time_max": time_max,
-                "calendars": {cid: {"busy": self.busy(self.calendar(cid)["id"], time_min, time_max)}
+        return {"time_min": time_min, "time_max": time_max, "time_zone": self.timezone_name,
+                "calendars": {cid: {"free": self.free_windows(self.calendar(cid)["id"], time_min, time_max)}
                               for cid in calendar_ids}}
+
+    def free_windows(self, calendar_id: str, time_min: str, time_max: str) -> list[dict]:
+        """Open windows inside the owner's weekday working hours, minus busy time."""
+        entry = self.calendar(calendar_id)
+        start, end = self._range(time_min, time_max)
+        tz = fixed_offset(entry["utc_offset"]) if "utc_offset" in entry else self.tz
+        hours = entry.get("working_hours") or {"start": "00:00", "end": "24:00"}
+        busy = [(parse_time(b["start"], self.tz), parse_time(b["end"], self.tz))
+                for b in self.busy(calendar_id, time_min, time_max)]
+        windows = []
+        day = start.astimezone(tz).replace(hour=0, minute=0, second=0, microsecond=0)
+        while day < end:
+            if day.weekday() < 5:
+                open_at = max(day + timedelta(minutes=_minutes(hours["start"])), start)
+                close_at = min(day + timedelta(minutes=_minutes(hours["end"])), end)
+                cursor = open_at
+                for b0, b1 in busy:
+                    if b1 <= cursor or b0 >= close_at:
+                        continue
+                    if b0 > cursor:
+                        windows.append((cursor, b0))
+                    cursor = max(cursor, b1)
+                if cursor < close_at:
+                    windows.append((cursor, close_at))
+            day += timedelta(days=1)
+        return [{"start": a.astimezone(self.tz).isoformat(), "end": b.astimezone(self.tz).isoformat()}
+                for a, b in windows]
+
+
+def _minutes(text: str) -> int:
+    return int(text[:2]) * 60 + int(text[3:])
 
 
 # --------------------------------------------------------------------------
@@ -207,13 +248,10 @@ def _within_hours(cal: Calendar, entry: dict, start: datetime, end: datetime) ->
     s, e = start.astimezone(tz), end.astimezone(tz)
     hours = entry.get("working_hours") or {"start": "00:00", "end": "24:00"}
 
-    def minutes(text: str) -> int:
-        return int(text[:2]) * 60 + int(text[3:])
-
     same_day = s.date() == e.date() or (e.hour, e.minute) == (0, 0)
     end_minute = 24 * 60 if (e.hour, e.minute) == (0, 0) else e.hour * 60 + e.minute
     return (s.weekday() < 5 and same_day
-            and minutes(hours["start"]) <= s.hour * 60 + s.minute and end_minute <= minutes(hours["end"]))
+            and _minutes(hours["start"]) <= s.hour * 60 + s.minute and end_minute <= _minutes(hours["end"]))
 
 
 # --------------------------------------------------------------------------

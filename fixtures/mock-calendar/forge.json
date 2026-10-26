@@ -8,7 +8,7 @@
     "get_current_time",
     "list_calendars",
     "list_events",
-    "get_free_busy"
+    "get_availability"
   ],
   "calendars": [
     {

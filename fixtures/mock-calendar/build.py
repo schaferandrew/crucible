@@ -10,7 +10,8 @@ documented answers cannot drift apart.
 
 Datasets (the scheduling tests that use each):
   spark - A1, "am I free at 3:30?": one calendar, one boundary trap.
-  pair  - A2, find an hour for two people this week.
+  pair  - A2, find an hour for two people this week: read my events, then
+          Jamie's open windows.
   forge - A3, find an hour for a team of 16 over the next two weeks.
 """
 from __future__ import annotations
@@ -123,7 +124,7 @@ def build_pair() -> dict:
     jamie.add("2026-09-04", "09:00", "10:30", "Team retro", location="Zoom")
     jamie.add("2026-09-04", "13:30", "15:00", "Customer demo", location="Zoom")
     return dataset("pair", at("2026-08-31", "08:30"), [alex, jamie], owner=alex.cal["id"],
-                   tools=["get_current_time", "list_calendars", "list_events"])
+                   tools=["get_current_time", "list_calendars", "list_events", "get_availability"])
 
 
 # --------------------------------------------------------------------------
@@ -214,7 +215,7 @@ def build_forge() -> dict:
 
     calendars = people + outsiders + [room]
     return dataset("forge", at("2026-08-31", "08:30"), calendars, owner="alex@example.com",
-                   tools=["get_current_time", "list_calendars", "list_events", "get_free_busy"])
+                   tools=["get_current_time", "list_calendars", "list_events", "get_availability"])
 
 
 # --------------------------------------------------------------------------

@@ -317,22 +317,22 @@ RSCH-2 and RSCH-2b declare crucible's web MCP server (`mcp_servers: [web]`, `cru
 
 ### Calendar scheduling tests (A1-A3)
 
-The `agentic` suite (`crucible run agentic`) tests tool use against a mock calendar MCP server (`crucible/mcp_servers/calendar_server.py`). Unlike `mock-data`, whose tools return one static blob, its tools take arguments (`list_events`, `get_free_busy`, `list_calendars`, `get_current_time`), so the model has to query and combine results. A prompt picks its world with a dataset suffix:
+The `agentic` suite (`crucible run agentic`) tests tool use against a mock calendar MCP server (`crucible/mcp_servers/calendar_server.py`). Unlike `mock-data`, whose tools return one static blob, its tools take arguments (`list_events`, `get_availability`, `list_calendars`, `get_current_time`), so the model has to query and combine results. A prompt picks its world with a dataset suffix:
 
 ```yaml
 mcp_servers:
   - mock-calendar:forge     # fixtures/mock-calendar/forge.json
 ```
 
-A dataset fixes "now" (so tests never depend on the real date), the calendars, their events, and which tools are offered (`pair` withholds `get_free_busy`, so the model must do the interval math itself).
+It works like the calendar MCP servers people use: the user's own calendar is read as events (`list_events`), while everyone else's is shared for availability only, so the model gets their open windows (`get_availability`, inside their working hours) and cannot see their events. There is no tool that finds a time several people share; the model intersects the windows itself. A dataset fixes "now" (so tests never depend on the real date), the calendars and their events, and which tools are offered (`spark` has just the time and the user's events).
 
 | Test | Dataset | Task | Tools offered |
 |------|---------|------|---------------|
 | A1 | `spark` | "Am I free at 3:30?" - one calendar; an event ends at exactly 3:30 | `get_current_time`, `list_events` |
-| A2 | `pair` | An hour with Jamie this week - cancelled and "free" events look busy | + `list_calendars` |
-| A3 | `forge` | An hour for a team of 16 in two weeks - holiday, vacation, a New York teammate, non-team calendars to leave out | + `get_free_busy` |
+| A2 | `pair` | An hour with Jamie this week: read my events, then Jamie's open windows; my cancelled and "free" events look busy | + `list_calendars`, `get_availability` |
+| A3 | `forge` | An hour for a team of 16 in two weeks - holiday, vacation, a New York teammate, non-team calendars to leave out | same as A2 |
 
-Event `status` (`cancelled`) and `transparency` (`transparent` = shown as free) are returned to the model; the server's `get_free_busy` treats both as not busy. Each prompt's YAML comments hold the ground truth, and `free_starts()` in the server computes it for tests and graders. The datasets are regenerated with `python fixtures/mock-calendar/build.py`, which re-checks them against that oracle.
+Event `status` (`cancelled`) and `transparency` (`transparent` = shown as free) are returned on the user's own events; availability treats both as not busy. Each prompt's YAML comments hold the ground truth, and `free_starts()` in the server computes it for tests and graders. The datasets are regenerated with `python fixtures/mock-calendar/build.py`, which re-checks them against that oracle.
 
 Caveat: harnesses may put the real current date in the model's context, which disagrees with the dataset's "now". The tests expect the model to ask the calendar for the time.
 
