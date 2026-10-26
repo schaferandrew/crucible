@@ -94,3 +94,25 @@ def test_chat_runs_refuse_a_small_loaded_context(monkeypatch):
     assert runner._context_problem(AGENTS["direct"], "lmstudio/x", "off") is None
     monkeypatch.setattr(environment, "inference", lambda model: {"context_length": None})
     assert runner._context_problem(AGENTS["direct"], "openrouter/x") is None  # cloud: unknown, never refused
+
+
+def test_reasoning_question_only_for_models_that_reason(monkeypatch, capsys):
+    from crucible import reasoning, wizard
+    monkeypatch.setattr(wizard, "choose", lambda question, options, default=0: "high")
+    monkeypatch.setattr(reasoning, "supports", lambda model: True)
+    assert wizard.ask_reasoning("openrouter/qwen/qwen3.8-27b") == "high"   # asked
+    monkeypatch.setattr(reasoning, "supports", lambda model: False)
+    assert wizard.ask_reasoning("lmstudio/plain-model") == "default"       # not asked
+    monkeypatch.setattr(reasoning, "supports", lambda model: None)
+    assert wizard.ask_reasoning("lmstudio/not-loaded") == "default"        # not asked, says why
+    assert "Couldn't tell" in capsys.readouterr().out
+
+
+def test_openrouter_support_comes_from_supported_parameters(monkeypatch):
+    from crucible import providers, reasoning
+    monkeypatch.setattr(providers, "_get_json", lambda url, headers=None: {"data": [
+        {"id": "a/thinks", "supported_parameters": ["reasoning", "tools"]},
+        {"id": "a/plain", "supported_parameters": ["tools"]}]})
+    assert reasoning.supports("openrouter/a/thinks") is True
+    assert reasoning.supports("openrouter/a/plain") is False
+    assert reasoning.supports("openrouter/a/missing") is None

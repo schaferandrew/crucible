@@ -415,6 +415,10 @@ def main() -> None:
         for line in planner.describe(plan):
             print(line)
     problem = planner.reasoning_problem(plan)
+    if not problem and plan.reasoning != "default":
+        from crucible.reasoning import supports
+        if supports(plan.model) is False:
+            problem = f"{plan.model} doesn't reason, so there's no reasoning level to set; drop --reasoning."
     if problem:
         print(problem)
         return

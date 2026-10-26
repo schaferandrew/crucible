@@ -132,7 +132,7 @@ Scoring then climbs a ladder: did it complete, did it pass the programmatic chec
 
 ### Reasoning levels
 
-Thinking models (Qwen 3.5, gpt-oss, DeepSeek...) can spend minutes reasoning before they answer, so the same weights with thinking off and on are benchmarked as separate models, the way Artificial Analysis lists "(Reasoning)" and "(Non-reasoning)" rows. `crucible run` asks for the level (or pass `--reasoning`), and every run records it:
+Thinking models (Qwen 3.5, gpt-oss, DeepSeek...) can spend minutes reasoning before they answer, so the same weights with thinking off and on are benchmarked as separate models, the way Artificial Analysis lists "(Reasoning)" and "(Non-reasoning)" rows. `crucible run` asks for the level only when the model reasons: OpenRouter lists `reasoning` among a model's supported parameters, Ollama reports a `thinking` capability, and for LM Studio, which reports neither, a loaded model is asked a one-line question and watched for reasoning. When that can't be told (an LM Studio model that isn't loaded), the run uses the model's default; `--reasoning` always works, and is refused for a model known not to reason. Every run records its level:
 
 | Provider | How the level is sent |
 |---|---|
