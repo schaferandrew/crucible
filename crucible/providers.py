@@ -103,6 +103,16 @@ def catalog_openrouter() -> list[tuple[str, str]]:
     return out
 
 
+def fetch_openrouter_pricing(model_id: str) -> tuple[float, float] | None:
+    """(input, output) USD per million tokens for an OpenRouter model, or None."""
+    try:
+        data = _get_json(f"{OPENROUTER_BASE_URL}/models").get("data", [])
+        pricing = next(m["pricing"] for m in data if m["id"] == model_id)
+        return float(pricing["prompt"]) * 1e6, float(pricing["completion"]) * 1e6
+    except Exception:
+        return None
+
+
 def fetch_openrouter_key_usage() -> float | None:
     """Total USD billed to OPENROUTER_API_KEY so far (None without a key or when unreachable)."""
     api_key = os.environ.get("OPENROUTER_API_KEY")
@@ -141,6 +151,21 @@ class _StreamTimer:
         }
 
 
+class StreamTimeout(TimeoutError):
+    """The whole response took longer than the run's timeout; carries what streamed so far."""
+
+    def __init__(self, partial: dict):
+        super().__init__("response exceeded the run timeout")
+        self.partial = partial
+
+
+def _check_deadline(deadline: float, timer: "_StreamTimer", parts: list[str]) -> None:
+    # urlopen's timeout only bounds the gap between chunks, so a model that never
+    # stops generating would otherwise run until its context fills.
+    if time.monotonic() > deadline:
+        raise StreamTimeout(timer.result("".join(parts), None, None))
+
+
 def _call_ollama(model_id: str, prompt: str, timeout: int = 300) -> dict:
     """Streams /api/generate (NDJSON); the final chunk carries token counts."""
     req = urllib.request.Request(
@@ -150,10 +175,12 @@ def _call_ollama(model_id: str, prompt: str, timeout: int = 300) -> dict:
         method="POST",
     )
     timer = _StreamTimer()
+    deadline = time.monotonic() + timeout
     parts: list[str] = []
     tokens_in = tokens_out = None
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         for raw in resp:
+            _check_deadline(deadline, timer, parts)
             if not raw.strip():
                 continue
             chunk = json.loads(raw)
@@ -183,10 +210,12 @@ def _call_openai_compatible(url: str, model_id: str, prompt: str, timeout: int,
         method="POST",
     )
     timer = _StreamTimer()
+    deadline = time.monotonic() + timeout
     parts: list[str] = []
     tokens_in = tokens_out = None
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         for raw in resp:
+            _check_deadline(deadline, timer, parts)
             line = raw.decode("utf-8", errors="replace").strip()
             if not line.startswith("data:"):
                 continue

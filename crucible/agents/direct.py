@@ -26,7 +26,7 @@ class DirectAgent(Agent):
     def validate(self, model: str | None, prompt_def: dict) -> str | None:
         if prompt_def.get("needs_tools", True):
             return ("this test requires tool access; refusing to run it directly. "
-                    "Use an agent harness (--agent opencode, pi or pool).")
+                    "Use an agent harness (--agent opencode or pi).")
         try:
             providers.split_model(model or "")
         except ValueError as exc:
@@ -36,17 +36,22 @@ class DirectAgent(Agent):
     def run(self, ctx: RunContext) -> dict:
         prompt = inline_fixtures(ctx.prompt_file.read_text(encoding="utf-8"), ctx.fixtures)
         ctx.prompt_file.write_text(prompt, encoding="utf-8")  # the exact prompt sent
-        stdout, stderr = "", ""
+        stdout, stderr, timed_out = "", "", False
         try:
             response = providers.complete(ctx.model, prompt, ctx.timeout)
+        except providers.StreamTimeout as exc:
+            # Keep what streamed: a runaway answer is itself the result
+            response, timed_out = exc.partial, True
+            stderr = f"Direct runner: response still streaming after {ctx.timeout}s; stopped"
+        except Exception as exc:
+            response, stderr = None, f"Direct runner error: {exc}"
+        if response is not None:
             stdout = response.pop("text")
             (ctx.run_dir / RESPONSE_FILENAME).write_text(json.dumps(response, indent=2),
                                                          encoding="utf-8")
-        except Exception as exc:
-            stderr = f"Direct runner error: {exc}"
         (ctx.run_dir / "stdout.txt").write_text(stdout, encoding="utf-8")
         (ctx.run_dir / "stderr.txt").write_text(stderr, encoding="utf-8")
-        return {"returncode": 1 if stderr else 0, "timed_out": False}
+        return {"returncode": 1 if stderr else 0, "timed_out": timed_out}
 
     def _response(self, run_dir: Path) -> dict | None:
         try:

@@ -10,10 +10,9 @@ from crucible.agents.base import Agent, Launch, RunContext
 from crucible.agents.direct import DirectAgent
 from crucible.agents.opencode import OpenCodeAgent
 from crucible.agents.pi import PiAgent
-from crucible.agents.pool import PoolAgent
 
 AGENTS: dict[str, Agent] = {a.name: a for a in (
-    OpenCodeAgent(), PiAgent(), PoolAgent(), DirectAgent())}
+    OpenCodeAgent(), PiAgent(), DirectAgent())}
 DEFAULT_AGENT = "opencode"
 
 __all__ = ["AGENTS", "DEFAULT_AGENT", "Agent", "Launch", "RunContext"]

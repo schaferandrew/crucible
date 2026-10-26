@@ -1,199 +1,220 @@
 # Crucible: Personal AI Benchmark Gauntlet
 
-A lightweight, personal benchmark suite for evaluating AI models on real-world tasks: coding, writing, reasoning, everyday knowledge, and home maintenance.
+A personal benchmark suite for AI models on real-world tasks: writing, math, geography, history, general knowledge, coding, research and everyday tasks on your own data. Built to answer "how good is this local model at the things I actually do?", with cloud models as a reference.
 
-## macOS Quick Start
+## Install
 
-### Option A: standard venv
-
-```bash
-cd /path/to/crucible
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install pyyaml
-python -m pip install -e .
-```
-
-### Option B: uv (recommended for macOS)
+Crucible needs Python 3.9+ and [uv](https://docs.astral.sh/uv/) (or plain pip).
 
 ```bash
-cd /path/to/crucible
-uv venv
-source .venv/bin/activate
-uv pip install --upgrade pip
-uv pip install pyyaml
-uv pip install -e .
-```
-
-If you prefer a global install without a venv:
-
-```bash
-pip3 install pyyaml
-pip3 install -e .
-```
-
-Then verify the CLI works:
-
-```bash
-crucible --help
-```
-
-> If `crucible` is not on PATH, use `python3 -m crucible.cli ...` instead.
-
-## Windows Quick Start
-
-From PowerShell in the repo root:
-
-```powershell
-cd C:\Users\Andrew\Development\crucible
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install pyyaml
-python -m pip install -e .
-```
-
-Then verify the CLI works:
-
-```powershell
-crucible --help
-```
-
-If PowerShell blocks script execution, run:
-
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\.venv\Scripts\Activate.ps1
-```
-
-## Running with LM Studio locally (Windows)
-
-If you are using LM Studio with the OpenAI-compatible local server at `http://127.0.0.1:1234`, you can run the direct API path without `opencode`:
-
-```powershell
-crucible run G2 --provider lmstudio --model openai/gpt-oss-20b --timeout 180
-```
-
-You can also specify the model by full provider/name format:
-
-```powershell
-crucible run E2 --model lmstudio/openai/gpt-oss-20b --timeout 180
-```
-
-This project has a direct runner for `lmstudio/...` models and does not require `opencode` for the no-tools benchmark cases.
-
-## Quick Start
-
-1. **Clone the repo**:
-```bash
-git clone <repo-url> crucible
+git clone https://github.com/schaferandrew/crucible
 cd crucible
+uv sync                      # creates .venv with crucible and its dependencies
+uv run crucible --help
 ```
 
-2. **Install Python dependencies**:
+To have `crucible` on your PATH everywhere (instead of `uv run crucible`), install it as a uv tool; it keeps its own environment, so its dependencies are always there:
+
 ```bash
-pip3 install pyyaml
+uv tool install --editable .
 ```
 
-3. **Install crucible CLI** (optional, for `crucible run|score|report`):
+If an older `pip install -e .` left a `crucible` on your PATH (check with `which crucible`), remove it first with `pip uninstall crucible`, or it may run without its dependencies (for example, menus that fall back to typed numbers).
+
+Without uv: `python -m venv .venv`, activate it (`source .venv/bin/activate`, or `.\.venv\Scripts\Activate.ps1` in PowerShell), then `pip install -e .` and run `crucible --help`. If PowerShell blocks the activate script, run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` first.
+
+Agentic tests also need an agent harness on PATH (chat tests don't):
+
 ```bash
-pip3 install -e .
+npm install -g opencode-ai                                      # opencode (the default)
+npm install -g --ignore-scripts @earendil-works/pi-coding-agent # pi
 ```
 
-> **macOS note:** `pip3 install -e .` installs the `crucible` script to `~/Library/Python/3.9/bin/`, which is not on PATH by default. Add this to your `~/.zshrc` (or `~/.bash_profile`):
-> ```bash
-> export PATH="$HOME/Library/Python/3.9/bin:$PATH"
-> ```
-> Then reload: `source ~/.zshrc`. Alternatively, use `python3 -m crucible.cli run ...` without modifying PATH.
+> **Windows + pi:** pi's `bash` tool needs a bash shell; install [Git for Windows](https://git-scm.com/download/win) (pi finds Git Bash automatically).
 
-4. **Install an agent**: [opencode](https://opencode.ai) (default) and/or [pi](https://pi.dev):
+## Providers
+
+Models are named `provider/model`. Crucible talks to three providers itself, for chat tests and model lists:
+
+| Provider | Model names | Setup |
+|---|---|---|
+| LM Studio | `lmstudio/qwen/qwen3.5-9b` | Start LM Studio's local server (default `http://127.0.0.1:1234/v1`; override with `LMSTUDIO_BASE_URL`). Models served over **LM Link** from another machine work the same way, and runs record that the weights were remote. |
+| Ollama | `ollama/qwen3:30b-a3b` | Run Ollama (default `http://localhost:11434`; override with `OLLAMA_BASE_URL`). |
+| OpenRouter | `openrouter/moonshotai/kimi-k2.6` | Set `OPENROUTER_API_KEY`. Billed cost is read from the key's usage, so don't share the key with other jobs while a run is going. |
+
+Agentic tests hand the model name to the harness, so anything the harness supports also works there, such as opencode's own `opencode/<model>` free models.
+
+For local models on agentic tests, load the model with **at least 32k context**: crucible refuses the run otherwise, because agents compact or fail with less.
+
+## Running tests
+
+### The easy way: just run it
+
 ```bash
-npm install -g opencode-ai
-npm install -g --ignore-scripts @earendil-works/pi-coding-agent
+uv run crucible run
 ```
-> **Windows + pi:** pi's `bash` tool needs a bash shell — install [Git for Windows](https://git-scm.com/download/win) (pi finds Git Bash automatically).
 
-## Running Tests
+With no arguments, `crucible run` asks what to run, one question at a time:
 
-### Single Test
+1. **Which model?** A type-to-filter picker over every provider's live model list (OpenRouter, LM Studio, Ollama, fetched when it opens), with models loaded in LM Studio and models you've run before at the top. Type words to narrow it (`kimi k3`), ↑/↓ to move, Tab to complete, Enter to pick; a full `provider/model` that isn't listed works too. `--provider lmstudio` or a bare `--model qwen3.5` opens the same picker, narrowed.
+2. **What to run?** Everything, Chat tests, Agentic tests, or individual tests (type IDs, with completion).
+3. **Which area and tier?** For a section, narrow to an area (Writing, Coding, ...) and a tier (Spark, Temper, Forge), or keep them all.
+4. **Which agent harness?** Only asked when agentic tests are included: opencode or pi.
+5. **Watch?** Only offered for three or fewer agentic tests (see watch mode below).
+6. **Skip what's already done?** When some tests already have a run of their current version for this model.
+
+Menus take arrow keys, the number next to an option, or its first letter (press it again for the next match), then Enter; yes/no questions are `y`/`n`. They're drawn with prompt_toolkit, which works the same in macOS, Linux and Windows terminals. Where a menu can't be drawn the questions fall back to typed numbers, and say why. Before starting, the wizard prints the plan and the one-line command that repeats it without the questions.
+
+### The same thing with flags
+
+Any flag answers its question; give a test and a model and nothing is asked.
+
 ```bash
-crucible run C1 --model openrouter/moonshotai/kimi-k2.6
+crucible run chat --model lmstudio/qwen/qwen3.5-9b                  # every chat test
+crucible run agentic --tier spark --model lmstudio/qwen/qwen3.5-9b  # agentic Spark tests, with opencode
+crucible run coding --agent pi --model ollama/qwen3:30b-a3b         # one area, with pi
+crucible run WRIT-2 MATH-4 MATH-3 --model openrouter/moonshotai/kimi-k2.6       # individual tests
+crucible run all --model lmstudio/qwen/qwen3.5-9b --skip-done       # resume a full suite
 ```
 
-### With the Poolside agent (pool)
+Selectors add up (`WRIT-2 MATH-4`), filters narrow (`chat --tier spark`, `--area math`). A selector is a test ID, a section (`chat`, `agentic`), an area, a tier or `all`.
+
+| Flag | Meaning |
+|---|---|
+| `--model`, `-m` | `provider/model`, or a bare name to look up across providers (`--provider` narrows it) |
+| `--mode`, `--area`, `--tier` | Filters |
+| `--agent` | Harness for agentic tests: `opencode` (default) or `pi`. Chat tests always use `direct`. |
+| `--timeout` | Seconds per test. Default by tier: Spark 5 min, Temper 15 min, Forge 20 min. No test runs longer than 20 minutes, so a runaway agent can't burn tokens for an hour. |
+| `--allow-long` | Lift the 20-minute safety cap |
+| `--skip-done` | Skip tests this model already ran on their current version |
+| `--watch` | Open the agent's TUI instead of running headless |
+
+### How tests are organized
+
+Every test sits on three axes:
+
+- **Section** (mode): **Chat** tests are one API call with no tools and always run with `direct`. **Agentic** tests run in an agent harness (opencode or pi) with tools and a workspace. The two are never mixed: not in a run, not in a score, not on the dashboard. A test is agentic when its YAML says `needs_tools: true`.
+- **Area**: what the test covers, declared as `area:` in its YAML. Every test ID is its area's four letters, a hyphen and a number (`CODE-11`, `WRIT-2b`), and crucible refuses a test whose ID and area disagree:
+
+  | Section | Area | Prefix | Covers |
+  |---|---|---|---|
+  | Chat | `writing` | WRIT | Proofreading, voice, constrained writing |
+  | Chat | `math` | MATH | Everyday money math to competition problems, logic |
+  | Chat | `geography` | GEOG | Capitals, borders, trick questions |
+  | Chat | `history` | HIST | Chronology, fact-checking, anachronisms |
+  | Chat | `general` | KNOW | Knowledge questions, explanations, home repair, summarizing supplied news |
+  | Agentic | `coding` | CODE | Real repos: build, debug, browser, Forge monorepo tasks |
+  | Agentic | `research` | RSCH | Live information: today's news, weather |
+  | Agentic | `everyday` | TASK | Tasks on your own data: calendars, email, morning briefs |
+- **Tier**: how hard it is (details in [test-tiers.md](test-tiers.md)). `spark` is the basics, a pass/fail gate; `temper` is everyday work, the headline score; `forge` is work you'd normally need a frontier model for. Tiers are scored separately, never blended.
+
+Older IDs (C11, W2b, E4, and the three-letter COD11, WRI2b round) were renamed on 2026-10-26; [docs/test-id-map.json](docs/test-id-map.json) maps each old ID to its new one.
+
+Each prompt also declares a finer scoring **category** (`coding_build`, `writing`, `math`, ...) that sets its weight within a tier and the run directory layout: `runs/<model_slug>/<category>/<test_id>/<timestamp>/`.
+
+### What a suite does when things break
+
+A full suite runs chat tests first, then agentic tests, area by area with the easiest tier first. After each agentic test it stops any dev server the agent left listening in its workspace. If two runs in a row fail before the model produced anything (or are refused, for example because the model isn't loaded), the suite stops with `SETUP PROBLEM` instead of burning through the rest: fix the setup and rerun with `--skip-done`.
+
+Every run records an **outcome** in `meta.json`, before any scoring:
+
+| Outcome | Meaning | Counts? |
+|---|---|---|
+| `completed` | Finished cleanly with an answer | yes, then scored |
+| `failed` | Exited with an error after the model produced output | yes, as the model's failure |
+| `no_answer` | The model produced tokens but never an answer | yes, as the model's failure |
+| `timeout` | Hit the time limit | yes |
+| `harness_error` | Exited before the model produced anything | no: marked invalid, rerun when the setup is fixed |
+
+Scoring then climbs a ladder: did it complete, did it pass the programmatic checks or hidden tests, and (optionally) what a human or AI judge thinks.
+
+### Watch mode
+
 ```bash
-crucible run C1 --agent pool                                 # tenant mode (logged-in Poolside model)
-crucible run C1 --agent pool --model ollama/laguna-xs-2.1:nvfp4
-crucible run C1 --agent pool --model openrouter/deepseek/deepseek-v4-flash
+crucible run CODE-2b --model openrouter/moonshotai/kimi-k2.6 --watch
+crucible run CODE-1 --agent pi --model ollama/qwen3:30b-a3b --watch
 ```
-Without a model, pool runs in tenant mode (recorded as model `pool`). `ollama/` and `openrouter/` models run pool in standalone mode; the model is passed to pool as a bare name.
 
-### With the pi agent instead of opencode
+Watch mode opens the agent's TUI in the workspace so you can see the model work (pi sends the task itself). Quit the TUI when it's done (`/quit` for pi, `Ctrl+C` for opencode) and the run finalizes. Watch runs are recorded and scoreable like headless ones, but use headless runs for scores you'll compare: they're reproducible and nobody has to quit a TUI. Watch is for debugging and for seeing how a model works.
+
+### Harness notes
+
+- **opencode** runs headless with `opencode run`; its session is exported into the run directory. Each run gets its own opencode data directory, so parallel runs don't fight over opencode's database.
+- **pi** runs with `--no-extensions` plus crucible's per-run extension, and writes its session into the run directory, so `~/.pi/agent` is never modified. `ollama/` and `lmstudio/` models are registered with pi for the run; anything else is handed to pi as-is with its usual API-key env vars.
+- **direct** streams one completion from the provider and records tokens, time to first token and cost.
+
+### Test versions
+Prompts also declare `version`, `rubric_version` and `status` (`provisional`, `active` or `retired`). Each run records the version it used, so scores only compare within a version:
+
+- Changing a prompt, its repo or its fixtures means bumping `version`; older runs stop counting until rerun.
+- Changing only the rubric means bumping `rubric_version` and re-scoring the stored outputs.
+
+`prompts/versions.lock.json` records the hashes each version was cut from, and CI fails on an undeclared change:
 ```bash
-crucible run C1 --agent pi --model openrouter/moonshotai/kimi-k2.6
-crucible run C1 --agent pi --model ollama/qwen3:30b-a3b
-crucible run C1 --agent pi --model lmstudio/openai/gpt-oss-20b
-crucible run C1 --agent pi                                   # pi's own default model
+crucible versions                     # check the lock
+crucible versions --update            # after a deliberate bump
+crucible versions --release 2026.12   # pin active tests into releases/2026.12.yaml
+crucible versions --backfill runs     # stamp older runs with the version they used
 ```
-Models use the same `provider/model` strings as opencode. `ollama/` and `lmstudio/` models are registered with pi for the run (honouring `OLLAMA_BASE_URL` / `LMSTUDIO_BASE_URL`); anything else (`openrouter/...`, `anthropic/...`, ...) is handed to pi as-is and uses pi's usual API-key env vars (e.g. `OPENROUTER_API_KEY`).
-
-Runs are hermetic: pi is launched with `--no-extensions` plus crucible's own per-run extension, and its session is written into the run directory, so `~/.pi/agent` is never modified.
-
-### Full Suite
-```bash
-crucible run all --model openrouter/moonshotai/kimi-k2.6
-```
-
-### With Ollama (local)
-```bash
-crucible run G2 --model ollama/qwen3:30b-a3b
-```
-
-### Watch Mode (opens the agent TUI with the prompt pre-loaded)
-```bash
-crucible run C2b --model openrouter/moonshotai/kimi-k2.6 --watch
-crucible run C1 --agent pi --model ollama/qwen3:30b-a3b --watch
-crucible run C1 --agent pool --watch
-```
-This opens the agent's TUI in the workspace directory so you can observe the model working in real time (pi and pool auto-send the task). Quit the TUI when the task completes (`/quit` for pi and pool, `Ctrl+C` for opencode) — the run finalizes after the TUI exits.
-
-Watch runs are fully scoreable: pi writes its session into the run directory (`--session-dir`), from which crucible builds `session.json` + a readable `stdout.txt` transcript, pool's is rebuilt from its trajectory record, and opencode exports its session, so tool calls and output text are captured in both modes. pi has no tool-approval prompts and pool watch runs auto-approve (`--mode always-allow`, matching headless `--unsafe-auto-allow`), so unattended runs never stall on permission prompts.
-
-> **Note:** driving a TUI from a headless shell (synthetic pty) is unreliable for teardown — watch mode is designed for a human terminal. For unattended automation, use headless mode.
-
-*Alternative: Use `python3 -m crucible.cli ...` if `crucible` is not on PATH.*
-
-### Suite Categories
-Suites are derived from test-ID prefixes: `C`→coding, `W`→writing, `E`→everyday, `G`→reasoning, `H`→home.
-
-- `coding`: C1, C1b, C2, C2b, C3, C4, C4b, C5, C6
-- `writing`: W1a, W1b, W1c, W2, W2b
-- `everyday`: E1-E4
-- `reasoning`: G1-G3
-- `home`: H1-H4
-- `all`: Everything
-
-Each prompt also declares a scoring **category** (`coding_build`, `coding_debug`, `coding_repo`, `browser_tool`, `everyday`, `reasoning`, `structured_data`, `long_agent`, `home_maintenance`, `writing`) used for run directory layout and sweep aggregation. Run paths are `runs/<model_slug>/<category>/<test_id>/<timestamp>/`.
 
 ## Scoring
 
-After a run completes, crucible offers to score it right away (`Would you like to score ... now? [y/N]`). You can also score later:
-```bash
-crucible score <RUN_ID>
+Scoring happens automatically at the end of every run; `crucible run` never asks you to grade anything.
+
+- **Programmatic checks** run on the model's final answer (or a file it was asked to write) for chat tests and some agentic ones. See Programmatic checks below.
+- **Hidden acceptance tests** run for Forge coding tests: test files the model never sees are copied into its finished workspace, run with vitest, and removed again. Each rubric criterion is the share of its hidden tests that pass, plus whether the repo's own tests still pass, whether the contract suite was left untouched (modifying it caps the score at 4), and whether the model's own new tests catch the bug: they must pass on its fix and at least one must fail on the seeded code. Results go to `grader_results.json` in the run directory.
+- A test whose every criterion is a check or hidden tests gets its score on the spot, in `check_results.json`: points earned over points available, scaled to 0–10.
+
+`crucible checks` reruns both on stored runs (after a rule or grader changes); `--no-hidden` skips the slower hidden tests.
+
+Tests that still need judgment (explanations, advice, research briefs) aren't scored automatically yet. **Review** by a person (`crucible score`) or an AI judge (`crucible judge`) is a future feature that needs more infrastructure; it's never part of a run, and existing judge scores are shown as rough signals.
+
+### Workspace isolation
+Agents work in `~/.crucible/workspaces/<run>` (override with `CRUCIBLE_WORKSPACES`), outside this checkout, linked from the run's `workspace/` and moved back into the run directory when the run ends. Each workspace is also its own git repository, with the seeded state as its first commit. Inside the checkout, an agent searching upward would find the hidden graders, every rubric and other models' runs.
+
+After every run, crucible scans the transcript for paths inside this checkout. If the agent reached any, the run's `meta.json` gets `leaks` and `invalid`, and `crucible export` leaves the run out.
+
+### Programmatic checks
+Tests can declare deterministic checks that run on the model's final answer (its last reply, never tool output) after every run:
+
+```yaml
+checks:
+  - id: fixes_than
+    type: required_patterns          # also: forbidden_patterns, non_empty, line_count, list_items, grounded_numbers
+    patterns: ['louder than']
+    rule: "Fixes 'louder then' to 'louder than'."   # plain English, shown on the dashboard
+rubric:
+  - criterion: "Fixes than"
+    max_score: 2
+    check: fixes_than                # this criterion is scored by the check
 ```
 
-`RUN_ID` can be either:
-- The **full path** (e.g. `openrouter_moonshotai_kimi-k2.6/everyday/E2/20260829_040024`)
-- Just the **timestamp leaf** (e.g. `20260829_040024`) — it will be found recursively
+`grounded_numbers` passes only when every figure in the answer appears in the prompt's own source material, which catches invented or altered numbers in summaries (KNOW-4). A rubric criterion with `check:` is scored by that check: full marks on a pass, zero on a fail, overriding any judge. When every criterion has a check (all writing tests do), the run is scored with no judge at all. The result goes to `check_results.json` next to the run, together with the exact text that was checked, so it can be audited.
 
-Example:
 ```bash
-crucible score 20260829_040024
-crucible score openrouter_moonshotai_kimi-k2.6/everyday/E2/20260829_040024
+crucible checks                        # re-run checks on existing runs (after editing rules)
+crucible checks --doc docs/checks.md   # regenerate the list of every test's rules
 ```
 
-The interactive CLI walks you through each rubric criterion and saves results to `runs/<MODEL>/<CATEGORY>/<TEST>/<TIMESTAMP>/results.json`.
+[docs/checks.md](docs/checks.md) lists every rule each test enforces. Automatic scores (checks and hidden tests) win over a person's or the judge's.
+
+### Review (future)
+`crucible judge <run_dir> <payload.json>` saves an AI judge's per-criterion scores (following [crucible/judge_instructions.md](crucible/judge_instructions.md)) to `agent_results.json`, and `crucible score <run>` records a person's in `results.json`. Both exist for the tests that can't be scored automatically yet, but aren't part of the normal workflow; automatic scores (checks and hidden tests) always win, then a person's, then the judge's.
+
+### Publishing results
+
+The portfolio's Crucible page reads every `*.json` file in its `_data/crucible/` folder. Each is a **results bundle** (schema: [crucible/schemas/results.schema.json](crucible/schemas/results.schema.json)), one per machine, and the page merges them: runs by `run_id`, newest bundle wins, and the test list from the newest bundle.
+
+```bash
+crucible publish                         # this machine's runs -> ../schaferandrew.github.io/_data/crucible/<machine>.json
+crucible publish --to <folder>           # write somewhere else (or set CRUCIBLE_PUBLISH_DIR)
+crucible publish --check <bundle.json>   # validate a bundle, e.g. one made on another machine
+crucible export --out <file.json>        # the same data without the checks or the machine name
+```
+
+To add results from another machine, run `crucible publish --to <folder>` there and drop the file into `_data/crucible/` (copy it, or upload it on GitHub). A run's score counts only when it matches the current test and rubric versions. Claude Code users can say "publish my Crucible results": the repo ships a skill for it (`.claude/skills/publish-results/`).
+
+Runs that shouldn't be published live in `runs-archive/`: bad-day runs (incomplete, invalid, harness errors) and models with no scored run. `crucible export` and `crucible publish` read `runs/` only; move a folder back to restore it.
 
 ## Reports
 
@@ -211,7 +232,7 @@ crucible report --all --output results.md
    - `name`, `label`, `executable` (CLI that must be on PATH) + `install_hint`, optionally `default_model`
    - **CLI harnesses** implement `launch(ctx)` → `Launch(cmd, cwd, env)` for headless or watch (`ctx.watch`) mode, and `collect(ctx)` to turn what the harness left behind into `session.json` / `stdout.txt` (use `crucible.session.write_normalized` for the shared event format). The default `run()` handles the rest: `command.sh`, headless logging or the TUI, timeouts and tree-kill.
    - **Non-CLI harnesses** (like `direct`) override `run(ctx)` instead, and may set `uses_workspace = False`.
-   - optional: `validate(model, prompt_def)` (API keys, unsupported tests), `prepare(ctx)` (setup/teardown around the run, e.g. pool's settings.yaml), `token_usage(run_dir)`, `response_timings(run_dir)`, `status(result)`
+   - optional: `validate(model, prompt_def)` (API keys, unsupported tests), `prepare(ctx)` (setup/teardown around the run), `token_usage(run_dir)`, `response_timings(run_dir)`, `status(result)`
 2. Add an instance to `AGENTS` in `crucible/agents/__init__.py`.
 
 `--agent <name>`, preflight checks, install hints, metrics and the console summary then work automatically. Use `crucible/procs.py` conventions for portability: single-line arguments, prompt passed as a file, per-run config in env vars.
@@ -220,7 +241,7 @@ crucible report --all --output results.md
 
 ```bash
 python -m pip install -e . pytest
-python -m pytest            # unit + end-to-end tests (pi's runs when `pi` is on PATH; pool's uses a stand-in CLI)
+python -m pytest            # unit + end-to-end tests (pi's runs when `pi` is on PATH)
 ```
 CI (`.github/workflows/tests.yml`) runs the suite on Linux, macOS and Windows with pi installed.
 
@@ -230,9 +251,12 @@ CI (`.github/workflows/tests.yml`) runs the suite on Linux, macOS and Windows wi
 - `fixtures/` — Test data (calendar JSON, writing samples, etc.)
 - `repos/` — Seeded buggy repositories for coding tests
 - `runs/` — Output directory for test results
-- `crucible/cli.py` — CLI entry point (`run` / `score` / `report`)
+- `crucible/cli.py` — CLI entry point (`run` / `score` / `judge` / `checks` / `versions` / `export` / `report`)
 - `crucible/runner.py` — `crucible run`: per-test orchestration and the suite loop
-- `crucible/agents/` — One module per harness: `opencode.py`, `pi.py` (+ `pi_extension.ts`), `pool.py`, `direct.py`
+- `crucible/plan.py` — What a run will do: test selection, order, harness and time limit per test
+- `crucible/wizard.py` — The questions `crucible run` asks when it isn't given a test
+- `crucible/taxonomy.py` — Sections (chat, agentic), areas, tiers and categories
+- `crucible/agents/` — One module per harness: `opencode.py`, `pi.py` (+ `pi_extension.ts`), `direct.py`
 - `crucible/workspace.py` — Prompts, run directories, workspace setup, fixtures
 - `crucible/models.py` / `crucible/providers.py` — Model resolution; provider table (list models, stream completions)
 - `crucible/metrics.py` — Metrics in `meta.json` (tests, tool calls, tokens, latency, cost)
@@ -246,28 +270,12 @@ CI (`.github/workflows/tests.yml`) runs the suite on Linux, macOS and Windows wi
 
 ## How It Works
 
-1. The runner creates a workspace in `runs/<MODEL>/<CATEGORY>/<TEST_ID>/<TIMESTAMP>/workspace/` by invoking `crucible run`
-2. For coding tests, it copies the seeded repo into the workspace (repos are never mutated)
-3. For reasoning tests, it copies fixtures (e.g., `calendar-fixture.json`)
-4. In headless mode, it invokes `opencode run` / `pi -p` with the prompt attached as a file. In watch mode, it opens the agent's TUI in the workspace with the prompt pre-loaded.
-5. Results are saved: `stdout.txt`, `stderr.txt`, `session.json` (if available), `meta.json`
-6. You score manually with `crucible score` (automated graders planned for select tests)
-
-## Model Aliases
-
-Any model your opencode installation supports works. Common examples:
-- `openrouter/moonshotai/kimi-k2.6`
-- `openrouter/anthropic/claude-sonnet-4`
-- `openrouter/openai/gpt-5`
-- `ollama/qwen3:30b-a3b`
-- `ollama/llama3.1:8b`
-
-## Timeout
-
-Default timeout is 600 seconds (10 minutes) per test. Override with `--timeout`:
-```bash
-crucible run C1 --model openrouter/moonshotai/kimi-k2.6 --timeout 300
-```
+1. `crucible run` builds a plan (`crucible/plan.py`): which tests, in what order, with which harness and time limit.
+2. For each agentic test it creates a workspace in `~/.crucible/workspaces/<run>` (see Workspace isolation), copying in the seeded repo or fixtures; repos in this checkout are never mutated.
+3. Headless, it runs `opencode run` / `pi -p` with the prompt attached as a file; chat tests are one streamed API call. In watch mode it opens the agent's TUI with the prompt pre-loaded.
+4. The run directory gets `prompt.txt`, `stdout.txt`, `stderr.txt`, `session.json` (when the harness has one) and `meta.json` (outcome, metrics, test version, machine and inference details).
+5. Programmatic checks and hidden tests score the run straight away when the test has them; the rest wait for review (a future feature).
+6. `crucible publish` turns everything into the results bundle the dashboard reads.
 
 ## Mock MCP Server
 
@@ -282,7 +290,6 @@ The server (`fixtures/mock-mcp-server/mock_server.py`, stdio JSON-RPC) serves fi
 
 **Wiring is per-run and self-contained — nothing goes in global agent configs:**
 - **opencode**: the runner injects `OPENCODE_CONFIG_CONTENT` into the spawned process only
-- **pool**: pool has no per-launch MCP config, so the harness adds the entry to `~/.config/poolside/settings.yaml` for the run and removes it afterwards, even on timeout or Ctrl+C (a pre-existing entry is left untouched)
 - **pi**: pi has no MCP support, so crucible's per-run pi extension (`crucible/agents/pi_extension.ts`, loaded with `-e`) spawns the declared MCP servers and registers their tools as native pi tools; config arrives via the `CRUCIBLE_PI_CONFIG` env var
 
 This makes fresh machines work with zero manual setup: install the repo, run the test, the mock server is wired up and torn down automatically.
@@ -293,11 +300,10 @@ This makes fresh machines work with zero manual setup: install the repo, run the
 - **pi**: exact, timestamped inside pi by crucible's extension (headless and `--watch`)
 - **direct**: exact, from the streamed provider response (direct runs also record token usage)
 - **opencode**: per-response duration from its session export; no token-level timestamps, so TTFT is empty
-- **pool**: per-response duration from its trajectory record (inference start/end); its trajectory has no first-token event, so TTFT is empty
 
 ### Token usage
 
-`meta.json` records `tokens_in` / `tokens_out` per run (from opencode's session export, pi's session file, or pool's trajectory record). Caveats: opencode's `tokens_out` includes reasoning tokens; pi's `tokens_in` includes cache reads/writes; pool's `tokens_in` may include cached input.
+`meta.json` records `tokens_in` / `tokens_out` per run (from opencode's session export, pi's session file). Caveats: opencode's `tokens_out` includes reasoning tokens; pi's `tokens_in` includes cache reads/writes.
 
 ### Cost
 
@@ -307,36 +313,25 @@ This makes fresh machines work with zero manual setup: install the repo, run the
 
 Both are `null` when unknown.
 
-### Web tools (E6)
+### Web tools (RSCH-2)
 
-E6 and E6b declare crucible's web MCP server (`mcp_servers: [web]`, `crucible/mcp_servers/web_server.py`), so every agent gets the same `web_fetch` tool (HTTP GET; HTML reduced to text) rather than whatever its harness ships. `web_search` (Brave Search API) is offered only when `BRAVE_SEARCH_API_KEY` is set. `meta.json` records `tools.mcp_servers` and `tools.builtin_web` (opencode still has its own `webfetch`), so you can see what each run could reach.
+RSCH-2 and RSCH-2b declare crucible's web MCP server (`mcp_servers: [web]`, `crucible/mcp_servers/web_server.py`), so every agent gets the same `web_fetch` tool (HTTP GET; HTML reduced to text) rather than whatever its harness ships. `web_search` (Brave Search API) is offered only when `BRAVE_SEARCH_API_KEY` is set. `meta.json` records `tools.mcp_servers` and `tools.builtin_web` (opencode still has its own `webfetch`), so you can see what each run could reach.
 
-### Verified MCP permutations (E4)
+### Verified MCP permutations (TASK-2)
 
 All combinations below ran against the mock MCP server; "✓" means the mock tools were invoked and the briefing ended with the Spanish paragraph.
 
 | Agent   | Mode     | Model                                   | Run (20260903_*) | Result | tokens in/out |
 |---------|----------|------------------------------------------|------------------|--------|---------------|
-| pool    | headless | tenant default (laguna-xs-2.1:nvfp4)     | 131513           | ✓      | 12513 / 925   |
-| pool    | headless | openrouter/deepseek/deepseek-v4-flash    | 032355           | ✓      | 12833 / 1027  |
-| pool    | headless | openrouter/moonshotai/kimi-k2.6          | 030425           | ✓      | n/a (pre-fix) |
-| pool    | headless | ollama/laguna-xs-2.1:nvfp4               | 033147           | ✓      | 25533 / 740   |
 | opencode| headless | openrouter/anthropic/claude-sonnet-4.5   | 010917           | ✓      | n/a (pre-fix) |
 | opencode| headless | openrouter/deepseek/deepseek-v4-flash    | 032424           | ✓      | n/a (run pre-dated token capture wiring) |
-| pool    | watch    | ollama/laguna-xs-2.1:nvfp4               | 033631           | ✓      | 29207 / 776   |
-| pool    | watch    | openrouter/deepseek/deepseek-v4-flash    | 040603           | ✓ *    | 14584 / 1209  |
 | opencode| watch    | openrouter/deepseek/deepseek-v4-flash    | 041420           | ✓      | n/a (run pre-dated token capture wiring) |
 
-\* Task completed and verified via pool's ACP log; artifacts were exported from the trajectory record after a synthetic-pty teardown. (Rows predate the harness refactor.)
 
 pi runs are covered end-to-end by `tests/test_pi_integration.py`, which drives the real pi CLI against a scripted OpenAI-compatible model (`tests/fake_openai.py`) through the mock MCP server, on Linux, macOS and Windows in CI.
 
 ### Pitfalls learned
 
-- **Rubrics must live in a top-level `rubric:` key**, never inside `prompt:` — otherwise the agent sees the eval criteria (fixed for E4; all prompts scanned).
+- **Rubrics must live in a top-level `rubric:` key**, never inside `prompt:` — otherwise the agent sees the eval criteria (fixed for TASK-2; all prompts scanned).
 - **Stale global `crucible` install**: an editable install pointing at a different checkout silently runs old code (symptom: "MCP not available" despite everything else working). Check with `pip show crucible | grep -i editable`.
-- **Pool watch without auto-approve stalls**: the TUI blocks on tool-approval prompts; the harness passes `--mode always-allow` in watch mode.
-- **Pool has no per-launch MCP flag**: only settings.yaml; hence the add/remove-around-the-run approach (`PoolAgent.prepare`).
-- **Pool trajectory location** (as `pool config` prints it): `~/Library/Application Support/poolside/trajectories` on macOS, `%LOCALAPPDATA%\poolside\trajectories` on Windows, `$XDG_STATE_HOME` (default `~/.local/state`)`/poolside/trajectories` on Linux. Set `CRUCIBLE_POOL_TRAJECTORIES_DIR` to override.
-- **Pool MCP schema**: `settings.yaml` entries need `command` as a single string plus `args` (pool 1.0.16 rejects a list-valued `command`).
 - **Windows argument mangling**: npm CLIs are `.cmd` shims on Windows and cmd.exe truncates multi-line arguments, so prompts are always attached as `prompt.txt` (never passed inline) and per-run config travels in env vars.

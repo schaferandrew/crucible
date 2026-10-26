@@ -1,0 +1,51 @@
+test_id: WRIT-1c
+needs_tools: false
+category: writing
+area: writing
+tier: temper
+version: 1
+rubric_version: 2
+status: active
+auto_grade: false
+repo: null
+prompt: |
+  Proofread this economics essay for objective language errors. Then separately flag claims, terminology, or wording that are potentially unclear, overstated, or technically imprecise. Do not rewrite the author's argument into your own argument.
+
+  Inflation is when prices go up because the government prints too much money. This is obvious if you think about it: if there's more money chasing the same amount of stuff, each dollar is worth less. The Consumer Price Index (CPI) measures inflation by tracking a basket of goods that the average household buys, and when CPI rises above 2% annually, the Federal Reserve is legally required to raise interest rates. Many economists believe that the natural rate of unemployment is around 4%, which means anyone above that is either lazy or the victim of bad policy. Quantitative easing, which the Fed started after 2008, is basically just printing money to buy treasury bonds, which devalues the currency and inevitably causes hyperinflation. Japan's experience with deflation in the 1990s proves that monetary policy is completely ineffective at stimulating demand. Most importantly, supply-side economics has been definitively debunked by the failed Reagan tax cuts, which increased the deficit without growing the economy at all.
+checks:
+  - id: answered
+    type: non_empty
+    min_words: 80
+    rule: "Produces a substantive answer (at least 80 words)."
+  - id: fixes_treasury
+    type: required_patterns
+    case_sensitive: true
+    patterns: ['Treasury (bonds|securities)']
+    rule: "Capitalizes 'Treasury' in 'Treasury bonds' (case-sensitive)."
+  - id: separate_flags
+    type: required_patterns
+    patterns: ['\b(overstat\w*|imprecise|unclear|misleading|inaccurate|unsupported)\b']
+    rule: "Has a separate part flagging claims as overstated, imprecise, unclear or misleading."
+  - id: names_overstatements
+    type: required_patterns
+    min_matches: 3
+    patterns: ['legally required', '\blazy\b', 'hyperinflation', '(debunked|Reagan)', 'Inflation is when', 'completely ineffective']
+    rule: "Discusses at least 3 of the planted overstatements (legally required, lazy, hyperinflation, debunked/Reagan, 'Inflation is when', completely ineffective)."
+rubric:
+  - criterion: "Answered"
+    max_score: 1
+    check: answered
+    description: "A substantive answer."
+  - criterion: "Fixes the language error"
+    max_score: 3
+    check: fixes_treasury
+    description: "treasury -> Treasury."
+  - criterion: "Flags claims separately"
+    max_score: 3
+    check: separate_flags
+    description: "Claims flagged apart from language fixes."
+  - criterion: "Finds the overstatements"
+    max_score: 3
+    check: names_overstatements
+    description: "At least three planted overstatements discussed."
+critical_failure: null

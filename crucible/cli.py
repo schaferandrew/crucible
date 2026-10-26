@@ -2,15 +2,15 @@
 """Crucible CLI entry point.
 
 Usage:
-    crucible run G2 --model openrouter/moonshotai/kimi-k2.6
-    crucible score 20260829_040024
-    crucible report --all
+    crucible run
+    crucible run CODE-11 --model openrouter/moonshotai/kimi-k2.6
+    crucible publish
 """
 from __future__ import annotations
 import sys
 from pathlib import Path
 
-from crucible import runner, scorer, reporter
+from crucible import bundle, checks, exporter, judge, reporter, runner, scorer, versioning
 
 
 def _get_version() -> str:
@@ -29,38 +29,28 @@ Usage:
   crucible <command> [args...]
 
 Commands:
-  run      Run benchmark test(s) with an agent harness (opencode, pi, pool, direct)
-  score    Interactively score a completed run against its rubric
+  run      Run tests. With no arguments it asks what to run; scoring happens automatically
+  checks   Re-run programmatic checks and hidden tests on existing runs; --doc PATH writes the rules doc
+  versions Check test versions against the lock; --update, --release NAME, --backfill runs
+  publish  Write this machine's results into the portfolio's data folder (validated)
+  export   Flatten runs into one JSON file
   report   Generate a comparison report across runs
 
-Test suites:
-  coding (C1, C1b, C2, C2b, C3, C4, C4b, C5, C6)
-  writing (W1a, W1b, W1c, W2, W2b)
-  everyday (E1-E3), reasoning (G1-G3), home (H1-H4), all
+Not ready yet (review needs more infrastructure; never part of a run):
+  score    Review a run by hand against its rubric
+  judge    Save an AI judge's review of a run
+
+Sections, areas and tiers:
+  chat     writing (WRIT), math (MATH), geography (GEOG), history (HIST), general knowledge (KNOW)
+  agentic  coding (CODE), research (RSCH), everyday tasks (TASK)
+  tiers    spark (the basics, a gate), temper (everyday work, the headline), forge (frontier-level)
 
 Examples:
-  # Single test with an OpenRouter model
-  crucible run C1 --model openrouter/moonshotai/kimi-k2.6
-
-  # Whole coding suite with a local ollama model
-  crucible run coding --model ollama/qwen3:30b-a3b --timeout 300
-
-  # Run through the pi agent instead of opencode
-  crucible run C1 --agent pi --model openrouter/moonshotai/kimi-k2.6
-
-  # Run through the Poolside agent (tenant mode)
-  crucible run C1 --agent pool
-
-  # Watch a test live in the opencode TUI
-  crucible run C2b --model openrouter/anthropic/claude-sonnet-4 --watch
-
-  # Score a run (by timestamp leaf or full run path)
-  crucible score 20260829_040024
-  crucible score openrouter_moonshotai_kimi-k2.6/everyday/E2/20260829_040024
-
-  # Compare specific runs, or report everything
-  crucible report run1 run2 run3
-  crucible report --all --output results.md
+  crucible run                                              # asks what to run
+  crucible run chat --model lmstudio/qwen/qwen3.5-9b         # every chat test
+  crucible run coding --tier forge --agent pi --model ollama/qwen3:30b-a3b
+  crucible run CODE-2b --model openrouter/moonshotai/kimi-k2.6 --watch
+  crucible publish                                          # update the dashboard data
 
 Options:
   -h, --help     Show this help and exit
@@ -70,7 +60,11 @@ Run 'crucible <command> -h' for command-specific options.
 """)
 
 
-COMMANDS = {"run": runner.main, "score": scorer.main, "report": reporter.main}
+
+COMMANDS = {
+    "run": runner.main, "score": scorer.main, "report": reporter.main,
+    "judge": judge.main, "versions": versioning.main, "export": exporter.main, "publish": bundle.main, "checks": checks.main,
+}
 
 
 def main():

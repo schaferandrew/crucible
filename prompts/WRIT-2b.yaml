@@ -1,0 +1,56 @@
+test_id: WRIT-2b
+needs_tools: false
+category: writing
+area: writing
+tier: temper
+version: 1
+rubric_version: 2
+status: active
+auto_grade: false
+repo: null
+prompt: |
+  Generate 20 names for a 34-year-old woman who grew up in a working-class family in the upper Midwest, is highly intelligent, dryly funny, ambitious, and emotionally guarded. Her family background is Polish-American. The novel is contemporary literary fiction. Avoid names that feel stereotypical or caricatured for the character's heritage. Briefly explain why the strongest five fit.
+checks:
+  - id: answered
+    type: non_empty
+    min_words: 60
+    rule: "Produces a substantive answer (at least 60 words)."
+  - id: twenty_names
+    type: list_items
+    min: 20
+    rule: "Lists at least 20 names as list items."
+  - id: distinct_names
+    type: list_items
+    distinct: true
+    distinct_within: 20
+    rule: "No name appears twice in the list of 20 (a later recap of favorites is fine)."
+  - id: explains_top_five
+    type: required_patterns
+    patterns: ['\b(top|strongest|best)\s*(5|five)\b']
+    rule: "Explains the strongest five (names a 'top/strongest five' section)."
+  - id: no_caricature
+    type: forbidden_patterns
+    patterns: ['\b(harry potter|hermione|katniss|sherlock|gatsby|atticus finch|holden caulfield|elizabeth bennet|frodo|bilbo|gandalf|daenerys|jon snow|bella swan|edward cullen|lisbeth salander|jay gatsby|scout finch|walter white|don draper|carrie bradshaw|taylor swift|beyonc|oprah|kardashian|elon musk|barack obama|tony stark|bruce wayne|peter parker|clark kent|babushka|pierogi|kielbasa)\b']
+    rule: "Uses no famous names and no food or caricature words as names (blocklist)."
+rubric:
+  - criterion: "Answered"
+    max_score: 1
+    check: answered
+    description: "A substantive answer."
+  - criterion: "Twenty names"
+    max_score: 3
+    check: twenty_names
+    description: "At least 20 names."
+  - criterion: "Distinct"
+    max_score: 2
+    check: distinct_names
+    description: "No repeats."
+  - criterion: "Explains the top five"
+    max_score: 2
+    check: explains_top_five
+    description: "The strongest five are explained."
+  - criterion: "No caricature"
+    max_score: 2
+    check: no_caricature
+    description: "No blocklisted names."
+critical_failure: null

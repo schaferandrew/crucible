@@ -35,6 +35,20 @@ TASK_INSTRUCTION = "Complete the benchmark task described in the attached prompt
 WATCH_INSTRUCTION = "Read prompt.txt in the current directory and complete the benchmark task it describes."
 
 
+def agent_environ() -> dict[str, str]:
+    """os.environ minus crucible's own virtualenv.
+
+    `uv run crucible` puts crucible's .venv first on PATH; an agent inheriting it runs
+    crucible's Python and learns where crucible lives (graders, rubrics, other runs).
+    """
+    env = dict(os.environ)
+    venv = env.pop("VIRTUAL_ENV", None) or str(REPO_ROOT / ".venv")
+    env.pop("VIRTUAL_ENV_PROMPT", None)
+    parts = [p for p in env.get("PATH", "").split(os.pathsep) if p and not p.startswith(venv)]
+    env["PATH"] = os.pathsep.join(parts)
+    return env
+
+
 @dataclass
 class RunContext:
     test_id: str
@@ -112,7 +126,7 @@ class Agent:
         """
         with self.prepare(ctx):
             launch = self.launch(ctx)
-            env = {**os.environ, **launch.env}
+            env = {**agent_environ(), **launch.env}
             (ctx.run_dir / "command.sh").write_text(
                 "#!/bin/bash\n" + procs.format_command(launch.cmd, launch.env) + "\n",
                 encoding="utf-8")

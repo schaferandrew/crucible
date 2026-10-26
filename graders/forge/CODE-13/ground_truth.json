@@ -1,0 +1,13 @@
+{
+  "deploy": "2026-10-23T16:42:10.000Z",
+  "first_cross_user_hit": "2026-10-23T16:44:15.179Z",
+  "first_user_report": "2026-10-23T18:06:01.000Z",
+  "first_report_ticket": 4812,
+  "distinct_signed_in_users_served_another_signed_in_users_data": 371,
+  "cross_user_hits_signed_in": 427,
+  "distinct_signed_in_users_served_any_other_viewers_cached_response": 481,
+  "anonymous_requests_served_a_signed_in_users_response": 168,
+  "personalized_hits_total": 746,
+  "access_log_lines": 43681,
+  "note": "Primary count: distinct signed-in users who got a cached personalized response (article, list or profile) that was stored for a different signed-in user. Variants that also count anonymous-stored responses are acceptable if the method is stated."
+}

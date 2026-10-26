@@ -12,6 +12,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from crucible import versioning
 from crucible.taxonomy import validate_category
 from crucible.workspace import REPO_ROOT, load_prompt
 
@@ -48,12 +49,9 @@ def _read_json(path: Path) -> dict:
 def _session_model_output(session_path: Path) -> str | None:
     """The model's reply text from session.json (opencode export or normalized events)."""
     data = _read_json(session_path) if session_path.exists() else {}
-    if isinstance(data, dict):  # opencode export: messages -> parts -> text
-        texts = [part["text"]
-                 for msg in data.get("messages", [])
-                 if msg.get("info", {}).get("role") in (None, "assistant")
-                 for part in msg.get("parts", [])
-                 if part.get("type") == "text" and part.get("text")]
+    if isinstance(data, dict):  # opencode export (1.x parts or 2.x content)
+        from crucible.agents.opencode import message_texts
+        texts = message_texts(data)
     else:  # normalized events (see crucible.session)
         texts = [e["message"] for e in data
                  if e.get("type") == "assistantMessage" and e.get("message")]
@@ -156,8 +154,14 @@ def score_run(run_dir: Path) -> Path:
     meta = _read_json(run_dir / "meta.json")
     # Layout is .../<test_id>/<timestamp>/ for runs that predate meta.json
     test_id = meta.get("test_id") or run_dir.parent.name
+    prompt_def = load_prompt(test_id)
+    # A rubric score only means something against the content the run actually saw
+    run_version = (meta.get("test") or {}).get("version")
+    if run_version is not None and run_version != prompt_def.get("version"):
+        raise SystemExit(f"{test_id}: this run used v{run_version}, but the prompt is now "
+                         f"v{prompt_def.get('version')}; rerun instead of re-scoring")
     scores = score_interactive(test_id, run_dir, meta)
-    overall = overall_score(scores, load_prompt(test_id).get("rubric", []))
+    overall = overall_score(scores, prompt_def.get("rubric", []))
     if overall is not None:
         scores["_overall"] = overall
 
@@ -165,6 +169,10 @@ def score_run(run_dir: Path) -> Path:
     results_path.write_text(json.dumps({
         "run_id": meta.get("run_id") or run_dir.name,
         "test_id": test_id,
+        "scorer": {"type": "human"},
+        "test_version": prompt_def.get("version"),
+        "rubric_version": prompt_def.get("rubric_version"),
+        "rubric_hash": versioning.rubric_hash(prompt_def),
         "scores": scores,
         "scored_at": datetime.now(timezone.utc).isoformat(),
     }, indent=2), encoding="utf-8")

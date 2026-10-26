@@ -4,12 +4,15 @@ Sources, best first (recorded as metrics.cost_source):
 
 - "openrouter_billed": the OPENROUTER_API_KEY's billed usage, read before and
   after the run. Real money for any agent, but only clean when nothing else
-  spends on that key during the run (give an LLM judge its own key).
+  spends on that key during the run (give an LLM judge its own key). Set
+  CRUCIBLE_BILLED_COST=0 when runs share a key in parallel, so each run falls
+  back to its own estimate instead of absorbing the others' spend.
 - "<agent>_estimate": the agent's own figure from its session record, priced
   from the agent's built-in price list (local models read $0).
 """
 from __future__ import annotations
 
+import os
 import time
 from typing import Callable
 
@@ -30,7 +33,8 @@ class BilledCost:
     def __init__(self, model: str | None,
                  read_usage: Callable[[], float | None] = providers.fetch_openrouter_key_usage,
                  sleep: Callable[[float], None] = time.sleep):
-        self._enabled = bool(model and model.startswith("openrouter/"))
+        self._enabled = (bool(model and model.startswith("openrouter/"))
+                         and os.environ.get("CRUCIBLE_BILLED_COST", "1") != "0")
         self._read_usage = read_usage
         self._sleep = sleep
         self._before: float | None = None

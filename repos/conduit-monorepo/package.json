@@ -1,0 +1,20 @@
+{
+  "name": "conduit-monorepo",
+  "private": true,
+  "description": "Conduit: a RealWorld (realworld.how) implementation. Express API + React web app sharing one TypeScript package.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "test": "npm run test --workspaces --if-present",
+    "test:api": "npm run test -w @conduit/api",
+    "test:web": "npm run test -w @conduit/web",
+    "typecheck": "tsc -p apps/api && tsc -p apps/web",
+    "dev:api": "npm run dev -w @conduit/api",
+    "dev:web": "npm run dev -w @conduit/web"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  }
+}

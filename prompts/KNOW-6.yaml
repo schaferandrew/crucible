@@ -1,0 +1,29 @@
+test_id: KNOW-6
+needs_tools: false
+category: home_maintenance
+area: general
+tier: temper
+version: 1
+rubric_version: 1
+status: active
+auto_grade: false
+repo: null
+prompt: |
+  My toilet has started running continuously. It still flushes normally. Give me a diagnostic sequence that starts with the simplest checks, explains what each observation means, and tells me which parts are commonly adjustable versus replaceable. Include what to do if the shutoff valve is stuck and how to avoid making the problem worse.
+rubric:
+  - criterion: "Diagnostic logic"
+    max_score: 4
+    description: "Starts simple (flapper, chain, fill valve) and progresses logically."
+  - criterion: "Practical steps"
+    max_score: 3
+    description: "Each step is something a homeowner can actually do."
+  - criterion: "Safety"
+    max_score: 1
+    description: "Warns about water damage and how to avoid it."
+  - criterion: "Part identification"
+    max_score: 1
+    description: "Identifies which parts are adjustable vs replaceable."
+  - criterion: "Escalation"
+    max_score: 1
+    description: "Clear boundary for calling a plumber."
+critical_failure: null

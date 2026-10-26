@@ -2,7 +2,7 @@
 
 ## Overview
 
-Mocking MCP servers to provide fake data for email, calendar, news, and weather tools in the Crucible benchmark suite. Required for tests like E4 that need external data sources.
+Mocking MCP servers to provide fake data for email, calendar, news, and weather tools in the Crucible benchmark suite. Required for tests like TASK-2 that need external data sources.
 
 ## Recommended Approach: Python MCP Server
 
@@ -252,8 +252,8 @@ chmod +x fixtures/mock-mcp-server/mock_server.py
 # 6. Validate mock server works
 echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' | python3 fixtures/mock-mcp-server/mock_server.py
 
-# 7. Run E4 test with mock server active
-crucible run E4 --agent pi
+# 7. Run TASK-2 test with mock server active
+crucible run TASK-2 --agent pi
 ```
 
 ### Integration with Existing Infrastructure
@@ -267,7 +267,7 @@ The mock MCP server integrates with:
 
 1. Verify mock server starts and responds to `initialize` and `tools/list`
 2. Test each tool (get_emails, get_calendar_events, get_news, get_weather) returns valid fixture data
-3. Run E4 test with mock server active via opencode or pi agent
+3. Run TASK-2 test with mock server active via opencode or pi agent
 4. Verify Spanish paragraph is generated correctly at end of briefing
 5. Verify all fixture files are properly integrated
 

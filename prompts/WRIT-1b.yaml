@@ -1,0 +1,65 @@
+test_id: WRIT-1b
+needs_tools: false
+category: writing
+area: writing
+tier: temper
+version: 1
+rubric_version: 2
+status: active
+auto_grade: false
+repo: null
+prompt: |
+  Proofread the paragraph below for grammar, spelling, punctuation, and obvious usage problems. Preserve the author's voice, rhythm, imagery, and intentional fragments. Flag anything that may be intentional rather than silently changing it.
+
+  Mara stepped off the train and into a city that smelled like rain, hot asphalt, and somebody's breakfast. The station was louder then she remembered it, all brakes shrieking and people talking to fast. She could feel the old neighborhood somewhere beyond the buildings, waiting. Not waiting for her, exactly. That would have been too kind. Still—she was back. And she didn't know whether to laugh, or leave.
+checks:
+  - id: answered
+    type: non_empty
+    min_words: 40
+    rule: "Produces a substantive answer (at least 40 words)."
+  - id: fixes_than
+    type: required_patterns
+    patterns: ['louder than']
+    rule: "Fixes 'louder then' to 'louder than'."
+  - id: fixes_too
+    type: required_patterns
+    patterns: ['talking too fast']
+    rule: "Fixes 'talking to fast' to 'talking too fast'."
+  - id: keeps_fragments
+    type: required_patterns
+    patterns: ['Not waiting for her, exactly\.', 'That would have been too kind\.', 'Still\s*(—|--|-)\s*she was back']
+    rule: "Keeps the intentional fragments and the dash ('Not waiting for her, exactly.', 'That would have been too kind.', 'Still—she was back')."
+  - id: keeps_imagery
+    type: required_patterns
+    patterns: ['smelled like rain, hot asphalt, and somebody''s breakfast']
+    rule: "Keeps the opening imagery word for word."
+  - id: flags_intent
+    type: required_patterns
+    patterns: ['\b(intentional|intentionally|deliberate|stylistic|voice)\b']
+    rule: "Flags at least one choice as possibly intentional rather than silently changing it."
+rubric:
+  - criterion: "Answered"
+    max_score: 1
+    check: answered
+    description: "A substantive answer."
+  - criterion: "Fixes than"
+    max_score: 2
+    check: fixes_than
+    description: "then -> than."
+  - criterion: "Fixes too"
+    max_score: 2
+    check: fixes_too
+    description: "to -> too."
+  - criterion: "Keeps the fragments"
+    max_score: 2
+    check: keeps_fragments
+    description: "Intentional fragments preserved."
+  - criterion: "Keeps the imagery"
+    max_score: 1
+    check: keeps_imagery
+    description: "Imagery preserved."
+  - criterion: "Flags intent"
+    max_score: 2
+    check: flags_intent
+    description: "Possible intentional choices flagged, not changed."
+critical_failure: null
