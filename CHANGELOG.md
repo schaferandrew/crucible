@@ -13,9 +13,8 @@ improvements are minor releases.
 - **Evals area (`EVAL-1` to `EVAL-3`, chat).** Tests whether a model can grade an agent's
   response: it sees the task, the criteria and the response, reasons, and ends with
   `GRADE: <0-10>`. A new `grade_closeness` check scores the grade against a hidden reference
-  grade, with points falling linearly with the distance (full for an exact match, none at
-  5 or more points off). The reasoning is kept with the run's output. The tests start as
-  `provisional`.
+  grade, with points following a bell curve in the distance (full for an exact match, 64% two
+  points off, 6% five off). The reasoning is kept with the run's output. The tests are `active`.
 
 ## 1.0.0 (2026-10-26)
 

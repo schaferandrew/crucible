@@ -214,7 +214,7 @@ crucible checks --doc docs/checks.md   # regenerate the list of every test's rul
 [docs/checks.md](docs/checks.md) lists every rule each test enforces. Automatic scores (checks and hidden tests) win over a person's or the judge's.
 
 ### Evals
-The `evals` area (`EVAL-1` to `EVAL-3`) tests whether a model can **consistently and correctly grade an agent's response**. The prompt shows the model the task given to an agent, the criteria and the agent's response; the model reasons through the criteria and ends with a `GRADE: <0-10>` line. A `grade_closeness` check compares that grade with a hidden reference grade held in the test's `checks:` block (never in `prompt:`), and points fall linearly with the distance:
+The `evals` area (`EVAL-1` to `EVAL-3`) tests whether a model can **consistently and correctly grade an agent's response**. The prompt shows the model the task given to an agent, the criteria and the agent's response; the model reasons through the criteria and ends with a `GRADE: <0-10>` line. A `grade_closeness` check compares that grade with a hidden reference grade held in the test's `checks:` block (never in `prompt:`), and points follow a Gaussian (bell curve) in the distance:
 
 ```yaml
 checks:
@@ -222,14 +222,14 @@ checks:
     type: grade_closeness
     scale: [0, 10]       # valid grades
     actual_score: 7      # hidden reference grade
-    falloff: 5           # error at which points reach 0
+    width: 3             # width of the curve: the error at which 37% of points remain
 rubric:
   - criterion: "Grade accuracy"
     max_score: 10
     check: grade
 ```
 
-An exact match earns full points; a grade 1 off earns 80%, 2 off 60%, 5 or more off nothing. A missing or out-of-range `GRADE:` line earns 0. Like every fully checked test, it is scored at the end of the run with no judge. The model's reasoning is the run's output: it is kept as `checked_text` in `check_results.json` and shown on the dashboard, next to what it graded and the reference grade. The cases span a near-perfect response (EVAL-1), a mediocre one (EVAL-2) and a confidently wrong one (EVAL-3); run them repeatedly to measure consistency.
+An exact match earns full points, and the penalty grows with the distance: a grade 1 off earns 89%, 2 off 64%, 3 off 37%, 5 off 6%. Small misses cost little and big ones cost a lot. `width` stretches or tightens the curve per test. A missing or out-of-range `GRADE:` line earns 0. Like every fully checked test, it is scored at the end of the run with no judge. The model's reasoning is the run's output: it is kept as `checked_text` in `check_results.json` and shown on the dashboard, next to what it graded and the reference grade. The cases span a near-perfect response (EVAL-1), a mediocre one (EVAL-2) and a confidently wrong one (EVAL-3); run them repeatedly to measure consistency.
 
 ### Review (future)
 `crucible judge <run_dir> <payload.json>` saves an AI judge's per-criterion scores (following [crucible/judge_instructions.md](crucible/judge_instructions.md)) to `agent_results.json`, and `crucible score <run>` records a person's in `results.json`. Both exist for the tests that can't be scored automatically yet, but aren't part of the normal workflow; automatic scores (checks and hidden tests) always win, then a person's, then the judge's.

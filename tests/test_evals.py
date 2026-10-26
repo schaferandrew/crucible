@@ -6,7 +6,7 @@ import pytest
 from crucible import checks, evals, workspace
 
 EVAL_IDS = [t for t in workspace.all_test_ids() if t.startswith("EVAL-")]
-CHECK = {"id": "grade", "type": "grade_closeness", "scale": [0, 10], "actual_score": 7, "falloff": 5}
+CHECK = {"id": "grade", "type": "grade_closeness", "scale": [0, 10], "actual_score": 7, "width": 3}
 
 
 class TestParseGrade:
@@ -32,14 +32,19 @@ class TestCloseness:
     def test_exact_match_is_full(self):
         assert evals.closeness(7, 7) == 1
 
-    def test_falls_linearly_with_error(self):
-        assert evals.closeness(8, 7) == 0.8
-        assert evals.closeness(5, 7) == 0.6
-        assert evals.closeness(6.5, 7) == 0.9
+    def test_falls_as_a_gaussian_of_the_error(self):
+        assert evals.closeness(8, 7) == pytest.approx(0.8948, abs=1e-4)
+        assert evals.closeness(9, 7) == pytest.approx(0.6412, abs=1e-4)
+        assert evals.closeness(10, 7) == pytest.approx(0.3679, abs=1e-4)  # one width away: 1/e
 
-    def test_symmetric_and_floored_at_zero(self):
-        assert evals.closeness(4, 7) == evals.closeness(10, 7) == 0.4
-        assert evals.closeness(0, 9) == 0
+    def test_penalty_accelerates_with_distance(self):
+        shares = [evals.closeness(7 + e, 7) for e in range(6)]
+        drops = [a - b for a, b in zip(shares, shares[1:])]
+        assert drops[:3] == sorted(drops[:3])  # each extra point of error costs more, up to the knee
+
+    def test_symmetric_and_never_negative(self):
+        assert evals.closeness(4, 7) == evals.closeness(10, 7)
+        assert 0 <= evals.closeness(0, 10) < 0.01
 
     def test_no_grade_is_zero(self):
         assert evals.closeness(None, 7) == 0
@@ -48,7 +53,7 @@ class TestCloseness:
 class TestGradeCloseness:
     def test_reports_partial_credit(self):
         passed, detail, share = evals.grade_closeness(CHECK, "Criterion 1 is met.\nGRADE: 6")
-        assert (passed, share) == (False, 0.8)
+        assert (passed, share) == (False, pytest.approx(0.8948, abs=1e-4))
         assert detail == "graded 6, reference 7 (off by 1)"
 
     def test_exact_match_passes(self):
@@ -59,9 +64,9 @@ class TestGradeCloseness:
         assert (passed, share) == (False, 0.0)
         assert "no valid GRADE line" in detail
 
-    def test_custom_scale_and_falloff(self):
-        check = {**CHECK, "scale": [0, 100], "actual_score": 80, "falloff": 20}
-        assert evals.grade_closeness(check, "GRADE: 70")[2] == 0.5
+    def test_custom_scale_and_width(self):
+        check = {**CHECK, "scale": [0, 100], "actual_score": 80, "width": 20}
+        assert evals.grade_closeness(check, "GRADE: 60")[2] == pytest.approx(0.3679, abs=1e-4)
         assert evals.grade_closeness(check, "GRADE: 101")[2] == 0.0
 
 
@@ -69,7 +74,7 @@ class TestScoring:
     def test_partial_credit_flows_into_the_criterion_score(self):
         prompt = {"checks": [CHECK], "rubric": [{"criterion": "Grade accuracy", "max_score": 10, "check": "grade"}]}
         results = checks.run_checks(prompt, "Reasoning.\n**GRADE: 6**")
-        assert checks.criterion_scores(prompt, results) == {"Grade accuracy": 8.0}
+        assert checks.criterion_scores(prompt, results) == {"Grade accuracy": 8.95}
 
     def test_run_is_scored_without_a_judge(self, tmp_path):
         prompt = workspace.load_prompt("EVAL-3")
@@ -80,8 +85,8 @@ class TestScoring:
 
         record = checks.save_check_score(run_dir, prompt, checks.check_results(run_dir, prompt))
 
-        assert record["scores"]["Grade accuracy"] == 8  # off by 1 from the reference grade of 1
-        assert record["scores"]["_overall"] == 8
+        assert record["scores"]["Grade accuracy"] == 8.95  # off by 1 from the reference grade of 1
+        assert record["scores"]["_overall"] == 8.95
         assert "wrong" in record["checked_text"]  # the reasoning is kept for people to read
 
 

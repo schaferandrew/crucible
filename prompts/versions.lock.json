@@ -102,21 +102,21 @@
     "content_hash": "07e7a478cef8a182",
     "prompt_hash": "80051ab95a6797fa",
     "rubric_version": 1,
-    "rubric_hash": "852fbbd70e5a46f7"
+    "rubric_hash": "bb12e2e785065ea5"
   },
   "EVAL-2": {
     "version": 1,
     "content_hash": "0289e039fdb2109c",
     "prompt_hash": "d0a8f503a24efa5f",
     "rubric_version": 1,
-    "rubric_hash": "5cfd8236217b396b"
+    "rubric_hash": "26bf360f734a2bbb"
   },
   "EVAL-3": {
     "version": 1,
     "content_hash": "e914619e43d38223",
     "prompt_hash": "e766827f302b1995",
     "rubric_version": 1,
-    "rubric_hash": "3654559e66f9447c"
+    "rubric_hash": "8f27c5af40bbe68b"
   },
   "GEOG-1": {
     "version": 1,

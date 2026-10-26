@@ -5,7 +5,7 @@ area: evals
 tier: temper
 version: 1
 rubric_version: 1
-status: provisional
+status: active
 auto_grade: true
 repo: null
 prompt: |
@@ -32,8 +32,8 @@ checks:
     type: grade_closeness
     scale: [0, 10]
     actual_score: 1
-    falloff: 5
-    rule: "The grade is close to the reference grade: full points for an exact match, none when it is 5 or more points off or missing."
+    width: 3
+    rule: "The grade is close to the reference grade: full points for an exact match, fewer the farther off it is (a bell curve), none when it is missing."
 rubric:
   - criterion: "Grade accuracy"
     max_score: 10
