@@ -44,9 +44,9 @@ class RunRefused(Exception):
 # --------------------------------------------------------------------------
 
 def _build_context(agent: Agent, test_id: str, prompt_def: dict, model: str | None,
-                   watch: bool, timeout: int, output_dir: Path) -> RunContext:
+                   watch: bool, timeout: int, output_dir: Path, reasoning: str = "default") -> RunContext:
     """Create the run dir (and workspace, if the agent uses one) with prompt.txt."""
-    run = workspace.new_run_dir(output_dir, test_id, model, prompt_def)
+    run = workspace.new_run_dir(output_dir, test_id, model, prompt_def, reasoning)
     prompt_file = run.path / "prompt.txt"
     prompt_file.write_text(prompt_def["prompt"], encoding="utf-8")
 
@@ -60,7 +60,7 @@ def _build_context(agent: Agent, test_id: str, prompt_def: dict, model: str | No
         test_id=test_id, run_id=run.run_id, run_dir=run.path, prompt_file=prompt_file,
         model=model, watch=watch, timeout=timeout, title=run.title, workspace=work_dir,
         mcp_servers=list(prompt_def.get("mcp_servers") or []),
-        fixtures=workspace.fixture_names(prompt_def),
+        fixtures=workspace.fixture_names(prompt_def), reasoning=reasoning,
     )
 
 
@@ -90,6 +90,8 @@ def _write_meta(ctx: RunContext, agent: Agent, prompt_def: dict, result: dict,
         "test_id": ctx.test_id,
         "agent": agent.name,
         "model": ctx.model,
+        # Part of the model's identity: each level is its own model on the dashboard
+        "reasoning": ctx.reasoning,
         "watch": ctx.watch,
         "platform": sys.platform,
         "started_at": started_at,
@@ -114,7 +116,7 @@ def _write_meta(ctx: RunContext, agent: Agent, prompt_def: dict, result: dict,
 
 
 def run_single(test_id: str, model: str | None, watch: bool, timeout: int,
-               output_dir: Path, agent_name: str = DEFAULT_AGENT) -> str:
+               output_dir: Path, agent_name: str = DEFAULT_AGENT, reasoning: str = "default") -> str:
     """Run one test end to end; returns its run_id. Raises RunRefused."""
     prompt_def = workspace.load_prompt(test_id)
     validate_category(prompt_def.get("category"))
@@ -127,22 +129,27 @@ def run_single(test_id: str, model: str | None, watch: bool, timeout: int,
     if mismatch:
         raise RunRefused(mismatch)
     agent = AGENTS[agent_name]
-    problem = agent.check(model, prompt_def) or _context_problem(agent, model)
+    problem = agent.check(model, prompt_def, reasoning) or _context_problem(agent, model)
     if problem:
         raise RunRefused(problem)
 
-    ctx = _build_context(agent, test_id, prompt_def, model, watch, timeout, output_dir)
+    ctx = _build_context(agent, test_id, prompt_def, model, watch, timeout, output_dir, reasoning)
     console.print_header(f"{agent.label} run", [
         ("Test", test_id),
         ("Model", model or "agent default"),
+        *([("Reasoning", reasoning)] if reasoning != "default" else []),
         ("Run ID", ctx.run_id),
         *([("Workspace", ctx.workspace)] if ctx.workspace else []),
     ])
 
     started_at = datetime.now(timezone.utc).isoformat()
     start = time.time()
-    with BilledCost(model) as bill:
-        result = agent.run(ctx)
+    try:
+        with BilledCost(model) as bill:
+            result = agent.run(ctx)
+    except KeyboardInterrupt:
+        _discard(ctx.run_dir)
+        raise
     elapsed = time.time() - start
     meta = _write_meta(ctx, agent, prompt_def, result, started_at, elapsed, bill.usd)
     _record_outcome(ctx, meta)
@@ -151,6 +158,19 @@ def run_single(test_id: str, model: str | None, watch: bool, timeout: int,
     workspace.finalize_workspace(ctx.run_dir)
     console.print_result(meta, ctx.run_dir)
     return ctx.run_id
+
+
+def _discard(run_dir: Path) -> None:
+    """Remove a run that was stopped before it finished, and its workspace outside the checkout."""
+    link = run_dir / "workspace"
+    if link.is_symlink():
+        shutil.rmtree(link.resolve(), ignore_errors=True)
+    shutil.rmtree(run_dir, ignore_errors=True)
+    for parent in run_dir.parents:  # folders the run left empty
+        if parent.name == "runs" or not parent.is_dir() or any(parent.iterdir()):
+            break
+        parent.rmdir()
+    print(f"\n  Discarded the unfinished run ({run_dir.name}); nothing was recorded.")
 
 
 def classify_outcome(meta: dict, run_dir: Path) -> str:
@@ -274,7 +294,8 @@ def run_plan(plan: planner.Plan, watch: bool, output_dir: Path) -> list[str]:
             if total > 1:
                 print(f"\n[{i}/{total}] {step.test_id}  ({step.area}, {step.tier}, {step.harness})")
             try:
-                run_id = run_single(step.test_id, plan.model, watch, step.timeout, output_dir, step.harness)
+                run_id = run_single(step.test_id, plan.model, watch, step.timeout, output_dir, step.harness,
+                                    plan.reasoning)
             except RunRefused as exc:
                 print(f"[SKIPPED] {step.test_id}: {exc}")
                 run_id = None
@@ -315,6 +336,8 @@ def main() -> None:
     parser.add_argument("--timeout", type=int, help="Seconds per test (default by tier: spark 300, temper 900, forge 1200; "
                                                      "never more than 1200 unless --allow-long)")
     parser.add_argument("--allow-long", action="store_true", help="Lift the 20-minute safety cap on each test")
+    parser.add_argument("--reasoning", choices=["default", "off", "low", "medium", "high"],
+                        help="Reasoning (thinking) level; each level is recorded as its own model (default: the model's own)")
     parser.add_argument("--skip-done", action="store_true", help="Skip tests this model already ran on their current version")
     parser.add_argument("--output", type=Path, default=Path("runs"), help="Output directory")
     args = parser.parse_args()
@@ -335,11 +358,19 @@ def main() -> None:
             tests = planner.select(args.test, args.mode, args.area, args.tier)
         except ValueError as exc:
             parser.error(str(exc))
-        plan = planner.build(args.model, tests, args.agent, args.timeout, args.skip_done, args.output, args.allow_long)
+        plan = planner.build(args.model, tests, args.agent, args.timeout, args.skip_done, args.output, args.allow_long,
+                             args.reasoning or "default")
         if args.timeout and args.timeout > planner.MAX_TIMEOUT and not args.allow_long:
             print(f"Time limit capped at {planner.MAX_TIMEOUT // 60} minutes per test (pass --allow-long to lift it).")
         for line in planner.describe(plan):
             print(line)
+    problem = planner.reasoning_problem(plan)
+    if problem:
+        print(problem)
+        return
+    if args.watch and not any(s.mode == "agentic" for s in plan.steps):
+        print("Note: --watch opens an agent's TUI, so it only applies to agentic tests; "
+              "chat tests show a live progress line instead.")
     run_ids = run_plan(plan, args.watch, args.output)
 
     summary = []

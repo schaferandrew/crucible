@@ -124,6 +124,9 @@ def export_run(run_dir: Path, tests: dict[str, dict]) -> dict | None:
         "harness": meta.get("agent"),
         "harness_version": env.get("harness_version"),
         "model": meta.get("model"),
+        # Each reasoning level is its own model on the dashboard; "default" leaves it to the model
+        "reasoning": meta.get("reasoning") or "default",
+        "reasoning_chars": (_read_json(run_dir / "direct-response.json") or {}).get("reasoning_chars"),
         "started_at": meta.get("started_at"),
         "status": meta.get("status"),
         "outcome": meta.get("outcome"),

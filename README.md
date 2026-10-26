@@ -86,6 +86,7 @@ Selectors add up (`WRIT-2 MATH-4`), filters narrow (`chat --tier spark`, `--area
 | `--allow-long` | Lift the 20-minute safety cap |
 | `--skip-done` | Skip tests this model already ran on their current version |
 | `--watch` | Open the agent's TUI instead of running headless |
+| `--reasoning` | Reasoning (thinking) level: `default` (the model's own), `off`, `low`, `medium`, `high`. Each level is recorded as its own model, in its own run folder (`<model>@reasoning-off`), and shows as its own row on the dashboard. Chat tests send it to the provider; agentic tests need pi (`--thinking`), since opencode can't set it per run. |
 
 ### How tests are organized
 
@@ -125,6 +126,19 @@ Every run records an **outcome** in `meta.json`, before any scoring:
 | `harness_error` | Exited before the model produced anything | no: marked invalid, rerun when the setup is fixed |
 
 Scoring then climbs a ladder: did it complete, did it pass the programmatic checks or hidden tests, and (optionally) what a human or AI judge thinks.
+
+### Reasoning levels
+
+Thinking models (Qwen 3.5, gpt-oss, DeepSeek...) can spend minutes reasoning before they answer, so the same weights with thinking off and on are benchmarked as separate models, the way Artificial Analysis lists "(Reasoning)" and "(Non-reasoning)" rows. `crucible run` asks for the level (or pass `--reasoning`), and every run records it:
+
+| Provider | How the level is sent |
+|---|---|
+| LM Studio | `reasoning_effort` (`none` turns thinking off) |
+| OpenRouter | `reasoning: {effort}`, or `{enabled: false}` for off |
+| Ollama | `think` (`false` for off) |
+| pi (agentic) | `--thinking <level>` |
+
+While a chat test streams, a live line shows how long the model has been thinking and how much it has written, so a long think doesn't look like a hang. The reasoning is saved to `reasoning.txt` in the run folder, apart from the answer that checks and the dashboard see. Press Ctrl+C to stop a test: the unfinished run folder is discarded, so nothing half-done is recorded.
 
 ### Watch mode
 

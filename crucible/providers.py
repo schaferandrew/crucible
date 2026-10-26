@@ -6,6 +6,7 @@ backs both model resolution (crucible.models) and --agent direct.
 """
 from __future__ import annotations
 
+import contextvars
 import json
 import os
 import time
@@ -130,16 +131,32 @@ def fetch_openrouter_key_usage() -> float | None:
 # Streaming completions (time to first token + token usage)
 # --------------------------------------------------------------------------
 
+# Called as on_progress(elapsed_s, reasoning_chars, answer_chars) while a response streams;
+# set for one call by complete(on_progress=...)
+_PROGRESS: contextvars.ContextVar[Callable[[float, int, int], None] | None] = contextvars.ContextVar("progress", default=None)
+
+
 class _StreamTimer:
-    """Wall-clock timing for one streamed response."""
+    """Wall-clock timing for one streamed response, plus the reasoning it streamed."""
 
     def __init__(self):
         self.start = time.monotonic()
         self.first_token: float | None = None
+        self.reasoning: list[str] = []
+        self.answer_chars = 0
+        self.on_progress = _PROGRESS.get()
+        self._reported = 0.0
 
-    def token(self):
+    def token(self, reasoning: str = "", answer: str = ""):
+        now = time.monotonic()
         if self.first_token is None:
-            self.first_token = time.monotonic()
+            self.first_token = now
+        if reasoning:
+            self.reasoning.append(reasoning)
+        self.answer_chars += len(answer)
+        if self.on_progress and now - self._reported >= 0.5:
+            self._reported = now
+            self.on_progress(now - self.start, sum(map(len, self.reasoning)), self.answer_chars)
 
     def result(self, text: str, tokens_in: int | None, tokens_out: int | None) -> dict:
         return {
@@ -148,6 +165,7 @@ class _StreamTimer:
             "duration_s": time.monotonic() - self.start,
             "tokens_in": tokens_in,
             "tokens_out": tokens_out,
+            "reasoning": "".join(self.reasoning),
         }
 
 
@@ -166,11 +184,11 @@ def _check_deadline(deadline: float, timer: "_StreamTimer", parts: list[str]) ->
         raise StreamTimeout(timer.result("".join(parts), None, None))
 
 
-def _call_ollama(model_id: str, prompt: str, timeout: int = 300) -> dict:
+def _call_ollama(model_id: str, prompt: str, timeout: int = 300, extra: dict | None = None) -> dict:
     """Streams /api/generate (NDJSON); the final chunk carries token counts."""
     req = urllib.request.Request(
         f"{OLLAMA_BASE_URL}/api/generate",
-        data=json.dumps({"model": model_id, "prompt": prompt, "stream": True}).encode(),
+        data=json.dumps({"model": model_id, "prompt": prompt, "stream": True, **(extra or {})}).encode(),
         headers={"Content-Type": "application/json"},
         method="POST",
     )
@@ -185,7 +203,7 @@ def _call_ollama(model_id: str, prompt: str, timeout: int = 300) -> dict:
                 continue
             chunk = json.loads(raw)
             if chunk.get("response") or chunk.get("thinking"):
-                timer.token()
+                timer.token(reasoning=chunk.get("thinking") or "", answer=chunk.get("response") or "")
                 parts.append(chunk.get("response") or "")
             if chunk.get("done"):
                 tokens_in = chunk.get("prompt_eval_count")
@@ -230,8 +248,9 @@ def _call_openai_compatible(url: str, model_id: str, prompt: str, timeout: int,
                 content = delta.get("content")
                 if isinstance(content, list):
                     content = "".join(p.get("text", "") for p in content if isinstance(p, dict))
-                if content or delta.get("reasoning") or delta.get("reasoning_content"):
-                    timer.token()
+                reasoning = delta.get("reasoning") or delta.get("reasoning_content") or ""
+                if content or reasoning:
+                    timer.token(reasoning=reasoning if isinstance(reasoning, str) else "", answer=content or "")
                 if content:
                     parts.append(content)
             usage = chunk.get("usage") or {}
@@ -241,17 +260,17 @@ def _call_openai_compatible(url: str, model_id: str, prompt: str, timeout: int,
     return timer.result("".join(parts), tokens_in, tokens_out)
 
 
-def _call_lmstudio(model_id: str, prompt: str, timeout: int = 300) -> dict:
+def _call_lmstudio(model_id: str, prompt: str, timeout: int = 300, extra: dict | None = None) -> dict:
     return _call_openai_compatible(LMSTUDIO_BASE_URL, model_id, prompt, timeout,
-                                   extra={"temperature": 0.2})
+                                   extra={"temperature": 0.2, **(extra or {})})
 
 
-def _call_openrouter(model_id: str, prompt: str, timeout: int = 300) -> dict:
+def _call_openrouter(model_id: str, prompt: str, timeout: int = 300, extra: dict | None = None) -> dict:
     api_key = os.environ.get("OPENROUTER_API_KEY")
     if not api_key:
         raise RuntimeError("OPENROUTER_API_KEY env var required for openrouter direct mode")
     return _call_openai_compatible(OPENROUTER_BASE_URL, model_id, prompt, timeout,
-                                   headers={"Authorization": f"Bearer {api_key}"})
+                                   headers={"Authorization": f"Bearer {api_key}"}, extra=extra)
 
 
 # --------------------------------------------------------------------------
@@ -314,11 +333,19 @@ def find_model_matches(query: str) -> list[str]:
     return matches
 
 
-def complete(model: str, prompt: str, timeout: int = 300) -> dict:
+def complete(model: str, prompt: str, timeout: int = 300,
+             on_progress: Callable[[float, int, int], None] | None = None, reasoning: str = "default") -> dict:
     """Stream one completion for 'provider/model'.
 
-    Returns {"text", "ttft_s", "duration_s", "tokens_in", "tokens_out"};
+    Returns {"text", "reasoning", "ttft_s", "duration_s", "tokens_in", "tokens_out"};
     timing/token fields are None when the provider does not report them.
+    on_progress(elapsed_s, reasoning_chars, answer_chars) is called at most twice a second.
+    reasoning: a level from crucible.reasoning, sent the way this provider understands it.
     """
+    from crucible.reasoning import request_params
     provider, model_id = split_model(model)
-    return provider.complete(model_id, prompt, timeout)
+    token = _PROGRESS.set(on_progress)
+    try:
+        return provider.complete(model_id, prompt, timeout, request_params(provider.name, reasoning) or None)
+    finally:
+        _PROGRESS.reset(token)

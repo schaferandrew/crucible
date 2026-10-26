@@ -262,6 +262,19 @@ def ask_test_ids(prompts: dict[str, dict]) -> list[str]:
             print(f"  {exc}")
 
 
+def ask_reasoning(limited_by: str | None = None) -> str:
+    """The reasoning level for the whole run; each level is recorded as its own model."""
+    if limited_by:
+        print(f"  ({limited_by} can't set a reasoning level, so this run uses the model's default.)")
+        return "default"
+    return choose("Reasoning (thinking)? Each level shows as its own model on the dashboard.", [
+        ("Model default (whatever the model does on its own)", "default"),
+        ("Off: answer without thinking (fast)", "off"),
+        ("Low", "low"), ("Medium", "medium"),
+        ("High: think hardest (slowest; hard tests can hit the 20-minute cap)", "high"),
+    ])
+
+
 def ask_harness() -> str:
     options = [(name, name) for name in MODE_HARNESSES["agentic"]]
     return choose("Which agent harness for the agentic tests? (chat tests always run with direct)", options)
@@ -291,12 +304,18 @@ def run_wizard(args) -> tuple[planner.Plan, dict] | None:
         if agentic and not watch and len(agentic) <= 3:
             watch = confirm("Watch the agent work in its TUI? (for debugging; you quit the TUI to finish each test)",
                             default=False)
+        reasoning = args.reasoning or ask_reasoning("opencode" if agentic and (harness or "opencode") == "opencode" else None)
         done = sum(planner.has_current_run(args.output, model, t, prompts[t],
-                                           "direct" if mode_for(prompts[t]) == "chat" else harness or "opencode")
+                                           "direct" if mode_for(prompts[t]) == "chat" else harness or "opencode",
+                                           reasoning)
                    for t in tests)
         skip_done = args.skip_done or (done > 0 and not confirm(
             f"{done} of these already have a run on their current version. Run them again?", default=False))
-        plan = planner.build(model, tests, harness, args.timeout, skip_done, args.output, args.allow_long)
+        plan = planner.build(model, tests, harness, args.timeout, skip_done, args.output, args.allow_long, reasoning)
+        problem = planner.reasoning_problem(plan)
+        if problem:
+            print(problem)
+            return None
         if not plan.steps:
             print("Everything selected has already been run on its current version.")
             return None

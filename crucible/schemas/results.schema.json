@@ -284,6 +284,28 @@
               "null"
             ],
             "description": "Hidden acceptance test results (Forge coding tests)"
+          },
+          "reasoning": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "default",
+              "off",
+              "low",
+              "medium",
+              "high",
+              null
+            ],
+            "description": "Reasoning level the run asked for; each level is its own model"
+          },
+          "reasoning_chars": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Characters of reasoning the model streamed (direct runs)"
           }
         }
       }
