@@ -199,11 +199,11 @@ def recent_models(runs_dir: Path, limit: int = 6) -> list[str]:
 
 
 def ask_model(runs_dir: Path) -> str:
-    """Type-to-filter over every provider's live model list; loaded and recently run models first."""
-    pinned = [(f"lmstudio/{model_id}", f"loaded in LM Studio, context {ctx or '?'}")
-              for model_id, ctx in lmstudio_loaded()]
-    pinned += [(model, "run before") for model in recent_models(runs_dir)
-               if "/" in model and model not in {v for v, _ in pinned}]
+    """The shared model picker (type to filter every provider's models), with what's loaded in
+    LM Studio and what you've run before pinned at the top."""
+    from crucible.model_picker import pick_model
+    pinned = [(f"lmstudio/{model_id}", f"loaded in LM Studio, context {ctx or '?'}") for model_id, ctx in lmstudio_loaded()]
+    pinned += [(m, "run before") for m in recent_models(runs_dir) if "/" in m and m not in {v for v, _ in pinned}]
     model = pick_model("Which model?", pinned=pinned)
     if model is None:
         raise Cancelled
