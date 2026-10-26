@@ -5,9 +5,10 @@ area: general
 tier: temper
 version: 1
 rubric_version: 1
-status: active
+status: retired
 auto_grade: false
 repo: null
+# Retired in 2.2.0: open-ended explanation and advice need review to score, a future feature.
 prompt: |
   Explain how a typical photovoltaic solar panel turns sunlight into usable electricity. Start at the photon level, then move through the semiconductor, DC electricity, inverter, and household/grid use. Explain why panel output changes with sunlight and temperature. Assume I have basic science knowledge. Use one intuitive analogy, but clearly label what the analogy gets wrong.
 rubric:

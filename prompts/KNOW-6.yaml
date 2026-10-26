@@ -5,9 +5,10 @@ area: general
 tier: temper
 version: 1
 rubric_version: 1
-status: active
+status: retired
 auto_grade: false
 repo: null
+# Retired in 2.2.0: open-ended explanation and advice need review to score, a future feature.
 prompt: |
   My toilet has started running continuously. It still flushes normally. Give me a diagnostic sequence that starts with the simplest checks, explains what each observation means, and tells me which parts are commonly adjustable versus replaceable. Include what to do if the shutoff valve is stuck and how to avoid making the problem worse.
 rubric:

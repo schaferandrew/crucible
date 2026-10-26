@@ -5,9 +5,10 @@ area: general
 tier: temper
 version: 1
 rubric_version: 1
-status: active
+status: retired
 auto_grade: false
 repo: null
+# Retired in 2.2.0: open-ended explanation and advice need review to score, a future feature.
 prompt: |
   I opened the cabinet under my kitchen sink and found a slow leak. The cabinet floor is damp, but I can't tell where the water starts. Walk me through what to do in the next 10 minutes, how to isolate the source without making things worse, what I should photograph/check, and when I should shut off the water and call a plumber. Distinguish a supply-line leak, drain leak, and leak from the faucet body. Assume I am a reasonably handy homeowner but not a plumber.
 rubric:

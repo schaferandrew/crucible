@@ -45,6 +45,8 @@ def export_tests() -> list[dict]:
     tests = []
     for test_id in workspace.all_test_ids():
         p = workspace.load_prompt(test_id)
+        if p.get("status") == "retired":
+            continue  # never run or scored; leaving it out also leaves out its runs
         tests.append({
             "id": test_id, "mode": mode_for(p), "area": p.get("area"), "category": p.get("category"),
             "tier": p.get("tier"), "status": p.get("status"), "version": p.get("version"),

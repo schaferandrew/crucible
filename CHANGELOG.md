@@ -8,6 +8,22 @@ improvements are minor releases; fixes that change no behavior anyone relies on 
 Every change that lands on `main` is a release (see [AGENTS.md](AGENTS.md)), and CI checks
 that a pull request touching the code or tests bumps the version and adds its entry here.
 
+## 2.2.0 (2026-10-26)
+
+### Changed
+
+- **KNOW-1** (fire truck color) is scored by checks instead of a judge: red is named, red is
+  the first color named (variants afterward are fine), and the answer is a sentence or two
+  (rubric version 2; existing runs are rescored, no rerun needed).
+- `non_empty` checks accept `max_words`.
+
+### Removed
+
+- **Retired KNOW-2, KNOW-3 and KNOW-5 to KNOW-8** (enshittification, solar panels and the four
+  home-repair questions). Open-ended explanations and advice need review to score, which is a
+  future feature. Retired tests never run, never score, and are left out of the export with
+  their runs; the prompts stay for when review exists.
+
 ## 2.1.0 (2026-10-26)
 
 ### Added

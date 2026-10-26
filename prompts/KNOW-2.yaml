@@ -5,9 +5,10 @@ area: general
 tier: temper
 version: 1
 rubric_version: 1
-status: active
+status: retired
 auto_grade: false
 repo: null
+# Retired in 2.2.0: open-ended explanation and advice need review to score, a future feature.
 prompt: |
   Explain the concept of "enshittification" to an intelligent adult who has heard the word but doesn't know the theory behind it. Start with a one-sentence definition, then explain the mechanism in plain English, give two concrete examples, explain what the concept does and does not claim, and briefly discuss criticisms or limitations. Avoid jargon unless you define it.
 rubric:

@@ -5,9 +5,10 @@ area: general
 tier: temper
 version: 1
 rubric_version: 1
-status: active
+status: retired
 auto_grade: false
 repo: null
+# Retired in 2.2.0: open-ended explanation and advice need review to score, a future feature.
 prompt: |
   One room is much colder near an exterior window during winter. Help me determine whether the problem is air leakage, poor glazing, a failed seal, or simply cold surfaces creating a downdraft. Give me inexpensive diagnostic tests I can do today, followed by repairs ranked from temporary/cheap to permanent/expensive. Do not assume the window needs replacement.
 rubric:
