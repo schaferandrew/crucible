@@ -5,9 +5,10 @@ area: general
 tier: temper
 version: 1
 rubric_version: 1
-status: active
+status: retired
 auto_grade: false
 repo: null
+# Retired in 2.2.0: open-ended explanation and advice need review to score, a future feature.
 prompt: |
   My forced-air furnace won't start when the thermostat calls for heat. Before I call someone, give me a safe homeowner-level diagnostic checklist. Include thermostat/power checks, filter considerations, service-switch checks, error-light observations, and a clear boundary for what I should not attempt myself. Explain why each check matters.
 rubric:

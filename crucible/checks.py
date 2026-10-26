@@ -66,9 +66,14 @@ def _line_count(check: dict, text: str) -> tuple[bool, str]:
 
 
 def _non_empty(check: dict, text: str) -> tuple[bool, str]:
+    """At least min_words (default 1) and, with max_words, no more than that."""
     words = len(text.split())
-    want = check.get("min_words", 1)
-    return words >= want, f"{words} words" + ("" if words >= want else f" (want at least {want})")
+    want, cap = check.get("min_words", 1), check.get("max_words")
+    if words < want:
+        return False, f"{words} words (want at least {want})"
+    if cap is not None and words > cap:
+        return False, f"{words} words (want at most {cap})"
+    return True, f"{words} words"
 
 
 def _required_patterns(check: dict, text: str) -> tuple[bool, str]:

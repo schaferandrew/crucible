@@ -133,42 +133,50 @@ class TestBackfill:
         assert json.loads((run_dir / "meta.json").read_text())["test"]["version"] is None
 
 
+# A test the judge scores: active, no checks bound to its criteria, no hidden grader
+JUDGED = next(t for t in workspace.all_test_ids()
+              if (p := workspace.load_prompt(t)).get("status") == "active"
+              and not p.get("checks") and not p.get("grader"))
+
+
 class TestJudge:
     def _run(self, tmp_path, version):
         run_dir = tmp_path / "run"
         run_dir.mkdir()
         (run_dir / "meta.json").write_text(json.dumps(
-            {"test_id": "KNOW-1", "run_id": "m/everyday/KNOW-1/x", "test": {"version": version}}))
+            {"test_id": JUDGED, "run_id": f"m/x/{JUDGED}/x", "test": {"version": version}}))
         return run_dir
 
+    @staticmethod
+    def _full_marks(p):
+        return {c["criterion"]: {"score": c["max_score"], "note": "ok"} for c in p["rubric"]}
+
     def test_saves_with_provenance(self, tmp_path):
-        p = workspace.load_prompt("KNOW-1")
-        (criterion,) = [c["criterion"] for c in p["rubric"]]
+        p = workspace.load_prompt(JUDGED)
         results = judge.save_agent_score(self._run(tmp_path, p["version"]),
-                                         {"criteria": {criterion: {"score": 10, "note": "red"}}, "summary": "ok"})
+                                         {"criteria": self._full_marks(p), "summary": "ok"})
         assert results["scores"]["_overall"] == 10.0
         assert results["rubric_version"] == p["rubric_version"]
         assert results["scorer"] == {"type": "agent", "model": judge.DEFAULT_JUDGE_MODEL,
                                      "prompt_version": judge.JUDGE_PROMPT_VERSION}
 
     def test_score_cap(self, tmp_path):
-        p = workspace.load_prompt("KNOW-1")
-        (criterion,) = [c["criterion"] for c in p["rubric"]]
+        p = workspace.load_prompt(JUDGED)
         results = judge.save_agent_score(self._run(tmp_path, p["version"]),
-                                         {"criteria": {criterion: {"score": 10}}, "score_cap": 3})
+                                         {"criteria": self._full_marks(p), "score_cap": 3})
         assert results["scores"]["_overall"] == 3.0
 
     def test_rejects_wrong_criteria_and_ranges(self, tmp_path):
-        p = workspace.load_prompt("KNOW-1")
-        (criterion,) = [c["criterion"] for c in p["rubric"]]
+        p = workspace.load_prompt(JUDGED)
         run_dir = self._run(tmp_path, p["version"])
         with pytest.raises(judge.JudgeError, match="criterion mismatch"):
             judge.save_agent_score(run_dir, {"criteria": {"Made up": {"score": 1}}})
+        too_high = {**self._full_marks(p), p["rubric"][0]["criterion"]: {"score": 99}}
         with pytest.raises(judge.JudgeError, match="outside"):
-            judge.save_agent_score(run_dir, {"criteria": {criterion: {"score": 99}}})
+            judge.save_agent_score(run_dir, {"criteria": too_high})
 
     def test_refuses_run_from_another_test_version(self, tmp_path):
-        p = workspace.load_prompt("KNOW-1")
+        p = workspace.load_prompt(JUDGED)
         with pytest.raises(judge.JudgeError, match="rerun"):
             judge.save_agent_score(self._run(tmp_path, p["version"] + 1), {"criteria": {}})
 
