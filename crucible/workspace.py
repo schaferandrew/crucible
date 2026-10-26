@@ -54,10 +54,12 @@ class RunDir:
     title: str    # unique session title for agents that support one
 
 
-def new_run_dir(output_dir: Path, test_id: str, model: str | None, prompt_def: dict) -> RunDir:
+def new_run_dir(output_dir: Path, test_id: str, model: str | None, prompt_def: dict,
+                reasoning: str = "default") -> RunDir:
+    from crucible.reasoning import slug_suffix
     now = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    # Characters that are unsafe in directory names on any OS
-    model_slug = re.sub(r'[/:\\<>"|?*]', "_", model or "default")
+    # Characters that are unsafe in directory names; each reasoning level gets its own folder
+    model_slug = re.sub(r'[/:\\<>"|?*]', "_", model or "default") + slug_suffix(reasoning)
     category = prompt_def.get("category", "uncategorized")
     run_id = f"{model_slug}/{category}/{test_id}/{now}"
     path = (output_dir / run_id).resolve()

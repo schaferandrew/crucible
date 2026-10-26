@@ -149,6 +149,7 @@ class PiAgent(Agent):
     executable = "pi"
     install_hint = "npm install -g --ignore-scripts @earendil-works/pi-coding-agent"
     builtin_web_tools: list[str] = []  # read/bash/edit/write; web only via curl or MCP
+    reasoning_levels = ("default", "off", "low", "medium", "high")  # passed as --thinking
 
     def validate(self, model: str | None, prompt_def: dict) -> str | None:
         if model and model.startswith("openrouter/") and not os.environ.get("OPENROUTER_API_KEY"):
@@ -165,6 +166,7 @@ class PiAgent(Agent):
             "--session-dir", str(ctx.run_dir / SESSION_DIRNAME),
             "--no-extensions", "-e", str(EXTENSION),
             *model_flags,
+            *(["--thinking", ctx.reasoning] if ctx.reasoning != "default" else []),
             # cwd is the workspace, so a relative reference keeps user paths
             # (spaces, drive letters) out of the argument list
             f"@{ctx.prompt_file.name}", TASK_INSTRUCTION,

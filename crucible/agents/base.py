@@ -65,6 +65,7 @@ class RunContext:
     workspace: Path | None = None   # None for agents with uses_workspace = False
     mcp_servers: list[str] = field(default_factory=list)
     fixtures: list[str] = field(default_factory=list)
+    reasoning: str = "default"      # a level from crucible.reasoning
 
 
 @dataclass
@@ -116,16 +117,21 @@ class Agent:
     default_model: str | None = None
     # Whether the runner builds workspace/ (seeded repo + fixtures) for it
     uses_workspace: bool = True
+    # Reasoning levels this harness can set; "default" (leave it to the model) always works
+    reasoning_levels: tuple[str, ...] = ("default",)
     # Web tools the harness ships on its own (recorded in meta.json, since
     # they decide what E6-style tasks measure); None = not known
     builtin_web_tools: list[str] | None = None
 
     # ---- checks ----------------------------------------------------------
 
-    def check(self, model: str | None, prompt_def: dict) -> str | None:
+    def check(self, model: str | None, prompt_def: dict, reasoning: str = "default") -> str | None:
         """Why this run cannot work (shown to the user), or None."""
         if self.executable and shutil.which(self.executable) is None:
             return f"'{self.executable}' not found on PATH. Install it with: {self.install_hint}"
+        if reasoning not in self.reasoning_levels:
+            return (f"{self.name} can't set the reasoning level (it supports: {', '.join(self.reasoning_levels)}); "
+                    "use the model default, or another harness")
         return self.validate(model, prompt_def)
 
     def validate(self, model: str | None, prompt_def: dict) -> str | None:

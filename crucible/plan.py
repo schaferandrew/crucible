@@ -37,6 +37,7 @@ class Step:
 class Plan:
     model: str
     steps: list[Step] = field(default_factory=list)
+    reasoning: str = "default"   # one level for the whole run; each level is its own model
     skipped_done: list[str] = field(default_factory=list)
 
     def groups(self) -> list[tuple[str, list[Step]]]:
@@ -92,15 +93,16 @@ def sort_tests(test_ids: list[str], prompts: dict[str, dict]) -> list[str]:
 
 
 def build(model: str, test_ids: list[str], harness: str | None = None, timeout: int | None = None,
-          skip_done: bool = False, runs_dir: Path = Path("runs"), allow_long: bool = False) -> Plan:
+          skip_done: bool = False, runs_dir: Path = Path("runs"), allow_long: bool = False,
+          reasoning: str = "default") -> Plan:
     """A plan for these tests. `harness` is the agentic harness; chat tests always use direct."""
     prompts = all_prompts()
-    plan = Plan(model=model)
+    plan = Plan(model=model, reasoning=reasoning)
     for t in test_ids:
         p = prompts[t]
         mode = mode_for(p)
         h = MODE_HARNESSES[mode][0] if mode == "chat" else (harness or DEFAULT_AGENTIC_HARNESS)
-        if skip_done and has_current_run(runs_dir, model, t, p, h):
+        if skip_done and has_current_run(runs_dir, model, t, p, h, reasoning):
             plan.skipped_done.append(t)
             continue
         limit = timeout or TIER_TIMEOUTS.get(p.get("tier"), 900)
@@ -108,19 +110,22 @@ def build(model: str, test_ids: list[str], harness: str | None = None, timeout: 
     return plan
 
 
-def model_slug(model: str) -> str:
-    return re.sub(r'[/:\\<>"|?*]', "_", model or "default")
+def model_slug(model: str, reasoning: str = "default") -> str:
+    from crucible.reasoning import slug_suffix
+    return re.sub(r'[/:\\<>"|?*]', "_", model or "default") + slug_suffix(reasoning)
 
 
-def has_current_run(runs_dir: Path, model: str, test_id: str, prompt_def: dict, harness: str) -> bool:
-    """A valid run of this test's current version, by this model and harness, already exists."""
+def has_current_run(runs_dir: Path, model: str, test_id: str, prompt_def: dict, harness: str,
+                    reasoning: str = "default") -> bool:
+    """A valid run of this test's current version, by this model, harness and reasoning level, already exists."""
     current = versioning.content_hash(prompt_def)
-    for meta_file in (runs_dir / model_slug(model)).glob(f"*/{test_id}/*/meta.json"):
+    for meta_file in (runs_dir / model_slug(model, reasoning)).glob(f"*/{test_id}/*/meta.json"):
         try:
             meta = json.loads(meta_file.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             continue
         if ((meta.get("test") or {}).get("content_hash") == current and meta.get("agent") == harness
+                and (meta.get("reasoning") or "default") == reasoning
                 and not meta.get("invalid") and meta.get("outcome") != "harness_error"):
             return True
     return False
@@ -136,12 +141,23 @@ def command_line(plan: Plan, selectors: list[str], mode: str | None, area: str |
     if harness and any(s.mode == "agentic" for s in plan.steps):
         parts.append(f"--agent {harness}")
     parts += [f"--timeout {timeout}"] if timeout else []
+    parts += [f"--reasoning {plan.reasoning}"] if plan.reasoning != "default" else []
     parts += ["--skip-done"] if skip_done else []
     return " ".join(parts)
 
 
+def reasoning_problem(plan: Plan) -> str | None:
+    """Why this plan can't run at its reasoning level (a harness that can't set it), or None."""
+    from crucible.agents import AGENTS
+    stuck = sorted({s.harness for s in plan.steps if plan.reasoning not in AGENTS[s.harness].reasoning_levels})
+    if not stuck:
+        return None
+    return (f"{', '.join(stuck)} can't set the reasoning level, so --reasoning {plan.reasoning} can't run its tests. "
+            f"Use --agent pi for agentic tests, or leave reasoning at the model default.")
+
+
 def describe(plan: Plan) -> list[str]:
-    lines = []
+    lines = [] if plan.reasoning == "default" else [f"Reasoning: {plan.reasoning}"]
     for mode, steps in plan.groups():
         harnesses = sorted({s.harness for s in steps})
         lines.append(f"{MODE_LABELS[mode]} ({', '.join(harnesses)}): {len(steps)} test{'' if len(steps) == 1 else 's'}")
