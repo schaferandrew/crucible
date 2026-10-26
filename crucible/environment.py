@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import json
 import os
-import re
 import platform
+import shutil
 import socket
 import subprocess
 import sys
@@ -18,7 +18,7 @@ import urllib.request
 from pathlib import Path
 from urllib.parse import urlparse
 
-from crucible import providers
+from crucible import hardware, providers
 
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1", "0.0.0.0"}
 
@@ -74,36 +74,38 @@ def _get(url: str, body: dict | None = None) -> dict | None:
         return None
 
 
-LMSTUDIO_MODELS_DIR = Path(os.environ.get("LMSTUDIO_MODELS_DIR") or Path.home() / ".lmstudio" / "models")
+def _lms() -> str | None:
+    found = shutil.which("lms")
+    fallback = Path.home() / ".lmstudio" / "bin" / "lms"
+    return found or (str(fallback) if fallback.is_file() else None)
 
 
-def _tokens(name: str) -> set[str]:
-    return {t for t in re.split(r"[^a-z0-9.]+", name.lower()) if t}
-
-
-def lmstudio_weights_here(model_id: str, model_format: str | None,
-                          models_dir: Path | None = None) -> bool | None:
-    """Whether this model's weights are on this machine, in the same format.
-
-    LM Studio's LM Link serves models from another machine through the same local
-    API, and the API doesn't say which device answered. A model whose weights aren't
-    here can only have run remotely. Matches LM Studio's model directories
-    (publisher/Model-Name-...) by name tokens and format (mlx vs gguf).
-    """
-    root = models_dir or LMSTUDIO_MODELS_DIR
-    if not root.is_dir():
+def _lms_json(*args: str):
+    exe = _lms()
+    out = _run([exe, *args, "--json"]) if exe else None
+    try:
+        return json.loads(out) if out else None
+    except ValueError:
         return None
-    wanted = _tokens(model_id.rsplit("/", 1)[-1]) - {"mlx", "gguf"}
-    is_mlx = (model_format or "").lower() == "mlx" or "mlx" in model_id.lower()
-    for publisher in root.iterdir():
-        if not publisher.is_dir():
-            continue
-        for d in publisher.iterdir():
-            # the publisher counts too: mlx-community/<Model> folders don't repeat "mlx"
-            have = _tokens(publisher.name) | _tokens(d.name)
-            if wanted <= have and (("mlx" in have) == is_mlx):
-                return True
-    return False
+
+
+def lmstudio_device(model_id: str, loaded: list | None, link: dict | None) -> dict:
+    """Which device LM Studio ran the model on, from `lms ps` and `lms link status`.
+
+    LM Link serves models from another machine through the same local API, and the
+    API doesn't say which device answered; the CLI does. Each loaded instance names
+    its device, and the link status names every device. Unknown (the CLI missing, the
+    model not loaded, or loaded on two devices) records nothing rather than a guess.
+    """
+    devices = {m.get("deviceIdentifier") for m in loaded or []
+               if model_id in (m.get("identifier"), m.get("modelKey"))}
+    if len(devices) != 1 or link is None:
+        return {}
+    (device,) = devices
+    if device in (None, link.get("deviceIdentifier")):
+        return {"device": hardware.canonical(link.get("deviceName")), "same_machine": True}
+    peer = next((p for p in link.get("peers") or [] if p.get("deviceIdentifier") == device), {})
+    return {"device": hardware.canonical(peer.get("deviceName")), "same_machine": False, "served_via": "LM Link"}
 
 
 def _lmstudio(model_id: str) -> dict:
@@ -111,11 +113,9 @@ def _lmstudio(model_id: str) -> dict:
     info = _get(f"{base}/api/v0/models/{model_id}") or {}
     record = {"quantization": info.get("quantization"), "context_length": info.get("loaded_context_length"),
               "max_context_length": info.get("max_context_length"), "arch": info.get("arch")}
-    here = lmstudio_weights_here(model_id, info.get("compatibility_type"))
-    if here is False:
-        # Served over LM Link: this machine isn't the hardware. CRUCIBLE_LMLINK_HOST names the one that is.
-        record.update({"same_machine": False, "served_via": "LM Link",
-                       "remote_host": os.environ.get("CRUCIBLE_LMLINK_HOST")})
+    # The CLI talks to this machine's LM Studio, so it only describes a server on localhost
+    if urlparse(base).hostname in LOCAL_HOSTS:
+        record.update(lmstudio_device(model_id, _lms_json("ps"), _lms_json("link", "status")))
     return record
 
 
