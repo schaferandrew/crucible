@@ -3,8 +3,8 @@ needs_tools: false
 category: reasoning
 area: math
 tier: temper
-version: 1
-rubric_version: 1
+version: 2
+rubric_version: 2
 status: active
 auto_grade: true
 repo: null
@@ -18,18 +18,41 @@ prompt: |
   3. The person who likes green sits in chair 1.
   4. Carol likes yellow and sits somewhere to the right of the person who likes red.
   5. Dave likes red.
+
+  End with the full seating, one line per chair in the form `Chair 1: <name>, <color>`, then a last line `ANSWER: <name of the person in chair 3>`.
+checks:
+  - id: answer
+    type: required_patterns
+    patterns: ['(?im)^\W*answer:\W*dave\b']
+    rule: "The last line names Dave as the person in chair 3."
+  - id: no_wrong_answer
+    type: forbidden_patterns
+    patterns: ['(?im)^\W*answer:\W*(alice|bob|carol)\b']
+    rule: "The answer line doesn't name anyone else."
+  - id: seating
+    type: required_patterns
+    patterns: ['(?im)^\W*chair\s*1\W+alice\W+green\b', '(?im)^\W*chair\s*2\W+bob\W+blue\b', '(?im)^\W*chair\s*3\W+dave\W+red\b', '(?im)^\W*chair\s*4\W+carol\W+yellow\b']
+    rule: "The full seating is right: Alice green in 1, Bob blue in 2, Dave red in 3, Carol yellow in 4."
+  - id: assumptions
+    type: required_patterns
+    patterns: ['\bassum']
+    rule: "States its assumptions (for example, that 'left' means a lower-numbered chair) rather than leaving them silent."
 rubric:
   - criterion: "Correct answer"
     max_score: 4
-    description: "Correctly identifies the person in chair 3 with valid deduction."
-  - criterion: "Valid reasoning"
-    max_score: 3
-    description: "Explains the logical steps clearly."
-  - criterion: "Handles ambiguity"
-    max_score: 2
-    description: "States assumptions rather than assuming them silently."
-  - criterion: "Final answer clearly stated"
+    check: answer
+    description: "Dave is in chair 3."
+  - criterion: "No other answer"
     max_score: 1
-    description: "Answer is unambiguous and clearly presented."
+    check: no_wrong_answer
+    description: "The answer line names no one else."
+  - criterion: "Full seating"
+    max_score: 4
+    check: seating
+    description: "Every chair's person and color is right, which shows the deduction actually worked."
+  - criterion: "Assumptions stated"
+    max_score: 1
+    check: assumptions
+    description: "Assumptions are stated, not silent."
 critical_failure: null
 hidden_answer: "Alice(green,1), Bob(blue,2), Dave(red,3), Carol(yellow,4). Chair 3 is Dave."
