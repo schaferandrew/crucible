@@ -23,6 +23,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable
 
+from crucible import evals
+
 
 def final_answer(run_dir: Path) -> str:
     """The model's last reply: from session.json when it has one, else stdout.txt."""
@@ -141,7 +143,9 @@ def _grounded_numbers(check: dict, text: str) -> tuple[bool, str]:
     return (not invented), ("every figure is in the sources" if not invented else "not in the sources: " + ", ".join(invented[:8]))
 
 
-CHECKS: dict[str, Callable[[dict, str], tuple[bool, str]]] = {
+# A check returns (passed, detail), or (passed, detail, share) when it earns partial credit
+CHECKS: dict[str, Callable[[dict, str], tuple]] = {
+    "grade_closeness": evals.grade_closeness,
     "grounded_numbers": _grounded_numbers,
     "non_empty": _non_empty,
     "required_patterns": _required_patterns,
@@ -167,9 +171,9 @@ def run_checks(prompt_def: dict, text: str, run_dir: Path | None = None) -> list
                                 "detail": f"{check['file']} wasn't written", "rule": check.get("rule")})
                 continue
             subject = plain(path.read_text(encoding="utf-8", errors="replace"))
-        passed, detail = CHECKS[check["type"]]({**check, "_source": prompt_def.get("prompt", "")}, subject)
+        passed, detail, *share = CHECKS[check["type"]]({**check, "_source": prompt_def.get("prompt", "")}, subject)
         results.append({"id": check["id"], "type": check["type"], "passed": passed, "detail": detail,
-                        "rule": check.get("rule")})
+                        "rule": check.get("rule"), **({"share": share[0]} if share else {})})
     return results
 
 
@@ -190,13 +194,16 @@ def fully_checked(prompt_def: dict) -> bool:
 
 
 def criterion_scores(prompt_def: dict, results: list[dict], grader: dict | None = None) -> dict[str, float]:
-    """A check is all or nothing; hidden tests earn the share of their tests that pass."""
+    """A check is all or nothing (unless it reports a `share`, like grade_closeness); hidden tests earn
+    the share of their tests that pass."""
     from crucible.graders import criterion_result
     by_id = {r["id"]: r for r in results}
     scores = {}
     for item in prompt_def.get("rubric", []):
         if item.get("check"):
-            scores[item["criterion"]] = item["max_score"] if by_id.get(item["check"], {}).get("passed") else 0
+            result = by_id.get(item["check"], {})
+            share = result.get("share", 1 if result.get("passed") else 0)
+            scores[item["criterion"]] = round(item["max_score"] * share, 2)
         elif item.get("hidden_tests"):
             share = criterion_result(item["hidden_tests"], grader)[0] if grader else 0.0
             scores[item["criterion"]] = round(item["max_score"] * share, 2)

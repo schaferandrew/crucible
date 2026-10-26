@@ -38,3 +38,23 @@ def test_direct_records_tokens_and_ttft(tmp_path, fake_model, provider):
     assert fake_openai.FIRST_TOKEN_DELAY_S <= meta["metrics"]["ttft_s"] < 5
     assert meta["metrics"]["model_responses"] == 1
     assert "TTFT" in proc.stdout
+
+
+def test_eval_run_is_graded_automatically(tmp_path, fake_model):
+    """Evals score themselves after the run; a reply without a GRADE line earns 0 and is flagged."""
+    base = f"http://127.0.0.1:{fake_model.server_address[1]}"
+    env = {**os.environ, "OLLAMA_BASE_URL": base,
+           "NO_PROXY": "127.0.0.1,localhost", "no_proxy": "127.0.0.1,localhost"}
+    proc = subprocess.run(
+        [sys.executable, "-m", "crucible.cli", "run", "EVAL-3", "--agent", "direct",
+         "--model", "ollama/fake-model", "--output", str(tmp_path / "runs")],
+        cwd=REPO_ROOT, env=env, capture_output=True, text=True, encoding="utf-8",
+        stdin=subprocess.DEVNULL, timeout=120,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    (run_dir,) = (tmp_path / "runs").glob("ollama_fake-model/evals/EVAL-3/*")
+    record = json.loads((run_dir / "check_results.json").read_text(encoding="utf-8"))
+    assert record["scores"]["Grade accuracy"] == 0
+    assert record["scores"]["_overall"] == 0
+    assert "no valid GRADE line" in record["criteria"][0]["detail"]
+    assert record["checked_text"] == fake_openai.FINAL_TEXT  # the grader's reasoning is kept

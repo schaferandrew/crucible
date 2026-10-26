@@ -27,11 +27,12 @@ MODE_HARNESSES = {"chat": ("direct",), "agentic": ("opencode", "pi")}
 # Areas by mode, in menu order: area -> label
 AREAS = {
     "chat": {"writing": "Writing", "math": "Math & logic", "geography": "Geography",
-             "history": "History", "general": "General knowledge"},
+             "history": "History", "general": "General knowledge",
+             "evals": "Evals"},
     "agentic": {"coding": "Coding", "research": "Research", "everyday": "Everyday"},
 }
 # Every test ID is its area's four letters, a hyphen and a number (WRIT-2b, CODE-11, ...)
-AREA_PREFIXES = {"writing": "WRIT", "math": "MATH", "geography": "GEOG", "history": "HIST", "general": "KNOW",
+AREA_PREFIXES = {"writing": "WRIT", "math": "MATH", "geography": "GEOG", "history": "HIST", "general": "KNOW", "evals": "EVAL",
                  "coding": "CODE", "research": "RSCH", "everyday": "TASK"}
 
 # Category -> weight used when aggregating a full sweep across categories.
@@ -39,7 +40,7 @@ AREA_PREFIXES = {"writing": "WRIT", "math": "MATH", "geography": "GEOG", "histor
 CATEGORY_WEIGHTS = {
     "coding_build": 0.10,
     "coding_debug": 0.10,
-    "coding_repo": 0.15,
+    "coding_repo": 0.10,
     "browser_tool": 0.10,
     "writing": 0.10,
     "everyday": 0.10,
@@ -50,6 +51,7 @@ CATEGORY_WEIGHTS = {
     "math": 0.05,
     "geography": 0.05,
     "history": 0.05,
+    "evals": 0.05,
 }
 
 

@@ -41,7 +41,7 @@ Not ready yet (review needs more infrastructure; never part of a run):
   judge    Save an AI judge's review of a run
 
 Sections, areas and tiers:
-  chat     writing (WRIT), math (MATH), geography (GEOG), history (HIST), general knowledge (KNOW)
+  chat     writing (WRIT), math (MATH), geography (GEOG), history (HIST), general knowledge (KNOW), evals (EVAL)
   agentic  coding (CODE), research (RSCH), everyday tasks (TASK)
   tiers    spark (the basics, a gate), temper (everyday work, the headline), forge (frontier-level)
 

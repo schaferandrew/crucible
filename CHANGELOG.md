@@ -6,6 +6,16 @@ format (`crucible/schemas/results.schema.json`): an incompatible change to any o
 a new major version. New tests, test version bumps, new areas and dashboard or CLI
 improvements are minor releases.
 
+## Unreleased
+
+### Added
+
+- **Evals area (`EVAL-1` to `EVAL-3`, chat).** Tests whether a model can grade an agent's
+  response: it sees the task, the criteria and the response, reasons, and ends with
+  `GRADE: <0-10>`. A new `grade_closeness` check scores the grade against a hidden reference
+  grade, with points following a bell curve in the distance (full for an exact match, 64% two
+  points off, 6% five off). The reasoning is kept with the run's output. The tests are `active`.
+
 ## 1.0.0 (2026-10-26)
 
 ### Breaking
