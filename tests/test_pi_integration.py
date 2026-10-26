@@ -46,10 +46,10 @@ def _run_crucible(tmp_path, server, *args):
 
 
 def test_e4_with_mock_mcp(tmp_path, fake_model):
-    proc = _run_crucible(tmp_path, fake_model, "E4")
+    proc = _run_crucible(tmp_path, fake_model, "TASK-2")
     assert proc.returncode == 0, proc.stdout + proc.stderr
 
-    (run_dir,) = (tmp_path / "runs" / "ollama_fake-model" / "everyday" / "E4").iterdir()
+    (run_dir,) = (tmp_path / "runs" / "ollama_fake-model" / "everyday" / "TASK-2").iterdir()
     meta = json.loads((run_dir / "meta.json").read_text(encoding="utf-8"))
     assert meta["agent"] == "pi"
     assert meta["returncode"] == 0 and not meta["timed_out"]
@@ -71,7 +71,9 @@ def test_e4_with_mock_mcp(tmp_path, fake_model):
     assert fake_openai.FINAL_TEXT in (run_dir / "stdout.txt").read_text(encoding="utf-8")
 
     # The prompt reached the model as an attached file, rubric excluded
-    first_user = fake_model.requests[0]["messages"][-1]["content"]
+    # pi can make other requests first (pi 1.2 does); the prompt is in the first chat request
+    first_chat = next(r for r in fake_model.requests if r.get("messages"))
+    first_user = first_chat["messages"][-1]["content"]
     first_user = first_user if isinstance(first_user, str) else json.dumps(first_user)
     assert "morning brief" in first_user
     assert "Proper Language Switching" not in first_user

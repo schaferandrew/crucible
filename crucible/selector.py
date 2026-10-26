@@ -3,15 +3,7 @@
 import sys
 from typing import Optional
 
-try:
-    import curses
-except ImportError:  # pragma: no cover - Windows doesn't provide curses
-    curses = None
-
-try:
-    import msvcrt  # type: ignore
-except ImportError:  # pragma: no cover - non-Windows
-    msvcrt = None
+import curses
 
 
 def select_from_list(items: list[str], prompt: str) -> Optional[str]:
@@ -21,11 +13,8 @@ def select_from_list(items: list[str], prompt: str) -> Optional[str]:
     if len(items) == 1:
         return items[0]
 
-    if sys.platform.startswith("win") and msvcrt is not None and sys.stdin.isatty():
-        return _windows_select(items, prompt)
-
     # Check if we have a proper TTY for curses.
-    if curses is not None and sys.stdin.isatty():
+    if sys.stdin.isatty():
         return _curses_select(items, prompt)
 
     return _fallback_select(items, prompt)
@@ -71,39 +60,6 @@ def _curses_select(items: list[str], prompt: str) -> Optional[str]:
         return curses.wrapper(_selector)
     except (KeyboardInterrupt, AttributeError, curses.error):
         return _fallback_select(items, prompt)
-
-
-def _windows_select(items: list[str], prompt: str) -> Optional[str]:
-    """Windows-native keyboard selector using msvcrt and arrow keys."""
-    selected_idx = 0
-    while True:
-        print("\r" + prompt, end="", flush=True)
-        print("\r", end="", flush=True)
-        for i, item in enumerate(items):
-            prefix = "> " if i == selected_idx else "  "
-            print(f"\r{prefix}{item}", end="")
-            if i != len(items) - 1:
-                print()
-        print("\rUse ↑/↓, Enter to select, q to quit", flush=True)
-
-        key = msvcrt.getwch()
-
-        if key in ("\x00", "\xe0"):
-            key = msvcrt.getwch()
-            if key == "H":
-                selected_idx = (selected_idx - 1) % len(items)
-            elif key == "P":
-                selected_idx = (selected_idx + 1) % len(items)
-            continue
-
-        if key in ("\r", "\n"):
-            return items[selected_idx]
-        if key in ("q", "Q", "\x1b"):
-            return None
-        if key in ("k", "K"):
-            selected_idx = (selected_idx - 1) % len(items)
-        elif key in ("j", "J"):
-            selected_idx = (selected_idx + 1) % len(items)
 
 
 def _fallback_select(items: list[str], prompt: str) -> Optional[str]:

@@ -6,6 +6,7 @@ prompt.txt, stdout.txt, stderr.txt, command.sh, meta.json, session.json and
 """
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -74,15 +75,35 @@ def _copy_into(src: Path, dest_dir: Path, contents_only: bool = False) -> None:
             shutil.copy2(item, dest_dir / item.name)
 
 
-def setup_workspace(run_dir: Path, prompt_def: dict) -> Path:
-    """Create workspace/: the seeded repo's contents plus fixtures, deps installed.
+def workspaces_root() -> Path:
+    """Where agents work: outside crucible's checkout (CRUCIBLE_WORKSPACES overrides)."""
+    return Path(os.environ.get("CRUCIBLE_WORKSPACES") or Path.home() / ".crucible" / "workspaces")
 
-    Seeded repos are copied, never mutated.
+
+def setup_workspace(run_dir: Path, prompt_def: dict) -> Path:
+    """Create the workspace: the seeded repo's contents plus fixtures, deps installed.
+
+    It lives outside crucible's checkout, linked from <run_dir>/workspace, because an
+    agent that searches upward from inside the checkout finds the hidden graders,
+    every prompt's rubric and other models' runs. finalize_workspace() moves it back
+    into the run directory when the run ends. Seeded repos are copied, never mutated.
     """
-    workspace = run_dir / "workspace"
-    if workspace.exists():
-        shutil.rmtree(workspace)
+    link = run_dir / "workspace"
+    workspace = workspaces_root() / "_".join(run_dir.parts[-4:])
+    for stale in (link, workspace):
+        if stale.is_symlink():
+            stale.unlink()
+        elif stale.exists():
+            shutil.rmtree(stale)
     workspace.mkdir(parents=True)
+    try:
+        link.symlink_to(workspace, target_is_directory=True)
+    except OSError:
+        # e.g. a filesystem without symlinks: fall back to working inside the run dir
+        print("  Warning: could not link an outside workspace; the agent will work inside crucible's checkout")
+        shutil.rmtree(workspace)
+        workspace = link
+        workspace.mkdir()
 
     repo = prompt_def.get("repo")
     if repo and (REPOS_DIR / repo).exists():
@@ -94,8 +115,43 @@ def setup_workspace(run_dir: Path, prompt_def: dict) -> Path:
         else:
             print(f"  Warning: fixture not found: {src}")
 
+    _isolate_git(workspace)
     _install_dependencies(workspace)
     return workspace
+
+
+def finalize_workspace(run_dir: Path) -> None:
+    """Move an outside workspace back into its run directory, so the run is self-contained."""
+    link = run_dir / "workspace"
+    if not link.is_symlink():
+        return
+    target = link.resolve()
+    link.unlink()
+    if target.exists():
+        shutil.move(str(target), str(link))
+
+
+def _isolate_git(workspace: Path) -> None:
+    """Make the workspace its own git repository with the seeded state as the first commit.
+
+    Run directories live inside crucible's own checkout, so without this, git commands in a
+    workspace see crucible itself, including the hidden graders in graders/. Its own repo also
+    lets an agent diff its changes against the seeded starting point.
+    """
+    if (workspace / ".git").exists():
+        return
+    env = {"GIT_AUTHOR_NAME": "crucible", "GIT_AUTHOR_EMAIL": "crucible@localhost",
+           "GIT_COMMITTER_NAME": "crucible", "GIT_COMMITTER_EMAIL": "crucible@localhost"}
+    gitignore = workspace / ".gitignore"
+    if not gitignore.exists():
+        gitignore.write_text("node_modules/\n.next/\ndist/\n__pycache__/\n.venv/\n", encoding="utf-8")
+    try:
+        for args in (["init", "-q", "-b", "main"], ["add", "-A"],
+                     ["commit", "-q", "--no-gpg-sign", "-m", "Seeded workspace"]):
+            subprocess.run(["git", *args], cwd=workspace, capture_output=True, text=True, check=True,
+                           env={**os.environ, **env})
+    except (OSError, subprocess.CalledProcessError) as exc:
+        print(f"  Warning: could not give the workspace its own git repo ({exc}); git here sees the parent repo")
 
 
 def _install_dependencies(workspace: Path) -> None:

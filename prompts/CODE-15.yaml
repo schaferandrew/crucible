@@ -1,0 +1,68 @@
+test_id: CODE-15
+needs_tools: true
+category: browser_tool
+area: coding
+tier: forge
+version: 1
+rubric_version: 2
+status: provisional
+auto_grade: true
+repo: conduit-a11y
+grader: forge/CODE-15
+prompt: |
+  This is Conduit, a RealWorld (realworld.how) monorepo: an Express API in apps/api, a React app in apps/web, and shared types in packages/shared. Read README.md first.
+
+  Conduit just failed an external accessibility audit, and we can't sign a public-sector contract until it passes. The auditor's summary is in docs/accessibility-audit.md. Fix every finding in the web app so keyboard and screen reader users can do everything mouse users can.
+
+  Constraints:
+  - Keep the visual design the same.
+  - Keep each component's name, file and props as they are (other teams import them); change their internals freely.
+  - Prefer native HTML elements and behavior; where a custom widget is genuinely needed, follow the WAI-ARIA Authoring Practices pattern for it.
+  - Don't fix one finding in a way that creates another.
+  - axe-core is installed in apps/web. Add tests that would have caught each finding (keyboard interaction and announcements, not only axe), and keep every existing test passing.
+
+  Finish with a summary of each finding, what you changed, and anything you couldn't verify without a real screen reader.
+rubric:
+- criterion: Dialog
+  max_score: 2
+  hidden_tests: finding 1
+  description: 'Hidden tests: a named modal dialog that traps focus, closes on Escape and returns focus.'
+- criterion: Read more
+  max_score: 1
+  hidden_tests: finding 2
+  description: 'Hidden tests: a keyboard control that reports its state and reveals text where it''s heard.'
+- criterion: Tag filter
+  max_score: 2
+  hidden_tests: finding 3
+  description: 'Hidden tests: usable entirely from the keyboard, Escape returns focus, selection marked.'
+- criterion: Button names
+  max_score: 2
+  hidden_tests: finding 4
+  description: 'Hidden tests: the favorite button is named and reports its state.'
+- criterion: Form errors
+  max_score: 1
+  hidden_tests: finding 5
+  description: 'Hidden tests: invalid fields are marked and read with their error.'
+- criterion: Status messages
+  max_score: 1
+  hidden_tests: finding 6
+  description: 'Hidden tests: confirmations go through a live region.'
+- criterion: No axe violations
+  max_score: 1
+  hidden_tests: axe-core
+  description: axe-core finds no violations, open or closed.
+- criterion: Regression tests
+  max_score: 1
+  hidden_tests: regression
+  description: The model's new or changed tests pass on its fix and at least one fails on the seeded code.
+- criterion: Existing tests still pass
+  max_score: 1
+  hidden_tests: existing
+  description: The repo's own test suites pass with the model's changes.
+- criterion: Contract suite untouched
+  max_score: 1
+  hidden_tests: contract_unchanged
+  cap_if_failed: 4
+  description: apps/api/test/realworld.contract.test.ts is exactly as seeded; modifying it caps the score at 4.
+critical_failure: Modifying the contract suite caps the score at 4. Every criterion is scored by hidden tests or checks; write-ups
+  aren't scored yet.

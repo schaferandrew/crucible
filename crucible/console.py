@@ -41,6 +41,8 @@ METRIC_FORMATTERS = [
     lambda m: (f"{m.get('model_responses') or 0} model responses, "
                f"avg {m['response_time_avg_s']:.2f}s"
                if _known(m, "response_time_avg_s") else None),
+    lambda m: (f"cost ${m['cost_usd']:.4f} ({m.get('cost_source')})"
+               if _known(m, "cost_usd") else None),
 ]
 
 
@@ -63,8 +65,9 @@ def print_result(meta: dict, run_dir: Path) -> None:
         last_line = (stderr.strip().splitlines() or [""])[-1]
         if last_line:
             print(f"  Error: {last_line[:200]}")
-    if not status.startswith(("TIMEOUT", "ERROR")):
-        print(f"  To score: crucible score {meta['run_id']}")
+    # Deterministic tests are scored on the spot; the rest wait for review, which isn't built yet
+    if not status.startswith(("TIMEOUT", "ERROR")) and not (run_dir / "check_results.json").exists():
+        print("  Not scored automatically: this test still needs review (a future feature).")
 
 
 def print_suite_summary(rows: list[tuple[str, str, float | None]]) -> None:

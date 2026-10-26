@@ -5,6 +5,7 @@ import re
 from pathlib import Path
 
 from crucible.agents import Agent
+from crucible.cost import run_cost
 from crucible.session import count_tool_calls
 
 
@@ -30,20 +31,30 @@ def timing_summary(responses: list[dict]) -> dict:
 
 
 def _test_counts(run_dir: Path) -> tuple[int | None, int | None]:
-    """'N passed' / 'N failed' from the transcript (test output the agent ran)."""
+    """Passed/failed counts from the last test summary in the transcript: the final state.
+
+    Agents usually run tests several times, failing before they pass, so the first
+    "N failed" in a transcript is often a bug the agent went on to fix. Both counts
+    come from the same (last) summary line; a summary with only "passed" means 0 failed.
+    """
     try:
         text = (run_dir / "stdout.txt").read_text(encoding="utf-8", errors="replace")
     except OSError:
         return None, None
-    found = {word: re.search(rf"(\d+) {word}", text) for word in ("passed", "failed")}
-    passed, failed = (int(m.group(1)) if m else None for m in found.values())
-    if failed == 0 and passed is None:
-        passed = 0
-    return passed, failed
+    summaries = [line for line in text.splitlines() if re.search(r"\d+ (passed|failed)", line)]
+    if not summaries:
+        return None, None
+    last = summaries[-1]
+    passed, failed = (re.search(rf"(\d+) {word}", last) for word in ("passed", "failed"))
+    return (int(passed.group(1)) if passed else 0 if failed else None,
+            int(failed.group(1)) if failed else 0)
 
 
-def extract_metrics(run_dir: Path, agent: Agent) -> dict:
-    """Best-effort metrics from the run's artifacts and the agent's own records."""
+def extract_metrics(run_dir: Path, agent: Agent, billed_usd: float | None = None) -> dict:
+    """Best-effort metrics from the run's artifacts and the agent's own records.
+
+    billed_usd: provider-billed spend measured around the run (crucible.cost).
+    """
     tests_passed, tests_failed = _test_counts(run_dir)
     session_path = run_dir / "session.json"
     # Output tokens include reasoning tokens where the agent reports them
@@ -55,4 +66,5 @@ def extract_metrics(run_dir: Path, agent: Agent) -> dict:
         "tokens_in": tokens_in,
         "tokens_out": tokens_out,
         **timing_summary(agent.response_timings(run_dir)),
+        **run_cost(agent.name, agent.cost_estimate(run_dir), billed_usd),
     }

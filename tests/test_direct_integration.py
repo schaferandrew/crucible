@@ -25,13 +25,13 @@ def test_direct_records_tokens_and_ttft(tmp_path, fake_model, provider):
     env = {**os.environ, "OLLAMA_BASE_URL": base, "LMSTUDIO_BASE_URL": f"{base}/v1",
            "NO_PROXY": "127.0.0.1,localhost", "no_proxy": "127.0.0.1,localhost"}
     proc = subprocess.run(
-        [sys.executable, "-m", "crucible.cli", "run", "G1", "--agent", "direct",
+        [sys.executable, "-m", "crucible.cli", "run", "MATH-4", "--agent", "direct",
          "--model", f"{provider}/fake-model", "--output", str(tmp_path / "runs")],
         cwd=REPO_ROOT, env=env, capture_output=True, text=True, encoding="utf-8",
         stdin=subprocess.DEVNULL, timeout=120,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
-    (run_dir,) = (tmp_path / "runs").glob(f"{provider}_fake-model/*/G1/*")
+    (run_dir,) = (tmp_path / "runs").glob(f"{provider}_fake-model/*/MATH-4/*")
     meta = json.loads((run_dir / "meta.json").read_text(encoding="utf-8"))
     assert (run_dir / "stdout.txt").read_text(encoding="utf-8") == fake_openai.FINAL_TEXT
     assert (meta["metrics"]["tokens_in"], meta["metrics"]["tokens_out"]) == (100, 10)

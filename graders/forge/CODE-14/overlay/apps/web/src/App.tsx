@@ -1,0 +1,47 @@
+import { Link, Route, Routes } from "react-router-dom";
+import { useAuth } from "./auth/AuthContext";
+import { RequireWriter } from "./auth/RequireWriter";
+import { ArticlePage } from "./pages/ArticlePage";
+import { InvitePage } from "./pages/InvitePage";
+import { RegisterPage } from "./pages/RegisterPage";
+import { WelcomePage } from "./pages/WelcomePage";
+import { EditorPage } from "./pages/EditorPage";
+import { HomePage } from "./pages/HomePage";
+import { LoginPage } from "./pages/LoginPage";
+import { ProfilePage } from "./pages/ProfilePage";
+
+export function App() {
+  const { user, logout } = useAuth();
+  return (
+    <>
+      <header className="navbar">
+        <Link to="/">conduit</Link>
+        <nav>
+          <Link to="/">Home</Link>
+          {user ? (
+            <>
+              <Link to="/editor">New Article</Link>
+              <Link to={`/profile/${user.username}`}>{user.username}</Link>
+              <button type="button" onClick={logout}>Sign out</button>
+            </>
+          ) : (
+            <Link to="/login">Sign in</Link>
+          )}
+        </nav>
+      </header>
+      <main>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/welcome" element={<WelcomePage />} />
+          <Route path="/invite/:token" element={<InvitePage />} />
+          <Route path="/editor" element={<RequireWriter><EditorPage /></RequireWriter>} />
+          <Route path="/editor/:slug" element={<RequireWriter><EditorPage /></RequireWriter>} />
+          <Route path="/article/:slug" element={<ArticlePage />} />
+          <Route path="/profile/:username" element={<ProfilePage />} />
+        </Routes>
+      </main>
+    </>
+  );
+}

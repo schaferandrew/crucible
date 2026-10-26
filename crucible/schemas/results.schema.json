@@ -1,0 +1,292 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/schaferandrew/crucible/blob/main/crucible/schemas/results.schema.json",
+  "title": "Crucible results bundle",
+  "description": "What `crucible export` and `crucible publish` write, and what the portfolio's Crucible page reads. Every *.json file in the page's _data/crucible/ folder is one bundle; the page merges them (runs by run_id, the newest bundle wins) and takes the test list from the newest bundle.",
+  "type": "object",
+  "required": [
+    "format_version",
+    "generated_at",
+    "tests",
+    "runs",
+    "modes",
+    "tiers"
+  ],
+  "properties": {
+    "format_version": {
+      "type": "integer",
+      "enum": [
+        2
+      ]
+    },
+    "generated_at": {
+      "type": "string",
+      "description": "ISO 8601 time the bundle was written"
+    },
+    "source": {
+      "type": "object",
+      "description": "Where the bundle came from",
+      "properties": {
+        "machine": {
+          "type": "string"
+        },
+        "crucible_version": {
+          "type": "string"
+        }
+      }
+    },
+    "release": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "agent_score_caveat": {
+      "type": "string"
+    },
+    "harnesses": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tiers": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "spark",
+          "temper",
+          "forge"
+        ]
+      }
+    },
+    "category_weights": {
+      "type": "object"
+    },
+    "modes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "harnesses",
+          "areas"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "chat",
+              "agentic"
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "harnesses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "areas": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "label"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "mode",
+          "area",
+          "tier",
+          "status",
+          "version"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "chat",
+              "agentic"
+            ]
+          },
+          "area": {
+            "type": "string"
+          },
+          "tier": {
+            "type": "string",
+            "enum": [
+              "spark",
+              "temper",
+              "forge"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "provisional",
+              "active",
+              "retired"
+            ]
+          },
+          "version": {
+            "type": "integer"
+          },
+          "rubric_version": {
+            "type": "integer"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "scoring": {
+            "type": "string",
+            "enum": [
+              "checks",
+              "judge"
+            ]
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "run_id",
+          "test_id",
+          "harness",
+          "model",
+          "started_at",
+          "counts"
+        ],
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "description": "<model_slug>/<category>/<test_id>/<timestamp>; unique across bundles"
+          },
+          "test_id": {
+            "type": "string"
+          },
+          "harness": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string",
+            "description": "provider/model"
+          },
+          "started_at": {
+            "type": "string"
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "outcome": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "completed",
+              "failed",
+              "no_answer",
+              "timeout",
+              "harness_error",
+              null
+            ]
+          },
+          "elapsed_s": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "score": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Human score, 0-10"
+          },
+          "check_score": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Programmatic checks, 0-10"
+          },
+          "agent_score": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "AI judge, 0-10"
+          },
+          "counts": {
+            "type": "boolean",
+            "description": "Current test version and an active test"
+          },
+          "hardware": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "inference": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "output": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The model's final answer, clipped"
+          },
+          "criteria": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "description": "Per-criterion automatic scores: criterion, max_score, score, detail"
+          },
+          "hidden_tests": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Hidden acceptance test results (Forge coding tests)"
+          }
+        }
+      }
+    }
+  }
+}

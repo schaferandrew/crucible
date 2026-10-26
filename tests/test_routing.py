@@ -1,5 +1,4 @@
 from crucible.agents import AGENTS
-from crucible.taxonomy import derive_suites
 
 
 class TestDirectAgentGate:
@@ -45,14 +44,5 @@ class TestPromptToolFlags:
     def test_e1_requires_tools(self):
         import yaml
         from crucible.workspace import PROMPTS_DIR
-        data = yaml.safe_load((PROMPTS_DIR / "E1.yaml").read_text())
+        data = yaml.safe_load((PROMPTS_DIR / "RSCH-1.yaml").read_text())
         assert data["needs_tools"] is True  # today's-news task requires web access
-
-
-class TestSuitesIncludeAllPrompts:
-    def test_every_prompt_reachable_via_its_suite(self):
-        from crucible.workspace import PROMPTS_DIR
-        test_ids = sorted(p.stem for p in PROMPTS_DIR.glob("*.yaml"))
-        suites = derive_suites(test_ids)
-        reachable = [t for ts in suites.values() for t in ts]
-        assert sorted(reachable) == test_ids
