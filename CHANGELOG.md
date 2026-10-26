@@ -8,6 +8,16 @@ improvements are minor releases; fixes that change no behavior anyone relies on 
 Every change that lands on `main` is a release (see [AGENTS.md](AGENTS.md)), and CI checks
 that a pull request touching the code or tests bumps the version and adds its entry here.
 
+## 2.1.0 (2026-10-26)
+
+### Added
+
+- **Evals area (`EVAL-1` to `EVAL-3`, chat).** Tests whether a model can grade an agent's
+  response: it sees the task, the criteria and the response, reasons, and ends with
+  `GRADE: <0-10>`. A new `grade_closeness` check scores the grade against a hidden reference
+  grade, with points following a bell curve in the distance (full for an exact match, 64% two
+  points off, 6% five off). The reasoning is kept with the run's output. The tests are `active`.
+
 ## 2.0.0 (2026-10-26)
 
 ### Breaking
@@ -37,16 +47,6 @@ that a pull request touching the code or tests bumps the version and adds its en
 
 - **MATH-4** (the seating logic puzzle) is scored by checks instead of a judge: the prompt
   asks for the full seating and an `ANSWER:` line (test version 2; older runs stop counting).
-
-## Unreleased
-
-### Added
-
-- **Evals area (`EVAL-1` to `EVAL-3`, chat).** Tests whether a model can grade an agent's
-  response: it sees the task, the criteria and the response, reasons, and ends with
-  `GRADE: <0-10>`. A new `grade_closeness` check scores the grade against a hidden reference
-  grade, with points following a bell curve in the distance (full for an exact match, 64% two
-  points off, 6% five off). The reasoning is kept with the run's output. The tests are `active`.
 
 ## 1.0.0 (2026-10-26)
 
