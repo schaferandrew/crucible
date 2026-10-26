@@ -83,11 +83,11 @@ def test_test_counts_use_the_final_summary(tmp_path):
     (tmp_path / "stdout.txt").write_text(
         " ❯ test/cursor.test.ts (6 tests | 1 failed)\n"
         "   ... fixing ...\n"
-        "      Tests  26 passed (26)\n")
+        "      Tests  26 passed (26)\n", encoding="utf-8")
     assert _test_counts(tmp_path) == (26, 0)
-    (tmp_path / "stdout.txt").write_text("Tests  2 failed | 24 passed (26)\n")
+    (tmp_path / "stdout.txt").write_text("Tests  2 failed | 24 passed (26)\n", encoding="utf-8")
     assert _test_counts(tmp_path) == (24, 2)
-    (tmp_path / "stdout.txt").write_text("no tests run\n")
+    (tmp_path / "stdout.txt").write_text("no tests run\n", encoding="utf-8")
     assert _test_counts(tmp_path) == (None, None)
 
 
