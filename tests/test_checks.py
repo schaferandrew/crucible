@@ -108,7 +108,9 @@ def test_small_local_context_refuses_agent_runs(monkeypatch):
     from crucible.agents import AGENTS
     monkeypatch.setattr(runner.environment, "inference", lambda model: {"context_length": 8192})
     assert "8,192" in runner._context_problem(AGENTS["opencode"], "lmstudio/x")
-    assert runner._context_problem(AGENTS["direct"], "lmstudio/x") is None   # no agent prompt to fit
+    # Chat runs need room to reason too, unless reasoning is off
+    assert runner._context_problem(AGENTS["direct"], "lmstudio/x") is not None
+    assert runner._context_problem(AGENTS["direct"], "lmstudio/x", "off") is None
     monkeypatch.setattr(runner.environment, "inference", lambda model: {"context_length": 65536})
     assert runner._context_problem(AGENTS["opencode"], "lmstudio/x") is None
 

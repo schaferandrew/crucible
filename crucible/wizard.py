@@ -262,10 +262,19 @@ def ask_test_ids(prompts: dict[str, dict]) -> list[str]:
             print(f"  {exc}")
 
 
-def ask_reasoning(limited_by: str | None = None) -> str:
-    """The reasoning level for the whole run; each level is recorded as its own model."""
+def ask_reasoning(model: str, limited_by: str | None = None) -> str:
+    """The reasoning level for the whole run; each level is recorded as its own model.
+    Only asked when the model can reason: for anything else there's nothing to choose."""
+    from crucible import reasoning
     if limited_by:
         print(f"  ({limited_by} can't set a reasoning level, so this run uses the model's default.)")
+        return "default"
+    can_reason = reasoning.supports(model)
+    if can_reason is False:
+        return "default"
+    if can_reason is None:
+        print("  (Couldn't tell whether this model reasons, so it runs at its default; "
+              "pass --reasoning to choose a level.)")
         return "default"
     return choose("Reasoning (thinking)? Each level shows as its own model on the dashboard.", [
         ("Model default (whatever the model does on its own)", "default"),
@@ -304,7 +313,7 @@ def run_wizard(args) -> tuple[planner.Plan, dict] | None:
         if agentic and not watch and len(agentic) <= 3:
             watch = confirm("Watch the agent work in its TUI? (for debugging; you quit the TUI to finish each test)",
                             default=False)
-        reasoning = args.reasoning or ask_reasoning("opencode" if agentic and (harness or "opencode") == "opencode" else None)
+        reasoning = args.reasoning or ask_reasoning(model, "opencode" if agentic and (harness or "opencode") == "opencode" else None)
         done = sum(planner.has_current_run(args.output, model, t, prompts[t],
                                            "direct" if mode_for(prompts[t]) == "chat" else harness or "opencode",
                                            reasoning)

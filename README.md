@@ -44,7 +44,7 @@ Models are named `provider/model`. Crucible talks to three providers itself, for
 
 Agentic tests hand the model name to the harness, so anything the harness supports also works there, such as opencode's own `opencode/<model>` free models.
 
-For local models on agentic tests, load the model with **at least 32k context**: crucible refuses the run otherwise, because agents compact or fail with less.
+Load local models with **at least 32k context** (8k is enough for chat tests with `--reasoning off`); crucible refuses the run otherwise. Agents compact or fail with less, and a thinking model can reason for thousands of tokens before it answers, filling a small context with no answer at all.
 
 ## Running tests
 
@@ -125,13 +125,14 @@ Every run records an **outcome** in `meta.json`, before any scoring:
 | `failed` | Exited with an error after the model produced output | yes, as the model's failure |
 | `no_answer` | The model produced tokens but never an answer | yes, as the model's failure |
 | `timeout` | Hit the time limit | yes |
+| `context_limit` | The response filled the model's whole context before finishing | no, when the loaded context was below the minimum (a setup problem); yes otherwise (a runaway, like a thinking loop) |
 | `harness_error` | Exited before the model produced anything | no: marked invalid, rerun when the setup is fixed |
 
 Scoring then climbs a ladder: did it complete, did it pass the programmatic checks or hidden tests, and (optionally) what a human or AI judge thinks.
 
 ### Reasoning levels
 
-Thinking models (Qwen 3.5, gpt-oss, DeepSeek...) can spend minutes reasoning before they answer, so the same weights with thinking off and on are benchmarked as separate models, the way Artificial Analysis lists "(Reasoning)" and "(Non-reasoning)" rows. `crucible run` asks for the level (or pass `--reasoning`), and every run records it:
+Thinking models (Qwen 3.5, gpt-oss, DeepSeek...) can spend minutes reasoning before they answer, so the same weights with thinking off and on are benchmarked as separate models, the way Artificial Analysis lists "(Reasoning)" and "(Non-reasoning)" rows. `crucible run` asks for the level only when the model reasons: OpenRouter lists `reasoning` among a model's supported parameters, Ollama reports a `thinking` capability, and for LM Studio, which reports neither, a loaded model is asked a one-line question and watched for reasoning. When that can't be told (an LM Studio model that isn't loaded), the run uses the model's default; `--reasoning` always works, and is refused for a model known not to reason. Every run records its level:
 
 | Provider | How the level is sent |
 |---|---|
