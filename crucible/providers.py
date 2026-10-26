@@ -146,6 +146,8 @@ class _StreamTimer:
         self.answer_chars = 0
         self.on_progress = _PROGRESS.get()
         self._reported = 0.0
+        # Why the response ended, as the provider reports it ("stop", or "length" when it ran out of room)
+        self.finish_reason: str | None = None
 
     def token(self, reasoning: str = "", answer: str = ""):
         now = time.monotonic()
@@ -166,6 +168,7 @@ class _StreamTimer:
             "tokens_in": tokens_in,
             "tokens_out": tokens_out,
             "reasoning": "".join(self.reasoning),
+            "finish_reason": self.finish_reason,
         }
 
 
@@ -206,6 +209,7 @@ def _call_ollama(model_id: str, prompt: str, timeout: int = 300, extra: dict | N
                 timer.token(reasoning=chunk.get("thinking") or "", answer=chunk.get("response") or "")
                 parts.append(chunk.get("response") or "")
             if chunk.get("done"):
+                timer.finish_reason = chunk.get("done_reason")
                 tokens_in = chunk.get("prompt_eval_count")
                 tokens_out = chunk.get("eval_count")
     return timer.result("".join(parts), tokens_in, tokens_out)
@@ -244,6 +248,7 @@ def _call_openai_compatible(url: str, model_id: str, prompt: str, timeout: int,
             if chunk.get("error"):
                 raise RuntimeError(f"Provider error: {chunk['error']}")
             for choice in chunk.get("choices") or []:
+                timer.finish_reason = choice.get("finish_reason") or timer.finish_reason
                 delta = choice.get("delta") or {}
                 content = delta.get("content")
                 if isinstance(content, list):

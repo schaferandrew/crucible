@@ -217,6 +217,7 @@
               "failed",
               "no_answer",
               "timeout",
+              "context_limit",
               "harness_error",
               null
             ]

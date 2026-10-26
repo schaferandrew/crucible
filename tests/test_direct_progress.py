@@ -53,3 +53,44 @@ def test_opencode_cant_set_reasoning():
     assert "opencode" in planner.reasoning_problem(plan)
     assert planner.reasoning_problem(planner.build("lmstudio/x", ["CODE-1"], harness="pi", reasoning="off")) is None
     assert planner.reasoning_problem(planner.build("lmstudio/x", ["CODE-1"], harness="opencode")) is None
+
+
+def _run_dir(tmp_path, response, context, reasoning="default", agent="direct"):
+    import json
+    (tmp_path / "direct-response.json").write_text(json.dumps(response), encoding="utf-8")
+    (tmp_path / "stdout.txt").write_text("", encoding="utf-8")
+    return {"agent": agent, "reasoning": reasoning, "returncode": 0, "timed_out": False,
+            "metrics": {"tokens_out": response.get("tokens_out")},
+            "environment": {"inference": {"context_length": context}}}
+
+
+def test_filling_a_small_context_is_a_setup_problem(tmp_path):
+    from crucible import runner
+    meta = _run_dir(tmp_path, {"tokens_in": 230, "tokens_out": 7957}, 8192)  # the Gemma run
+    assert runner.classify_outcome(meta, tmp_path) == "context_limit"
+    assert runner.context_limit_is_setup(meta) == 8192
+
+
+def test_filling_a_big_context_is_a_runaway_that_counts(tmp_path):
+    from crucible import runner
+    meta = _run_dir(tmp_path, {"tokens_in": 230, "tokens_out": 9000, "finish_reason": "length"}, 65536)
+    assert runner.classify_outcome(meta, tmp_path) == "context_limit"
+    assert runner.context_limit_is_setup(meta) is None
+
+
+def test_reasoning_off_needs_less_context(tmp_path):
+    from crucible import runner
+    meta = _run_dir(tmp_path, {"finish_reason": "length", "tokens_out": 9000}, 16384, reasoning="off")
+    assert runner.context_limit_is_setup(meta) is None
+    meta["reasoning"] = "default"
+    assert runner.context_limit_is_setup(meta) == 16384
+
+
+def test_chat_runs_refuse_a_small_loaded_context(monkeypatch):
+    from crucible import environment, runner
+    from crucible.agents import AGENTS
+    monkeypatch.setattr(environment, "inference", lambda model: {"context_length": 8192})
+    assert "32,768" in runner._context_problem(AGENTS["direct"], "lmstudio/x")
+    assert runner._context_problem(AGENTS["direct"], "lmstudio/x", "off") is None
+    monkeypatch.setattr(environment, "inference", lambda model: {"context_length": None})
+    assert runner._context_problem(AGENTS["direct"], "openrouter/x") is None  # cloud: unknown, never refused

@@ -44,7 +44,7 @@ Models are named `provider/model`. Crucible talks to three providers itself, for
 
 Agentic tests hand the model name to the harness, so anything the harness supports also works there, such as opencode's own `opencode/<model>` free models.
 
-For local models on agentic tests, load the model with **at least 32k context**: crucible refuses the run otherwise, because agents compact or fail with less.
+Load local models with **at least 32k context** (8k is enough for chat tests with `--reasoning off`); crucible refuses the run otherwise. Agents compact or fail with less, and a thinking model can reason for thousands of tokens before it answers, filling a small context with no answer at all.
 
 ## Running tests
 
@@ -125,6 +125,7 @@ Every run records an **outcome** in `meta.json`, before any scoring:
 | `failed` | Exited with an error after the model produced output | yes, as the model's failure |
 | `no_answer` | The model produced tokens but never an answer | yes, as the model's failure |
 | `timeout` | Hit the time limit | yes |
+| `context_limit` | The response filled the model's whole context before finishing | no, when the loaded context was below the minimum (a setup problem); yes otherwise (a runaway, like a thinking loop) |
 | `harness_error` | Exited before the model produced anything | no: marked invalid, rerun when the setup is fixed |
 
 Scoring then climbs a ladder: did it complete, did it pass the programmatic checks or hidden tests, and (optionally) what a human or AI judge thinks.

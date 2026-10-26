@@ -69,15 +69,29 @@ def _build_context(agent: Agent, test_id: str, prompt_def: dict, model: str | No
 MIN_AGENT_CONTEXT = 32_768
 
 
-def _context_problem(agent: Agent, model: str | None) -> str | None:
-    """Refuse agent runs on a local server whose loaded context is too small to hold the agent."""
-    if not agent.uses_workspace:
-        return None
+# A chat test is one prompt and one answer, but a thinking model can reason for thousands of
+# tokens first: with too little context it fills the window and never answers.
+MIN_CHAT_CONTEXT = 32_768
+MIN_CHAT_CONTEXT_NO_REASONING = 8_192
+
+
+def min_context(agent: Agent, reasoning: str = "default") -> int:
+    if agent.uses_workspace:
+        return MIN_AGENT_CONTEXT
+    return MIN_CHAT_CONTEXT_NO_REASONING if reasoning == "off" else MIN_CHAT_CONTEXT
+
+
+def _context_problem(agent: Agent, model: str | None, reasoning: str = "default") -> str | None:
+    """Refuse runs on a local server whose loaded context is too small for the run to finish."""
     loaded = environment.inference(model).get("context_length")
-    if loaded is not None and loaded < MIN_AGENT_CONTEXT:
-        return (f"{model} is loaded with a {loaded:,}-token context; agent harnesses need at least "
-                f"{MIN_AGENT_CONTEXT:,}. Reload it with a larger context (LM Studio: model settings > Context Length).")
-    return None
+    need = min_context(agent, reasoning)
+    if loaded is None or loaded >= need:
+        return None
+    why = ("agent harnesses need" if agent.uses_workspace
+           else f"chat tests with reasoning {reasoning} need" if reasoning != "default" else "chat tests with reasoning on need")
+    return (f"{model} is loaded with a {loaded:,}-token context; {why} at least {need:,}. "
+            "Reload it with a larger context (LM Studio: model settings > Context Length)"
+            + ("" if agent.uses_workspace or reasoning == "off" else ", or run with --reasoning off") + ".")
 
 
 def _write_meta(ctx: RunContext, agent: Agent, prompt_def: dict, result: dict,
@@ -129,7 +143,7 @@ def run_single(test_id: str, model: str | None, watch: bool, timeout: int,
     if mismatch:
         raise RunRefused(mismatch)
     agent = AGENTS[agent_name]
-    problem = agent.check(model, prompt_def, reasoning) or _context_problem(agent, model)
+    problem = agent.check(model, prompt_def, reasoning) or _context_problem(agent, model, reasoning)
     if problem:
         raise RunRefused(problem)
 
@@ -180,6 +194,9 @@ def classify_outcome(meta: dict, run_dir: Path) -> str:
                    tokens, no answer); a setup failure, not the model's, so the run is invalid
     timeout:       hit the time limit (counts: running out of time is a result)
     no_answer:     the model produced tokens but never an answer (counts against the model)
+    context_limit: the response stopped because it filled the model's context; invalid when the
+                   loaded context was below the minimum (a setup problem), otherwise a runaway
+                   that counts against the model
     failed:        exited with an error after the model produced output (counts; worth a look)
     completed:     finished cleanly with an answer
     """
@@ -188,13 +205,46 @@ def classify_outcome(meta: dict, run_dir: Path) -> str:
     answer = checks.final_answer(run_dir).strip()
     if meta.get("timed_out"):
         return "timeout"
+    if hit_context_limit(meta, run_dir):
+        return "context_limit"
     if meta.get("returncode") not in (0, None):
         return "failed" if (produced or answer) else "harness_error"
     return "completed" if answer else ("no_answer" if produced else "harness_error")
 
 
+def hit_context_limit(meta: dict, run_dir: Path) -> bool:
+    """The response stopped because the context filled: the provider says so (finish_reason
+    "length"), or the tokens used reached the loaded context (for runs recorded before that)."""
+    try:
+        response = json.loads((run_dir / "direct-response.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False  # only direct runs record how their response ended
+    if response.get("finish_reason") == "length":
+        return True
+    loaded = ((meta.get("environment") or {}).get("inference") or {}).get("context_length")
+    used = (response.get("tokens_in") or 0) + (response.get("tokens_out") or 0)
+    return bool(loaded) and used >= 0.97 * loaded
+
+
+def context_limit_is_setup(meta: dict) -> int | None:
+    """The loaded context, when it was below what this run needed (so the stop wasn't the model's fault)."""
+    loaded = ((meta.get("environment") or {}).get("inference") or {}).get("context_length")
+    need = (MIN_CHAT_CONTEXT_NO_REASONING if meta.get("reasoning") == "off" else MIN_CHAT_CONTEXT) \
+        if meta.get("agent") == "direct" else MIN_AGENT_CONTEXT
+    return loaded if loaded and loaded < need else None
+
+
 def _record_outcome(ctx: RunContext, meta: dict) -> None:
     meta["outcome"] = classify_outcome(meta, ctx.run_dir)
+    if meta["outcome"] == "context_limit":
+        small = context_limit_is_setup(meta)
+        if small:
+            meta["invalid"] = {"reason": f"Ran out of context: loaded with only {small:,} tokens, which the model filled "
+                                         "before it could finish. A setup problem, not the model's; rerun with more context.",
+                               "marked_at": datetime.now(timezone.utc).isoformat()}
+            print(f"  [INVALID] filled its {small:,}-token context before finishing; rerun with more context")
+        else:
+            print("  [CONTEXT LIMIT] the model filled its whole context without finishing (a runaway); this counts")
     if meta["outcome"] == "harness_error":
         meta["invalid"] = {"reason": "Harness error: the agent exited before the model produced anything.",
                            "marked_at": datetime.now(timezone.utc).isoformat()}
