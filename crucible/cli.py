@@ -36,7 +36,7 @@ Commands:
 Test suites:
   coding (C1, C1b, C2, C2b, C3, C4, C4b, C5, C6)
   writing (W1a, W1b, W1c, W2, W2b)
-  everyday (E1-E3), reasoning (G1-G3), home (H1-H4), all
+  everyday (E1-E3), reasoning (G1-G3), home (H1-H4), evals (V1-V3), all
 
 Examples:
   # Single test with an OpenRouter model

@@ -23,7 +23,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from crucible import console, scorer, workspace
+from crucible import console, evals, scorer, workspace
 from crucible.agents import AGENTS, DEFAULT_AGENT, Agent, RunContext
 from crucible.metrics import extract_metrics
 from crucible.models import resolve_model
@@ -169,12 +169,29 @@ def _try_run(test_id: str, args: argparse.Namespace) -> str | None:
         return None
 
 
+def _auto_score(run_ids: list[str], output: Path) -> list[str]:
+    """Grade completed Evals runs against their hidden score (no questions asked).
+
+    Returns the run IDs that still need manual scoring or a retry/discard decision.
+    """
+    manual = []
+    for run_id in run_ids:
+        run_dir = output / run_id
+        meta = _read_meta(run_dir)
+        is_eval = meta.get("test_id") and evals.is_eval(workspace.load_prompt(meta["test_id"]))
+        if is_eval and meta.get("status") == "COMPLETE":
+            scorer.score_run(run_dir)
+        else:
+            manual.append(run_id)
+    return manual
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="crucible run",
         description=f"Run AI benchmark tests via an agent harness ({', '.join(AGENTS)})",
     )
-    parser.add_argument("test", help="Test ID (e.g. C1) or suite (coding, writing, everyday, reasoning, home, all)")
+    parser.add_argument("test", help="Test ID (e.g. C1) or suite (coding, writing, everyday, reasoning, home, evals, all)")
     parser.add_argument("--provider", "-p", help="Model provider (ollama, openrouter, lmstudio)")
     parser.add_argument("--model", "-m", help="Model name (e.g. qwen3.5:9b-mlx) or provider/model")
     parser.add_argument("--agent", choices=list(AGENTS), default=DEFAULT_AGENT,
@@ -214,9 +231,11 @@ def main() -> None:
         summary.append((meta.get("status", "?"), meta.get("elapsed_time"), run_id))
     console.print_suite_summary(summary)
 
+    manual_ids = _auto_score(run_ids, args.output)
+
     # Interactive sessions only, so scripted/headless invocations never block
-    if run_ids and sys.stdin.isatty():
-        for run_id in run_ids:
+    if manual_ids and sys.stdin.isatty():
+        for run_id in manual_ids:
             _close_the_loop(run_id, args)
     if not run_ids:
         sys.exit(1)

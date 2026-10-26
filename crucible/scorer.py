@@ -12,6 +12,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from crucible import evals
 from crucible.taxonomy import validate_category
 from crucible.workspace import REPO_ROOT, load_prompt
 
@@ -141,6 +142,22 @@ def score_interactive(test_id: str, run_dir: Path, meta: dict | None = None) -> 
     return scores
 
 
+def score_eval_run(test_id: str, run_dir: Path) -> dict:
+    """Grade an Evals run against its hidden actual score, no questions asked."""
+    prompt = load_prompt(test_id)
+    validate_category(prompt.get("category"))
+    scores = evals.score_eval(prompt, _model_output(run_dir))
+    result = scores["_eval"]
+    reasoning_path = evals.write_reasoning(run_dir, test_id, result)
+    if result["parsed"]:
+        print(f"  {test_id}: graded {result['predicted']:g}, actual {result['actual']:g} "
+              f"-> {result['points']:g}/{result['max_points']:g} points")
+    else:
+        print(f"  {test_id}: no valid GRADE line -> 0/{result['max_points']:g} points")
+    print(f"  Reasoning saved to {reasoning_path}")
+    return scores
+
+
 def overall_score(scores: dict, rubric: list[dict]) -> float | None:
     """Plain mean of criterion scores normalized to 0-10.
 
@@ -157,7 +174,10 @@ def score_run(run_dir: Path) -> Path:
     meta = _read_json(run_dir / "meta.json")
     # Layout is .../<test_id>/<timestamp>/ for runs that predate meta.json
     test_id = meta.get("test_id") or run_dir.parent.name
-    scores = score_interactive(test_id, run_dir, meta)
+    if evals.is_eval(load_prompt(test_id)):
+        scores = score_eval_run(test_id, run_dir)
+    else:
+        scores = score_interactive(test_id, run_dir, meta)
     overall = overall_score(scores, load_prompt(test_id).get("rubric", []))
     if overall is not None:
         scores["_overall"] = overall

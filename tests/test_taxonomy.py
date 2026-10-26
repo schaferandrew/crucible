@@ -11,6 +11,7 @@ class TestSuiteFor:
         assert suite_for("E4") == "everyday"
         assert suite_for("G3") == "reasoning"
         assert suite_for("H1") == "home"
+        assert suite_for("V1") == "evals"
 
     def test_lowercase_prefix_accepted(self):
         assert suite_for("c1") == "coding"

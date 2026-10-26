@@ -16,6 +16,7 @@ SUITE_PREFIXES = {
     "E": "everyday",
     "G": "reasoning",
     "H": "home",
+    "V": "evals",
 }
 
 # Category -> weight used when aggregating a full sweep across categories.
@@ -23,7 +24,7 @@ SUITE_PREFIXES = {
 CATEGORY_WEIGHTS = {
     "coding_build": 0.10,
     "coding_debug": 0.10,
-    "coding_repo": 0.15,
+    "coding_repo": 0.10,
     "browser_tool": 0.10,
     "writing": 0.10,
     "everyday": 0.10,
@@ -31,6 +32,7 @@ CATEGORY_WEIGHTS = {
     "structured_data": 0.10,
     "long_agent": 0.05,
     "home_maintenance": 0.10,
+    "evals": 0.05,
 }
 
 

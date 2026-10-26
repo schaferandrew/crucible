@@ -165,16 +165,17 @@ Watch runs are fully scoreable: pi writes its session into the run directory (`-
 *Alternative: Use `python3 -m crucible.cli ...` if `crucible` is not on PATH.*
 
 ### Suite Categories
-Suites are derived from test-ID prefixes: `C`→coding, `W`→writing, `E`→everyday, `G`→reasoning, `H`→home.
+Suites are derived from test-ID prefixes: `C`→coding, `W`→writing, `E`→everyday, `G`→reasoning, `H`→home, `V`→evals.
 
 - `coding`: C1, C1b, C2, C2b, C3, C4, C4b, C5, C6
 - `writing`: W1a, W1b, W1c, W2, W2b
 - `everyday`: E1-E4
 - `reasoning`: G1-G3
 - `home`: H1-H4
+- `evals`: V1-V3 (the model grades an agent's response; see [Evals](#evals))
 - `all`: Everything
 
-Each prompt also declares a scoring **category** (`coding_build`, `coding_debug`, `coding_repo`, `browser_tool`, `everyday`, `reasoning`, `structured_data`, `long_agent`, `home_maintenance`, `writing`) used for run directory layout and sweep aggregation. Run paths are `runs/<model_slug>/<category>/<test_id>/<timestamp>/`.
+Each prompt also declares a scoring **category** (`coding_build`, `coding_debug`, `coding_repo`, `browser_tool`, `everyday`, `reasoning`, `structured_data`, `long_agent`, `home_maintenance`, `writing`, `evals`) used for run directory layout and sweep aggregation. Run paths are `runs/<model_slug>/<category>/<test_id>/<timestamp>/`.
 
 ## Scoring
 
@@ -194,6 +195,21 @@ crucible score openrouter_moonshotai_kimi-k2.6/everyday/E2/20260829_040024
 ```
 
 The interactive CLI walks you through each rubric criterion and saves results to `runs/<MODEL>/<CATEGORY>/<TEST>/<TIMESTAMP>/results.json`.
+
+## Evals
+
+The `evals` suite (`V1`-`V3`) tests whether a model can **consistently and correctly grade an agent's response**. The model is shown the task given to an agent, the criteria, and the agent's response, then reasons through the criteria and ends with a `GRADE: <0-10>` line.
+
+Evals are graded **programmatically** (no interactive scoring): `crucible run V1 --agent direct --model ...` scores itself right after the run, and `crucible score <RUN_ID>` re-scores one. The model's grade is compared with a hidden "actual" score in the prompt's top-level `eval:` key, and points fall linearly with the distance:
+
+```yaml
+eval:
+  scale: [0, 10]      # valid grades
+  actual_score: 7     # hidden reference grade (never put it inside prompt:)
+  falloff: 5          # error at which points reach 0
+```
+
+An exact match earns full points; a grade 1 off earns 80%, 2 off 60%, 5+ off nothing. A missing or out-of-range `GRADE:` line earns 0 and is flagged. The model's reasoning is saved for people to read in `reasoning.md` in the run directory (grade vs actual, then the reasoning) and under `scores._eval` in `results.json`. The cases span a near-perfect response (V1), a mediocre one (V2) and a confidently wrong one (V3), so run the suite repeatedly to measure consistency.
 
 ## Reports
 
