@@ -3,8 +3,8 @@ needs_tools: true
 category: long_agent
 area: everyday
 tier: temper
-version: 3
-rubric_version: 2
+version: 4
+rubric_version: 3
 status: active
 auto_grade: false
 repo: null
@@ -12,9 +12,9 @@ mcp_servers:
   - mock-data
   - web
 prompt: |
-  Produce a morning brief using the supplied sources. Include, in this order: weather, outstanding work from yesterday, important emails, today's calendar, and news. For each section, prioritize what actually requires attention today. Do not merely summarize everything. Highlight conflicts, deadlines, unanswered messages, and actions. Separate facts from recommendations. End with a "Top 3 things to do today" section.
+  Produce a morning brief using the available sources. Include, in this order: weather, outstanding work from yesterday, important emails, today's calendar, and news. For each section, prioritize what actually requires attention today. Do not merely summarize everything. Highlight conflicts, deadlines, unanswered messages, and actions. Separate facts from recommendations. End with a "Top 3 things to do today" section.
 
-  Use only the supplied/local sources for email, work, and calendar. For news and weather, first try the local mock sources — but if they are stale or unavailable, fetch live data from the web and cite it. If a source is unavailable, say so instead of inventing information.
+  Use the supplied local sources for email, work, and calendar. For weather and news, use the best available source and cite it.
 rubric:
   - criterion: "Detects stale weather data"
     max_score: 3

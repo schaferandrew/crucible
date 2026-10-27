@@ -280,10 +280,10 @@
     "rubric_hash": "aa1c9b0a9e16d06c"
   },
   "TASK-3": {
-    "version": 3,
-    "content_hash": "04435431fb74d405",
-    "prompt_hash": "21dbb533b0287fb1",
-    "rubric_version": 2,
+    "version": 4,
+    "content_hash": "c6203b6cdebf86ed",
+    "prompt_hash": "df93e6415c3a6e81",
+    "rubric_version": 3,
     "rubric_hash": "badaf6a0fafefabc"
   },
   "TASK-4": {
