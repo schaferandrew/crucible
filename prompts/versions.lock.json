@@ -274,17 +274,17 @@
   },
   "TASK-2": {
     "version": 1,
-    "content_hash": "2542cbccc8bd54d8",
+    "content_hash": "02c346bdb6622631",
     "prompt_hash": "d14c8fde91dbcfc7",
     "rubric_version": 1,
     "rubric_hash": "aa1c9b0a9e16d06c"
   },
   "TASK-3": {
-    "version": 2,
-    "content_hash": "202c33240181c8a2",
-    "prompt_hash": "0bd229d3574c96e6",
-    "rubric_version": 1,
-    "rubric_hash": "9be26bf680b4a305"
+    "version": 3,
+    "content_hash": "04435431fb74d405",
+    "prompt_hash": "21dbb533b0287fb1",
+    "rubric_version": 2,
+    "rubric_hash": "badaf6a0fafefabc"
   },
   "TASK-4": {
     "version": 1,
@@ -306,6 +306,13 @@
     "prompt_hash": "a238f219f769b6ee",
     "rubric_version": 1,
     "rubric_hash": "514500bcc8e3df95"
+  },
+  "TASK-7": {
+    "version": 1,
+    "content_hash": "e8f7a9fd09455ced",
+    "prompt_hash": "94d2caef5fb233bd",
+    "rubric_version": 1,
+    "rubric_hash": "b0aefa3fd916a714"
   },
   "WRIT-1a": {
     "version": 1,

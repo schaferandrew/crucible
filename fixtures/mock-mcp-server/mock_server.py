@@ -24,6 +24,7 @@ class MCPServer:
             "get_calendar_events": "calendar.json",
             "get_news": "news.json",
             "get_weather": "weather.json",
+            "get_travel_options": "travel.json",
         }
 
     # ------------------------------------------------------------------
@@ -81,6 +82,19 @@ class MCPServer:
                     "description": "Get weather forecast for the user's location",
                     "inputSchema": {"type": "object", "properties": {}},
                 },
+                {
+                    "name": "get_travel_options",
+                    "description": "Get travel options (flights, train, bus) between two cities for a given date",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "origin": {"type": "string", "description": "Origin airport/city code (e.g., MSP)"},
+                            "destination": {"type": "string", "description": "Destination airport/city code (e.g., SFO)"},
+                            "date": {"type": "string", "description": "Travel date in YYYY-MM-DD format"}
+                        },
+                        "required": ["origin", "destination", "date"]
+                    },
+                },
             ]
         }
         self.send_response(result, request_id)
@@ -88,6 +102,7 @@ class MCPServer:
     def handle_tools_call(self, params, request_id):
         """Call a tool and return fixture data wrapped in MCP text content."""
         tool_name = params.get("name", "")
+        arguments = params.get("arguments", {}) or {}
 
         fixture_file = self._tool_data.get(tool_name)
         if fixture_file is None:
@@ -105,6 +120,20 @@ class MCPServer:
         except (json.JSONDecodeError, OSError) as exc:
             self.send_error(-32000, f"Error loading fixture: {exc}", request_id)
             return
+
+        # For get_travel_options, filter by the requested origin/destination/date
+        if tool_name == "get_travel_options":
+            origin = arguments.get("origin", "").upper()
+            destination = arguments.get("destination", "").upper()
+            date = arguments.get("date", "")
+            if origin and destination and date:
+                data = {**data, "options": [
+                    opt for opt in data.get("options", [])
+                    if opt.get("origin", "").upper() == origin
+                    and opt.get("destination", "").upper() == destination
+                    and opt.get("date", "") == date
+                ]}
+            # If no filters provided or no matches, return all options
 
         result = {"content": [{"type": "text", "text": json.dumps(data)}]}
         self.send_response(result, request_id)

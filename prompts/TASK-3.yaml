@@ -3,31 +3,57 @@ needs_tools: true
 category: long_agent
 area: everyday
 tier: temper
-version: 2
-rubric_version: 1
+version: 3
+rubric_version: 2
 status: active
 auto_grade: false
 repo: null
 mcp_servers:
   - mock-data
+  - web
 prompt: |
   Produce a morning brief using the supplied sources. Include, in this order: weather, outstanding work from yesterday, important emails, today's calendar, and news. For each section, prioritize what actually requires attention today. Do not merely summarize everything. Highlight conflicts, deadlines, unanswered messages, and actions. Separate facts from recommendations. End with a "Top 3 things to do today" section.
 
-  Use only the supplied/local sources for email, work, and calendar. For news and weather, use live sources if available and cite them. If a source is unavailable, say so instead of inventing information.
+  Use only the supplied/local sources for email, work, and calendar. For news and weather, first try the local mock sources — but if they are stale or unavailable, fetch live data from the web and cite it. If a source is unavailable, say so instead of inventing information.
 rubric:
+  - criterion: "Detects stale weather data"
+    max_score: 3
+    description: "Called get_weather, noticed the forecast dates are from 2020 (stale), and explicitly noted this in the response."
+    check: stale_weather_detected
+  - criterion: "Fetches live weather"
+    max_score: 3
+    description: "After detecting stale data, used web_fetch to get current weather from a live source (e.g., Open-Meteo, NWS) and reported current conditions."
+    check: live_weather_fetched
   - criterion: "Source fidelity"
-    max_score: 3
-    description: "Only uses supplied/local sources for internal data; cites live sources for weather/news."
+    max_score: 2
+    description: "Uses supplied/local sources for email, work, calendar; cites live sources for weather/news."
   - criterion: "Prioritization/actionability"
-    max_score: 3
+    max_score: 2
     description: "Highlights conflicts, deadlines, unanswered messages, and actions rather than just summarizing."
   - criterion: "Cross-source synthesis"
-    max_score: 2
+    max_score: 1
     description: "Connects calendar conflicts with email deadlines, etc."
   - criterion: "Concision/readability"
     max_score: 1
     description: "Brief is concise and easy to scan."
-  - criterion: "Transparent handling of missing data"
-    max_score: 1
-    description: "Says so when a source is unavailable rather than inventing."
 critical_failure: null
+checks:
+  - id: stale_weather_detected
+    type: required_patterns
+    rule: "Notices weather data is from 2020/stale"
+    patterns:
+      - "2020"
+      - "stale"
+      - "outdated"
+      - "old"
+      - "January"
+  - id: live_weather_fetched
+    type: required_patterns
+    rule: "Fetched live weather via web_fetch"
+    patterns:
+      - "web_fetch"
+      - "open-meteo"
+      - "api.open-meteo"
+      - "weather.gov"
+      - "api.weather.gov"
+      - "current_weather"

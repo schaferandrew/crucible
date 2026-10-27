@@ -8,7 +8,7 @@
   },
   "forecast": [
     {
-      "date": "2026-09-01",
+      "date": "2020-01-15",
       "high": 72,
       "low": 58,
       "condition": "Sunny",
@@ -16,7 +16,7 @@
       "wind_speed": 6
     },
     {
-      "date": "2026-09-02",
+      "date": "2020-01-16",
       "high": 68,
       "low": 55,
       "condition": "Partly Cloudy",
@@ -24,7 +24,7 @@
       "wind_speed": 8
     },
     {
-      "date": "2026-09-03",
+      "date": "2020-01-17",
       "high": 74,
       "low": 59,
       "condition": "Sunny",
@@ -32,7 +32,7 @@
       "wind_speed": 7
     },
     {
-      "date": "2026-09-04",
+      "date": "2020-01-18",
       "high": 71,
       "low": 57,
       "condition": "Scattered Showers",

@@ -1,0 +1,50 @@
+test_id: TASK-7
+needs_tools: true
+category: everyday
+area: everyday
+tier: spark
+version: 1
+rubric_version: 1
+status: active
+auto_grade: false
+repo: null
+mcp_servers:
+  - mock-data
+prompt: |
+  I need to travel from Minneapolis (MSP) to San Francisco (SFO) tomorrow (2026-10-28). Find the best value option considering price, travel time, stops, baggage, and refundability. Use the travel tool to get options, then recommend the single best value choice and explain your reasoning. Report the option ID, carrier, type, price, duration, and why it's the best value.
+rubric:
+  - criterion: "Tool usage"
+    max_score: 3
+    description: "Called get_travel_options with correct parameters (origin MSP, destination SFO, date 2026-10-28)."
+  - criterion: "Correct recommendation"
+    max_score: 3
+    description: "Recommended DL456 (Delta flight, $298, nonstop, baggage included, value_score 85) as the best value."
+  - criterion: "Reasoning quality"
+    max_score: 2
+    description: "Explained the tradeoffs: compared price, duration, stops, baggage, refundability; showed why DL456 beats UA123 (cheaper, baggage), AS789 (nonstop), and ground options (much longer)."
+  - criterion: "Clear presentation"
+    max_score: 2
+    description: "Reported option ID, carrier, type, price, duration, and key features clearly."
+critical_failure: null
+checks:
+  - id: tool_called
+    type: required_patterns
+    rule: "Called get_travel_options with MSP, SFO, 2026-10-28"
+    patterns:
+      - "get_travel_options"
+      - "MSP"
+      - "SFO"
+      - "2026-10-28"
+  - id: recommends_dl456
+    type: required_patterns
+    rule: "Recommends DL456 as best value"
+    patterns:
+      - "DL456"
+  - id: mentions_value_score
+    type: required_patterns
+    rule: "References value_score or explains tradeoffs"
+    patterns:
+      - "value_score"
+      - "85"
+      - "best value"
+      - "tradeoff"
