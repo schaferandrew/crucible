@@ -252,18 +252,18 @@
     "rubric_hash": "78a82e60de366899"
   },
   "RSCH-2": {
-    "version": 1,
+    "version": 2,
     "content_hash": "754205c797e0d802",
     "prompt_hash": "ec96546965db8a44",
-    "rubric_version": 1,
-    "rubric_hash": "ae34f3fe94b7fe66"
+    "rubric_version": 2,
+    "rubric_hash": "55312814876cfb60"
   },
   "RSCH-2b": {
-    "version": 1,
+    "version": 2,
     "content_hash": "cfb6f914f61da64a",
     "prompt_hash": "f67e6c2bd0ebe7a4",
-    "rubric_version": 1,
-    "rubric_hash": "6a6bc0ce940711f7"
+    "rubric_version": 2,
+    "rubric_hash": "8b1a418379c88e37"
   },
   "TASK-1": {
     "version": 2,

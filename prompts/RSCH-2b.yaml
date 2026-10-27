@@ -2,8 +2,8 @@ test_id: RSCH-2b
 category: everyday
 area: research
 tier: spark
-version: 1
-rubric_version: 1
+version: 2
+rubric_version: 2
 status: active
 needs_tools: true
 auto_grade: true
@@ -31,7 +31,12 @@ rubric:
   - criterion: "Historical comparison"
     max_score: 3
     description: "Fetched historical/normals data, computed or read the average for this date, and stated whether today is typical or an outlier."
+    check: date_accuracy
   - criterion: "Source attribution"
     max_score: 1
     description: "Names the endpoints used."
 critical_failure: "Inventing live conditions without a fetch caps the score at 4."
+checks:
+  - id: date_accuracy
+    type: current_date
+    rule: "Answer mentions today's correct month/day for the historical comparison"

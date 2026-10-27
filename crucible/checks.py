@@ -148,6 +148,72 @@ def _grounded_numbers(check: dict, text: str) -> tuple[bool, str]:
     return (not invented), ("every figure is in the sources" if not invented else "not in the sources: " + ", ".join(invented[:8]))
 
 
+def _current_date(check: dict, text: str) -> tuple[bool, str]:
+    """The answer mentions the correct current month and day (for historical-comparison tasks like RSCH-2b).
+    
+    The model must use today's month/day when constructing the historical API URL (e.g., Open-Meteo archive
+    or NOAA NCEI). This check looks for that date in the answer and verifies it matches the actual date.
+    
+    Accepts formats: "September 3", "Sep 3", "09-03", "9/3", "9-3", "09/03", "3rd", "9th", "3 September", etc.
+    """
+    if not text.strip():
+        return False, "no answer to check"
+    
+    # Get today's actual month and day
+    today = datetime.now(timezone.utc)
+    month_num = today.month
+    day_num = today.day
+    
+    # Month name variations
+    months = [
+        "january", "february", "march", "april", "may", "june",
+        "july", "august", "september", "october", "november", "december"
+    ]
+    month_name = months[month_num - 1]
+    month_abbr = month_name[:3]
+    
+    # Build all acceptable date patterns for today
+    # Numeric: 9/3, 09/03, 9-3, 09-03, 9.3, 09.03
+    # With ordinal: 3rd, 9th (but day ordinal is ambiguous without month)
+    # Named (month-first): "September 3", "Sep 3", "September 3rd", "Sep 3rd"
+    # Named (day-first): "3 September", "3 Sep", "3rd September", "3rd Sep"
+    patterns = [
+        rf"\b{month_num}/{day_num}\b",
+        rf"\b{month_num:02d}/{day_num:02d}\b",
+        rf"\b{month_num}-{day_num}\b",
+        rf"\b{month_num:02d}-{day_num:02d}\b",
+        rf"\b{month_num}\.{day_num}\b",
+        rf"\b{month_num:02d}\.{day_num:02d}\b",
+        rf"\b{month_name} {day_num}\b",
+        rf"\b{month_abbr} {day_num}\b",
+        rf"\b{month_name} {day_num}(?:st|nd|rd|th)\b",
+        rf"\b{month_abbr} {day_num}(?:st|nd|rd|th)\b",
+        rf"\b{day_num} {month_name}\b",
+        rf"\b{day_num} {month_abbr}\b",
+        rf"\b{day_num}(?:st|nd|rd|th) {month_name}\b",
+        rf"\b{day_num}(?:st|nd|rd|th) {month_abbr}\b",
+    ]
+    
+    # Also allow day-first numeric formats (European) for the same month/day
+    patterns += [
+        rf"\b{day_num}/{month_num}\b",
+        rf"\b{day_num:02d}/{month_num:02d}\b",
+        rf"\b{day_num}-{month_num}\b",
+        rf"\b{day_num:02d}-{month_num:02d}\b",
+    ]
+    
+    found = False
+    for pattern in patterns:
+        if re.search(pattern, text, re.IGNORECASE):
+            found = True
+            break
+    
+    if found:
+        return True, f"found today's date ({month_name} {day_num})"
+    else:
+        return False, f"no mention of today's date ({month_name} {day_num}) in historical comparison context"
+
+
 # A check returns (passed, detail), or (passed, detail, share) when it earns partial credit
 CHECKS: dict[str, Callable[[dict, str], tuple]] = {
     "grade_closeness": evals.grade_closeness,
@@ -157,6 +223,7 @@ CHECKS: dict[str, Callable[[dict, str], tuple]] = {
     "forbidden_patterns": _forbidden_patterns,
     "line_count": _line_count,
     "list_items": _list_items,
+    "current_date": _current_date,
 }
 
 

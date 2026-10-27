@@ -2,8 +2,8 @@ test_id: RSCH-2
 category: everyday
 area: research
 tier: temper
-version: 1
-rubric_version: 1
+version: 2
+rubric_version: 2
 status: active
 needs_tools: true
 auto_grade: true
@@ -24,7 +24,12 @@ rubric:
   - criterion: "Historical comparison"
     max_score: 3
     description: "Found historical data, computed the average for this date, and stated whether today is typical or an outlier."
+    check: date_accuracy
   - criterion: "Attribution and honesty"
     max_score: 2
     description: "Names sources/endpoints used; distinguishes fetched facts from inference; never fabricates data."
 critical_failure: "Inventing live conditions without a fetch caps the score at 4."
+checks:
+  - id: date_accuracy
+    type: current_date
+    rule: "Answer mentions today's correct month/day for the historical comparison"
