@@ -54,8 +54,8 @@ def agent_environ() -> dict[str, str]:
 
 @dataclass
 class RunContext:
-    test_id: str
-    run_id: str
+    task_id: str
+    run_path: str
     run_dir: Path
     prompt_file: Path
     model: str | None
@@ -155,11 +155,11 @@ class Agent:
                 encoding="utf-8")
             if ctx.watch:
                 print(f"Command: {' '.join(launch.cmd)}\n")
-                result = procs.run_interactive(launch.cmd, ctx.timeout, ctx.test_id,
+                result = procs.run_interactive(launch.cmd, ctx.timeout, ctx.task_id,
                                                cwd=launch.cwd, env=env)
             else:
                 print(f"Running headless - follow along: tail -f {ctx.run_dir / 'stdout.txt'}")
-                result = procs.run_logged(launch.cmd, ctx.run_dir, ctx.timeout, ctx.test_id,
+                result = procs.run_logged(launch.cmd, ctx.run_dir, ctx.timeout, ctx.task_id,
                                           cwd=launch.cwd, env=env)
             self.collect(ctx)
         return result

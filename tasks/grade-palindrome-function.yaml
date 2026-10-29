@@ -1,0 +1,55 @@
+id: grade-palindrome-function
+name: Grade a palindrome function
+aliases:
+- EVAL-1
+needs_tools: false
+category: evals
+area: evals
+tier: spark
+version: 1
+rubric_version: 1
+status: active
+auto_grade: true
+repo: null
+prompt: |
+  You are an expert evaluator. Below is a task that was given to an AI agent, the criteria its response must be judged against, and the response the agent produced. Judge the response strictly against the criteria: do not reward confidence, length or polish the criteria do not ask for, and do not penalise things they do not mention. The criteria list the points available; your grade is the total the response earns out of 10 (half points allowed).
+
+  Go through the criteria one by one with your reasoning, then end your reply with exactly one final line in this format:
+  GRADE: <number from 0 to 10>
+
+  ## TASK GIVEN TO THE AGENT
+  Write a Python function `is_palindrome(s)` that returns True if the string reads the same forwards and backwards, ignoring case and any non-alphanumeric characters. Show two example calls.
+
+  ## CRITERIA
+  - Correctness (5): the function returns the right answer for all inputs.
+  - Ignores case and non-alphanumeric characters (2): both are handled.
+  - Examples (2): two example calls are shown with correct results.
+  - Concise (1): the response gets to the point without unneeded preamble or padding.
+
+  ## AGENT RESPONSE
+  Great question! Palindromes are a classic programming exercise, and there are many ways to approach them. Before diving in, it is worth recalling that a palindrome is a sequence that reads the same in both directions, such as "level" or "racecar". Many people solve this by reversing the string, and that is the approach I will take here, after first cleaning the input so that case and punctuation do not matter.
+
+  ```python
+  def is_palindrome(s):
+      cleaned = [c.lower() for c in s if c.isalnum()]
+      return cleaned == cleaned[::-1]
+
+  print(is_palindrome("A man, a plan, a canal: Panama"))  # True
+  print(is_palindrome("Hello, world"))                    # False
+  ```
+
+  The function lowercases every alphanumeric character, drops everything else, and compares the result with its reverse.
+checks:
+  - id: grade
+    type: grade_closeness
+    scale: [0, 10]
+    actual_score: 9
+    width: 3
+    rule: "The grade is close to the reference grade: full points for an exact match, fewer the farther off it is (a bell curve), none when it is missing."
+rubric:
+  - criterion: "Grade accuracy"
+    max_score: 10
+    check: grade
+    description: "Closeness of the model's grade to the hidden reference grade."
+critical_failure: null
+hidden_answer: "Correctness 5 + case/non-alphanumeric 2 + examples 2 + Concise 0 (long preamble) = 9."

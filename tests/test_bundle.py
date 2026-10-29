@@ -28,7 +28,8 @@ def test_hidden_test_scoring_and_contract_cap(tmp_path):
     grader = {"tests": [{"file": "a.grader.test.ts", "group": "contract", "name": n, "passed": p, "error": None}
                         for n, p in [("one", True), ("two", True), ("three", False)]],
               "existing": {"passed": True}, "contract_unchanged": True, "regression": {"passed": False}}
-    (tmp_path / "meta.json").write_text(json.dumps({"run_id": "m/c/CODE-11/1", "test_id": "CODE-11"}))
+    from tests.records import run_meta
+    (tmp_path / "meta.json").write_text(json.dumps(run_meta("editorial-review-workflow")))
     record = checks.save_check_score(tmp_path, prompt, [], grader)
     assert record["scores"]["Contract"] == 2.0          # 2 of 3 hidden tests
     assert record["scores"]["_overall"] == 8.0          # 4 of 5 points
@@ -37,29 +38,116 @@ def test_hidden_test_scoring_and_contract_cap(tmp_path):
     assert record["scores"]["_overall"] == 4.0 and record["capped_at"] == 4  # 6.0 capped
 
 
-def test_published_bundle_has_no_escaped_emoji(tmp_path, monkeypatch):
-    # Jekyll reads data files with a YAML parser that rejects \ud83d-style escapes
-    import json
-    import sys
-    from crucible import bundle
-    real_export = bundle.exporter.export
-    monkeypatch.setattr(bundle.exporter, "export", lambda runs: {**real_export(tmp_path / "none"), "note": "done ✅ 🎉"})
-    (tmp_path / "none").mkdir()
-    monkeypatch.setattr(sys, "argv", ["crucible publish", "--to", str(tmp_path / "out"), "--name", "t"])
-    bundle.main()
-    text = (tmp_path / "out" / "t.json").read_text(encoding="utf-8")
-    assert "🎉" in text and "\\ud83c" not in text
-    assert json.loads(text)["note"] == "done ✅ 🎉"
+# --------------------------------------------------------------------------
+# Format 3: crucible publish
+# --------------------------------------------------------------------------
+
+def _runs(tmp_path, n=2):
+    from crucible import runrecord, workspace
+    from tests.records import run_meta, write_run
+    p = workspace.load_task("capitals-not-largest-city")
+    runs = tmp_path / "runs"
+    for i in range(n):
+        meta = run_meta(p["id"], p["version"], p["rubric_version"], run_uuid=f"00000000-0000-4000-8000-00000000000{i}",
+                        run_path=f"lmstudio_m/{p['id']}/2026010{i}_000000")
+        run_dir = write_run(runs / meta["run_path"], meta, "Australia: Canberra ✅ 🎉")
+        legacy = {"scorer": {"type": "checks"}, "rubric_version": p["rubric_version"], "scores": {"_overall": 6.0},
+                  "criteria": [{"criterion": "Capitals", "max_score": 6, "score": 6, "detail": "all six"},
+                               {"criterion": "No big-city traps", "max_score": 4, "score": 0, "detail": "Sydney"}],
+                  "checks": [{"id": "capitals", "type": "required_patterns", "passed": True, "detail": "all six"}]}
+        runrecord.write_score(run_dir, runrecord.score_from_checks(legacy, meta["run_uuid"], rubric=p["rubric"]))
+    return runs
 
 
-def test_publish_records_the_crucible_version(tmp_path, monkeypatch):
+def _tree(folder):
+    return {str(p.relative_to(folder)): p.read_bytes() for p in sorted(folder.rglob("*")) if p.is_file()}
+
+
+def test_publish_twice_adds_nothing_the_second_time(tmp_path):
+    runs, to, outputs = _runs(tmp_path), tmp_path / "site" / "_data" / "crucible", tmp_path / "site" / "crucible-data" / "outputs"
+    first = bundle.publish(runs, to, outputs)
+    assert first.errors == [] and first.counts["runs"] == 2 and first.counts["scores"] == 2 and first.counts["catalogs"] >= 1
+    before = _tree(tmp_path / "site")
+    second = bundle.publish(runs, to, outputs)
+    assert second.counts == {"runs": 0, "scores": 0, "status": 0, "catalogs": 0, "outputs": 0, "invalid": 0}
+    assert _tree(tmp_path / "site") == before
+    assert sorted(p.name for p in (to / "runs" / "2026-01").iterdir()) == [
+        "00000000-0000-4000-8000-000000000000.json", "00000000-0000-4000-8000-000000000001.json"]
+    assert bundle.check_folder(to, outputs) == []
+
+
+def test_published_records_stay_local_free_and_plain_utf8(tmp_path):
     import json
-    import sys
-    from crucible import bundle, provenance
-    (tmp_path / "runs").mkdir()
-    monkeypatch.setattr(sys, "argv", ["crucible publish", "--to", str(tmp_path / "out"), "--name", "t",
-                                      "--runs", str(tmp_path / "runs")])
-    bundle.main()
-    data = json.loads((tmp_path / "out" / "t.json").read_text(encoding="utf-8"))
-    assert data["source"] == {"machine": "t", "crucible_version": provenance.crucible_version()}
-    assert bundle.problems(data) == []
+    runs, to = _runs(tmp_path, 1), tmp_path / "site" / "_data" / "crucible"
+    bundle.publish(runs, to, bundle.default_outputs(to))
+    (path,) = (to / "runs" / "2026-01").iterdir()
+    record = json.loads(path.read_text(encoding="utf-8"))
+    assert "local" not in record and record["output_ref"] == f"outputs/{record['run_uuid']}.txt"
+    assert record["provenance"]["content_hash"].startswith("sha256:")
+    output = (tmp_path / "site" / "crucible-data" / "outputs" / f"{record['run_uuid']}.txt").read_text(encoding="utf-8")
+    assert "🎉" in output
+    (score_path,) = (to / "scores" / "2026-01").iterdir()
+    assert score_path.name == f"{record['run_uuid']}.r{json.loads(score_path.read_text())['rubric_version']}.checks.json"
+    assert "checked_text" not in json.loads(score_path.read_text())
+
+
+def test_publish_adds_new_runs_and_scores_but_never_rewrites(tmp_path):
+    import json
+    from crucible import runrecord
+    runs, to = _runs(tmp_path, 1), tmp_path / "site" / "_data" / "crucible"
+    outputs = bundle.default_outputs(to)
+    bundle.publish(runs, to, outputs)
+    (run_dir,) = runrecord.run_dirs(runs)
+    # A rescore at a new rubric version and a later invalidation are new records, not edits
+    score = runrecord.scores(run_dir)[0]
+    runrecord.write_score(run_dir, {**score, "rubric_version": score["rubric_version"] + 1, "score": 10.0})
+    runrecord.add_status(run_dir, score["run_uuid"], invalid={"reason": "stale server"})
+    meta = json.loads((run_dir / "meta.json").read_text())
+    meta["elapsed_s"] = 99.0  # an edited local record is not republished
+    (run_dir / "meta.json").write_text(json.dumps(meta))
+    pub = bundle.publish(runs, to, outputs)
+    assert (pub.counts["runs"], pub.counts["scores"], pub.counts["status"]) == (0, 1, 1)
+    (published,) = (to / "runs" / "2026-01").iterdir()
+    assert json.loads(published.read_text())["elapsed_s"] == 1.0
+    assert len(json.loads((to / "status" / f"{score['run_uuid']}.json").read_text())) == 1
+    assert bundle.check_folder(to, outputs) == []
+
+
+def test_check_finds_edits_and_bad_files(tmp_path):
+    import json
+    runs, to = _runs(tmp_path, 1), tmp_path / "site" / "_data" / "crucible"
+    outputs = bundle.default_outputs(to)
+    bundle.publish(runs, to, outputs)
+    (path,) = (to / "runs" / "2026-01").iterdir()
+    record = json.loads(path.read_text())
+    (outputs / f"{record['run_uuid']}.txt").write_text("a better answer", encoding="utf-8")
+    assert any("content hash" in p for p in bundle.check_folder(to, outputs))
+    (outputs / f"{record['run_uuid']}.txt").write_text("Australia: Canberra ✅ 🎉", encoding="utf-8")
+    record["task"]["version"] = "one"
+    path.write_text(json.dumps(record))
+    found = bundle.check_folder(to, outputs)
+    assert any("task.version" in p for p in found) and any("content hash" in p for p in found)
+
+
+def test_catalog_describes_the_suite(tmp_path):
+    from crucible import suites, workspace
+    data = bundle.catalog(suites.names()[-1])
+    assert bundle.record_problems("catalog", data) == []
+    assert data["format_version"] == 3 and data["suite"]["status"] == "current"
+    tasks = {t["id"]: t for t in data["tasks"]}
+    assert set(tasks) == set(workspace.all_task_ids())
+    active = [t for t in data["tasks"] if t["status"] == "active"]
+    assert active and all(t["weight"] for t in active)
+    assert all(t["weight"] is None for t in data["tasks"] if t["status"] != "active")
+    assert tasks["react-lead-form"]["aliases"] == ["CODE-16"]
+    assert {t["role"] for t in data["tiers"]} == {"gate", "headline", "stretch"}
+
+
+def test_publish_refuses_runs_from_before_3(tmp_path):
+    import json
+    import pytest
+    legacy = tmp_path / "runs" / "m" / "everyday" / "KNOW-1" / "20260101_000000"
+    legacy.mkdir(parents=True)
+    (legacy / "meta.json").write_text(json.dumps({"run_id": "m/everyday/KNOW-1/20260101_000000"}))
+    with pytest.raises(SystemExit, match="crucible migrate"):
+        bundle.publish(tmp_path / "runs", tmp_path / "to", tmp_path / "out")

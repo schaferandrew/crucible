@@ -1,0 +1,79 @@
+id: proofread-customer-email
+name: Proofread a customer email
+aliases:
+- WRIT-1a
+needs_tools: false
+category: writing
+area: writing
+tier: spark
+version: 1
+rubric_version: 3
+status: active
+auto_grade: false
+repo: null
+prompt: |
+  Edit the email below. First identify grammar/spelling/punctuation errors, then provide a corrected version. Distinguish clearly between objective errors and optional style improvements. Do not change the facts or make the customer sound more apologetic than the original.
+
+  Subject: Refund for order 84721
+
+  Hi Support,
+  I am writing because my order arrived three days late, and one of the two items were damaged. I contacted support last week but I havent heard anything back. The box was clearly crush on one side, and the mug inside has a crack through the handle. I would like a refund for the mug, but please let me know if you need pictures of it. Also, your website says refunds are processed in 5-7 business days, which seem to have passed already for my earlier request. Can you tell me what the status is? Thanks for your help.
+checks:
+  - id: answered
+    type: non_empty
+    min_words: 60
+    rule: "Produces a substantive answer (at least 60 words)."
+  - id: fixes_contraction
+    type: required_patterns
+    patterns: ["haven['’]t"]
+    rule: "Fixes 'havent' to \"haven't\"."
+  - id: fixes_participle
+    type: required_patterns
+    patterns: ['\bcrushed\b']
+    rule: "Fixes 'crush' to 'crushed'."
+  - id: fixes_agreement
+    type: required_patterns
+    patterns: ['\bwas damaged\b']
+    rule: "Fixes 'one of the two items were damaged' to 'was damaged'."
+  - id: keeps_facts
+    type: required_patterns
+    patterns: ['84721', 'three days', '5\s*[-–]\s*7 business days', '\bmug\b', '\bhandle\b']
+    rule: "Keeps the facts: order 84721, three days late, 5-7 business days, the mug and its handle."
+  - id: separates_style
+    type: required_patterns
+    patterns: ['\b(objective|errors?|corrections?)\b', '\b(style|stylistic|optional)\b']
+    rule: "Has separate parts for objective errors and optional style improvements."
+  - id: no_added_apology
+    type: forbidden_patterns
+    patterns: ['\bsorry\b', '\bI apologi[sz]e\b', '\bmy apologies\b']
+    rule: "Doesn't make the customer sound more apologetic (no 'sorry' or 'I apologize')."
+rubric:
+  - criterion: "Answered"
+    max_score: 1
+    check: answered
+    description: "A substantive answer."
+  - criterion: "Fixes the agreement error"
+    max_score: 4
+    check: fixes_agreement
+    description: "Subject-verb agreement fixed (the hardest of the three planted errors)."
+  - criterion: "Fixes the contraction"
+    max_score: 1
+    check: fixes_contraction
+    description: "havent -> haven't."
+  - criterion: "Fixes the participle"
+    max_score: 1
+    check: fixes_participle
+    description: "crush -> crushed."
+  - criterion: "Keeps the facts"
+    max_score: 1
+    check: keeps_facts
+    description: "Facts unchanged."
+  - criterion: "Separates errors from style"
+    max_score: 1
+    check: separates_style
+    description: "Errors and optional style suggestions are distinguished."
+  - criterion: "Keeps the customer's tone"
+    max_score: 1
+    check: no_added_apology
+    description: "No added apology."
+critical_failure: null

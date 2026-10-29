@@ -24,7 +24,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from crucible import (checks, console, environment, graders, hardware, provenance, scorer, versioning,
+from crucible import (checks, console, environment, graders, provenance, runrecord, scorer, versioning,
                       workspace)
 from crucible.agents import AGENTS, DEFAULT_AGENT, Agent, RunContext
 from crucible.agents.base import available_mcp_servers
@@ -44,10 +44,10 @@ class RunRefused(Exception):
 # One test
 # --------------------------------------------------------------------------
 
-def _build_context(agent: Agent, test_id: str, prompt_def: dict, model: str | None,
+def _build_context(agent: Agent, task_id: str, prompt_def: dict, model: str | None,
                    watch: bool, timeout: int, output_dir: Path, reasoning: str = "default") -> RunContext:
     """Create the run dir (and workspace, if the agent uses one) with prompt.txt."""
-    run = workspace.new_run_dir(output_dir, test_id, model, prompt_def, reasoning)
+    run = workspace.new_run_dir(output_dir, task_id, model, reasoning)
     prompt_file = run.path / "prompt.txt"
     prompt_file.write_text(prompt_def["prompt"], encoding="utf-8")
 
@@ -58,7 +58,7 @@ def _build_context(agent: Agent, test_id: str, prompt_def: dict, model: str | No
         prompt_file.write_text(prompt_def["prompt"], encoding="utf-8")
 
     return RunContext(
-        test_id=test_id, run_id=run.run_id, run_dir=run.path, prompt_file=prompt_file,
+        task_id=task_id, run_path=run.run_path, run_dir=run.path, prompt_file=prompt_file,
         model=model, watch=watch, timeout=timeout, title=run.title, workspace=work_dir,
         mcp_servers=list(prompt_def.get("mcp_servers") or []),
         fixtures=workspace.fixture_names(prompt_def), reasoning=reasoning, run_uuid=run.run_uuid,
@@ -97,71 +97,62 @@ def _context_problem(agent: Agent, model: str | None, reasoning: str = "default"
 
 def _write_meta(ctx: RunContext, agent: Agent, prompt_def: dict, result: dict,
                 started_at: str, elapsed: float, billed_usd: float | None = None) -> dict:
+    """The run record (see crucible/runrecord.py and docs/data-model.md)."""
     # Every run dir has the same shape, even when the TUI printed to the terminal
     for name in ("stdout.txt", "stderr.txt"):
         (ctx.run_dir / name).touch()
     env = environment.capture(ctx.model, agent.executable)
+    inference = env["inference"]
+    identity = versioning.task_identity(prompt_def)
     meta = {
-        "run_id": ctx.run_id,
+        "record": "run", "format_version": runrecord.FORMAT_VERSION,
         "run_uuid": ctx.run_uuid,
-        "test_id": ctx.test_id,
-        "agent": agent.name,
-        "model": ctx.model,
-        # Part of the model's identity: each level is its own model on the dashboard
-        "reasoning": ctx.reasoning,
-        "watch": ctx.watch,
-        "platform": sys.platform,
+        "run_path": ctx.run_path,
+        "legacy_run_id": None,
         "started_at": started_at,
         "ended_at": datetime.now(timezone.utc).isoformat(),
-        "elapsed_time": round(elapsed, 2),
-        "returncode": result["returncode"],
-        "timed_out": result["timed_out"],
-        "status": agent.status(result),
-        # Which test content and rubric this run used: scores only compare within a version
-        "test": versioning.test_identity(prompt_def),
-        # Captured after the run, when a local server has the model loaded
-        "environment": env,
-        # The weights as a variant (who converted them, into what format and quant) and the
-        # reasoning level they actually ran at
-        "model_variant": model_variant(ctx.model, ctx.reasoning, env["inference"]),
+        "elapsed_s": round(elapsed, 2),
+        # Which task content and rubric this run used: scores only compare within a version
+        "task": {"id": prompt_def["id"], "version": identity["version"], "rubric_version": identity["rubric_version"],
+                 "content_hash": identity["content_hash"], "rubric_hash": identity["rubric_hash"], "alias": None},
+        "harness": {"id": agent.name, "version": env.get("harness_version")},
+        # The weights as a variant (who converted them, into what format and quant) and the reasoning
+        # level they ran at; each level is its own model on the dashboard
+        "model": runrecord.model_record(ctx.model, ctx.reasoning,
+                                        environment.reasoning_resolved(ctx.model, ctx.reasoning), inference),
+        "endpoint": runrecord.endpoint_record(ctx.model, inference, environment.endpoint(ctx.model, ctx.run_dir)),
         # The device that ran the weights; cloud runs have none
-        "hardware_key": hardware_key(env),
-        "endpoint": environment.endpoint(ctx.model, ctx.run_dir),
+        "hardware": runrecord.hardware_record(ctx.model, env.get("machine"), inference),
+        "outcome": {"status": None, "harness_status": agent.status(result), "returncode": result["returncode"],
+                    "timed_out": result["timed_out"], "invalid": None, "leaks": []},
+        "metrics": {**extract_metrics(ctx.run_dir, agent, billed_usd),
+                    "reasoning_chars": (runrecord.read_json(ctx.run_dir / "direct-response.json") or {}).get("reasoning_chars")},
+        "output_ref": None,
         # Which crucible produced this run, from which checkout, on which machine
-        "provenance": provenance.capture(),
-        # What the model could reach: tool access shapes scores (e.g. RSCH-2)
-        "tools": {
-            "builtin_web": agent.builtin_web_tools,
-            "mcp_servers": available_mcp_servers(ctx.mcp_servers),
+        "provenance": {**runrecord.null_provenance(), **provenance.capture(),
+                       "machine_label": (env.get("machine") or {}).get("hostname"), "source": "crucible-run"},
+        # Stays on this machine: never published
+        "local": {
+            # Captured after the run, when a local server has the model loaded
+            "environment": env,
+            # What the model could reach: tool access shapes scores (e.g. weather-vs-normal)
+            "tools": {"builtin_web": agent.builtin_web_tools, "mcp_servers": available_mcp_servers(ctx.mcp_servers)},
+            "watch": ctx.watch,
+            "platform": sys.platform,
         },
-        "metrics": extract_metrics(ctx.run_dir, agent, billed_usd),
     }
-    (ctx.run_dir / "meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
+    _save_meta(ctx.run_dir, meta)
     return meta
 
 
-def model_variant(model: str | None, reasoning: str, inference: dict) -> dict:
-    """publisher, format, quant and reasoning_resolved; None where the provider doesn't say."""
-    publisher = inference.get("publisher")
-    if publisher is None and (model or "").startswith("openrouter/"):
-        publisher = model.split("/")[1] if model.count("/") > 1 else None
-    return {"publisher": publisher, "format": inference.get("format"), "quant": inference.get("quantization"),
-            "reasoning_resolved": environment.reasoning_resolved(model, reasoning)}
+def _save_meta(run_dir: Path, meta: dict) -> None:
+    runrecord.write_json(run_dir / "meta.json", meta)
 
 
-def hardware_key(env: dict) -> str | None:
-    """The key of the machine that ran a local model (this one, or its LM Link peer)."""
-    inference = env.get("inference") or {}
-    if not inference.get("local"):
-        return None
-    specs = hardware.serving(env.get("machine") or {}, inference) or {}
-    return hardware.key(specs.get("cpu"), specs.get("gpu"), specs.get("ram_gb"))
-
-
-def run_single(test_id: str, model: str | None, watch: bool, timeout: int,
+def run_single(task_id: str, model: str | None, watch: bool, timeout: int,
                output_dir: Path, agent_name: str = DEFAULT_AGENT, reasoning: str = "default") -> str:
-    """Run one test end to end; returns its run_id. Raises RunRefused."""
-    prompt_def = workspace.load_prompt(test_id)
+    """Run one test end to end; returns its run_path. Raises RunRefused."""
+    prompt_def = workspace.load_task(task_id)
     validate_category(prompt_def.get("category"))
     validate_tier(prompt_def.get("tier"))
     validate_status(prompt_def.get("status"))
@@ -176,12 +167,12 @@ def run_single(test_id: str, model: str | None, watch: bool, timeout: int,
     if problem:
         raise RunRefused(problem)
 
-    ctx = _build_context(agent, test_id, prompt_def, model, watch, timeout, output_dir, reasoning)
+    ctx = _build_context(agent, task_id, prompt_def, model, watch, timeout, output_dir, reasoning)
     console.print_header(f"{agent.label} run", [
-        ("Test", test_id),
+        ("Test", task_id),
         ("Model", model or "agent default"),
         *([("Reasoning", reasoning)] if reasoning != "default" else []),
-        ("Run ID", ctx.run_id),
+        ("Run", ctx.run_path),
         *([("Workspace", ctx.workspace)] if ctx.workspace else []),
     ])
 
@@ -200,7 +191,7 @@ def run_single(test_id: str, model: str | None, watch: bool, timeout: int,
     _flag_leaks(ctx, meta)
     workspace.finalize_workspace(ctx.run_dir)
     console.print_result(meta, ctx.run_dir)
-    return ctx.run_id
+    return ctx.run_path
 
 
 def _discard(run_dir: Path) -> None:
@@ -230,13 +221,14 @@ def classify_outcome(meta: dict, run_dir: Path) -> str:
     completed:     finished cleanly with an answer
     """
     metrics = meta.get("metrics") or {}
+    outcome = meta.get("outcome") or {}
     produced = bool(metrics.get("model_responses") or metrics.get("tokens_out") or metrics.get("tool_calls"))
     answer = checks.final_answer(run_dir).strip()
-    if meta.get("timed_out"):
+    if outcome.get("timed_out"):
         return "timeout"
     if hit_context_limit(meta, run_dir):
         return "context_limit"
-    if meta.get("returncode") not in (0, None):
+    if outcome.get("returncode") not in (0, None):
         return "failed" if (produced or answer) else "harness_error"
     return "completed" if answer else ("no_answer" if produced else "harness_error")
 
@@ -250,49 +242,51 @@ def hit_context_limit(meta: dict, run_dir: Path) -> bool:
         return False  # only direct runs record how their response ended
     if response.get("finish_reason") == "length":
         return True
-    loaded = ((meta.get("environment") or {}).get("inference") or {}).get("context_length")
+    loaded = (meta.get("model") or {}).get("context_loaded")
     used = (response.get("tokens_in") or 0) + (response.get("tokens_out") or 0)
     return bool(loaded) and used >= 0.97 * loaded
 
 
 def context_limit_is_setup(meta: dict) -> int | None:
     """The loaded context, when it was below what this run needed (so the stop wasn't the model's fault)."""
-    loaded = ((meta.get("environment") or {}).get("inference") or {}).get("context_length")
-    need = (MIN_CHAT_CONTEXT_NO_REASONING if meta.get("reasoning") == "off" else MIN_CHAT_CONTEXT) \
-        if meta.get("agent") == "direct" else MIN_AGENT_CONTEXT
+    loaded = (meta.get("model") or {}).get("context_loaded")
+    reasoning = ((meta.get("model") or {}).get("reasoning") or {}).get("requested")
+    need = (MIN_CHAT_CONTEXT_NO_REASONING if reasoning == "off" else MIN_CHAT_CONTEXT) \
+        if (meta.get("harness") or {}).get("id") == "direct" else MIN_AGENT_CONTEXT
     return loaded if loaded and loaded < need else None
 
 
 def _record_outcome(ctx: RunContext, meta: dict) -> None:
-    meta["outcome"] = classify_outcome(meta, ctx.run_dir)
-    if meta["outcome"] == "context_limit":
+    outcome = meta["outcome"]
+    outcome["status"] = classify_outcome(meta, ctx.run_dir)
+    if outcome["status"] == "context_limit":
         small = context_limit_is_setup(meta)
         if small:
-            meta["invalid"] = {"reason": f"Ran out of context: loaded with only {small:,} tokens, which the model filled "
+            outcome["invalid"] = {"reason": f"Ran out of context: loaded with only {small:,} tokens, which the model filled "
                                          "before it could finish. A setup problem, not the model's; rerun with more context.",
                                "marked_at": datetime.now(timezone.utc).isoformat()}
             print(f"  [INVALID] filled its {small:,}-token context before finishing; rerun with more context")
         else:
             print("  [CONTEXT LIMIT] the model filled its whole context without finishing (a runaway); this counts")
-    if meta["outcome"] == "harness_error":
-        meta["invalid"] = {"reason": "Harness error: the agent exited before the model produced anything.",
-                           "marked_at": datetime.now(timezone.utc).isoformat()}
+    if outcome["status"] == "harness_error":
+        outcome["invalid"] = {"reason": "Harness error: the agent exited before the model produced anything.",
+                              "marked_at": datetime.now(timezone.utc).isoformat()}
         print("  [INVALID] harness error: the model never produced anything; rerun when the setup is fixed")
-    (ctx.run_dir / "meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
+    _save_meta(ctx.run_dir, meta)
 
 
 def _record_checks(ctx: RunContext, prompt_def: dict, meta: dict) -> None:
     """Run the prompt's programmatic checks and hidden tests, and score the run when that's all it needs."""
     results = checks.check_results(ctx.run_dir, prompt_def)
     grader = None
-    if prompt_def.get("grader") and meta.get("outcome") not in ("harness_error",):
+    if prompt_def.get("grader") and meta["outcome"]["status"] not in ("harness_error",):
         print("  Running the hidden acceptance tests...")
         grader = graders.run(ctx.run_dir, prompt_def)
     if not results and not grader:
         return
     if results:
-        meta["checks"] = results
-        (ctx.run_dir / "meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
+        meta["local"]["checks"] = results
+        _save_meta(ctx.run_dir, meta)
         for r in results:
             print(f"  check {r['id']}: {'PASS' if r['passed'] else 'FAIL'} ({r['detail']})")
     # Fully deterministic tests are scored on the spot: no judge, no human
@@ -330,18 +324,15 @@ def _flag_leaks(ctx: RunContext, meta: dict) -> None:
     leaks = find_leaks(ctx.run_dir)
     if not leaks:
         return
-    meta["leaks"] = leaks
-    meta["invalid"] = {"reason": "Contaminated: the agent read files in crucible's checkout outside its workspace "
-                                 "(see leaks).", "marked_at": datetime.now(timezone.utc).isoformat()}
-    (ctx.run_dir / "meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
+    meta["outcome"]["leaks"] = leaks
+    meta["outcome"]["invalid"] = {"reason": "Contaminated: the agent read files in crucible's checkout outside its "
+                                            "workspace (see leaks).", "marked_at": datetime.now(timezone.utc).isoformat()}
+    _save_meta(ctx.run_dir, meta)
     print(f"  [INVALID] agent reached crucible's own files: {', '.join(leaks[:3])}")
 
 
 def _read_meta(run_dir: Path) -> dict:
-    try:
-        return json.loads((run_dir / "meta.json").read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return {}
+    return runrecord.read(run_dir)
 
 
 # --------------------------------------------------------------------------
@@ -363,7 +354,7 @@ def _stop_workspace_servers(run_dir: Path) -> None:
 
 def run_plan(plan: planner.Plan, watch: bool, output_dir: Path) -> list[str]:
     """Run every step; stop early when the setup is broken rather than the model."""
-    run_ids, setup_failures = [], 0
+    run_paths, setup_failures = [], 0
     total = len(plan.steps)
     for mode, steps in plan.groups():
         if len(plan.groups()) > 1:
@@ -371,28 +362,28 @@ def run_plan(plan: planner.Plan, watch: bool, output_dir: Path) -> list[str]:
         for step in steps:
             i = plan.steps.index(step) + 1
             if total > 1:
-                print(f"\n[{i}/{total}] {step.test_id}  ({step.area}, {step.tier}, {step.harness})")
+                print(f"\n[{i}/{total}] {step.task_id}  ({step.area}, {step.tier}, {step.harness})")
             try:
-                run_id = run_single(step.test_id, plan.model, watch, step.timeout, output_dir, step.harness,
+                run_path = run_single(step.task_id, plan.model, watch, step.timeout, output_dir, step.harness,
                                     plan.reasoning)
             except RunRefused as exc:
-                print(f"[SKIPPED] {step.test_id}: {exc}")
-                run_id = None
+                print(f"[SKIPPED] {step.task_id}: {exc}")
+                run_path = None
             except KeyboardInterrupt:
                 print("\nStopped by user.")
-                return run_ids
-            outcome = _read_meta(output_dir / run_id).get("outcome") if run_id else "refused"
-            if run_id:
-                run_ids.append(run_id)
+                return run_paths
+            outcome = (_read_meta(output_dir / run_path).get("outcome") or {}).get("status") if run_path else "refused"
+            if run_path:
+                run_paths.append(run_path)
                 if step.mode == "agentic":
-                    _stop_workspace_servers(output_dir / run_id)
+                    _stop_workspace_servers(output_dir / run_path)
             # Two in a row means the model or harness isn't reachable: stop, don't burn the suite
             setup_failures = setup_failures + 1 if outcome in ("harness_error", "refused") else 0
             if setup_failures >= 2 and total > 2:
                 print("\nSETUP PROBLEM: two runs in a row failed before the model produced anything "
                       "(or were refused). Fix the setup, then rerun with --skip-done to pick up where this stopped.")
-                return run_ids
-    return run_ids
+                return run_paths
+    return run_paths
 
 
 def main() -> None:
@@ -458,10 +449,10 @@ def main() -> None:
     if args.watch and not any(s.mode == "agentic" for s in plan.steps):
         print("Note: --watch opens an agent's TUI, so it only applies to agentic tests; "
               "chat tests show a live progress line instead.")
-    run_ids = run_plan(plan, args.watch, args.output)
+    run_paths = run_plan(plan, args.watch, args.output)
 
     summary = []
-    for run_id in run_ids:
-        meta = _read_meta(args.output / run_id)
-        summary.append((meta.get("status", "?"), meta.get("elapsed_time"), run_id))
+    for run_path in run_paths:
+        meta = _read_meta(args.output / run_path)
+        summary.append(((meta.get("outcome") or {}).get("harness_status", "?"), meta.get("elapsed_s"), run_path))
     console.print_suite_summary(summary)

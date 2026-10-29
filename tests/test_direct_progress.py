@@ -18,7 +18,7 @@ def test_stream_timer_collects_reasoning_and_reports_progress():
 def test_interrupted_run_is_discarded_with_its_workspace(tmp_path):
     outside = tmp_path / "workspaces" / "run1"
     outside.mkdir(parents=True)
-    run_dir = tmp_path / "runs" / "model" / "math" / "MATH-3" / "20261026_160456"
+    run_dir = tmp_path / "runs" / "model" / "competition-math" / "20261026_160456"
     run_dir.mkdir(parents=True)
     (run_dir / "prompt.txt").write_text("q", encoding="utf-8")
     (run_dir / "workspace").symlink_to(outside, target_is_directory=True)
@@ -41,27 +41,29 @@ def test_reasoning_levels_map_to_each_provider():
 def test_each_reasoning_level_is_its_own_model(tmp_path):
     from crucible import plan as planner, workspace
     assert planner.model_slug("lmstudio/qwen/qwen3.5-9b", "off") == "lmstudio_qwen_qwen3.5-9b@reasoning-off"
-    run = workspace.new_run_dir(tmp_path, "MATH-1", "lmstudio/qwen/qwen3.5-9b", {"category": "math"}, "off")
-    assert run.run_id.startswith("lmstudio_qwen_qwen3.5-9b@reasoning-off/math/MATH-1/")
-    plan = planner.build("lmstudio/qwen/qwen3.5-9b", ["MATH-1"], reasoning="off")
-    assert "--reasoning off" in planner.command_line(plan, ["MATH-1"], None, None, None, None, None, False)
+    run = workspace.new_run_dir(tmp_path, "recipe-and-discount", "lmstudio/qwen/qwen3.5-9b", "off")
+    assert run.run_path.startswith("lmstudio_qwen_qwen3.5-9b@reasoning-off/recipe-and-discount/")
+    plan = planner.build("lmstudio/qwen/qwen3.5-9b", ["recipe-and-discount"], reasoning="off")
+    assert "--reasoning off" in planner.command_line(plan, ["recipe-and-discount"], None, None, None, None, None, False)
 
 
 def test_opencode_cant_set_reasoning():
     from crucible import plan as planner
-    plan = planner.build("lmstudio/x", ["CODE-1", "WRIT-2"], harness="opencode", reasoning="off")
+    plan = planner.build("lmstudio/x", ["interest-cli-open-ended", "novel-character-names"], harness="opencode",
+                         reasoning="off")
     assert "opencode" in planner.reasoning_problem(plan)
-    assert planner.reasoning_problem(planner.build("lmstudio/x", ["CODE-1"], harness="pi", reasoning="off")) is None
-    assert planner.reasoning_problem(planner.build("lmstudio/x", ["CODE-1"], harness="opencode")) is None
+    assert planner.reasoning_problem(planner.build("lmstudio/x", ["interest-cli-open-ended"], harness="pi",
+                                                   reasoning="off")) is None
+    assert planner.reasoning_problem(planner.build("lmstudio/x", ["interest-cli-open-ended"], harness="opencode")) is None
 
 
 def _run_dir(tmp_path, response, context, reasoning="default", agent="direct"):
     import json
     (tmp_path / "direct-response.json").write_text(json.dumps(response), encoding="utf-8")
     (tmp_path / "stdout.txt").write_text("", encoding="utf-8")
-    return {"agent": agent, "reasoning": reasoning, "returncode": 0, "timed_out": False,
-            "metrics": {"tokens_out": response.get("tokens_out")},
-            "environment": {"inference": {"context_length": context}}}
+    return {"harness": {"id": agent}, "model": {"reasoning": {"requested": reasoning}, "context_loaded": context},
+            "outcome": {"returncode": 0, "timed_out": False},
+            "metrics": {"tokens_out": response.get("tokens_out")}}
 
 
 def test_filling_a_small_context_is_a_setup_problem(tmp_path):
@@ -82,7 +84,7 @@ def test_reasoning_off_needs_less_context(tmp_path):
     from crucible import runner
     meta = _run_dir(tmp_path, {"finish_reason": "length", "tokens_out": 9000}, 16384, reasoning="off")
     assert runner.context_limit_is_setup(meta) is None
-    meta["reasoning"] = "default"
+    meta["model"]["reasoning"]["requested"] = "default"
     assert runner.context_limit_is_setup(meta) == 16384
 
 

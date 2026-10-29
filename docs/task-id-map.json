@@ -1,0 +1,546 @@
+{
+  "CODE-1": {
+    "id": "interest-cli-open-ended",
+    "name": "Interest CLI (open-ended)"
+  },
+  "CODE-11": {
+    "id": "editorial-review-workflow",
+    "name": "Editorial review workflow"
+  },
+  "CODE-12": {
+    "id": "cursor-pagination",
+    "name": "Cursor pagination"
+  },
+  "CODE-13": {
+    "id": "cache-leak-incident",
+    "name": "Cache leak incident"
+  },
+  "CODE-14": {
+    "id": "invite-signup-loop",
+    "name": "Invite sign-up loop"
+  },
+  "CODE-15": {
+    "id": "accessibility-audit-fixes",
+    "name": "Accessibility audit fixes"
+  },
+  "CODE-16": {
+    "id": "react-lead-form",
+    "name": "React lead form"
+  },
+  "CODE-1b": {
+    "id": "interest-calculator-cli",
+    "name": "Interest calculator CLI"
+  },
+  "CODE-2": {
+    "id": "responsive-navbar-open-ended",
+    "name": "Responsive navbar (open-ended)"
+  },
+  "CODE-2b": {
+    "id": "navbar-hamburger-menu",
+    "name": "Navbar hamburger menu"
+  },
+  "CODE-3": {
+    "id": "nextjs-server-data-boundary",
+    "name": "Next.js server data boundary"
+  },
+  "CODE-4": {
+    "id": "login-recovery",
+    "name": "Log in and recover"
+  },
+  "CODE-4b": {
+    "id": "login-recovery-repeat",
+    "name": "Log in and recover, again"
+  },
+  "CODE-5": {
+    "id": "blank-dashboard-debug",
+    "name": "Blank dashboard after login"
+  },
+  "CODE-6": {
+    "id": "nextjs-course",
+    "name": "Teach me Next.js"
+  },
+  "EVAL-1": {
+    "id": "grade-palindrome-function",
+    "name": "Grade a palindrome function"
+  },
+  "EVAL-2": {
+    "id": "grade-two-sentence-summary",
+    "name": "Grade a two-sentence summary"
+  },
+  "EVAL-3": {
+    "id": "grade-binary-search-answer",
+    "name": "Grade a binary search answer"
+  },
+  "GEOG-1": {
+    "id": "capitals-not-largest-city",
+    "name": "Capitals, not the largest city"
+  },
+  "GEOG-2": {
+    "id": "landlocked-countries",
+    "name": "Landlocked countries"
+  },
+  "GEOG-3": {
+    "id": "geography-trick-questions",
+    "name": "Geography trick questions"
+  },
+  "HIST-1": {
+    "id": "order-historical-events",
+    "name": "Put events in order"
+  },
+  "HIST-2": {
+    "id": "fact-check-history",
+    "name": "Fact-check a history paragraph"
+  },
+  "HIST-3": {
+    "id": "letter-from-1863",
+    "name": "Anachronisms in an 1863 letter"
+  },
+  "KNOW-1": {
+    "id": "fire-truck-color",
+    "name": "Fire truck color"
+  },
+  "KNOW-2": {
+    "id": "explain-enshittification",
+    "name": "Explain enshittification"
+  },
+  "KNOW-3": {
+    "id": "explain-solar-panels",
+    "name": "Explain solar panels"
+  },
+  "KNOW-4": {
+    "id": "news-briefing-from-feeds",
+    "name": "News briefing from feeds"
+  },
+  "KNOW-5": {
+    "id": "sink-leak-advice",
+    "name": "Leak under the sink"
+  },
+  "KNOW-6": {
+    "id": "running-toilet-advice",
+    "name": "Running toilet"
+  },
+  "KNOW-7": {
+    "id": "cold-window-advice",
+    "name": "Cold room by a window"
+  },
+  "KNOW-8": {
+    "id": "furnace-wont-start-advice",
+    "name": "Furnace won't start"
+  },
+  "MATH-1": {
+    "id": "recipe-and-discount",
+    "name": "Recipe scaling and a discount"
+  },
+  "MATH-2": {
+    "id": "household-money-math",
+    "name": "Household money math"
+  },
+  "MATH-3": {
+    "id": "competition-math",
+    "name": "Competition counting and probability"
+  },
+  "MATH-4": {
+    "id": "seating-logic-puzzle",
+    "name": "Seating logic puzzle"
+  },
+  "RSCH-1": {
+    "id": "todays-local-news",
+    "name": "Today's local news"
+  },
+  "RSCH-2": {
+    "id": "live-weather-open-ended",
+    "name": "Live weather (open-ended)"
+  },
+  "RSCH-2b": {
+    "id": "weather-vs-normal",
+    "name": "Weather against the normal"
+  },
+  "TASK-1": {
+    "id": "two-calendar-slots-json",
+    "name": "Meeting slots from two calendars"
+  },
+  "TASK-2": {
+    "id": "morning-brief-spanish",
+    "name": "Morning brief with Spanish practice"
+  },
+  "TASK-3": {
+    "id": "morning-brief-priorities",
+    "name": "Morning brief, prioritized"
+  },
+  "TASK-4": {
+    "id": "calendar-free-at-330",
+    "name": "Am I free at 3:30?"
+  },
+  "TASK-5": {
+    "id": "calendar-hour-with-jamie",
+    "name": "An hour with Jamie"
+  },
+  "TASK-6": {
+    "id": "calendar-team-of-16",
+    "name": "An hour for a team of 16"
+  },
+  "WRIT-1a": {
+    "id": "proofread-customer-email",
+    "name": "Proofread a customer email"
+  },
+  "WRIT-1b": {
+    "id": "proofread-literary-paragraph",
+    "name": "Proofread a literary paragraph"
+  },
+  "WRIT-1c": {
+    "id": "proofread-economics-essay",
+    "name": "Proofread an economics essay"
+  },
+  "WRIT-2": {
+    "id": "novel-character-names",
+    "name": "Character names for a novel"
+  },
+  "WRIT-2b": {
+    "id": "names-for-one-character",
+    "name": "Names for one character"
+  },
+  "WRIT-3": {
+    "id": "river-haiku-banned-words",
+    "name": "River haiku without water"
+  },
+  "C1": {
+    "id": "interest-cli-open-ended",
+    "via": "CODE-1"
+  },
+  "C11": {
+    "id": "editorial-review-workflow",
+    "via": "CODE-11"
+  },
+  "C12": {
+    "id": "cursor-pagination",
+    "via": "CODE-12"
+  },
+  "C13": {
+    "id": "cache-leak-incident",
+    "via": "CODE-13"
+  },
+  "C14": {
+    "id": "invite-signup-loop",
+    "via": "CODE-14"
+  },
+  "C15": {
+    "id": "accessibility-audit-fixes",
+    "via": "CODE-15"
+  },
+  "C1b": {
+    "id": "interest-calculator-cli",
+    "via": "CODE-1b"
+  },
+  "C2": {
+    "id": "responsive-navbar-open-ended",
+    "via": "CODE-2"
+  },
+  "C2b": {
+    "id": "navbar-hamburger-menu",
+    "via": "CODE-2b"
+  },
+  "C3": {
+    "id": "nextjs-server-data-boundary",
+    "via": "CODE-3"
+  },
+  "C4": {
+    "id": "login-recovery",
+    "via": "CODE-4"
+  },
+  "C4b": {
+    "id": "login-recovery-repeat",
+    "via": "CODE-4b"
+  },
+  "C5": {
+    "id": "blank-dashboard-debug",
+    "via": "CODE-5"
+  },
+  "C6": {
+    "id": "nextjs-course",
+    "via": "CODE-6"
+  },
+  "COD1": {
+    "id": "interest-cli-open-ended",
+    "via": "CODE-1"
+  },
+  "COD11": {
+    "id": "editorial-review-workflow",
+    "via": "CODE-11"
+  },
+  "COD12": {
+    "id": "cursor-pagination",
+    "via": "CODE-12"
+  },
+  "COD13": {
+    "id": "cache-leak-incident",
+    "via": "CODE-13"
+  },
+  "COD14": {
+    "id": "invite-signup-loop",
+    "via": "CODE-14"
+  },
+  "COD15": {
+    "id": "accessibility-audit-fixes",
+    "via": "CODE-15"
+  },
+  "COD1b": {
+    "id": "interest-calculator-cli",
+    "via": "CODE-1b"
+  },
+  "COD2": {
+    "id": "responsive-navbar-open-ended",
+    "via": "CODE-2"
+  },
+  "COD2b": {
+    "id": "navbar-hamburger-menu",
+    "via": "CODE-2b"
+  },
+  "COD3": {
+    "id": "nextjs-server-data-boundary",
+    "via": "CODE-3"
+  },
+  "COD4": {
+    "id": "login-recovery",
+    "via": "CODE-4"
+  },
+  "COD4b": {
+    "id": "login-recovery-repeat",
+    "via": "CODE-4b"
+  },
+  "COD5": {
+    "id": "blank-dashboard-debug",
+    "via": "CODE-5"
+  },
+  "COD6": {
+    "id": "nextjs-course",
+    "via": "CODE-6"
+  },
+  "E1": {
+    "id": "todays-local-news",
+    "via": "RSCH-1"
+  },
+  "E2": {
+    "id": "explain-enshittification",
+    "via": "KNOW-2"
+  },
+  "E3": {
+    "id": "explain-solar-panels",
+    "via": "KNOW-3"
+  },
+  "E4": {
+    "id": "morning-brief-spanish",
+    "via": "TASK-2"
+  },
+  "E5": {
+    "id": "fire-truck-color",
+    "via": "KNOW-1"
+  },
+  "E6": {
+    "id": "live-weather-open-ended",
+    "via": "RSCH-2"
+  },
+  "E6b": {
+    "id": "weather-vs-normal",
+    "via": "RSCH-2b"
+  },
+  "E7": {
+    "id": "news-briefing-from-feeds",
+    "via": "KNOW-4"
+  },
+  "EVD1": {
+    "id": "two-calendar-slots-json",
+    "via": "TASK-1"
+  },
+  "EVD2": {
+    "id": "morning-brief-spanish",
+    "via": "TASK-2"
+  },
+  "EVD3": {
+    "id": "morning-brief-priorities",
+    "via": "TASK-3"
+  },
+  "G1": {
+    "id": "seating-logic-puzzle",
+    "via": "MATH-4"
+  },
+  "G2": {
+    "id": "two-calendar-slots-json",
+    "via": "TASK-1"
+  },
+  "G3": {
+    "id": "morning-brief-priorities",
+    "via": "TASK-3"
+  },
+  "GEN1": {
+    "id": "fire-truck-color",
+    "via": "KNOW-1"
+  },
+  "GEN2": {
+    "id": "explain-enshittification",
+    "via": "KNOW-2"
+  },
+  "GEN3": {
+    "id": "explain-solar-panels",
+    "via": "KNOW-3"
+  },
+  "GEN4": {
+    "id": "news-briefing-from-feeds",
+    "via": "KNOW-4"
+  },
+  "GEN5": {
+    "id": "sink-leak-advice",
+    "via": "KNOW-5"
+  },
+  "GEN6": {
+    "id": "running-toilet-advice",
+    "via": "KNOW-6"
+  },
+  "GEN7": {
+    "id": "cold-window-advice",
+    "via": "KNOW-7"
+  },
+  "GEN8": {
+    "id": "furnace-wont-start-advice",
+    "via": "KNOW-8"
+  },
+  "GEO1": {
+    "id": "capitals-not-largest-city",
+    "via": "GEOG-1"
+  },
+  "GEO2": {
+    "id": "landlocked-countries",
+    "via": "GEOG-2"
+  },
+  "GEO3": {
+    "id": "geography-trick-questions",
+    "via": "GEOG-3"
+  },
+  "H1": {
+    "id": "sink-leak-advice",
+    "via": "KNOW-5"
+  },
+  "H2": {
+    "id": "running-toilet-advice",
+    "via": "KNOW-6"
+  },
+  "H3": {
+    "id": "cold-window-advice",
+    "via": "KNOW-7"
+  },
+  "H4": {
+    "id": "furnace-wont-start-advice",
+    "via": "KNOW-8"
+  },
+  "HIS1": {
+    "id": "order-historical-events",
+    "via": "HIST-1"
+  },
+  "HIS2": {
+    "id": "fact-check-history",
+    "via": "HIST-2"
+  },
+  "HIS3": {
+    "id": "letter-from-1863",
+    "via": "HIST-3"
+  },
+  "HIST1": {
+    "id": "order-historical-events",
+    "via": "HIST-1"
+  },
+  "HIST2": {
+    "id": "fact-check-history",
+    "via": "HIST-2"
+  },
+  "HIST3": {
+    "id": "letter-from-1863",
+    "via": "HIST-3"
+  },
+  "M1": {
+    "id": "recipe-and-discount",
+    "via": "MATH-1"
+  },
+  "M2": {
+    "id": "household-money-math",
+    "via": "MATH-2"
+  },
+  "M3": {
+    "id": "competition-math",
+    "via": "MATH-3"
+  },
+  "MTH1": {
+    "id": "recipe-and-discount",
+    "via": "MATH-1"
+  },
+  "MTH2": {
+    "id": "household-money-math",
+    "via": "MATH-2"
+  },
+  "MTH3": {
+    "id": "competition-math",
+    "via": "MATH-3"
+  },
+  "MTH4": {
+    "id": "seating-logic-puzzle",
+    "via": "MATH-4"
+  },
+  "RES1": {
+    "id": "todays-local-news",
+    "via": "RSCH-1"
+  },
+  "RES2": {
+    "id": "live-weather-open-ended",
+    "via": "RSCH-2"
+  },
+  "RES2b": {
+    "id": "weather-vs-normal",
+    "via": "RSCH-2b"
+  },
+  "W1a": {
+    "id": "proofread-customer-email",
+    "via": "WRIT-1a"
+  },
+  "W1b": {
+    "id": "proofread-literary-paragraph",
+    "via": "WRIT-1b"
+  },
+  "W1c": {
+    "id": "proofread-economics-essay",
+    "via": "WRIT-1c"
+  },
+  "W2": {
+    "id": "novel-character-names",
+    "via": "WRIT-2"
+  },
+  "W2b": {
+    "id": "names-for-one-character",
+    "via": "WRIT-2b"
+  },
+  "W3": {
+    "id": "river-haiku-banned-words",
+    "via": "WRIT-3"
+  },
+  "WRI1a": {
+    "id": "proofread-customer-email",
+    "via": "WRIT-1a"
+  },
+  "WRI1b": {
+    "id": "proofread-literary-paragraph",
+    "via": "WRIT-1b"
+  },
+  "WRI1c": {
+    "id": "proofread-economics-essay",
+    "via": "WRIT-1c"
+  },
+  "WRI2": {
+    "id": "novel-character-names",
+    "via": "WRIT-2"
+  },
+  "WRI2b": {
+    "id": "names-for-one-character",
+    "via": "WRIT-2b"
+  },
+  "WRI3": {
+    "id": "river-haiku-banned-words",
+    "via": "WRIT-3"
+  }
+}

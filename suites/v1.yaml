@@ -1,0 +1,456 @@
+# Suite v1: written by `crucible suite`, never edited by hand (docs/versioning.md#suites).
+suite: v1
+version: '1.0'
+cut_at: '2026-10-24'
+from_release: '2026.11'
+judge:
+  model: claude-opus-5-5
+  prompt_version: 1
+scoring_policy:
+  coverage_min: 0.75
+  in_progress_below: 0.75
+  repeat_aggregate: mean
+tiers:
+- id: spark
+  label: Spark
+  role: gate
+  gate:
+    mean: 8
+    min: 5
+- id: temper
+  label: Temper
+  role: headline
+- id: forge
+  label: Forge
+  role: stretch
+category_weights:
+  coding_build: 0.1
+  coding_debug: 0.1
+  coding_repo: 0.1
+  browser_tool: 0.1
+  writing: 0.1
+  everyday: 0.1
+  reasoning: 0.05
+  structured_data: 0.05
+  long_agent: 0.05
+  home_maintenance: 0.05
+  math: 0.05
+  geography: 0.05
+  history: 0.05
+  evals: 0.05
+tasks:
+- id: fire-truck-color
+  aliases:
+  - KNOW-1
+  version: 1
+  rubric_version: 2
+  content_hash: 4f544d69ec35ecb1
+  rubric_hash: 93b038f024a752e9
+  tier: spark
+  category: everyday
+  weight: 0.02
+- id: grade-binary-search-answer
+  aliases:
+  - EVAL-3
+  version: 1
+  rubric_version: 1
+  content_hash: e914619e43d38223
+  rubric_hash: 8f27c5af40bbe68b
+  tier: temper
+  category: evals
+  weight: 0.016667
+- id: grade-palindrome-function
+  aliases:
+  - EVAL-1
+  version: 1
+  rubric_version: 1
+  content_hash: 07e7a478cef8a182
+  rubric_hash: bb12e2e785065ea5
+  tier: spark
+  category: evals
+  weight: 0.016667
+- id: grade-two-sentence-summary
+  aliases:
+  - EVAL-2
+  version: 1
+  rubric_version: 1
+  content_hash: 0289e039fdb2109c
+  rubric_hash: 26bf360f734a2bbb
+  tier: temper
+  category: evals
+  weight: 0.016667
+- id: interest-calculator-cli
+  aliases:
+  - CODE-1b
+  version: 1
+  rubric_version: 1
+  content_hash: 0988983917902a9b
+  rubric_hash: b4526238202a2890
+  tier: temper
+  category: coding_build
+  weight: 0.033333
+- id: interest-cli-open-ended
+  aliases:
+  - CODE-1
+  version: 1
+  rubric_version: 1
+  content_hash: 3b9f318817e376d9
+  rubric_hash: b4526238202a2890
+  tier: temper
+  category: coding_build
+  weight: 0.033333
+- id: live-weather-open-ended
+  aliases:
+  - RSCH-2
+  version: 1
+  rubric_version: 1
+  content_hash: 754205c797e0d802
+  rubric_hash: ae34f3fe94b7fe66
+  tier: temper
+  category: everyday
+  weight: 0.02
+- id: login-recovery
+  aliases:
+  - CODE-4
+  version: 1
+  rubric_version: 1
+  content_hash: e9e834e92247adcf
+  rubric_hash: ad8018cfb54871da
+  tier: temper
+  category: browser_tool
+  weight: 0.05
+- id: login-recovery-repeat
+  aliases:
+  - CODE-4b
+  version: 1
+  rubric_version: 1
+  content_hash: f3bb28464091c844
+  rubric_hash: ad8018cfb54871da
+  tier: temper
+  category: browser_tool
+  weight: 0.05
+- id: morning-brief-priorities
+  aliases:
+  - TASK-3
+  version: 2
+  rubric_version: 1
+  content_hash: 202c33240181c8a2
+  rubric_hash: 9be26bf680b4a305
+  tier: temper
+  category: long_agent
+  weight: 0.05
+- id: morning-brief-spanish
+  aliases:
+  - TASK-2
+  version: 1
+  rubric_version: 1
+  content_hash: 2542cbccc8bd54d8
+  rubric_hash: aa1c9b0a9e16d06c
+  tier: spark
+  category: everyday
+  weight: 0.02
+- id: names-for-one-character
+  aliases:
+  - WRIT-2b
+  version: 1
+  rubric_version: 2
+  content_hash: 1910aa6ceae57f5f
+  rubric_hash: 70e05ca5984d3fd8
+  tier: temper
+  category: writing
+  weight: 0.02
+- id: navbar-hamburger-menu
+  aliases:
+  - CODE-2b
+  version: 1
+  rubric_version: 1
+  content_hash: f7a87a0eb3d44428
+  rubric_hash: ca8989fc10f5a77b
+  tier: temper
+  category: coding_debug
+  weight: 0.05
+- id: nextjs-course
+  aliases:
+  - CODE-6
+  version: 1
+  rubric_version: 1
+  content_hash: 70399bdaa597c714
+  rubric_hash: 9f2f5e1d70daa4e2
+  tier: temper
+  category: coding_build
+  weight: 0.033333
+- id: nextjs-server-data-boundary
+  aliases:
+  - CODE-3
+  version: 1
+  rubric_version: 1
+  content_hash: 2cc412271b315917
+  rubric_hash: 86ebc893b53ed345
+  tier: temper
+  category: coding_repo
+  weight: 0.1
+- id: novel-character-names
+  aliases:
+  - WRIT-2
+  version: 1
+  rubric_version: 2
+  content_hash: b4472099e92507a3
+  rubric_hash: 307cd16e5d9b4cbf
+  tier: temper
+  category: writing
+  weight: 0.02
+- id: proofread-customer-email
+  aliases:
+  - WRIT-1a
+  version: 1
+  rubric_version: 3
+  content_hash: a872d4387f1ee1a5
+  rubric_hash: 7d57227f67a0b9e9
+  tier: spark
+  category: writing
+  weight: 0.02
+- id: proofread-economics-essay
+  aliases:
+  - WRIT-1c
+  version: 1
+  rubric_version: 2
+  content_hash: cf3ca397d5295f66
+  rubric_hash: 0fefa4c8e6e7b983
+  tier: temper
+  category: writing
+  weight: 0.02
+- id: proofread-literary-paragraph
+  aliases:
+  - WRIT-1b
+  version: 1
+  rubric_version: 2
+  content_hash: dcee0a8daeeef330
+  rubric_hash: e3b3571f5658103d
+  tier: temper
+  category: writing
+  weight: 0.02
+- id: responsive-navbar-open-ended
+  aliases:
+  - CODE-2
+  version: 1
+  rubric_version: 1
+  content_hash: ca972102bf2b075d
+  rubric_hash: ca8989fc10f5a77b
+  tier: temper
+  category: coding_debug
+  weight: 0.05
+- id: seating-logic-puzzle
+  aliases:
+  - MATH-4
+  version: 2
+  rubric_version: 2
+  content_hash: d205d3bad1048689
+  rubric_hash: ef4c3db9d4f7ff0a
+  tier: temper
+  category: reasoning
+  weight: 0.05
+- id: todays-local-news
+  aliases:
+  - RSCH-1
+  version: 1
+  rubric_version: 1
+  content_hash: b068345550f97489
+  rubric_hash: 78a82e60de366899
+  tier: temper
+  category: everyday
+  weight: 0.02
+- id: two-calendar-slots-json
+  aliases:
+  - TASK-1
+  version: 2
+  rubric_version: 1
+  content_hash: 22fad633f8f09b64
+  rubric_hash: 177ecbdd7545302c
+  tier: temper
+  category: structured_data
+  weight: 0.05
+- id: weather-vs-normal
+  aliases:
+  - RSCH-2b
+  version: 1
+  rubric_version: 1
+  content_hash: cfb6f914f61da64a
+  rubric_hash: 6a6bc0ce940711f7
+  tier: spark
+  category: everyday
+  weight: 0.02
+release_pins:
+  category_weights:
+    coding_build: 0.1
+    coding_debug: 0.1
+    coding_repo: 0.15
+    browser_tool: 0.1
+    writing: 0.1
+    everyday: 0.1
+    reasoning: 0.1
+    structured_data: 0.1
+    long_agent: 0.05
+    home_maintenance: 0.1
+  tests:
+  - id: interest-cli-open-ended
+    version: 1
+    rubric_version: 1
+    tier: temper
+    category: coding_build
+    alias: CODE-1
+  - id: interest-calculator-cli
+    version: 1
+    rubric_version: 1
+    tier: temper
+    category: coding_build
+    alias: CODE-1b
+  - id: responsive-navbar-open-ended
+    version: 1
+    rubric_version: 1
+    tier: temper
+    category: coding_debug
+    alias: CODE-2
+  - id: navbar-hamburger-menu
+    version: 1
+    rubric_version: 1
+    tier: temper
+    category: coding_debug
+    alias: CODE-2b
+  - id: nextjs-server-data-boundary
+    version: 1
+    rubric_version: 1
+    tier: temper
+    category: coding_repo
+    alias: CODE-3
+  - id: login-recovery
+    version: 1
+    rubric_version: 1
+    tier: temper
+    category: browser_tool
+    alias: CODE-4
+  - id: login-recovery-repeat
+    version: 1
+    rubric_version: 1
+    tier: temper
+    category: browser_tool
+    alias: CODE-4b
+  - id: nextjs-course
+    version: 1
+    rubric_version: 1
+    tier: temper
+    category: coding_build
+    alias: CODE-6
+  - id: todays-local-news
+    version: 1
+    rubric_version: 1
+    tier: temper
+    category: everyday
+    alias: RSCH-1
+  - id: explain-enshittification
+    version: 1
+    rubric_version: 1
+    tier: temper
+    category: everyday
+    alias: KNOW-2
+  - id: explain-solar-panels
+    version: 1
+    rubric_version: 1
+    tier: temper
+    category: everyday
+    alias: KNOW-3
+  - id: morning-brief-spanish
+    version: 1
+    rubric_version: 1
+    tier: spark
+    category: everyday
+    alias: TASK-2
+  - id: fire-truck-color
+    version: 1
+    rubric_version: 1
+    tier: spark
+    category: everyday
+    alias: KNOW-1
+  - id: live-weather-open-ended
+    version: 1
+    rubric_version: 1
+    tier: temper
+    category: everyday
+    alias: RSCH-2
+  - id: weather-vs-normal
+    version: 1
+    rubric_version: 1
+    tier: spark
+    category: everyday
+    alias: RSCH-2b
+  - id: seating-logic-puzzle
+    version: 1
+    rubric_version: 1
+    tier: temper
+    category: reasoning
+    alias: MATH-4
+  - id: two-calendar-slots-json
+    version: 1
+    rubric_version: 1
+    tier: temper
+    category: structured_data
+    alias: TASK-1
+  - id: morning-brief-priorities
+    version: 1
+    rubric_version: 1
+    tier: temper
+    category: long_agent
+    alias: TASK-3
+  - id: sink-leak-advice
+    version: 1
+    rubric_version: 1
+    tier: temper
+    category: home_maintenance
+    alias: KNOW-5
+  - id: running-toilet-advice
+    version: 1
+    rubric_version: 1
+    tier: temper
+    category: home_maintenance
+    alias: KNOW-6
+  - id: cold-window-advice
+    version: 1
+    rubric_version: 1
+    tier: temper
+    category: home_maintenance
+    alias: KNOW-7
+  - id: furnace-wont-start-advice
+    version: 1
+    rubric_version: 1
+    tier: temper
+    category: home_maintenance
+    alias: KNOW-8
+  - id: proofread-customer-email
+    version: 1
+    rubric_version: 1
+    tier: spark
+    category: writing
+    alias: WRIT-1a
+  - id: proofread-literary-paragraph
+    version: 1
+    rubric_version: 1
+    tier: temper
+    category: writing
+    alias: WRIT-1b
+  - id: proofread-economics-essay
+    version: 1
+    rubric_version: 1
+    tier: temper
+    category: writing
+    alias: WRIT-1c
+  - id: novel-character-names
+    version: 1
+    rubric_version: 1
+    tier: temper
+    category: writing
+    alias: WRIT-2
+  - id: names-for-one-character
+    version: 1
+    rubric_version: 1
+    tier: temper
+    category: writing
+    alias: WRIT-2b

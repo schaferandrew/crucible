@@ -52,10 +52,10 @@ def metrics_summary(metrics: dict) -> str:
 
 
 def print_result(meta: dict, run_dir: Path) -> None:
-    """Closing block for one test: status, time, output dir, metrics, next step."""
-    status = meta["status"]
-    print(f"\n[{status}] {meta['run_id']}")
-    print(f"  Elapsed: {meta['elapsed_time']:.1f}s")
+    """Closing block for one task: status, time, output dir, metrics, next step."""
+    status = meta["outcome"]["harness_status"]
+    print(f"\n[{status}] {meta['run_path']}")
+    print(f"  Elapsed: {meta['elapsed_s']:.1f}s")
     print(f"  Output: {run_dir}")
     summary = metrics_summary(meta["metrics"])
     if summary:
@@ -65,13 +65,13 @@ def print_result(meta: dict, run_dir: Path) -> None:
         last_line = (stderr.strip().splitlines() or [""])[-1]
         if last_line:
             print(f"  Error: {last_line[:200]}")
-    # Deterministic tests are scored on the spot; the rest wait for review, which isn't built yet
-    if not status.startswith(("TIMEOUT", "ERROR")) and not (run_dir / "check_results.json").exists():
-        print("  Not scored automatically: this test still needs review (a future feature).")
+    # Deterministic tasks are scored on the spot; the rest wait for review, which isn't built yet
+    if not status.startswith(("TIMEOUT", "ERROR")) and not (run_dir / "scores").is_dir():
+        print("  Not scored automatically: this task still needs review (a future feature).")
 
 
 def print_suite_summary(rows: list[tuple[str, str, float | None]]) -> None:
-    """rows: (status, elapsed seconds or None, run_id) per completed run."""
+    """rows: (status, elapsed seconds or None, run path) per completed run."""
     print(f"\n{RULE}\nCompleted {len(rows)} run(s)")
     for status, elapsed, run_id in rows:
         took = f"{elapsed:>7.1f}s" if isinstance(elapsed, (int, float)) else "      ?s"

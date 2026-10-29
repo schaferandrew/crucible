@@ -14,7 +14,7 @@ from crucible.mcp_servers import web_server
 def _ctx(tmp_path, **overrides):
     workspace = tmp_path / "workspace"
     workspace.mkdir(exist_ok=True)
-    fields = dict(test_id="CODE-1", run_id="m/coding/CODE-1/ts", run_dir=tmp_path,
+    fields = dict(task_id="interest-cli-open-ended", run_path="m/interest-cli-open-ended/ts", run_dir=tmp_path,
                   workspace=workspace, prompt_file=workspace / "prompt.txt",
                   model=None, watch=False, timeout=60, title="ts_C1_m")
     fields.update(overrides)
@@ -411,5 +411,5 @@ class TestWebMcpServer:
         assert web_server.handle({"method": "notifications/initialized"}) is None
 
     def test_declared_and_recorded(self):
-        assert "web" in workspace.load_prompt("RSCH-2")["mcp_servers"]
+        assert "web" in workspace.load_task("RSCH-2")["mcp_servers"]
         assert available_mcp_servers(["web", "mock-data", "nope"]) == ["web", "mock-data"]

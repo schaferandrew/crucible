@@ -1,0 +1,23 @@
+id: morning-brief-spanish
+name: Morning brief with Spanish practice
+aliases:
+- TASK-2
+needs_tools: true
+mcp_servers:
+  - mock-data
+category: everyday
+area: everyday
+tier: spark
+version: 1
+rubric_version: 1
+status: active
+auto_grade: false
+repo: null
+prompt: |
+  Create a morning brief. Pull together important emails from yesterday, upcoming calendar events, and important news for me where I live. End with a paragraph in spanish that is relevant to the content of the day to help me keep practicing.
+rubric:
+  - criterion: "Proper Language Switching"
+    max_score: 2
+    description: "Only the last paragraph is in spanish, the briefing is in english"
+
+critical_failure: null

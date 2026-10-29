@@ -30,12 +30,12 @@ class TestPromptToolFlags:
     """The needs_tools flag must be declared on every prompt (no silent defaults)."""
 
     def test_every_prompt_declares_needs_tools(self, prompts_dir=None):
-        from crucible.workspace import PROMPTS_DIR
+        from crucible.workspace import TASKS_DIR
         import yaml
         from pathlib import Path
 
         undeclared = []
-        for path in sorted(PROMPTS_DIR.glob("*.yaml")):
+        for path in sorted(p for p in TASKS_DIR.glob("*.yaml") if p.stem != "taxonomy"):
             data = yaml.safe_load(path.read_text())
             if "needs_tools" not in data:
                 undeclared.append(path.name)
@@ -43,6 +43,6 @@ class TestPromptToolFlags:
 
     def test_e1_requires_tools(self):
         import yaml
-        from crucible.workspace import PROMPTS_DIR
-        data = yaml.safe_load((PROMPTS_DIR / "RSCH-1.yaml").read_text())
+        from crucible.workspace import TASKS_DIR
+        data = yaml.safe_load((TASKS_DIR / "todays-local-news.yaml").read_text())
         assert data["needs_tools"] is True  # today's-news task requires web access
