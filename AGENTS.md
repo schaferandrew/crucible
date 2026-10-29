@@ -57,7 +57,7 @@ Docs-only PRs (README, AGENTS.md, `docs/`) need neither.
 - After changing a task, its repo, fixtures, rubric, checks or grader: bump `version` or
   `rubric_version` (above), run `uv run crucible versions --update`, and
   `uv run crucible checks --doc docs/checks.md` to regenerate the rules doc.
-- Score only the answer block: chat tasks ask for the answer in a delimited block with identical
+- Score only the answer block: new and converted chat tasks ask for the answer in a delimited block with identical
   format wording across tasks, and checks read that block with a tolerant parser
   ([docs/scoring.md](docs/scoring.md)). Prefer deterministic scoring: `checks:` for answers,
   hidden grader tests for repos. A reference answer scores 10, an empty answer 0.

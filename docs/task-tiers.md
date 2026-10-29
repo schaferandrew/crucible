@@ -1,19 +1,22 @@
-# Test tiers and metric integrity
+# Task tiers and metric integrity
 
-Status: the groundwork is in (tiers, versions, lock, release 2026.11, backfill, environment capture, `crucible judge`, `crucible export`). The new tests below are still proposals.
+Tiers are how Crucible keeps a small model's basics apart from frontier-level work. How tasks,
+suites and versions keep scores comparable is now in [versioning.md](versioning.md); this page
+keeps the tier definitions and the reasoning behind them. Sections marked *history* describe the
+2.x design (releases, backfill), which Crucible 3.0.0 replaced with suites and `crucible migrate`.
 
 Day to day:
 
 - `crucible run spark|temper|forge` runs a whole tier.
-- `crucible versions` checks the lock (CI runs the same check). After editing a prompt, bump `version` (content) or `rubric_version` (rubric), then run `crucible versions --update`.
-- `crucible versions --release 2026.12` pins the active tests into a new release file.
-- `crucible versions --backfill runs` stamps older runs with the version they used.
-- `crucible judge <run_dir> <payload.json>` saves an agent score; the judge follows `crucible/judge_instructions.md`.
-- `crucible export --out <file>` writes the JSON the portfolio page reads.
+- `crucible task list` shows every task with its tier and status.
+- `crucible versions` checks the lock (CI runs the same check). After editing a task, bump `version`
+  (content) or `rubric_version` (rubric), then run `crucible versions --update`.
+- `crucible suite verify` checks the current suite still holds; `crucible suite cut` and
+  `crucible suite patch` make new ones.
 
 ## Three tiers
 
-Tier is a third axis next to suite (from the test-ID prefix) and category (the scoring class). A test keeps its ID and suite, and gains a `tier`. Coding, writing and the rest each get tests at every tier.
+Tier is an axis next to area and category (the scoring class), declared in each task's YAML. A task's ID never encodes its tier, so moving a task between tiers renames nothing. Coding, writing and the rest each get tasks at every tier. Tier labels, blurbs, roles (gate, headline, stretch) and the Spark gate live in `tasks/taxonomy.yaml`.
 
 | Tier | Question it answers | Bar |
 |---|---|---|
@@ -23,23 +26,25 @@ Tier is a third axis next to suite (from the test-ID prefix) and category (the s
 
 The names follow the crucible metaphor: the spark lights the fire, tempering is what makes steel usable, and the forge is the big heat.
 
-## Current tests by tier
+## Current tasks by tier
 
-| Tier | Tests | Count |
+Not retired, as of Crucible 3.0.0 (formerly-known-as IDs in brackets). `crucible task list` is always current.
+
+| Tier | Tasks | Count |
 |---|---|---|
-| Spark | KNOW-1 (firetruck color), WRIT-1a (3 obvious email errors), RSCH-2b (fetch a given weather URL), TASK-2 (call 3 mock tools and combine them) | 4 |
-| Temper | CODE-1, CODE-1b, CODE-2, CODE-2b, CODE-3, CODE-6, RSCH-1, KNOW-2, KNOW-3, RSCH-2, MATH-4, TASK-1, TASK-3, KNOW-5, KNOW-6, KNOW-7, KNOW-8, WRIT-1b, WRIT-1c, WRIT-2, WRIT-2b, CODE-4, CODE-4b | 23 |
-| Forge (candidate) | CODE-5 (reproduce an intermittent bug in a real browser, then fix it) | 1 |
+| Spark | calendar-free-at-330 (TASK-4), capitals-not-largest-city (GEOG-1), fire-truck-color (KNOW-1), grade-palindrome-function (EVAL-1), morning-brief-spanish (TASK-2), order-historical-events (HIST-1), proofread-customer-email (WRIT-1a), recipe-and-discount (MATH-1), river-haiku-banned-words (WRIT-3), weather-vs-normal (RSCH-2b) | 10 |
+| Temper | calendar-hour-with-jamie (TASK-5), fact-check-history (HIST-2), grade-binary-search-answer (EVAL-3), grade-two-sentence-summary (EVAL-2), household-money-math (MATH-2), interest-calculator-cli (CODE-1b), interest-cli-open-ended (CODE-1), landlocked-countries (GEOG-2), live-weather-open-ended (RSCH-2), login-recovery (CODE-4), login-recovery-repeat (CODE-4b), morning-brief-priorities (TASK-3), names-for-one-character (WRIT-2b), navbar-hamburger-menu (CODE-2b), news-briefing-from-feeds (KNOW-4), nextjs-course (CODE-6), nextjs-server-data-boundary (CODE-3), novel-character-names (WRIT-2), proofread-economics-essay (WRIT-1c), proofread-literary-paragraph (WRIT-1b), react-lead-form (CODE-16), responsive-navbar-open-ended (CODE-2), seating-logic-puzzle (MATH-4), todays-local-news (RSCH-1), two-calendar-slots-json (TASK-1) | 25 |
+| Forge | accessibility-audit-fixes (CODE-15), blank-dashboard-debug (CODE-5), cache-leak-incident (CODE-13), calendar-team-of-16 (TASK-6), competition-math (MATH-3), cursor-pagination (CODE-12), editorial-review-workflow (CODE-11), geography-trick-questions (GEOG-3), invite-signup-loop (CODE-14), letter-from-1863 (HIST-3) | 10 |
 
-There are three gaps:
+*History (2026-10):* when the tiers were introduced, there were three gaps:
 
 - **Spark is thin.** It needs tests that check the mechanics on their own: context length, schema compliance, a single precise tool call, and repo navigation.
 - **Forge is effectively empty.** qwen3.8-27b, a 27B model, scored 9.2–10 on every coding test (agent score), including CODE-4, CODE-4b and CODE-5. Those three are browser-driven and were the hardest-looking tests, but in practice they sit at Temper. CODE-5 stays a Forge *candidate* only until calibration (below) confirms or demotes it.
 - **Temper carries almost everything,** so today's headline score is really a Temper score.
 
-## New tests
+## New tasks (*history*: the October 2026 proposals)
 
-IDs continue each suite's numbering and are never reused. Each test lists what it adds.
+The IDs below are the proposal's working names; tasks now get slugs. Each test lists what it adds.
 
 ### Spark (target: 10–12 total)
 
@@ -65,7 +70,7 @@ IDs continue each suite's numbering and are never reused. Each test lists what i
 
 ### Forge
 
-Built (provisional until calibrated). All five run on Conduit, a RealWorld monorepo (Express API, React web app, shared TypeScript package), and each is graded mainly by hidden acceptance tests in `graders/forge/<test>/` that the model never sees. Forge difficulty comes from the context a model has to take in and the competing requirements it has to balance, not from wall time: frontier models should finish in 10–20 minutes, with a 30-minute cap.
+Built (provisional until calibrated). All five run on Conduit, a RealWorld monorepo (Express API, React web app, shared TypeScript package), and each is graded mainly by hidden acceptance tests in `graders/<task>/` that the model never sees. Forge difficulty comes from the context a model has to take in and the competing requirements it has to balance, not from wall time: frontier models should finish in 10–20 minutes, with a 30-minute cap.
 
 | ID | Test | What makes it hard |
 |---|---|---|
@@ -77,7 +82,9 @@ Built (provisional until calibrated). All five run on Conduit, a RealWorld monor
 
 Calibration so far: the free DeepSeek V4.1 Flash scored 10/10 on CODE-11 v2, CODE-12 and CODE-13 in 5–8 minutes each. That's last year's frontier solving realistic hard problems, which is a fine result; CODE-11 v3, CODE-14 and CODE-15 aim at the "lots of context, competing requirements" kind of difficulty that separates models more.
 
-## Keeping the metrics honest as tests are added
+## Keeping the metrics honest as tasks are added
+
+*History:* the 2.x design. Releases became suites, backfill became `crucible migrate`, and the judge is no longer part of any score; see [versioning.md](versioning.md) and [data-model.md](data-model.md). The rules themselves still hold.
 
 The risk: a model's score changes because the test set changed, not because the model did. Six rules prevent that.
 
@@ -150,7 +157,7 @@ Blending tiers into one number would let a model with great Forge results hide a
 - **Every run records:** harness and harness version, inference host hardware, quantization, configured context length and sampling settings. This is the hardware axis, and it also explains odd results (a 4k context fails G4 by construction).
 - **Repeats:** run each `test@version` at least twice per model and harness. Show the mean and the range instead of only the latest run. One sample can't tell a 1-point difference from noise.
 
-## What this means for the current branch
+## What this meant for the 2.x branch (*history*)
 
 These are the changes in Crucible, roughly in order:
 
