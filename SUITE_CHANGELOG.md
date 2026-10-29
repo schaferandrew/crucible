@@ -104,6 +104,18 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
   on Labor Day or 9/10-9/11, none ending after 4 PM Central, and `get_freebusy` covered the 15 other
   Platform calendars (session). An option outside the ground-truth set (busy, Labor Day, Priya out, past 4 PM Central) caps the score at 4. Event titles no longer say "(declined)" or "(optional)". Runs of version 1
   no longer count; rerun it.
+- **nextjs-server-data-boundary (formerly CODE-3): version 1 → 2, rubric 1 → 2, still active (Suite v1 keeps its
+  pin).** Scored by an isolated hidden-test grader instead of an AI judge: one production build, then 9 equal
+  tests: the build passes; `/` server-renders acct_1's name and plan in the HTML (no loading placeholder, the
+  page's markup kept); `app/page.tsx` stays a Server Component; the other account's record (Bob, Basic) is in no
+  client bundle and not in the page payload; the browser does not fetch `/api/account` itself; plus the model's
+  own tests (one test: they fail on the seeded code and pass on the fix). The old "server-only data made
+  client-accessible caps the score at 5" rule is now a cap of 3 if the account data reaches a client bundle or the page payload. The seeded repo changed: the
+  `// BUG:` comment that named the fix and the seeded test that asserted the fixed output are gone, and the repo
+  now ships pinned, installed test tooling (vitest, jsdom, Testing Library) and a lockfile. Runs of version 1 no
+  longer count; rerun it. Rescored for reference (they used the leaky repo): qwen3.8-27b 10.0 (judge) → 10.0,
+  gemma-4-e4b unscored → 8.89 (no tests added), gpt-oss-20b unscored → 0.0 (its fix fails `next build` on a
+  type error), gemma-4-26b-a4b-qat 0.0 (timed out) → 0.0.
 
 - fact-check-history (formerly HIST-2), now "Fact-check twelve history claims": version 2, rubric 2,
   still provisional. The paragraph became twelve numbered claims with one fact each (five wrong, seven

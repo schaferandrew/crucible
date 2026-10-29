@@ -1,0 +1,47 @@
+[
+  {
+    "file": "boundary.grader.test.ts",
+    "group": "renders",
+    "name": "the production build succeeds"
+  },
+  {
+    "file": "boundary.grader.test.ts",
+    "group": "renders",
+    "name": "/ serves acct_1's name and plan in the server-rendered HTML"
+  },
+  {
+    "file": "boundary.grader.test.ts",
+    "group": "renders",
+    "name": "/ serves the data, not a loading placeholder"
+  },
+  {
+    "file": "boundary.grader.test.ts",
+    "group": "renders",
+    "name": "the page keeps its markup: a main with the Account heading, then the name and plan"
+  },
+  {
+    "file": "boundary.grader.test.ts",
+    "group": "server data boundary",
+    "name": "app/page.tsx stays a Server Component"
+  },
+  {
+    "file": "boundary.grader.test.ts",
+    "group": "server data boundary",
+    "name": "the account data never reaches a client bundle"
+  },
+  {
+    "file": "boundary.grader.test.ts",
+    "group": "server data boundary",
+    "name": "other accounts' records are not sent to the browser in the page payload"
+  },
+  {
+    "file": "boundary.grader.test.ts",
+    "group": "server data boundary",
+    "name": "the browser does not fetch the account itself"
+  },
+  {
+    "file": "regression",
+    "group": "regression",
+    "name": "your new tests fail on the seeded code and pass on your fix"
+  }
+]
