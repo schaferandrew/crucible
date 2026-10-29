@@ -30,6 +30,13 @@ An isolated grader.yaml can also declare:
   - `regression_tests`: folders where the model's own tests go. Its new or changed test files must pass
     on its fix and at least one must fail on the seeded code; that counts as one more test in the pool
     (group `regression`), so it weighs one test and fails on an unchanged repo
+A grader.yaml with `runner: pytest` grades a Python task the same way, with pytest in the isolated copy:
+the hidden tests are the grader folder's `test_*.py` files (any other `*.py` there is support code they
+import), copied into `crucible_hidden/` of the grading copy and run from its root, so they can call the
+model's code the way a user would (`python -m <package>`). A task with `repo: null` is seeded empty.
+Each test's group is its class's docstring (first line), or its class name. `own_tests: <folder>` adds
+one synthetic test (group `own tests`): the model's own tests in that folder (pytest, else unittest) run
+and pass. `lockfile`, `test_roots`, `existing_tests`, `unchanged` and `regression_tests` are for vitest only.
 Under `scoring: per_test` these two are caps (`cap_if_failed`), never points: they pass on the seeded
 repo, so paying for them would pay for doing nothing. A test criterion can carry `cap_if_failed` too:
 its tests still earn their points, and when any one of them fails the score is capped.
@@ -43,6 +50,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -62,6 +70,8 @@ SPECIAL = ("existing", "contract_unchanged", "regression")
 # Pass on the seeded repo, so under per-test scoring they only cap
 GATES = ("existing", "contract_unchanged")
 TEST_FILE = re.compile(r"\.test\.tsx?$")
+OWN_TESTS = {"file": "own tests", "group": "own tests", "name": "your own tests run and pass"}
+HIDDEN_DIR = "crucible_hidden"
 REGRESSION_TEST = {"file": "regression", "group": "regression",
                    "name": "your new tests fail on the seeded code and pass on your fix"}
 TEST_NAME = re.compile(r"""^\s*it\(\s*(["'`])(.+?)\1""", re.M)
@@ -427,6 +437,95 @@ def run_isolated(workspace: Path, prompt_def: dict) -> dict:
     return {**record, "tests": tests, "errors": errors, "unexpected": unexpected}
 
 
+# --------------------------------------------------------------------------
+# Python graders (`runner: pytest`)
+# --------------------------------------------------------------------------
+
+def _python_with_pytest() -> list[str]:
+    """A command prefix for a Python that has pytest: this one, else an ephemeral `uv run --with pytest`."""
+    probe = subprocess.run([sys.executable, "-c", "import pytest"], capture_output=True)
+    if probe.returncode == 0:
+        return [sys.executable]
+    return ["uv", "run", "--no-project", "--quiet", "--with", "pytest>=7", "python"]
+
+
+def _pytest_hidden(copy: Path, files: list[Path], timeout: int) -> tuple[list[dict], list[str]]:
+    """Run the grader's pytest files in the grading copy: [{file, group, name, passed, error}] and errors."""
+    hidden = copy / HIDDEN_DIR
+    hidden.mkdir(parents=True, exist_ok=True)
+    for f in files:
+        shutil.copy2(f, hidden / f.name)
+    with tempfile.TemporaryDirectory() as tmp:
+        report = Path(tmp) / "report.json"
+        env = {**os.environ, "PYTHONPATH": str(Path(__file__).parent), "PYTHONDONTWRITEBYTECODE": "1"}
+        cmd = [*_python_with_pytest(), "-m", "pytest", HIDDEN_DIR, "-p", "pytest_report", "-p", "no:cacheprovider",
+               "-o", "addopts=", "-q", f"--crucible-report={report}"]
+        try:
+            result = subprocess.run(cmd, cwd=copy, capture_output=True, text=True, timeout=timeout, env=env)
+        except subprocess.TimeoutExpired:
+            return [], ["pytest timed out"]
+        except FileNotFoundError as exc:
+            return [], [f"pytest could not start: {exc}"]
+        if not report.exists():
+            return [], [(result.stderr or result.stdout).strip()[-400:] or f"pytest exited {result.returncode}"]
+        data = json.loads(report.read_text(encoding="utf-8"))
+    return data["tests"], data["errors"]
+
+
+def _own_tests(copy: Path, folder: str, timeout: int) -> dict:
+    """The model's own tests in `folder` of the grading copy: pytest, else unittest; at least one must run."""
+    if not (copy / folder).is_dir():
+        return {"passed": False, "detail": f"no {folder}/ folder with tests"}
+    env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
+    attempts = [([*_python_with_pytest(), "-m", "pytest", folder, "-q", "-p", "no:cacheprovider"], (5,)),
+                ([sys.executable, "-m", "unittest", "discover", "-s", folder], ())]
+    detail = ""
+    for cmd, none_found in attempts:
+        try:
+            result = subprocess.run(cmd, cwd=copy, capture_output=True, text=True, timeout=timeout, env=env)
+        except subprocess.TimeoutExpired:
+            return {"passed": False, "detail": "your tests timed out"}
+        except FileNotFoundError as exc:
+            return {"passed": False, "detail": f"could not start the tests: {exc}"}
+        tail = (result.stdout + result.stderr).strip().splitlines()[-1:] or [""]
+        if result.returncode == 0 and "Ran 0 tests" not in result.stderr:
+            return {"passed": True, "detail": f"your tests pass ({tail[0][:120]})"}
+        if result.returncode not in none_found and "Ran 0 tests" not in result.stderr:
+            return {"passed": False, "detail": f"your tests fail ({tail[0][:120]})"}
+        detail = "no tests found"
+    return {"passed": False, "detail": detail}
+
+
+def run_isolated_pytest(workspace: Path, prompt_def: dict, cfg: dict) -> dict:
+    """Hidden pytest tests on the model's artifacts in a fresh copy of the seeded repo (empty for `repo: null`)."""
+    grader = prompt_def["grader"]
+    files = sorted((GRADERS_DIR / grader).glob("*.py"))
+    expected = expected_tests(grader)
+    record: dict = {"grader": grader, "isolated": True, "runner": "pytest", "ran_at": datetime.now(timezone.utc).isoformat()}
+    timeout = cfg.get("timeout", 600)
+    tests, errors = [], []
+    with tempfile.TemporaryDirectory(prefix="crucible-grade-") as tmp:
+        if prompt_def.get("repo"):
+            seed = REPOS_DIR / prompt_def["repo"]
+        else:
+            seed = Path(tmp) / "seed"
+            seed.mkdir()
+        copy = Path(tmp) / "grade"
+        record["artifacts"] = _grading_copy(seed, workspace, cfg.get("artifacts") or [], copy)
+        if cfg.get("own_tests"):  # before the hidden tests go in
+            record["own_tests"] = _own_tests(copy, cfg["own_tests"], timeout)
+        tests, errors = _pytest_hidden(copy, files, timeout)
+        if cfg.get("own_tests"):
+            tests.append({**OWN_TESTS, "passed": record["own_tests"]["passed"],
+                          "error": None if record["own_tests"]["passed"] else record["own_tests"]["detail"]})
+    # A test that never ran (a file that failed to load, pytest dying) counts as failed
+    ran = {(t["file"], t["group"], t["name"]) for t in tests}
+    tests += [t for t in expected or [] if (t["file"], t["group"], t["name"]) not in ran]
+    known = {(t["file"], t["group"], t["name"]) for t in expected or []}
+    unexpected = [t["name"] for t in tests if known and (t["file"], t["group"], t["name"]) not in known]
+    return {**record, "tests": tests, "errors": errors, "unexpected": unexpected}
+
+
 def run(run_dir: Path, prompt_def: dict) -> dict | None:
     """Run the hidden tests for a finished run and save grader_results.json; None for tests without a grader."""
     grader = prompt_def.get("grader")
@@ -434,7 +533,9 @@ def run(run_dir: Path, prompt_def: dict) -> dict | None:
     if not grader or not workspace.is_dir():
         return None
     if grader_config(grader).get("isolated"):
-        record = run_isolated(workspace, prompt_def)
+        cfg = grader_config(grader)
+        record = (run_isolated_pytest(workspace, prompt_def, cfg) if cfg.get("runner") == "pytest"
+                  else run_isolated(workspace, prompt_def))
         (run_dir / RESULTS_FILENAME).write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
         return record
     files = sorted((GRADERS_DIR / grader).glob("*.grader.test.ts*"))
@@ -496,7 +597,10 @@ def _oracle_case(prompt_def: dict, overlay: Path | None, tmp: Path, name: str) -
     from crucible import checks
     run_dir = tmp / name.replace("/", "_")
     workspace = run_dir / "workspace"
-    shutil.copytree(REPOS_DIR / prompt_def["repo"], workspace, ignore=shutil.ignore_patterns(*NOT_SOURCE))
+    if prompt_def.get("repo"):
+        shutil.copytree(REPOS_DIR / prompt_def["repo"], workspace, ignore=shutil.ignore_patterns(*NOT_SOURCE))
+    else:  # a task seeded empty
+        workspace.mkdir(parents=True)
     if overlay:
         shutil.copytree(overlay, workspace, dirs_exist_ok=True)
     (run_dir / "meta.json").write_text(json.dumps({"record": "run", "run_uuid": None, "run_path": name,
