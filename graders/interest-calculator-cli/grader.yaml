@@ -1,0 +1,18 @@
+# Hidden tests for interest-calculator-cli (formerly CODE-1b); see crucible/graders.py.
+# Python, graded with pytest in a fresh, empty copy that takes only the model's package, its tests
+# and its README: the hidden tests run `python -m interest` there, like a user would.
+isolated: true
+runner: pytest
+artifacts: [interest, tests, README.md]
+# The model's own tests (pytest or unittest) in tests/ run and pass: one test in the pool
+own_tests: tests
+timeout: 600
+# `crucible grader interest-calculator-cli` grades each of these and checks the score lands in its range
+oracle:
+  solution: [10, 10]
+  seeded: [0, 0]
+  calibration:
+    no-contribution-support: [4, 4]       # --contribution is rejected as an unknown flag: the contribution math tests fail, capped at 4
+    annual-compounding-only: [4, 4]       # --compound is accepted and ignored (always annual): monthly, quarterly and daily are wrong, capped at 4
+    lenient-validation: [6, 8]            # right math, but bad input is accepted or crashes with a traceback
+    no-tests-or-readme: [9, 9.9]          # everything works; no tests/ and no README.md

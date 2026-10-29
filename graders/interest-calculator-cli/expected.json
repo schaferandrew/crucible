@@ -1,0 +1,192 @@
+[
+  {
+    "file": "test_cli.py",
+    "group": "output: summary",
+    "name": "test_default_output_shows_all_four_figures"
+  },
+  {
+    "file": "test_cli.py",
+    "group": "output: summary",
+    "name": "test_default_output_is_not_json"
+  },
+  {
+    "file": "test_cli.py",
+    "group": "output: json",
+    "name": "test_exactly_the_four_keys"
+  },
+  {
+    "file": "test_cli.py",
+    "group": "output: json",
+    "name": "test_amounts_are_rounded_to_cents"
+  },
+  {
+    "file": "test_cli.py",
+    "group": "output: json",
+    "name": "test_figures_add_up"
+  },
+  {
+    "file": "test_cli.py",
+    "group": "validation: invalid input is rejected",
+    "name": "test_negative_principal"
+  },
+  {
+    "file": "test_cli.py",
+    "group": "validation: invalid input is rejected",
+    "name": "test_negative_rate"
+  },
+  {
+    "file": "test_cli.py",
+    "group": "validation: invalid input is rejected",
+    "name": "test_negative_time"
+  },
+  {
+    "file": "test_cli.py",
+    "group": "validation: invalid input is rejected",
+    "name": "test_negative_contribution"
+  },
+  {
+    "file": "test_cli.py",
+    "group": "validation: invalid input is rejected",
+    "name": "test_text_instead_of_a_number"
+  },
+  {
+    "file": "test_cli.py",
+    "group": "validation: invalid input is rejected",
+    "name": "test_both_years_and_months"
+  },
+  {
+    "file": "test_cli.py",
+    "group": "validation: invalid input is rejected",
+    "name": "test_neither_years_nor_months"
+  },
+  {
+    "file": "test_cli.py",
+    "group": "validation: invalid input is rejected",
+    "name": "test_contribution_without_frequency"
+  },
+  {
+    "file": "test_cli.py",
+    "group": "validation: invalid input is rejected",
+    "name": "test_frequency_without_contribution"
+  },
+  {
+    "file": "test_cli.py",
+    "group": "validation: invalid input is rejected",
+    "name": "test_unknown_compounding"
+  },
+  {
+    "file": "test_cli.py",
+    "group": "validation: invalid input is rejected",
+    "name": "test_unknown_contribution_frequency"
+  },
+  {
+    "file": "test_cli.py",
+    "group": "validation: invalid input is rejected",
+    "name": "test_missing_principal"
+  },
+  {
+    "file": "test_math.py",
+    "group": "math: compounding",
+    "name": "test_monthly_ten_years"
+  },
+  {
+    "file": "test_math.py",
+    "group": "math: compounding",
+    "name": "test_annual_three_years"
+  },
+  {
+    "file": "test_math.py",
+    "group": "math: compounding",
+    "name": "test_quarterly_five_years"
+  },
+  {
+    "file": "test_math.py",
+    "group": "math: compounding",
+    "name": "test_daily_one_year"
+  },
+  {
+    "file": "test_math.py",
+    "group": "math: compounding",
+    "name": "test_daily_ten_years"
+  },
+  {
+    "file": "test_math.py",
+    "group": "math: compounding",
+    "name": "test_monthly_eighteen_months"
+  },
+  {
+    "file": "test_math.py",
+    "group": "math: compounding",
+    "name": "test_quarterly_eighteen_months"
+  },
+  {
+    "file": "test_math.py",
+    "group": "math: compounding",
+    "name": "test_interest_earned_is_the_difference"
+  },
+  {
+    "file": "test_math.py",
+    "group": "math: zero rate",
+    "name": "test_balance_stays_the_principal"
+  },
+  {
+    "file": "test_math.py",
+    "group": "math: zero rate",
+    "name": "test_monthly_contributions_only_add_up"
+  },
+  {
+    "file": "test_math.py",
+    "group": "math: zero rate",
+    "name": "test_annual_contributions_only_add_up"
+  },
+  {
+    "file": "test_math.py",
+    "group": "math: years and months",
+    "name": "test_twenty_four_months_is_two_years"
+  },
+  {
+    "file": "test_math.py",
+    "group": "math: years and months",
+    "name": "test_twelve_months_is_one_year"
+  },
+  {
+    "file": "test_math.py",
+    "group": "math: years and months",
+    "name": "test_sixty_months_with_contributions_is_five_years"
+  },
+  {
+    "file": "test_math.py",
+    "group": "math: contributions",
+    "name": "test_monthly_contributions_monthly_compounding"
+  },
+  {
+    "file": "test_math.py",
+    "group": "math: contributions",
+    "name": "test_annual_contributions_annual_compounding"
+  },
+  {
+    "file": "test_math.py",
+    "group": "math: contributions",
+    "name": "test_annual_contributions_monthly_compounding"
+  },
+  {
+    "file": "test_math.py",
+    "group": "math: contributions",
+    "name": "test_annual_contributions_daily_compounding"
+  },
+  {
+    "file": "test_math.py",
+    "group": "math: contributions",
+    "name": "test_principal_zero_with_monthly_contributions"
+  },
+  {
+    "file": "test_readme.py",
+    "group": "readme",
+    "name": "test_has_a_command_example"
+  },
+  {
+    "file": "own tests",
+    "group": "own tests",
+    "name": "your own tests run and pass"
+  }
+]

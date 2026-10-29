@@ -10,6 +10,19 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
 
 ## Unreleased
 
+- **interest-calculator-cli (formerly CODE-1b): version 1 → 2, rubric 1 → 2, still active (pinned in Suite v1).**
+  The prompt now pins the interface: Python 3 standard library, `python -m interest` from the workspace
+  root with the package in `interest/`, the flags (`--principal`, `--rate`, `--years`/`--months`,
+  `--compound`, optional `--contribution` with `--contribution-frequency`), the `--json` shape, errors on
+  stderr with a non-zero exit, tests in `tests/` and a `README.md`. Scoring is no longer AI-judged: an
+  isolated, per-test grader runs 38 equal hidden tests (19 known-value math cases, 5 output, 12 invalid
+  inputs, each beside a valid control run), plus the model's own tests passing (1) and a README with a
+  command example (1). Any math case off by more than a cent caps the score at 4 (the old critical
+  failure). Reference solution and four calibration fixtures. Runs of version 1 used the unpinned prompt
+  and no longer count; the stored ones were not rescored into the leaderboard (each puts a script at the
+  workspace root, so none has an `interest/` package and all grade 0). Engine: Python graders (CHANGELOG
+  Unreleased).
+
 - **accessibility-audit-fixes (formerly CODE-15): rubric 2 → 3, still provisional.** Now an isolated,
   per-test grader (`artifacts`: apps/web/src). 38 hidden tests cover all six audit findings (dialog 9,
   read more 6, tag filter 7, button names 6, form errors 6, status messages 4) plus the model's own

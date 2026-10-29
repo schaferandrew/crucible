@@ -147,11 +147,11 @@
     "rubric_hash": "3a7f59dac961798f"
   },
   "interest-calculator-cli": {
-    "version": 1,
-    "content_hash": "0988983917902a9b",
-    "prompt_hash": "4ec863637c7bc1d9",
-    "rubric_version": 1,
-    "rubric_hash": "b4526238202a2890"
+    "version": 2,
+    "content_hash": "89de4378a797689c",
+    "prompt_hash": "1c8d65c7ead33960",
+    "rubric_version": 2,
+    "rubric_hash": "f45237ead95e5fe5"
   },
   "interest-cli-open-ended": {
     "version": 1,
