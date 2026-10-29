@@ -1,0 +1,561 @@
+# Validation cases for news-briefing-from-feeds (KNOW-4, version 2, rubric 2), checked with validate.py.
+# Wrong answers are adapted from real runs of the earlier version where they exist, keeping their mistakes.
+- name: reference
+  expect: 10
+  answer: 'The Port Ardmore City Council voted 7-2 late Monday to approve a $41.6 million transit levy spread over ten years, funding three new bus routes and a rebuild of the Fulton Street station. Council member Ines Varga, who voted no, said the city had not published a household cost estimate, and Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." The levy needs a second reading on March 24, and collection would begin July 1 if it passes. Columnist Rob Haddad argues it will cost a typical household $900 a year and that the council rushed the vote. [S1, S2, S9 opinion]
+
+
+    A fire broke out early Tuesday at a vacant warehouse on Kettle Street. An initial report said two firefighters were injured, but Fire Chief Ama Mensah later said one firefighter was treated for smoke inhalation and released, and the earlier reports were incorrect. Crews had the fire under control by 9:15 a.m.; the cause is under investigation. [S3, S4]
+
+
+    Supporters of a proposed rent stabilization ordinance rallied outside City Hall on Monday evening. Ledger reporters at the scene estimated the crowd at about 300. Organizers said more than 1,000 people attended. Police estimated 400. [S5, S6]
+
+
+    The legislature passed a bill raising the minimum teacher salary to $48,500, by 39-28 in the Senate and 81-52 in the House. Governor Lena Ruiz is expected to sign it this week, a spokesperson said, and the increase would take effect in the fall term. [S7]
+
+
+    Veloria''s central bank raised its benchmark interest rate by 0.25 percentage points to 3.75%, its third increase this year, citing inflation of 4.1%. [S8]'
+- name: reference, prose before and after
+  expect: 10
+  answer: 'Here is your briefing for Tuesday, March 10.
+
+
+    The Port Ardmore City Council voted 7-2 late Monday to approve a $41.6 million transit levy spread over ten years, funding three new bus routes and a rebuild of the Fulton Street station. Council member Ines Varga, who voted no, said the city had not published a household cost estimate, and Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." The levy needs a second reading on March 24, and collection would begin July 1 if it passes. Columnist Rob Haddad argues it will cost a typical household $900 a year and that the council rushed the vote. [S1, S2, S9 opinion]
+
+
+    A fire broke out early Tuesday at a vacant warehouse on Kettle Street. An initial report said two firefighters were injured, but Fire Chief Ama Mensah later said one firefighter was treated for smoke inhalation and released, and the earlier reports were incorrect. Crews had the fire under control by 9:15 a.m.; the cause is under investigation. [S3, S4]
+
+
+    Supporters of a proposed rent stabilization ordinance rallied outside City Hall on Monday evening. Ledger reporters at the scene estimated the crowd at about 300. Organizers said more than 1,000 people attended. Police estimated 400. [S5, S6]
+
+
+    The legislature passed a bill raising the minimum teacher salary to $48,500, by 39-28 in the Senate and 81-52 in the House. Governor Lena Ruiz is expected to sign it this week, a spokesperson said, and the increase would take effect in the fall term. [S7]
+
+
+    Veloria''s central bank raised its benchmark interest rate by 0.25 percentage points to 3.75%, its third increase this year, citing inflation of 4.1%. [S8]
+
+
+    Let me know if you want it shorter.'
+- name: empty
+  expect: 0
+  answer: ''
+- name: whitespace only
+  expect: 0
+  answer: "  \n\n "
+- name: no citations (old-format briefing)
+  expect: 1.36
+  answer: "The Port Ardmore City Council voted 7-2 late Monday to approve a $41.6 million transit levy spread over ten years, funding three new bus routes and a rebuild of the Fulton Street station. Council member Ines Varga, who voted no, said the city had not published a household cost estimate, and Mayor Theo Brandt called it \"the biggest investment in buses this city has made in a generation.\" The levy needs a second reading on March 24, and collection would begin July 1 if it passes. Columnist Rob Haddad argues it will cost a typical household $900 a year and that the council rushed the vote. \n\nA fire broke out early Tuesday at a vacant warehouse on Kettle Street. An initial report said two firefighters were injured, but Fire Chief Ama Mensah later said one firefighter was treated for smoke inhalation and released, and the earlier reports were incorrect. Crews had the fire under control by 9:15 a.m.; the cause is under investigation. \n\nSupporters of a proposed rent stabilization\
+    \ ordinance rallied outside City Hall on Monday evening. Ledger reporters at the scene estimated the crowd at about 300. Organizers said more than 1,000 people attended. Police estimated 400. \n\nThe legislature passed a bill raising the minimum teacher salary to $48,500, by 39-28 in the Senate and 81-52 in the House. Governor Lena Ruiz is expected to sign it this week, a spokesperson said, and the increase would take effect in the fall term. \n\nVeloria's central bank raised its benchmark interest rate by 0.25 percentage points to 3.75%, its third increase this year, citing inflation of 4.1%. "
+- name: 'variant: parentheses'
+  expect: 10
+  answer: 'The Port Ardmore City Council voted 7-2 late Monday to approve a $41.6 million transit levy spread over ten years, funding three new bus routes and a rebuild of the Fulton Street station. Council member Ines Varga, who voted no, said the city had not published a household cost estimate, and Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." The levy needs a second reading on March 24, and collection would begin July 1 if it passes. Columnist Rob Haddad argues it will cost a typical household $900 a year and that the council rushed the vote. (S1, S2, S9 opinion)
+
+
+    A fire broke out early Tuesday at a vacant warehouse on Kettle Street. An initial report said two firefighters were injured, but Fire Chief Ama Mensah later said one firefighter was treated for smoke inhalation and released, and the earlier reports were incorrect. Crews had the fire under control by 9:15 a.m.; the cause is under investigation. (S3, S4)
+
+
+    Supporters of a proposed rent stabilization ordinance rallied outside City Hall on Monday evening. Ledger reporters at the scene estimated the crowd at about 300. Organizers said more than 1,000 people attended. Police estimated 400. (S5, S6)
+
+
+    The legislature passed a bill raising the minimum teacher salary to $48,500, by 39-28 in the Senate and 81-52 in the House. Governor Lena Ruiz is expected to sign it this week, a spokesperson said, and the increase would take effect in the fall term. (S7)
+
+
+    Veloria''s central bank raised its benchmark interest rate by 0.25 percentage points to 3.75%, its third increase this year, citing inflation of 4.1%. (S8)'
+- name: 'variant: one bracket per source'
+  expect: 10
+  answer: 'The Port Ardmore City Council voted 7-2 late Monday to approve a $41.6 million transit levy spread over ten years, funding three new bus routes and a rebuild of the Fulton Street station. Council member Ines Varga, who voted no, said the city had not published a household cost estimate, and Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." The levy needs a second reading on March 24, and collection would begin July 1 if it passes. Columnist Rob Haddad argues it will cost a typical household $900 a year and that the council rushed the vote. [S1][S2][S9 opinion]
+
+
+    A fire broke out early Tuesday at a vacant warehouse on Kettle Street. An initial report said two firefighters were injured, but Fire Chief Ama Mensah later said one firefighter was treated for smoke inhalation and released, and the earlier reports were incorrect. Crews had the fire under control by 9:15 a.m.; the cause is under investigation. [S3][S4]
+
+
+    Supporters of a proposed rent stabilization ordinance rallied outside City Hall on Monday evening. Ledger reporters at the scene estimated the crowd at about 300. Organizers said more than 1,000 people attended. Police estimated 400. [S5][S6]
+
+
+    The legislature passed a bill raising the minimum teacher salary to $48,500, by 39-28 in the Senate and 81-52 in the House. Governor Lena Ruiz is expected to sign it this week, a spokesperson said, and the increase would take effect in the fall term. [S7]
+
+
+    Veloria''s central bank raised its benchmark interest rate by 0.25 percentage points to 3.75%, its third increase this year, citing inflation of 4.1%. [S8]'
+- name: 'variant: semicolons and ''and'''
+  expect: 10
+  answer: 'The Port Ardmore City Council voted 7-2 late Monday to approve a $41.6 million transit levy spread over ten years, funding three new bus routes and a rebuild of the Fulton Street station. Council member Ines Varga, who voted no, said the city had not published a household cost estimate, and Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." The levy needs a second reading on March 24, and collection would begin July 1 if it passes. Columnist Rob Haddad argues it will cost a typical household $900 a year and that the council rushed the vote. [S1; S2; S9 opinion]
+
+
+    A fire broke out early Tuesday at a vacant warehouse on Kettle Street. An initial report said two firefighters were injured, but Fire Chief Ama Mensah later said one firefighter was treated for smoke inhalation and released, and the earlier reports were incorrect. Crews had the fire under control by 9:15 a.m.; the cause is under investigation. [S3 and S4]
+
+
+    Supporters of a proposed rent stabilization ordinance rallied outside City Hall on Monday evening. Ledger reporters at the scene estimated the crowd at about 300. Organizers said more than 1,000 people attended. Police estimated 400. [S5, and S6]
+
+
+    The legislature passed a bill raising the minimum teacher salary to $48,500, by 39-28 in the Senate and 81-52 in the House. Governor Lena Ruiz is expected to sign it this week, a spokesperson said, and the increase would take effect in the fall term. [S7]
+
+
+    Veloria''s central bank raised its benchmark interest rate by 0.25 percentage points to 3.75%, its third increase this year, citing inflation of 4.1%. [S8]'
+- name: 'variant: opinion as [S9, opinion]'
+  expect: 10
+  answer: 'The Port Ardmore City Council voted 7-2 late Monday to approve a $41.6 million transit levy spread over ten years, funding three new bus routes and a rebuild of the Fulton Street station. Council member Ines Varga, who voted no, said the city had not published a household cost estimate, and Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." The levy needs a second reading on March 24, and collection would begin July 1 if it passes. Columnist Rob Haddad argues it will cost a typical household $900 a year and that the council rushed the vote. [S1, S2, S9, opinion]
+
+
+    A fire broke out early Tuesday at a vacant warehouse on Kettle Street. An initial report said two firefighters were injured, but Fire Chief Ama Mensah later said one firefighter was treated for smoke inhalation and released, and the earlier reports were incorrect. Crews had the fire under control by 9:15 a.m.; the cause is under investigation. [S3, S4]
+
+
+    Supporters of a proposed rent stabilization ordinance rallied outside City Hall on Monday evening. Ledger reporters at the scene estimated the crowd at about 300. Organizers said more than 1,000 people attended. Police estimated 400. [S5, S6]
+
+
+    The legislature passed a bill raising the minimum teacher salary to $48,500, by 39-28 in the Senate and 81-52 in the House. Governor Lena Ruiz is expected to sign it this week, a spokesperson said, and the increase would take effect in the fall term. [S7]
+
+
+    Veloria''s central bank raised its benchmark interest rate by 0.25 percentage points to 3.75%, its third increase this year, citing inflation of 4.1%. [S8]'
+- name: 'variant: opinion as [S9 (opinion)]'
+  expect: 10
+  answer: 'The Port Ardmore City Council voted 7-2 late Monday to approve a $41.6 million transit levy spread over ten years, funding three new bus routes and a rebuild of the Fulton Street station. Council member Ines Varga, who voted no, said the city had not published a household cost estimate, and Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." The levy needs a second reading on March 24, and collection would begin July 1 if it passes. Columnist Rob Haddad argues it will cost a typical household $900 a year and that the council rushed the vote. [S1, S2, S9 (opinion)]
+
+
+    A fire broke out early Tuesday at a vacant warehouse on Kettle Street. An initial report said two firefighters were injured, but Fire Chief Ama Mensah later said one firefighter was treated for smoke inhalation and released, and the earlier reports were incorrect. Crews had the fire under control by 9:15 a.m.; the cause is under investigation. [S3, S4]
+
+
+    Supporters of a proposed rent stabilization ordinance rallied outside City Hall on Monday evening. Ledger reporters at the scene estimated the crowd at about 300. Organizers said more than 1,000 people attended. Police estimated 400. [S5, S6]
+
+
+    The legislature passed a bill raising the minimum teacher salary to $48,500, by 39-28 in the Senate and 81-52 in the House. Governor Lena Ruiz is expected to sign it this week, a spokesperson said, and the increase would take effect in the fall term. [S7]
+
+
+    Veloria''s central bank raised its benchmark interest rate by 0.25 percentage points to 3.75%, its third increase this year, citing inflation of 4.1%. [S8]'
+- name: 'variant: lowercase ids'
+  expect: 10
+  answer: 'The Port Ardmore City Council voted 7-2 late Monday to approve a $41.6 million transit levy spread over ten years, funding three new bus routes and a rebuild of the Fulton Street station. Council member Ines Varga, who voted no, said the city had not published a household cost estimate, and Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." The levy needs a second reading on March 24, and collection would begin July 1 if it passes. Columnist Rob Haddad argues it will cost a typical household $900 a year and that the council rushed the vote. [s1, s2, s9 opinion]
+
+
+    A fire broke out early Tuesday at a vacant warehouse on Kettle Street. An initial report said two firefighters were injured, but Fire Chief Ama Mensah later said one firefighter was treated for smoke inhalation and released, and the earlier reports were incorrect. Crews had the fire under control by 9:15 a.m.; the cause is under investigation. [s3, s4]
+
+
+    Supporters of a proposed rent stabilization ordinance rallied outside City Hall on Monday evening. Ledger reporters at the scene estimated the crowd at about 300. Organizers said more than 1,000 people attended. Police estimated 400. [s5, s6]
+
+
+    The legislature passed a bill raising the minimum teacher salary to $48,500, by 39-28 in the Senate and 81-52 in the House. Governor Lena Ruiz is expected to sign it this week, a spokesperson said, and the increase would take effect in the fall term. [s7]
+
+
+    Veloria''s central bank raised its benchmark interest rate by 0.25 percentage points to 3.75%, its third increase this year, citing inflation of 4.1%. [s8]'
+- name: 'variant: sources in other order'
+  expect: 10
+  answer: 'The Port Ardmore City Council voted 7-2 late Monday to approve a $41.6 million transit levy spread over ten years, funding three new bus routes and a rebuild of the Fulton Street station. Council member Ines Varga, who voted no, said the city had not published a household cost estimate, and Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." The levy needs a second reading on March 24, and collection would begin July 1 if it passes. Columnist Rob Haddad argues it will cost a typical household $900 a year and that the council rushed the vote. [S9 opinion, S2, S1]
+
+
+    A fire broke out early Tuesday at a vacant warehouse on Kettle Street. An initial report said two firefighters were injured, but Fire Chief Ama Mensah later said one firefighter was treated for smoke inhalation and released, and the earlier reports were incorrect. Crews had the fire under control by 9:15 a.m.; the cause is under investigation. [S4, S3]
+
+
+    Supporters of a proposed rent stabilization ordinance rallied outside City Hall on Monday evening. Ledger reporters at the scene estimated the crowd at about 300. Organizers said more than 1,000 people attended. Police estimated 400. [S6, S5]
+
+
+    The legislature passed a bill raising the minimum teacher salary to $48,500, by 39-28 in the Senate and 81-52 in the House. Governor Lena Ruiz is expected to sign it this week, a spokesperson said, and the increase would take effect in the fall term. [S7]
+
+
+    Veloria''s central bank raised its benchmark interest rate by 0.25 percentage points to 3.75%, its third increase this year, citing inflation of 4.1%. [S8]'
+- name: 'variant: heading, bold and single newlines'
+  expect: 10
+  answer: '## Port Ardmore briefing
+
+    The Port Ardmore City Council voted 7-2 late Monday to approve a **$41.6 million** transit levy spread over ten years, funding three new bus routes and a rebuild of the Fulton Street station. Council member Ines Varga, who voted no, said the city had not published a household cost estimate, and Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." The levy needs a second reading on March 24, and collection would begin July 1 if it passes. Columnist Rob Haddad argues it will cost a typical household $900 a year and that the council rushed the vote. [S1, S2, S9 opinion]
+
+
+    A fire broke out early Tuesday at a vacant warehouse on Kettle Street. An initial report said two firefighters were injured, but Fire Chief Ama Mensah later said one firefighter was treated for smoke inhalation and released, and the earlier reports were incorrect. Crews had the fire under control by 9:15 a.m.; the cause is under investigation. [S3, S4]
+
+
+    Supporters of a proposed rent stabilization ordinance rallied outside City Hall on Monday evening. Ledger reporters at the scene estimated the crowd at about 300. Organizers said more than 1,000 people attended. Police estimated 400. [S5, S6]
+
+
+    The legislature passed a bill raising the minimum teacher salary to $48,500, by 39-28 in the Senate and 81-52 in the House. Governor Lena Ruiz is expected to sign it this week, a spokesperson said, and the increase would take effect in the fall term. [S7]
+
+
+    Veloria''s central bank raised its benchmark interest rate by 0.25 percentage points to 3.75%, its third increase this year, citing inflation of 4.1%. [S8]'
+- name: 'variant: bullets'
+  expect: 10
+  answer: '- The Port Ardmore City Council voted 7-2 late Monday to approve a $41.6 million transit levy spread over ten years, funding three new bus routes and a rebuild of the Fulton Street station. Council member Ines Varga, who voted no, said the city had not published a household cost estimate, and Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." The levy needs a second reading on March 24, and collection would begin July 1 if it passes. Columnist Rob Haddad argues it will cost a typical household $900 a year and that the council rushed the vote. [S1, S2, S9 opinion]
+
+    - A fire broke out early Tuesday at a vacant warehouse on Kettle Street. An initial report said two firefighters were injured, but Fire Chief Ama Mensah later said one firefighter was treated for smoke inhalation and released, and the earlier reports were incorrect. Crews had the fire under control by 9:15 a.m.; the cause is under investigation. [S3, S4]
+
+    - Supporters of a proposed rent stabilization ordinance rallied outside City Hall on Monday evening. Ledger reporters at the scene estimated the crowd at about 300. Organizers said more than 1,000 people attended. Police estimated 400. [S5, S6]
+
+    - The legislature passed a bill raising the minimum teacher salary to $48,500, by 39-28 in the Senate and 81-52 in the House. Governor Lena Ruiz is expected to sign it this week, a spokesperson said, and the increase would take effect in the fall term. [S7]
+
+    - Veloria''s central bank raised its benchmark interest rate by 0.25 percentage points to 3.75%, its third increase this year, citing inflation of 4.1%. [S8]'
+- name: 'variant: numbered list'
+  expect: 10
+  answer: '1. The Port Ardmore City Council voted 7-2 late Monday to approve a $41.6 million transit levy spread over ten years, funding three new bus routes and a rebuild of the Fulton Street station. Council member Ines Varga, who voted no, said the city had not published a household cost estimate, and Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." The levy needs a second reading on March 24, and collection would begin July 1 if it passes. Columnist Rob Haddad argues it will cost a typical household $900 a year and that the council rushed the vote. [S1, S2, S9 opinion]
+
+    2. A fire broke out early Tuesday at a vacant warehouse on Kettle Street. An initial report said two firefighters were injured, but Fire Chief Ama Mensah later said one firefighter was treated for smoke inhalation and released, and the earlier reports were incorrect. Crews had the fire under control by 9:15 a.m.; the cause is under investigation. [S3, S4]
+
+    3. Supporters of a proposed rent stabilization ordinance rallied outside City Hall on Monday evening. Ledger reporters at the scene estimated the crowd at about 300. Organizers said more than 1,000 people attended. Police estimated 400. [S5, S6]
+
+    4. The legislature passed a bill raising the minimum teacher salary to $48,500, by 39-28 in the Senate and 81-52 in the House. Governor Lena Ruiz is expected to sign it this week, a spokesperson said, and the increase would take effect in the fall term. [S7]
+
+    5. Veloria''s central bank raised its benchmark interest rate by 0.25 percentage points to 3.75%, its third increase this year, citing inflation of 4.1%. [S8]'
+- name: 'variant: hard-wrapped lines'
+  expect: 10
+  answer: 'The Port Ardmore City Council voted 7-2 late Monday to approve
+
+    a $41.6 million transit levy spread over ten years, funding three
+
+    new bus routes and a rebuild of the Fulton Street station. Council
+
+    member Ines Varga, who voted no, said the city had not published
+
+    a household cost estimate, and Mayor Theo Brandt called it "the
+
+    biggest investment in buses this city has made in a generation."
+
+    The levy needs a second reading on March 24, and collection would
+
+    begin July 1 if it passes. Columnist Rob Haddad argues it will
+
+    cost a typical household $900 a year and that the council rushed
+
+    the vote. [S1, S2, S9 opinion]
+
+
+    A fire broke out early Tuesday at a vacant warehouse on Kettle
+
+    Street. An initial report said two firefighters were injured,
+
+    but Fire Chief Ama Mensah later said one firefighter was treated
+
+    for smoke inhalation and released, and the earlier reports were
+
+    incorrect. Crews had the fire under control by 9:15 a.m.; the
+
+    cause is under investigation. [S3, S4]
+
+
+    Supporters of a proposed rent stabilization ordinance rallied
+
+    outside City Hall on Monday evening. Ledger reporters at the
+
+    scene estimated the crowd at about 300. Organizers said more
+
+    than 1,000 people attended. Police estimated 400. [S5, S6]
+
+
+    The legislature passed a bill raising the minimum teacher salary
+
+    to $48,500, by 39-28 in the Senate and 81-52 in the House. Governor
+
+    Lena Ruiz is expected to sign it this week, a spokesperson said,
+
+    and the increase would take effect in the fall term. [S7]
+
+
+    Veloria''s central bank raised its benchmark interest rate by
+
+    0.25 percentage points to 3.75%, its third increase this year,
+
+    citing inflation of 4.1%. [S8]'
+- name: 'variant: citation mid-paragraph'
+  expect: 10
+  answer: 'The Port Ardmore City Council voted 7-2 late Monday to approve a $41.6 million transit levy spread over ten years, funding three new bus routes and a rebuild of the Fulton Street station. Council member Ines Varga, who voted no, said the city had not published a household cost estimate, and Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." [S2] The levy needs a second reading on March 24, and collection would begin July 1 if it passes. Columnist Rob Haddad argues it will cost a typical household $900 a year and that the council rushed the vote. [S1, S9 opinion]
+
+
+    A fire broke out early Tuesday at a vacant warehouse on Kettle Street. An initial report said two firefighters were injured, but Fire Chief Ama Mensah later said one firefighter was treated for smoke inhalation and released, and the earlier reports were incorrect. Crews had the fire under control by 9:15 a.m.; the cause is under investigation. [S3, S4]
+
+
+    Supporters of a proposed rent stabilization ordinance rallied outside City Hall on Monday evening. Ledger reporters at the scene estimated the crowd at about 300. Organizers said more than 1,000 people attended. Police estimated 400. [S5, S6]
+
+
+    The legislature passed a bill raising the minimum teacher salary to $48,500, by 39-28 in the Senate and 81-52 in the House. Governor Lena Ruiz is expected to sign it this week, a spokesperson said, and the increase would take effect in the fall term. [S7]
+
+
+    Veloria''s central bank raised its benchmark interest rate by 0.25 percentage points to 3.75%, its third increase this year, citing inflation of 4.1%. [S8]'
+- name: 'variant: non-breaking hyphens'
+  expect: 10
+  answer: 'The Port Ardmore City Council voted 7‑2 late Monday to approve a $41.6 million transit levy spread over ten years, funding three new bus routes and a rebuild of the Fulton Street station. Council member Ines Varga, who voted no, said the city had not published a household cost estimate, and Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." The levy needs a second reading on March 24, and collection would begin July 1 if it passes. Columnist Rob Haddad argues it will cost a typical household $900 a year and that the council rushed the vote. [S1, S2, S9 opinion]
+
+
+    A fire broke out early Tuesday at a vacant warehouse on Kettle Street. An initial report said two firefighters were injured, but Fire Chief Ama Mensah later said one firefighter was treated for smoke inhalation and released, and the earlier reports were incorrect. Crews had the fire under control by 9:15 a.m.; the cause is under investigation. [S3, S4]
+
+
+    Supporters of a proposed rent stabilization ordinance rallied outside City Hall on Monday evening. Ledger reporters at the scene estimated the crowd at about 300. Organizers said more than 1,000 people attended. Police estimated 400. [S5, S6]
+
+
+    The legislature passed a bill raising the minimum teacher salary to $48,500, by 39‑28 in the Senate and 81-52 in the House. Governor Lena Ruiz is expected to sign it this week, a spokesperson said, and the increase would take effect in the fall term. [S7]
+
+
+    Veloria''s central bank raised its benchmark interest rate by 0.25 percentage points to 3.75%, its third increase this year, citing inflation of 4.1%. [S8]'
+- name: 'merges nothing: one paragraph per source'
+  expect: 7.27
+  answer: 'The council voted 7-2 late Monday to approve a $41.6 million transit levy over ten years. [S1]
+
+
+    Mayor Theo Brandt called the levy "the biggest investment in buses this city has made in a generation." Collection would begin July 1. [S2]
+
+
+    A fire broke out early Tuesday at a vacant warehouse on Kettle Street; two firefighters were injured, per an initial report. [S3]
+
+
+    Fire Chief Ama Mensah said one firefighter was treated for smoke inhalation and released; the earlier reports were incorrect. [S4]
+
+
+    Ledger reporters at the scene estimated the rally crowd at about 300. [S5]
+
+
+    Organizers said more than 1,000 attended the rally; police estimated 400. [S6]
+
+
+    The legislature passed a bill raising the minimum teacher salary to $48,500, by 39-28 in the Senate and 81-52 in the House. Governor Lena Ruiz is expected to sign it this week, a spokesperson said, and the increase would take effect in the fall term. [S7]
+
+
+    Veloria''s central bank raised its benchmark interest rate by 0.25 percentage points to 3.75%, its third increase this year, citing inflation of 4.1%. [S8]
+
+
+    Columnist Rob Haddad argues the levy will cost a typical household $900 a year. [S9 opinion]'
+- name: uncorrected injury count, S4 cited
+  expect: 9.55
+  answer: 'The Port Ardmore City Council voted 7-2 late Monday to approve a $41.6 million transit levy spread over ten years, funding three new bus routes and a rebuild of the Fulton Street station. Council member Ines Varga, who voted no, said the city had not published a household cost estimate, and Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." The levy needs a second reading on March 24, and collection would begin July 1 if it passes. Columnist Rob Haddad argues it will cost a typical household $900 a year and that the council rushed the vote. [S1, S2, S9 opinion]
+
+
+    A fire broke out early Tuesday at a vacant warehouse on Kettle Street. Two firefighters were injured. Crews had the fire under control by 9:15 a.m. [S3, S4]
+
+
+    Supporters of a proposed rent stabilization ordinance rallied outside City Hall on Monday evening. Ledger reporters at the scene estimated the crowd at about 300. Organizers said more than 1,000 people attended. Police estimated 400. [S5, S6]
+
+
+    The legislature passed a bill raising the minimum teacher salary to $48,500, by 39-28 in the Senate and 81-52 in the House. Governor Lena Ruiz is expected to sign it this week, a spokesperson said, and the increase would take effect in the fall term. [S7]
+
+
+    Veloria''s central bank raised its benchmark interest rate by 0.25 percentage points to 3.75%, its third increase this year, citing inflation of 4.1%. [S8]'
+- name: uncorrected injury count, S4 left out
+  expect: 8.64
+  answer: 'The Port Ardmore City Council voted 7-2 late Monday to approve a $41.6 million transit levy spread over ten years, funding three new bus routes and a rebuild of the Fulton Street station. Council member Ines Varga, who voted no, said the city had not published a household cost estimate, and Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." The levy needs a second reading on March 24, and collection would begin July 1 if it passes. Columnist Rob Haddad argues it will cost a typical household $900 a year and that the council rushed the vote. [S1, S2, S9 opinion]
+
+
+    A fire broke out early Tuesday at a vacant warehouse on Kettle Street. Two firefighters were injured. The cause is under investigation. [S3]
+
+
+    Supporters of a proposed rent stabilization ordinance rallied outside City Hall on Monday evening. Ledger reporters at the scene estimated the crowd at about 300. Organizers said more than 1,000 people attended. Police estimated 400. [S5, S6]
+
+
+    The legislature passed a bill raising the minimum teacher salary to $48,500, by 39-28 in the Senate and 81-52 in the House. Governor Lena Ruiz is expected to sign it this week, a spokesperson said, and the increase would take effect in the fall term. [S7]
+
+
+    Veloria''s central bank raised its benchmark interest rate by 0.25 percentage points to 3.75%, its third increase this year, citing inflation of 4.1%. [S8]'
+- name: cites S10 and names Okoro
+  expect: 9.09
+  answer: 'The Port Ardmore City Council voted 7-2 late Monday to approve a $41.6 million transit levy spread over ten years, funding three new bus routes and a rebuild of the Fulton Street station. Council member Ines Varga, who voted no, said the city had not published a household cost estimate, and Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." The levy needs a second reading on March 24, and collection would begin July 1 if it passes. Columnist Rob Haddad argues it will cost a typical household $900 a year and that the council rushed the vote. [S1, S2, S9 opinion]
+
+
+    A fire broke out early Tuesday at a vacant warehouse on Kettle Street. An initial report said two firefighters were injured, but Fire Chief Ama Mensah later said one firefighter was treated for smoke inhalation and released, and the earlier reports were incorrect. Crews had the fire under control by 9:15 a.m.; the cause is under investigation. [S3, S4]
+
+
+    Supporters of a proposed rent stabilization ordinance rallied outside City Hall on Monday evening. Ledger reporters at the scene estimated the crowd at about 300. Organizers said more than 1,000 people attended. Police estimated 400. [S5, S6]
+
+
+    The legislature passed a bill raising the minimum teacher salary to $48,500, by 39-28 in the Senate and 81-52 in the House. Governor Lena Ruiz is expected to sign it this week, a spokesperson said, and the increase would take effect in the fall term. [S7]
+
+
+    Veloria''s central bank raised its benchmark interest rate by 0.25 percentage points to 3.75%, its third increase this year, citing inflation of 4.1%. [S8]
+
+
+    Delphine Okoro won the open seat on the Port Ardmore school board with 52% of the vote. [S10]'
+- name: mentions Okoro without citing S10
+  expect: 9.55
+  answer: 'The Port Ardmore City Council voted 7-2 late Monday to approve a $41.6 million transit levy spread over ten years, funding three new bus routes and a rebuild of the Fulton Street station. Council member Ines Varga, who voted no, said the city had not published a household cost estimate, and Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." The levy needs a second reading on March 24, and collection would begin July 1 if it passes. Columnist Rob Haddad argues it will cost a typical household $900 a year and that the council rushed the vote. [S1, S2, S9 opinion]
+
+
+    A fire broke out early Tuesday at a vacant warehouse on Kettle Street. An initial report said two firefighters were injured, but Fire Chief Ama Mensah later said one firefighter was treated for smoke inhalation and released, and the earlier reports were incorrect. Crews had the fire under control by 9:15 a.m.; the cause is under investigation. [S3, S4]
+
+
+    Supporters of a proposed rent stabilization ordinance rallied outside City Hall on Monday evening. Ledger reporters at the scene estimated the crowd at about 300. Organizers said more than 1,000 people attended. Police estimated 400. [S5, S6]
+
+
+    The legislature passed a bill raising the minimum teacher salary to $48,500, by 39-28 in the Senate and 81-52 in the House. Governor Lena Ruiz is expected to sign it this week, a spokesperson said, and the increase would take effect in the fall term. [S7]
+
+
+    Veloria''s central bank raised its benchmark interest rate by 0.25 percentage points to 3.75%, its third increase this year, citing inflation of 4.1%. [S8]
+
+
+    Last week Delphine Okoro won a seat.'
+- name: no citations at all
+  expect: 1.36
+  answer: 'The Port Ardmore City Council voted 7-2 late Monday to approve a $41.6 million transit levy spread over ten years, funding three new bus routes and a rebuild of the Fulton Street station. Council member Ines Varga, who voted no, said the city had not published a household cost estimate, and Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." The levy needs a second reading on March 24, and collection would begin July 1 if it passes. Columnist Rob Haddad argues it will cost a typical household $900 a year and that the council rushed the vote.
+
+
+    A fire broke out early Tuesday at a vacant warehouse on Kettle Street. An initial report said two firefighters were injured, but Fire Chief Ama Mensah later said one firefighter was treated for smoke inhalation and released, and the earlier reports were incorrect. Crews had the fire under control by 9:15 a.m.; the cause is under investigation.
+
+
+    Supporters of a proposed rent stabilization ordinance rallied outside City Hall on Monday evening. Ledger reporters at the scene estimated the crowd at about 300. Organizers said more than 1,000 people attended. Police estimated 400.
+
+
+    The legislature passed a bill raising the minimum teacher salary to $48,500, by 39-28 in the Senate and 81-52 in the House. Governor Lena Ruiz is expected to sign it this week, a spokesperson said, and the increase would take effect in the fall term.
+
+
+    Veloria''s central bank raised its benchmark interest rate by 0.25 percentage points to 3.75%, its third increase this year, citing inflation of 4.1%.'
+- name: opinion not marked
+  expect: 9.55
+  answer: 'The Port Ardmore City Council voted 7-2 late Monday to approve a $41.6 million transit levy spread over ten years, funding three new bus routes and a rebuild of the Fulton Street station. Council member Ines Varga, who voted no, said the city had not published a household cost estimate, and Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." The levy needs a second reading on March 24, and collection would begin July 1 if it passes. Columnist Rob Haddad argues it will cost a typical household $900 a year and that the council rushed the vote. [S1, S2, S9]
+
+
+    A fire broke out early Tuesday at a vacant warehouse on Kettle Street. An initial report said two firefighters were injured, but Fire Chief Ama Mensah later said one firefighter was treated for smoke inhalation and released, and the earlier reports were incorrect. Crews had the fire under control by 9:15 a.m.; the cause is under investigation. [S3, S4]
+
+
+    Supporters of a proposed rent stabilization ordinance rallied outside City Hall on Monday evening. Ledger reporters at the scene estimated the crowd at about 300. Organizers said more than 1,000 people attended. Police estimated 400. [S5, S6]
+
+
+    The legislature passed a bill raising the minimum teacher salary to $48,500, by 39-28 in the Senate and 81-52 in the House. Governor Lena Ruiz is expected to sign it this week, a spokesperson said, and the increase would take effect in the fall term. [S7]
+
+
+    Veloria''s central bank raised its benchmark interest rate by 0.25 percentage points to 3.75%, its third increase this year, citing inflation of 4.1%. [S8]'
+- name: bill reported as signed
+  expect: 9.55
+  answer: 'The Port Ardmore City Council voted 7-2 late Monday to approve a $41.6 million transit levy spread over ten years, funding three new bus routes and a rebuild of the Fulton Street station. Council member Ines Varga, who voted no, said the city had not published a household cost estimate, and Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." The levy needs a second reading on March 24, and collection would begin July 1 if it passes. Columnist Rob Haddad argues it will cost a typical household $900 a year and that the council rushed the vote. [S1, S2, S9 opinion]
+
+
+    A fire broke out early Tuesday at a vacant warehouse on Kettle Street. An initial report said two firefighters were injured, but Fire Chief Ama Mensah later said one firefighter was treated for smoke inhalation and released, and the earlier reports were incorrect. Crews had the fire under control by 9:15 a.m.; the cause is under investigation. [S3, S4]
+
+
+    Supporters of a proposed rent stabilization ordinance rallied outside City Hall on Monday evening. Ledger reporters at the scene estimated the crowd at about 300. Organizers said more than 1,000 people attended. Police estimated 400. [S5, S6]
+
+
+    The legislature passed a bill raising the minimum teacher salary to $48,500, by 39-28 in the Senate and 81-52 in the House. Governor Lena Ruiz signed it into law on Tuesday, and the increase would take effect in the fall term. [S7]
+
+
+    Veloria''s central bank raised its benchmark interest rate by 0.25 percentage points to 3.75%, its third increase this year, citing inflation of 4.1%. [S8]'
+- name: invented figure ($46.1 million)
+  expect: 9.09
+  answer: 'The Port Ardmore City Council voted 7-2 late Monday to approve a $46.1 million transit levy spread over ten years, funding three new bus routes and a rebuild of the Fulton Street station. Council member Ines Varga, who voted no, said the city had not published a household cost estimate, and Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." The levy needs a second reading on March 24, and collection would begin July 1 if it passes. Columnist Rob Haddad argues it will cost a typical household $900 a year and that the council rushed the vote. [S1, S2, S9 opinion]
+
+
+    A fire broke out early Tuesday at a vacant warehouse on Kettle Street. An initial report said two firefighters were injured, but Fire Chief Ama Mensah later said one firefighter was treated for smoke inhalation and released, and the earlier reports were incorrect. Crews had the fire under control by 9:15 a.m.; the cause is under investigation. [S3, S4]
+
+
+    Supporters of a proposed rent stabilization ordinance rallied outside City Hall on Monday evening. Ledger reporters at the scene estimated the crowd at about 300. Organizers said more than 1,000 people attended. Police estimated 400. [S5, S6]
+
+
+    The legislature passed a bill raising the minimum teacher salary to $48,500, by 39-28 in the Senate and 81-52 in the House. Governor Lena Ruiz is expected to sign it this week, a spokesperson said, and the increase would take effect in the fall term. [S7]
+
+
+    Veloria''s central bank raised its benchmark interest rate by 0.25 percentage points to 3.75%, its third increase this year, citing inflation of 4.1%. [S8]'
+- name: rally estimates unattributed
+  expect: 9.09
+  answer: 'The Port Ardmore City Council voted 7-2 late Monday to approve a $41.6 million transit levy spread over ten years, funding three new bus routes and a rebuild of the Fulton Street station. Council member Ines Varga, who voted no, said the city had not published a household cost estimate, and Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." The levy needs a second reading on March 24, and collection would begin July 1 if it passes. Columnist Rob Haddad argues it will cost a typical household $900 a year and that the council rushed the vote. [S1, S2, S9 opinion]
+
+
+    A fire broke out early Tuesday at a vacant warehouse on Kettle Street. An initial report said two firefighters were injured, but Fire Chief Ama Mensah later said one firefighter was treated for smoke inhalation and released, and the earlier reports were incorrect. Crews had the fire under control by 9:15 a.m.; the cause is under investigation. [S3, S4]
+
+
+    Supporters of a proposed rent stabilization ordinance rallied outside City Hall on Monday evening. Estimates of the crowd ranged from about 300 to more than 1,000; police put it at 400. [S5, S6]
+
+
+    The legislature passed a bill raising the minimum teacher salary to $48,500, by 39-28 in the Senate and 81-52 in the House. Governor Lena Ruiz is expected to sign it this week, a spokesperson said, and the increase would take effect in the fall term. [S7]
+
+
+    Veloria''s central bank raised its benchmark interest rate by 0.25 percentage points to 3.75%, its third increase this year, citing inflation of 4.1%. [S8]'
+- name: 'rally: only two estimates'
+  expect: 9.55
+  answer: 'The Port Ardmore City Council voted 7-2 late Monday to approve a $41.6 million transit levy spread over ten years, funding three new bus routes and a rebuild of the Fulton Street station. Council member Ines Varga, who voted no, said the city had not published a household cost estimate, and Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." The levy needs a second reading on March 24, and collection would begin July 1 if it passes. Columnist Rob Haddad argues it will cost a typical household $900 a year and that the council rushed the vote. [S1, S2, S9 opinion]
+
+
+    A fire broke out early Tuesday at a vacant warehouse on Kettle Street. An initial report said two firefighters were injured, but Fire Chief Ama Mensah later said one firefighter was treated for smoke inhalation and released, and the earlier reports were incorrect. Crews had the fire under control by 9:15 a.m.; the cause is under investigation. [S3, S4]
+
+
+    Supporters of a proposed rent stabilization ordinance rallied outside City Hall on Monday evening. Organizers said more than 1,000 people attended. Police estimated 400. [S5, S6]
+
+
+    The legislature passed a bill raising the minimum teacher salary to $48,500, by 39-28 in the Senate and 81-52 in the House. Governor Lena Ruiz is expected to sign it this week, a spokesperson said, and the increase would take effect in the fall term. [S7]
+
+
+    Veloria''s central bank raised its benchmark interest rate by 0.25 percentage points to 3.75%, its third increase this year, citing inflation of 4.1%. [S8]'
+- name: everything in one paragraph
+  expect: 5.91
+  answer: The Port Ardmore City Council voted 7-2 late Monday to approve a $41.6 million transit levy spread over ten years, funding three new bus routes and a rebuild of the Fulton Street station. Council member Ines Varga, who voted no, said the city had not published a household cost estimate, and Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." The levy needs a second reading on March 24, and collection would begin July 1 if it passes. Columnist Rob Haddad argues it will cost a typical household $900 a year and that the council rushed the vote. [S1, S2, S9 opinion] A fire broke out early Tuesday at a vacant warehouse on Kettle Street. An initial report said two firefighters were injured, but Fire Chief Ama Mensah later said one firefighter was treated for smoke inhalation and released, and the earlier reports were incorrect. Crews had the fire under control by 9:15 a.m.; the cause is under investigation. [S3, S4] Supporters of a proposed
+    rent stabilization ordinance rallied outside City Hall on Monday evening. Ledger reporters at the scene estimated the crowd at about 300. Organizers said more than 1,000 people attended. Police estimated 400. [S5, S6] The legislature passed a bill raising the minimum teacher salary to $48,500, by 39-28 in the Senate and 81-52 in the House. Governor Lena Ruiz is expected to sign it this week, a spokesperson said, and the increase would take effect in the fall term. [S7] Veloria's central bank raised its benchmark interest rate by 0.25 percentage points to 3.75%, its third increase this year, citing inflation of 4.1%. [S8]
+- name: source list appended too
+  expect: 5.45
+  answer: 'The Port Ardmore City Council voted 7-2 late Monday to approve a $41.6 million transit levy spread over ten years, funding three new bus routes and a rebuild of the Fulton Street station. Council member Ines Varga, who voted no, said the city had not published a household cost estimate, and Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." The levy needs a second reading on March 24, and collection would begin July 1 if it passes. Columnist Rob Haddad argues it will cost a typical household $900 a year and that the council rushed the vote. [S1, S2, S9 opinion]
+
+
+    A fire broke out early Tuesday at a vacant warehouse on Kettle Street. An initial report said two firefighters were injured, but Fire Chief Ama Mensah later said one firefighter was treated for smoke inhalation and released, and the earlier reports were incorrect. Crews had the fire under control by 9:15 a.m.; the cause is under investigation. [S3, S4]
+
+
+    Supporters of a proposed rent stabilization ordinance rallied outside City Hall on Monday evening. Ledger reporters at the scene estimated the crowd at about 300. Organizers said more than 1,000 people attended. Police estimated 400. [S5, S6]
+
+
+    The legislature passed a bill raising the minimum teacher salary to $48,500, by 39-28 in the Senate and 81-52 in the House. Governor Lena Ruiz is expected to sign it this week, a spokesperson said, and the increase would take effect in the fall term. [S7]
+
+
+    Veloria''s central bank raised its benchmark interest rate by 0.25 percentage points to 3.75%, its third increase this year, citing inflation of 4.1%. [S8]
+
+
+    Sources: [S1], [S2], [S3], [S4], [S5], [S6], [S7], [S8], [S9 opinion]'
+- name: 'real run adapted (gpt-oss-20b): per-story paragraphs, opinion separate'
+  expect: 10
+  answer: 'The council voted 7-2 to approve a $41.6 million transit levy spread over ten years, funding three new bus routes and the rebuild of the Fulton Street station. Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." The levy still requires a second reading on March 24; collection would begin July 1 if that passes. [S1, S2]
+
+
+    A fire broke out early Tuesday at a vacant warehouse on Kettle Street. Initial reports said two firefighters were injured, but the fire chief later clarified that only one firefighter was treated for smoke inhalation and released; earlier injury reports were incorrect. The fire was under control by 9:15 a.m. [S3, S4]
+
+
+    Supporters of a proposed rent-stabilization ordinance rallied outside City Hall on Monday evening. Ledger reporters estimated the crowd at about 300, while organizers claimed more than 1,000 people attended. Police estimated the crowd at 400. [S5, S6]
+
+
+    The state legislature passed a bill raising the minimum teacher salary to $48,500 by votes of 39-28 in the Senate and 81-52 in the House. A governor''s spokesperson said Governor Lena Ruiz is expected to sign it this week. [S7]
+
+
+    The central bank of Veloria increased its benchmark interest rate by 0.25 percentage points to 3.75%, its third rise this year, citing an inflation rate of 4.1%. [S8]
+
+
+    Columnist Rob Haddad argues that the transit levy will cost a typical household $900 per year and claims the council rushed the vote. [S9 opinion]'
+- name: 'real run adapted (gemma-4-e4b): S5 dropped, S10 included'
+  expect: 7.73
+  answer: 'The council voted 7-2 late Monday to approve a $41.6 million transit levy over ten years. Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." The levy still requires a second reading on March 24. [S1, S2]
+
+
+    A fire broke out early Tuesday at a vacant warehouse on Kettle Street. Initial reports stated two firefighters were injured. However, Fire Chief Ama Mensah later clarified that one firefighter was treated for smoke inhalation and released, correcting the earlier reports. [S3, S4]
+
+
+    Organizers claimed over 1,000 people attended the rent stabilization rally, while police estimated the crowd at 400. [S6]
+
+
+    A spokesperson indicated Governor Lena Ruiz is expected to sign the teacher pay bill raising the minimum salary to $48,500 this week. [S7]
+
+
+    Note: The following items are not specific to Port Ardmore or are not from today.
+
+
+    The central bank of Veloria raised its benchmark interest rate by 0.25 percentage points to 3.75%. [S8]
+
+
+    A columnist argued the transit levy would cost a typical household $900 a year. [S9 opinion]
+
+
+    Delphine Okoro won the open seat on the Port Ardmore school board with 52% of the vote. [S10]'
+- name: 'real run adapted (gpt-6-luna): levy in two paragraphs'
+  expect: 9.09
+  answer: '## Transit levy advances
+
+    The council approved a $41.6 million transit levy spread over ten years on a 7-2 vote late Monday, according to the Ardmore Ledger and Lakeshore Public Radio. The levy needs a second reading on March 24. [S1, S2]
+
+
+    Council member Ines Varga, who voted no, said the city had not published a cost estimate for households. Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." [S1, S2]
+
+
+    ## Kettle Street warehouse fire
+
+    Statewide Wire initially reported that two firefighters were injured. In an update, Lakeshore Public Radio reported Fire Chief Ama Mensah said one firefighter was treated for smoke inhalation and released; the earlier reports that two firefighters were injured were incorrect. [S3, S4]
+
+
+    ## Teacher pay bill passes legislature
+
+    The legislature passed a bill raising the minimum teacher salary to $48,500, by 39-28 in the Senate and 81-52 in the House. Governor Lena Ruiz is expected to sign it this week, a spokesperson said. [S7]
+
+
+    ## Rent stabilization rally crowd estimates differ
+
+    The Ardmore Ledger estimated the crowd at about 300. Lakeshore Public Radio reported that organizers said more than 1,000 attended, while police estimated 400. [S5, S6]
+
+
+    ## International
+
+    Veloria''s central bank raised its benchmark interest rate by 0.25 percentage points to 3.75%. [S8]
+
+
+    ## Opinion, separate from reporting
+
+    Columnist Rob Haddad called the levy a tax grab, arguing it would cost a typical household $900 a year. [S9 opinion]'

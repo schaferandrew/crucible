@@ -1,0 +1,906 @@
+# Validation cases for proofread-economics-essay (WRIT-1c, version 2): 18 items, so each is worth 10/18.
+# Wrong answers are adapted from real runs of version 1 onto the new sentences, keeping their mistakes.
+- name: reference
+  expect: 10.0
+  answer: 'ERRORS:
+
+    3: are
+
+    6: its
+
+    12: than
+
+
+    FLAGS:
+
+    1: overstated
+
+    4: overstated
+
+    8: overstated
+
+    11: overstated
+
+    14: overstated
+
+    18: overstated'
+- name: reference, mixed labels
+  expect: 10.0
+  answer: 'ERRORS:
+
+    3: are
+
+    6: its
+
+    12: than
+
+
+    FLAGS:
+
+    1: imprecise
+
+    4: misleading
+
+    8: unclear
+
+    11: overstated
+
+    14: overstated
+
+    18: imprecise'
+- name: reference, prose first
+  expect: 10.0
+  answer: 'Sentences 3, 6 and 12 have agreement and word errors; the rest of the problems are overreach in 1, 4, 8, 11, 14 and 18.
+
+
+    ERRORS:
+
+    3: are
+
+    6: its
+
+    12: than
+
+
+    FLAGS:
+
+    1: overstated
+
+    4: overstated
+
+    8: overstated
+
+    11: overstated
+
+    14: overstated
+
+    18: overstated'
+- name: empty
+  expect: 0.0
+  answer: ''
+- name: whitespace only
+  expect: 0.0
+  answer: "  \n\n "
+- name: prose only, no blocks
+  expect: 0.0
+  answer: Sentence 6 should read its credibility, and sentence 4 overstates the Fed's legal duties.
+- name: flags all 18, every fix right
+  expect: 5.0
+  answer: 'ERRORS:
+
+    3: are
+
+    6: its
+
+    12: than
+
+
+    FLAGS:
+
+    1: overstated
+
+    2: overstated
+
+    3: overstated
+
+    4: overstated
+
+    5: overstated
+
+    6: overstated
+
+    7: overstated
+
+    8: overstated
+
+    9: overstated
+
+    10: overstated
+
+    11: overstated
+
+    12: overstated
+
+    13: overstated
+
+    14: overstated
+
+    15: overstated
+
+    16: overstated
+
+    17: overstated
+
+    18: overstated'
+- name: flags all 18, junk fixes
+  expect: 3.33
+  answer: 'ERRORS:
+
+    1: wrong
+
+    2: wrong
+
+    3: wrong
+
+    4: wrong
+
+    5: wrong
+
+    6: wrong
+
+    7: wrong
+
+    8: wrong
+
+    9: wrong
+
+    10: wrong
+
+    11: wrong
+
+    12: wrong
+
+    13: wrong
+
+    14: wrong
+
+    15: wrong
+
+    16: wrong
+
+    17: wrong
+
+    18: wrong
+
+
+    FLAGS:
+
+    1: unclear
+
+    2: unclear
+
+    3: unclear
+
+    4: unclear
+
+    5: unclear
+
+    6: unclear
+
+    7: unclear
+
+    8: unclear
+
+    9: unclear
+
+    10: unclear
+
+    11: unclear
+
+    12: unclear
+
+    13: unclear
+
+    14: unclear
+
+    15: unclear
+
+    16: unclear
+
+    17: unclear
+
+    18: unclear'
+- name: 'ERRORS: none, FLAGS: none'
+  expect: 5.0
+  answer: 'The essay reads fine.
+
+
+    ERRORS: none
+
+
+    FLAGS: none'
+- name: fixes right, flags none
+  expect: 6.67
+  answer: 'ERRORS:
+
+    3: are
+
+    6: its
+
+    12: than
+
+
+    FLAGS: none'
+- name: flags right, no fixes
+  expect: 8.333333333333334
+  answer: 'ERRORS: none
+
+
+    FLAGS:
+
+    1: overstated
+
+    4: overstated
+
+    8: overstated
+
+    11: overstated
+
+    14: overstated
+
+    18: overstated'
+- name: only ERRORS block
+  expect: 1.6666666666666665
+  answer: 'ERRORS:
+
+    3: are
+
+    6: its
+
+    12: than'
+- name: only FLAGS block
+  expect: 8.333333333333334
+  answer: 'FLAGS:
+
+    1: overstated
+
+    4: overstated
+
+    8: overstated
+
+    11: overstated
+
+    14: overstated
+
+    18: overstated'
+- name: 'gemma-4-12b-qat@reasoning-off: no language errors, misses 8, flags 2 and 5 too'
+  expect: 6.666666666666666
+  answer: 'ERRORS: none
+
+
+    FLAGS:
+
+    1: imprecise
+
+    2: unclear
+
+    4: overstated
+
+    5: misleading
+
+    11: overstated
+
+    14: overstated
+
+    18: overstated'
+- name: 'gemma-4-26b: lists 1 as a grammar error, flags 2'
+  expect: 7.222222222222222
+  answer: 'ERRORS:
+
+    1: Inflation occurs when
+
+
+    FLAGS:
+
+    1: imprecise
+
+    2: unclear
+
+    4: overstated
+
+    8: overstated
+
+    11: overstated
+
+    14: overstated'
+- name: 'gemma-4-e4b: tone as errors, flags 16'
+  expect: 7.777777777777778
+  answer: 'ERRORS:
+
+    8: remove ''lazy''
+
+
+    FLAGS:
+
+    1: overstated
+
+    4: overstated
+
+    8: overstated
+
+    11: overstated
+
+    14: overstated
+
+    16: unclear
+
+    18: overstated'
+- name: 'qwen3.5-9b@reasoning-off: no errors, flags 10 sentences'
+  expect: 6.111111111111112
+  answer: 'ERRORS: none
+
+
+    FLAGS:
+
+    1: imprecise
+
+    2: unclear
+
+    4: overstated
+
+    5: imprecise
+
+    7: unclear
+
+    8: overstated
+
+    11: overstated
+
+    13: overstated
+
+    14: overstated
+
+    18: overstated'
+- name: 'qwen3.8-27b: two fixes (one a phrase), flags 5 and 10 too'
+  expect: 8.333333333333334
+  answer: 'ERRORS:
+
+    3: are weighted
+
+    6: its credibility
+
+    12: more expensive than they were before
+
+
+    FLAGS:
+
+    1: imprecise
+
+    4: overstated
+
+    5: imprecise
+
+    8: overstated
+
+    10: imprecise
+
+    11: overstated
+
+    14: overstated
+
+    18: overstated'
+- name: 'gpt-6-luna: wrong -> right fixes, flags 2 and 5 too'
+  expect: 8.88888888888889
+  answer: "ERRORS:\n3: is -> are\n6: it's \u2192 its\n12: then \u2192 than\n\nFLAGS:\n1: imprecise\n2: imprecise\n4: misleading\n5: imprecise\n8: unclear\n11: overstated\n14: overstated\n18: overstated"
+- name: 'gpt-oss-20b: bold values, flags 7 too'
+  expect: 9.444444444444445
+  answer: '**ERRORS:**
+
+    3: **are**
+
+    6: **its**
+
+    12: **than**
+
+
+    **FLAGS:**
+
+    1: **overstated**
+
+    4: **overstated**
+
+    7: **imprecise**
+
+    8: **overstated**
+
+    11: **overstated**
+
+    14: **overstated**
+
+    18: **overstated**'
+- name: wrong fixes (is, it's, then)
+  expect: 8.333333333333334
+  answer: 'ERRORS:
+
+    3: is
+
+    6: it''s
+
+    12: then
+
+
+    FLAGS:
+
+    1: overstated
+
+    4: overstated
+
+    8: overstated
+
+    11: overstated
+
+    14: overstated
+
+    18: overstated'
+- name: fixes as whole sentences
+  expect: 8.333333333333334
+  answer: 'ERRORS:
+
+    3: The prices in the basket are weighted by how much households spend on each item.
+
+    6: A central bank can lose its credibility if it keeps missing its inflation target.
+
+    12: Raising interest rates makes loans more expensive than they were before.
+
+
+    FLAGS:
+
+    1: overstated
+
+    4: overstated
+
+    8: overstated
+
+    11: overstated
+
+    14: overstated
+
+    18: overstated'
+- name: bold headers
+  expect: 10.0
+  answer: '**ERRORS**
+
+    3: are
+
+    6: its
+
+    12: than
+
+
+    **FLAGS**
+
+    1: overstated
+
+    4: overstated
+
+    8: overstated
+
+    11: overstated
+
+    14: overstated
+
+    18: overstated'
+- name: Markdown headings
+  expect: 10.0
+  answer: '## Errors
+
+    3: are
+
+    6: its
+
+    12: than
+
+
+    ## Flags
+
+    1: overstated
+
+    4: overstated
+
+    8: overstated
+
+    11: overstated
+
+    14: overstated
+
+    18: overstated'
+- name: code fences around each block
+  expect: 10.0
+  answer: '```
+
+    ERRORS:
+
+    3: are
+
+    6: its
+
+    12: than
+
+    ```
+
+
+    ```
+
+    FLAGS:
+
+    1: overstated
+
+    4: overstated
+
+    8: overstated
+
+    11: overstated
+
+    14: overstated
+
+    18: overstated
+
+    ```'
+- name: one fence around both
+  expect: 10.0
+  answer: '```
+
+    ERRORS:
+
+    3: are
+
+    6: its
+
+    12: than
+
+
+    FLAGS:
+
+    1: overstated
+
+    4: overstated
+
+    8: overstated
+
+    11: overstated
+
+    14: overstated
+
+    18: overstated
+
+    ```'
+- name: fence after header
+  expect: 10.0
+  answer: 'ERRORS:
+
+    ```text
+
+    3: are
+
+    6: its
+
+    12: than
+
+    ```
+
+
+    FLAGS:
+
+    ```text
+
+    1: overstated
+
+    4: overstated
+
+    8: overstated
+
+    11: overstated
+
+    14: overstated
+
+    18: overstated
+
+    ```'
+- name: draft blocks then final
+  expect: 10.0
+  answer: 'ERRORS:
+
+    3: is
+
+
+    FLAGS:
+
+    1: overstated
+
+
+    On reflection I missed some.
+
+
+    ERRORS:
+
+    3: are
+
+    6: its
+
+    12: than
+
+
+    FLAGS:
+
+    1: overstated
+
+    4: overstated
+
+    8: overstated
+
+    11: overstated
+
+    14: overstated
+
+    18: overstated'
+- name: bullets
+  expect: 10.0
+  answer: 'ERRORS:
+
+    - 3: are
+
+    - 6: its
+
+    - 12: than
+
+
+    FLAGS:
+
+    - 1: overstated
+
+    - 4: overstated
+
+    - 8: overstated
+
+    - 11: overstated
+
+    - 14: overstated
+
+    - 18: overstated'
+- name: 'Sentence n: labels'
+  expect: 10.0
+  answer: 'ERRORS:
+
+    Sentence 3: are
+
+    Sentence 6: its
+
+    Sentence 12: than
+
+
+    FLAGS:
+
+    Sentence 1: overstated
+
+    Sentence 4: overstated
+
+    Sentence 8: overstated
+
+    Sentence 11: overstated
+
+    Sentence 14: overstated
+
+    Sentence 18: overstated'
+- name: n. labels
+  expect: 10.0
+  answer: 'ERRORS:
+
+    3. are
+
+    6. its
+
+    12. than
+
+
+    FLAGS:
+
+    1. overstated
+
+    4. overstated
+
+    8. overstated
+
+    11. overstated
+
+    14. overstated
+
+    18. overstated'
+- name: blank line after each header
+  expect: 10.0
+  answer: 'ERRORS:
+
+
+    3: are
+
+    6: its
+
+    12: than
+
+
+    FLAGS:
+
+
+    1: overstated
+
+    4: overstated
+
+    8: overstated
+
+    11: overstated
+
+    14: overstated
+
+    18: overstated'
+- name: singular headers
+  expect: 10.0
+  answer: 'ERROR:
+
+    3: are
+
+    6: its
+
+    12: than
+
+
+    FLAG:
+
+    1: overstated
+
+    4: overstated
+
+    8: overstated
+
+    11: overstated
+
+    14: overstated
+
+    18: overstated'
+- name: first line on the header line
+  expect: 10.0
+  answer: 'ERRORS: 3: are
+
+    6: its
+
+    12: than
+
+
+    FLAGS: 1: overstated
+
+    4: overstated
+
+    8: overstated
+
+    11: overstated
+
+    14: overstated
+
+    18: overstated'
+- name: no blank line between blocks
+  expect: 10.0
+  answer: 'ERRORS:
+
+    3: are
+
+    6: its
+
+    12: than
+
+    FLAGS:
+
+    1: overstated
+
+    4: overstated
+
+    8: overstated
+
+    11: overstated
+
+    14: overstated
+
+    18: overstated'
+- name: FLAGS block before ERRORS
+  expect: 10.0
+  answer: 'FLAGS:
+
+    1: overstated
+
+    4: overstated
+
+    8: overstated
+
+    11: overstated
+
+    14: overstated
+
+    18: overstated
+
+
+    ERRORS:
+
+    3: are
+
+    6: its
+
+    12: than'
+- name: flag lines with explanations
+  expect: 10.0
+  answer: 'ERRORS:
+
+    3: are
+
+    6: its
+
+    12: than
+
+
+    FLAGS:
+
+    1: overstated - ignores supply shocks
+
+    4: overstated - no such legal rule
+
+    8: overstated - loaded
+
+    11: overstated - not inevitable
+
+    14: overstated - one case
+
+    18: overstated - absolute'
+- name: lowercase headers, mixed case values
+  expect: 10.0
+  answer: 'errors:
+
+    3: Are
+
+    6: ITS
+
+    12: Than
+
+
+    flags:
+
+    1: Overstated
+
+    4: Overstated
+
+    8: Overstated
+
+    11: Overstated
+
+    14: Overstated
+
+    18: Overstated'
+- name: 'fix with a parenthetical note (strict: not a bare word)'
+  expect: 9.44
+  answer: 'ERRORS:
+
+    3: are (subject is plural)
+
+    6: its
+
+    12: than
+
+
+    FLAGS:
+
+    1: overstated
+
+    4: overstated
+
+    8: overstated
+
+    11: overstated
+
+    14: overstated
+
+    18: overstated'

@@ -1,0 +1,65 @@
+# Validation cases for calendar-free-at-330 (TASK-4, version 2, rubric 2), checked with validate.py.
+# Wrong answers are adapted from real runs of the earlier version where they exist, keeping their mistakes. Cases with `tools` list the calls the agent made (read by the tool_calls checks).
+- name: reference
+  expect: 10
+  answer: '3:30 PM today: the review ends at 3:30, so free.
+
+
+    ANSWER: free'
+  tools: &id001
+  - - get_current_time
+    - {}
+  - - list_events
+    - {}
+- name: reference, bold header, mcp-prefixed tools
+  expect: 10
+  answer: '3:30 PM.
+
+
+    **ANSWER:** free'
+  tools:
+  - - mock-calendar_get_current_time
+    - {}
+  - - mock-calendar_list_events
+    - {}
+- name: empty
+  expect: 0
+  answer: ''
+  tools: *id001
+- name: whitespace
+  expect: 0
+  answer: "  \n\n"
+  tools: *id001
+- name: busy
+  expect: 2.5
+  answer: 'You have the review until 3:30 PM today.
+
+
+    ANSWER: busy'
+  tools: *id001
+- name: no block (old format)
+  expect: 2.5
+  answer: Yes, you are free at 3:30 PM today.
+  tools: *id001
+- name: free, never says PM/today
+  expect: 7.5
+  answer: 'ANSWER: free'
+  tools: *id001
+- name: reference but no tool calls
+  expect: 5
+  answer: '3:30 PM today.
+
+
+    ANSWER: free'
+  tools: []
+- name: only get_freebusy (real gpt-oss pattern)
+  expect: 7.5
+  answer: '3:30 PM today
+
+
+    ANSWER: free'
+  tools:
+  - - get_current_time
+    - {}
+  - - get_freebusy
+    - {}

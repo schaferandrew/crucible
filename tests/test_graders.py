@@ -96,6 +96,26 @@ def test_per_test_score_is_capped_by_a_failed_gate(tmp_path):
     assert checks.save_check_score(tmp_path, CAPPED, [], grader)["scores"]["_overall"] == 10.0
 
 
+CORE_CAPPED = {**CAPPED, "rubric": [{"criterion": "Contract", "hidden_tests": "contract", "cap_if_failed": 6},
+                                    {"criterion": "Extras", "hidden_tests": "extras"}, *CAPPED["rubric"][1:]]}
+
+
+def test_a_test_criterion_caps_when_any_of_its_tests_fails(tmp_path):
+    (tmp_path / "meta.json").write_text(json.dumps({"run_id": "m/c/CODE-12/1", "test_id": "CODE-12"}))
+    tests = _tests(*[("contract", True)] * 3, ("contract", False), *[("extras", True)] * 6)
+    grader = {"tests": tests, "existing": {"passed": True}, "contract_unchanged": True}
+    record = checks.save_check_score(tmp_path, CORE_CAPPED, [], grader)
+    assert record["scores"]["_overall"] == 6 and record["capped_at"] == 6     # 9 by tests, capped
+    assert record["scores"]["Contract"] == 3.0                                # its tests still earn their points
+    grader["tests"] = _tests(*[("contract", True)] * 4, ("extras", False), *[("extras", True)] * 5)
+    record = checks.save_check_score(tmp_path, CORE_CAPPED, [], grader)
+    assert record["scores"]["_overall"] == 9.0 and record["capped_at"] is None   # another criterion's miss: no cap
+    grader["existing"]["passed"] = False
+    assert graders.per_test_cap(CORE_CAPPED, grader) == 5                     # the lowest failed cap wins
+    grader["tests"][0]["passed"] = False
+    assert graders.per_test_cap(CORE_CAPPED, grader) == 5
+
+
 def test_no_gate_results_means_no_unchanged_cap():
     # A grader that doesn't check the contract file can't fail that gate; a missing existing run does fail
     assert graders.per_test_cap(CAPPED, {"tests": []}) == 5

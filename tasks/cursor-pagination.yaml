@@ -7,11 +7,16 @@ category: coding_repo
 area: coding
 tier: forge
 version: 2
-rubric_version: 2
+rubric_version: 4
 status: provisional
 auto_grade: true
 repo: conduit-monorepo
 grader: cursor-pagination
+# Every hidden test weighs the same: the score is tests passed / all tests x 10, graded in a fresh
+# copy of the seeded repo with only the model's source folders (graders/cursor-pagination/grader.yaml).
+# The seeded API tests and the untouched contract suite are caps, not points: the seeded repo passes
+# both, so doing nothing scores 0.
+scoring: per_test
 prompt: |
   This is Conduit, a RealWorld (realworld.how) monorepo: an Express API in apps/api, a React app in apps/web, and shared types and validation in packages/shared. Read README.md first.
 
@@ -33,29 +38,27 @@ prompt: |
   Shared types must describe the new response fields. Add tests that prove the no-skip/no-duplicate guarantee under concurrent writes, the validation rules and the new web behavior, and keep every existing test passing. When you're done, summarize what you changed and anything you'd flag in code review.
 rubric:
 - criterion: Cursor correctness
-  max_score: 3
   hidden_tests: cursor paging
-  description: 'Hidden tests: every article once, stable under ties and concurrent writes, filters and feed.'
+  cap_if_failed: 6
+  description: 'Hidden tests: every article and comment once, newest first, stable under ties, creates, deletes and favorites between pages, on every filter and the feed. The core requirement: its tests earn their points, and if any of them fails the score is capped at 6.'
 - criterion: Validation and safety
-  max_score: 2
   hidden_tests: validation
-  description: 'Hidden tests: tampered, mismatched and conflicting cursors are rejected.'
+  description: 'Hidden tests: malformed, tampered, mismatched and conflicting cursors are rejected with a 422 on cursor.'
 - criterion: Backward compatibility
-  max_score: 2
   hidden_tests: backward compatibility
-  description: 'Hidden tests: offset paging and unpaged comments unchanged.'
+  description: 'Hidden tests: offset paging, error handling and unpaged comments keep working while the cursor feature is present.'
+- criterion: Web app
+  hidden_tests: 'web'
+  description: 'Hidden tests: Load more on the home tabs, profile tabs and comments, driven by nextCursor, keeping loaded items and disappearing on the last page.'
 - criterion: Regression tests
-  max_score: 1
   hidden_tests: regression
-  description: The model's new or changed tests pass on its fix and at least one fails on the seeded code.
+  description: 'One test in the pool: the model''s new or changed tests pass on its fix, and at least one fails on the seeded code.'
 - criterion: Existing tests still pass
-  max_score: 1
   hidden_tests: existing
-  description: The repo's own test suites pass with the model's changes.
+  cap_if_failed: 5
+  description: The repo's seeded API tests, the contract suite among them, pass on the model's source; if not, the score is capped at 5. A cap, not points. (The seeded web test for numbered pagination is excluded, since the brief replaces that behavior.)
 - criterion: Contract suite untouched
-  max_score: 1
   hidden_tests: contract_unchanged
   cap_if_failed: 4
-  description: apps/api/test/realworld.contract.test.ts is exactly as seeded; modifying it caps the score at 4.
-critical_failure: Modifying the contract suite caps the score at 4. Every criterion is scored by hidden tests or checks; write-ups
-  aren't scored yet.
+  description: apps/api/test/realworld.contract.test.ts is exactly as seeded; modifying it caps the score at 4. A cap, not points.
+critical_failure: Every hidden test weighs the same; the score is tests passed / all tests x 10. A cursor that skips or repeats (any cursor correctness test failing) caps it at 6, failing the seeded API tests caps it at 5, and modifying the contract suite caps it at 4. Write-ups aren't scored.

@@ -1,0 +1,87 @@
+[
+  {
+    "file": "cache.grader.test.ts",
+    "group": "per-viewer fields are never shared through the cache",
+    "name": "article: favorited belongs to the viewer"
+  },
+  {
+    "file": "cache.grader.test.ts",
+    "group": "per-viewer fields are never shared through the cache",
+    "name": "anonymous responses don't leak to signed-in viewers either"
+  },
+  {
+    "file": "cache.grader.test.ts",
+    "group": "per-viewer fields are never shared through the cache",
+    "name": "lists: favorited and author.following belong to the viewer"
+  },
+  {
+    "file": "cache.grader.test.ts",
+    "group": "per-viewer fields are never shared through the cache",
+    "name": "article: author.following belongs to the viewer"
+  },
+  {
+    "file": "cache.grader.test.ts",
+    "group": "per-viewer fields are never shared through the cache",
+    "name": "filtered lists: favorited belongs to the viewer"
+  },
+  {
+    "file": "cache.grader.test.ts",
+    "group": "per-viewer fields are never shared through the cache",
+    "name": "profiles: following belongs to the viewer"
+  },
+  {
+    "file": "cache.grader.test.ts",
+    "group": "writes are visible immediately",
+    "name": "updates"
+  },
+  {
+    "file": "cache.grader.test.ts",
+    "group": "writes are visible immediately",
+    "name": "deletes"
+  },
+  {
+    "file": "cache.grader.test.ts",
+    "group": "writes are visible immediately",
+    "name": "favorite counts"
+  },
+  {
+    "file": "cache.grader.test.ts",
+    "group": "writes are visible immediately",
+    "name": "unfavoriting"
+  },
+  {
+    "file": "cache.grader.test.ts",
+    "group": "writes are visible immediately",
+    "name": "follows and unfollows"
+  },
+  {
+    "file": "cache.grader.test.ts",
+    "group": "writes are visible immediately",
+    "name": "new articles and tags"
+  },
+  {
+    "file": "postmortem.grader.test.ts",
+    "group": "postmortem: lines from the logs",
+    "name": "Deploy: 16:42:10"
+  },
+  {
+    "file": "postmortem.grader.test.ts",
+    "group": "postmortem: lines from the logs",
+    "name": "First affected request: 16:44:15"
+  },
+  {
+    "file": "postmortem.grader.test.ts",
+    "group": "postmortem: lines from the logs",
+    "name": "First report: 18:06:01"
+  },
+  {
+    "file": "postmortem.grader.test.ts",
+    "group": "postmortem: lines from the logs",
+    "name": "Affected users: 371 (or 481, with the anonymous-stored responses counted and said)"
+  },
+  {
+    "file": "regression",
+    "group": "regression",
+    "name": "your new tests fail on the seeded code and pass on your fix"
+  }
+]

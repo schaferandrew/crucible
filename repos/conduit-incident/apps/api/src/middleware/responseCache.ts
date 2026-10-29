@@ -1,8 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
 
-// PERF-212: hot read endpoints were dominating p95 latency under the launch-week traffic spike.
-// Cache successful GET responses in memory for a short TTL.
-
 interface Entry {
   status: number;
   body: unknown;

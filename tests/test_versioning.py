@@ -1,5 +1,6 @@
 """Test versions keep scores comparable: content and rubric changes must be declared."""
 import json
+import shutil
 from pathlib import Path
 
 import pytest
@@ -274,3 +275,17 @@ class TestWorkspaceIsolation:
         # The seeded files are committed, so the agent's diff starts clean
         status = subprocess.run(["git", "status", "--porcelain"], cwd=ws, capture_output=True, text=True).stdout
         assert status == ""
+
+
+def test_calendar_dataset_and_server_are_part_of_the_content_hash(tmp_path, monkeypatch):
+    """A dataset or server edit is a task content change: it must show up as drift."""
+    prompt = {"prompt": "p", "mcp_servers": ["mock-calendar:spark"]}
+    base = versioning.content_hash(prompt)
+    assert versioning.content_hash({**prompt, "mcp_servers": ["mock-calendar:pair"]}) != base
+    fixtures = tmp_path / "fixtures"
+    shutil.copytree(workspace.FIXTURES_DIR / "mock-calendar", fixtures / "mock-calendar")
+    monkeypatch.setattr(workspace, "FIXTURES_DIR", fixtures)
+    assert versioning.content_hash(prompt) == base
+    spark = fixtures / "mock-calendar" / "spark.json"
+    spark.write_text(spark.read_text().replace("Design review", "Design sync"))
+    assert versioning.content_hash(prompt) != base

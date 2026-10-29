@@ -1,0 +1,116 @@
+# Validation cases for calendar-hour-with-jamie (TASK-5, version 2, rubric 2), checked with validate.py.
+# Wrong answers are adapted from real runs of the earlier version where they exist, keeping their mistakes. Cases with `tools` list the calls the agent made (read by the tool_calls checks).
+- name: reference
+  expect: 10
+  answer: 'Reasoning.
+
+
+    OPTIONS:
+
+    2026-09-03 13:00 CDT
+
+    2026-09-04 10:30 CDT
+
+    2026-09-02 15:30 CDT'
+- name: reference, two options
+  expect: 10
+  answer: 'Reasoning.
+
+
+    OPTIONS:
+
+    2026-09-03 13:00 CDT
+
+    2026-09-04 10:30 CDT'
+- name: eastern zone, bullets, fence
+  expect: 10
+  answer: 'OPTIONS:
+
+    ```
+
+    - 2026-09-04 11:30 EDT
+
+    - 2026-09-03 13:00 America/Chicago
+
+    ```'
+- name: empty
+  expect: 0
+  answer: ''
+- name: whitespace
+  expect: 0
+  answer: " \n"
+- name: no block
+  expect: 0
+  answer: Thursday at 1 PM works.
+- name: no Thu 13:00 or Friday
+  expect: 7.5
+  answer: 'Reasoning.
+
+
+    OPTIONS:
+
+    2026-09-02 15:30 CDT
+
+    2026-09-03 11:00 CDT'
+- name: conflicts (Mon, Tue)
+  expect: 4
+  answer: 'Reasoning.
+
+
+    OPTIONS:
+
+    2026-08-31 14:00 CDT
+
+    2026-09-01 10:00 CDT'
+- name: an option before now
+  expect: 4
+  answer: 'Reasoning.
+
+
+    OPTIONS:
+
+    2026-08-31 08:00 CDT
+
+    2026-09-04 10:30 CDT'
+- name: four options
+  expect: 7.5
+  answer: 'Reasoning.
+
+
+    OPTIONS:
+
+    2026-09-03 13:00 CDT
+
+    2026-09-04 10:30 CDT
+
+    2026-09-02 15:30 CDT
+
+    2026-09-04 11:00 CDT'
+- name: one option
+  expect: 7.5
+  answer: 'Reasoning.
+
+
+    OPTIONS:
+
+    2026-09-04 10:30 CDT'
+- name: no time zone
+  expect: 2.5
+  answer: 'Reasoning.
+
+
+    OPTIONS:
+
+    2026-09-04 10:30
+
+    2026-09-03 13:00'
+- name: repeated option
+  expect: 4
+  answer: 'Reasoning.
+
+
+    OPTIONS:
+
+    2026-09-04 10:30 CDT
+
+    2026-09-04 10:30 CDT'

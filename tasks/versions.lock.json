@@ -3,8 +3,8 @@
     "version": 1,
     "content_hash": "02332049fef999c1",
     "prompt_hash": "42fcd7d2ecc5bc48",
-    "rubric_version": 2,
-    "rubric_hash": "a701f80115ca7b14"
+    "rubric_version": 3,
+    "rubric_hash": "ba79097d3d49ec8d"
   },
   "blank-dashboard-debug": {
     "version": 1,
@@ -14,39 +14,39 @@
     "rubric_hash": "21c080734296e3ae"
   },
   "cache-leak-incident": {
-    "version": 2,
-    "content_hash": "e972a448a401602f",
-    "prompt_hash": "bc6b2585c30b0255",
-    "rubric_version": 3,
-    "rubric_hash": "9d48c0b1139a1179"
+    "version": 3,
+    "content_hash": "403fdd42d838cff4",
+    "prompt_hash": "0c4e774776236c66",
+    "rubric_version": 4,
+    "rubric_hash": "a89eea7caac68e18"
   },
   "calendar-free-at-330": {
-    "version": 1,
-    "content_hash": "6739207e3d393ffe",
-    "prompt_hash": "f484dc6da4ecdefe",
-    "rubric_version": 1,
-    "rubric_hash": "b69b7486f14e46de"
+    "version": 2,
+    "content_hash": "6d145f996bd1436b",
+    "prompt_hash": "befffc248f09c86a",
+    "rubric_version": 2,
+    "rubric_hash": "d2ed1dccfdb0032f"
   },
   "calendar-hour-with-jamie": {
-    "version": 1,
-    "content_hash": "fa15f6d36a2b30bd",
-    "prompt_hash": "1c78c0bb4b1c5fcd",
-    "rubric_version": 1,
-    "rubric_hash": "899baaaeaaf39117"
+    "version": 2,
+    "content_hash": "6bab741addfb16f9",
+    "prompt_hash": "d3359b2437bcd208",
+    "rubric_version": 2,
+    "rubric_hash": "84fe475354719203"
   },
   "calendar-team-of-16": {
-    "version": 1,
-    "content_hash": "2088915022bd90fe",
-    "prompt_hash": "a238f219f769b6ee",
-    "rubric_version": 1,
-    "rubric_hash": "514500bcc8e3df95"
+    "version": 2,
+    "content_hash": "b3eb371da517cb6a",
+    "prompt_hash": "7fab073a33646753",
+    "rubric_version": 2,
+    "rubric_hash": "28b2d02d8b0aedf0"
   },
   "capitals-not-largest-city": {
     "version": 1,
     "content_hash": "247e19c02dbb774c",
     "prompt_hash": "fd57b295736ee7a3",
-    "rubric_version": 1,
-    "rubric_hash": "5f56bc1ccddd03dd"
+    "rubric_version": 2,
+    "rubric_hash": "63748bedb94bf1b8"
   },
   "cold-window-advice": {
     "version": 1,
@@ -66,8 +66,8 @@
     "version": 2,
     "content_hash": "840e2d2836e3ca9a",
     "prompt_hash": "1c454cdf50b5cf81",
-    "rubric_version": 2,
-    "rubric_hash": "9e06f7e7aaaf188b"
+    "rubric_version": 4,
+    "rubric_hash": "c9a169ab0763f926"
   },
   "editorial-review-workflow": {
     "version": 3,
@@ -143,8 +143,8 @@
     "version": 1,
     "content_hash": "7f6f5246841ce00c",
     "prompt_hash": "d409bbcc8192297b",
-    "rubric_version": 1,
-    "rubric_hash": "8d892908b5c59c65"
+    "rubric_version": 2,
+    "rubric_hash": "3a7f59dac961798f"
   },
   "interest-calculator-cli": {
     "version": 1,
@@ -168,18 +168,18 @@
     "rubric_hash": "fc01b9277a213309"
   },
   "landlocked-countries": {
-    "version": 1,
-    "content_hash": "9fac71a4ce0fff18",
-    "prompt_hash": "a973a3d5d8cfb0cd",
-    "rubric_version": 1,
-    "rubric_hash": "8edabc9afec16b4f"
+    "version": 2,
+    "content_hash": "7b5379ce8b6a3e04",
+    "prompt_hash": "c406ed07ccfdf5f6",
+    "rubric_version": 2,
+    "rubric_hash": "f75bb0a15226bc61"
   },
   "letter-from-1863": {
     "version": 1,
     "content_hash": "f73283c0960967b1",
     "prompt_hash": "95a8a9508291f698",
-    "rubric_version": 1,
-    "rubric_hash": "3eba539e1a059980"
+    "rubric_version": 2,
+    "rubric_hash": "44543ae2a21316cd"
   },
   "live-weather-open-ended": {
     "version": 1,
@@ -217,11 +217,11 @@
     "rubric_hash": "aa1c9b0a9e16d06c"
   },
   "names-for-one-character": {
-    "version": 1,
-    "content_hash": "1910aa6ceae57f5f",
-    "prompt_hash": "03a109aefa2ef4b3",
-    "rubric_version": 3,
-    "rubric_hash": "70e05ca5984d3fd8"
+    "version": 2,
+    "content_hash": "56a5c060f36cc57f",
+    "prompt_hash": "19739b204389f446",
+    "rubric_version": 4,
+    "rubric_hash": "a5437ba617323fd5"
   },
   "navbar-hamburger-menu": {
     "version": 1,
@@ -231,11 +231,11 @@
     "rubric_hash": "ca8989fc10f5a77b"
   },
   "news-briefing-from-feeds": {
-    "version": 1,
-    "content_hash": "90676e2bd371ebdd",
-    "prompt_hash": "54bc04fe44e71492",
-    "rubric_version": 1,
-    "rubric_hash": "d3f8886190097bb1"
+    "version": 2,
+    "content_hash": "ab43c774dcf4271c",
+    "prompt_hash": "7f6d48bda8a045b5",
+    "rubric_version": 2,
+    "rubric_hash": "7f63c4216de11a95"
   },
   "nextjs-course": {
     "version": 1,
@@ -259,32 +259,32 @@
     "rubric_hash": "307cd16e5d9b4cbf"
   },
   "order-historical-events": {
-    "version": 1,
-    "content_hash": "13862dc73f7033eb",
-    "prompt_hash": "e2eab6ee067b179f",
-    "rubric_version": 1,
-    "rubric_hash": "9ce7eb8389398c5b"
+    "version": 2,
+    "content_hash": "172ee5b11307dd30",
+    "prompt_hash": "de7bbe4885f1e2dc",
+    "rubric_version": 2,
+    "rubric_hash": "f66e11cca0e3815d"
   },
   "proofread-customer-email": {
-    "version": 1,
-    "content_hash": "a872d4387f1ee1a5",
-    "prompt_hash": "1e527ac8fa45766e",
-    "rubric_version": 3,
-    "rubric_hash": "7d57227f67a0b9e9"
+    "version": 2,
+    "content_hash": "c41a36c4fafcbd9f",
+    "prompt_hash": "bffb7b00d65ed319",
+    "rubric_version": 4,
+    "rubric_hash": "67a904e04c47efea"
   },
   "proofread-economics-essay": {
-    "version": 1,
-    "content_hash": "cf3ca397d5295f66",
-    "prompt_hash": "bfe7fd4646b8cab3",
-    "rubric_version": 2,
-    "rubric_hash": "0fefa4c8e6e7b983"
+    "version": 2,
+    "content_hash": "2bc3c8fb72053c52",
+    "prompt_hash": "26245d725b221ed4",
+    "rubric_version": 3,
+    "rubric_hash": "936fb11c6fb812f3"
   },
   "proofread-literary-paragraph": {
-    "version": 1,
-    "content_hash": "dcee0a8daeeef330",
-    "prompt_hash": "d216bb305dd627f2",
-    "rubric_version": 2,
-    "rubric_hash": "e3b3571f5658103d"
+    "version": 2,
+    "content_hash": "9d22ee63b2c772a5",
+    "prompt_hash": "506ff0a54b79022b",
+    "rubric_version": 3,
+    "rubric_hash": "056064e7a4ede298"
   },
   "react-lead-form": {
     "version": 1,
@@ -322,11 +322,11 @@
     "rubric_hash": "ef1ee05d951a00ff"
   },
   "seating-logic-puzzle": {
-    "version": 2,
-    "content_hash": "d205d3bad1048689",
-    "prompt_hash": "01f6bf5e5f9cd084",
-    "rubric_version": 2,
-    "rubric_hash": "ef4c3db9d4f7ff0a"
+    "version": 3,
+    "content_hash": "4bc46a0e3e4f1478",
+    "prompt_hash": "5285d00b6bc6205f",
+    "rubric_version": 3,
+    "rubric_hash": "ba4027243454539b"
   },
   "sink-leak-advice": {
     "version": 1,

@@ -1,0 +1,271 @@
+# Validation cases for proofread-literary-paragraph (WRIT-1b, version 2, rubric 3), checked with validate.py.
+# Wrong answers are adapted from real runs of the earlier version where they exist, keeping their mistakes.
+- name: reference
+  expect: 10.0
+  answer: 'CORRECTED:
+
+    Mara stepped off the train and into a city that smelled like rain, hot asphalt,
+    and somebody''s breakfast. The station was louder than she remembered it, all
+    brakes shrieking and people talking too fast. She could feel the old neighborhood
+    somewhere beyond the buildings, waiting. Not waiting for her, exactly. That would
+    have been too kind. Still—she was back. And she didn''t know whether to laugh,
+    or leave.
+
+
+    POSSIBLY INTENTIONAL:
+
+    - "Not waiting for her, exactly.": a deliberate fragment.
+
+    - "laugh, or leave": the comma looks like a deliberate pause.'
+- name: reference, prose before (quotes originals)
+  expect: 10.0
+  answer: 'I changed "louder then" and "talking to fast", and left "Not waiting for
+    her, exactly." alone.
+
+
+    CORRECTED:
+
+    Mara stepped off the train and into a city that smelled like rain, hot asphalt,
+    and somebody''s breakfast. The station was louder than she remembered it, all
+    brakes shrieking and people talking too fast. She could feel the old neighborhood
+    somewhere beyond the buildings, waiting. Not waiting for her, exactly. That would
+    have been too kind. Still—she was back. And she didn''t know whether to laugh,
+    or leave.
+
+
+    POSSIBLY INTENTIONAL:
+
+    - "Not waiting for her, exactly.": a deliberate fragment.
+
+    - "laugh, or leave": the comma looks like a deliberate pause.'
+- name: empty
+  expect: 0.0
+  answer: ''
+- name: whitespace only
+  expect: 0.0
+  answer: "\n  \n"
+- name: old format, paragraph only
+  expect: 0.0
+  answer: Mara stepped off the train and into a city that smelled like rain, hot asphalt,
+    and somebody's breakfast. The station was louder than she remembered it, all brakes
+    shrieking and people talking too fast. She could feel the old neighborhood somewhere
+    beyond the buildings, waiting. Not waiting for her, exactly. That would have been
+    too kind. Still—she was back. And she didn't know whether to laugh, or leave.
+- name: bold headers
+  expect: 10.0
+  answer: '**CORRECTED:**
+
+    Mara stepped off the train and into a city that smelled like rain, hot asphalt,
+    and somebody''s breakfast. The station was louder than she remembered it, all
+    brakes shrieking and people talking too fast. She could feel the old neighborhood
+    somewhere beyond the buildings, waiting. Not waiting for her, exactly. That would
+    have been too kind. Still—she was back. And she didn''t know whether to laugh,
+    or leave.
+
+
+    **POSSIBLY INTENTIONAL:**
+
+    - "Not waiting for her, exactly.": a deliberate fragment.
+
+    - "laugh, or leave": the comma looks like a deliberate pause.'
+- name: '## headings'
+  expect: 10.0
+  answer: '## Corrected
+
+
+    Mara stepped off the train and into a city that smelled like rain, hot asphalt,
+    and somebody''s breakfast. The station was louder than she remembered it, all
+    brakes shrieking and people talking too fast. She could feel the old neighborhood
+    somewhere beyond the buildings, waiting. Not waiting for her, exactly. That would
+    have been too kind. Still—she was back. And she didn''t know whether to laugh,
+    or leave.
+
+
+    ## Possibly intentional
+
+
+    - "Not waiting for her, exactly.": a deliberate fragment.
+
+    - "laugh, or leave": the comma looks like a deliberate pause.'
+- name: fenced
+  expect: 10.0
+  answer: '```
+
+    CORRECTED:
+
+    Mara stepped off the train and into a city that smelled like rain, hot asphalt,
+    and somebody''s breakfast. The station was louder than she remembered it, all
+    brakes shrieking and people talking too fast. She could feel the old neighborhood
+    somewhere beyond the buildings, waiting. Not waiting for her, exactly. That would
+    have been too kind. Still—she was back. And she didn''t know whether to laugh,
+    or leave.
+
+
+    POSSIBLY INTENTIONAL:
+
+    - "Not waiting for her, exactly.": a deliberate fragment.
+
+    - "laugh, or leave": the comma looks like a deliberate pause.
+
+    ```'
+- name: draft then final
+  expect: 10.0
+  answer: 'CORRECTED:
+
+    Mara stepped.
+
+
+    POSSIBLY INTENTIONAL: none
+
+
+    Revised:
+
+
+    CORRECTED:
+
+    Mara stepped off the train and into a city that smelled like rain, hot asphalt,
+    and somebody''s breakfast. The station was louder than she remembered it, all
+    brakes shrieking and people talking too fast. She could feel the old neighborhood
+    somewhere beyond the buildings, waiting. Not waiting for her, exactly. That would
+    have been too kind. Still—she was back. And she didn''t know whether to laugh,
+    or leave.
+
+
+    POSSIBLY INTENTIONAL:
+
+    - "Not waiting for her, exactly.": a deliberate fragment.
+
+    - "laugh, or leave": the comma looks like a deliberate pause.'
+- name: paragraph on header line, bullets
+  expect: 10.0
+  answer: 'CORRECTED: Mara stepped off the train and into a city that smelled like
+    rain, hot asphalt, and somebody''s breakfast. The station was louder than she
+    remembered it, all brakes shrieking and people talking too fast. She could feel
+    the old neighborhood somewhere beyond the buildings, waiting. Not waiting for
+    her, exactly. That would have been too kind. Still—she was back. And she didn''t
+    know whether to laugh, or leave.
+
+
+    POSSIBLY INTENTIONAL: the fragment "Not waiting for her, exactly."'
+- name: double-hyphen dash, flag on header line
+  expect: 10.0
+  answer: 'CORRECTED:
+
+    Mara stepped off the train and into a city that smelled like rain, hot asphalt,
+    and somebody''s breakfast. The station was louder than she remembered it, all
+    brakes shrieking and people talking too fast. She could feel the old neighborhood
+    somewhere beyond the buildings, waiting. Not waiting for her, exactly. That would
+    have been too kind. Still--she was back. And she didn''t know whether to laugh,
+    or leave.
+
+
+    POSSIBLY INTENTIONAL:
+
+    - "Not waiting for her, exactly.": a deliberate fragment.
+
+    - "laugh, or leave": the comma looks like a deliberate pause.'
+- name: 'POSSIBLY INTENTIONAL: none'
+  expect: 8.75
+  answer: 'CORRECTED:
+
+    Mara stepped off the train and into a city that smelled like rain, hot asphalt,
+    and somebody''s breakfast. The station was louder than she remembered it, all
+    brakes shrieking and people talking too fast. She could feel the old neighborhood
+    somewhere beyond the buildings, waiting. Not waiting for her, exactly. That would
+    have been too kind. Still—she was back. And she didn''t know whether to laugh,
+    or leave.
+
+
+    POSSIBLY INTENTIONAL: none'
+- name: fixed only in commentary
+  expect: 1.25
+  answer: 'I changed then to louder than, and to to talking too fast.
+
+
+    CORRECTED:
+
+    Mara stepped off the train.
+
+
+    POSSIBLY INTENTIONAL:
+
+    - fragments: kept'
+- name: fragments merged, dash spaced
+  expect: 6.25
+  answer: 'CORRECTED:
+
+    Mara stepped off the train and into a city that smelled like rain, hot asphalt,
+    and somebody''s breakfast. The station was louder than she remembered it, all
+    brakes shrieking and people talking too fast. She could feel the old neighborhood
+    somewhere beyond the buildings, waiting. Not waiting for her, exactly, since that
+    would have been too kind. Still - she was back. And she didn''t know whether to
+    laugh, or leave.
+
+
+    POSSIBLY INTENTIONAL:
+
+    - Not waiting: a fragment'
+- name: real gpt-6-luna adapted (silent comma removal, no flag block)
+  expect: 7.5
+  answer: 'CORRECTED:
+
+    Mara stepped off the train and into a city that smelled like rain, hot asphalt,
+    and somebody''s breakfast. The station was louder than she remembered it, all
+    brakes shrieking and people talking too fast. She could feel the old neighborhood
+    somewhere beyond the buildings, waiting. Not waiting for her, exactly. That would
+    have been too kind. Still—she was back. And she didn''t know whether to laugh
+    or leave.
+
+
+    POSSIBLY INTENTIONAL: none'
+- name: real gpt-6-luna adapted (comma removed, flagged)
+  expect: 8.75
+  answer: 'CORRECTED:
+
+    Mara stepped off the train and into a city that smelled like rain, hot asphalt,
+    and somebody''s breakfast. The station was louder than she remembered it, all
+    brakes shrieking and people talking too fast. She could feel the old neighborhood
+    somewhere beyond the buildings, waiting. Not waiting for her, exactly. That would
+    have been too kind. Still—she was back. And she didn''t know whether to laugh
+    or leave.
+
+
+    POSSIBLY INTENTIONAL:
+
+    - Not waiting for her, exactly: a fragment, but it reads as intentional.'
+- name: real qwen3.5-9b adapted (bold fixes)
+  expect: 10.0
+  answer: '### Corrected Text
+
+    CORRECTED:
+
+    Mara stepped off the train and into a city that smelled like rain, hot asphalt,
+    and somebody''s breakfast. The station was louder **than** she remembered it,
+    all brakes shrieking and people talking **too** fast. She could feel the old neighborhood
+    somewhere beyond the buildings, waiting. Not waiting for her, exactly. That would
+    have been too kind. Still—she was back. And she didn''t know whether to laugh,
+    or leave.
+
+
+    POSSIBLY INTENTIONAL:
+
+    - Sentence fragments: "Not waiting for her, exactly." and "That would have been
+    too kind." mimic the rhythm of internal thought.
+
+    - Em dash in "Still—she was back".'
+- name: real gemma-4-e4b adapted ('talking **too fast**' bold)
+  expect: 10.0
+  answer: 'CORRECTED:
+
+    Mara stepped off the train and into a city that smelled like rain, hot asphalt,
+    and somebody''s breakfast. The station was louder **than** she remembered it,
+    all brakes shrieking and people talking **too fast**. She could feel the old neighborhood
+    somewhere beyond the buildings, waiting. Not waiting for her, exactly. That would
+    have been too kind. Still—she was back. And she didn''t know whether to laugh,
+    or leave.
+
+
+    POSSIBLY INTENTIONAL:
+
+    3. Fragments and Rhythm: "Not waiting for her, exactly." (Intentional fragment)
+    and "Still—she was back." (Intentional dash).'

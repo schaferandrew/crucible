@@ -329,7 +329,7 @@
           "kind": "calendar#event",
           "id": "alex019",
           "status": "confirmed",
-          "summary": "Design sync (declined)",
+          "summary": "Design sync",
           "start": {
             "dateTime": "2026-09-03T13:00:00-05:00",
             "timeZone": "America/Chicago"
@@ -634,7 +634,7 @@
           "kind": "calendar#event",
           "id": "jamie013",
           "status": "confirmed",
-          "summary": "1:1 with Alex (declined)",
+          "summary": "1:1 with Alex",
           "start": {
             "dateTime": "2026-09-03T11:00:00-05:00",
             "timeZone": "America/Chicago"

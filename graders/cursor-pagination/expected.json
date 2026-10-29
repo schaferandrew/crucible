@@ -1,0 +1,277 @@
+[
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "cursor paging",
+    "name": "walks every article once, newest first, ending with nextCursor null"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "cursor paging",
+    "name": "ends with a null nextCursor when the last page is exactly full"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "cursor paging",
+    "name": "is total even when createdAt ties"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "cursor paging",
+    "name": "never skips or repeats when articles are created between pages"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "cursor paging",
+    "name": "never skips or repeats when an article already read is deleted between pages"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "cursor paging",
+    "name": "never skips or repeats when articles not yet read are deleted between pages"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "cursor paging",
+    "name": "never skips or repeats with creates and deletes between every page"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "cursor paging",
+    "name": "never skips or repeats when an article is favorited between pages"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "cursor paging",
+    "name": "is stable when the page size changes between requests"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "cursor paging",
+    "name": "pages a tag filter"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "cursor paging",
+    "name": "pages an author filter"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "cursor paging",
+    "name": "pages the favorited filter"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "cursor paging",
+    "name": "pages the feed"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "cursor paging",
+    "name": "keeps the feed stable while the followed author publishes and deletes"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "cursor paging",
+    "name": "keeps articlesCount as the filtered total on every page"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "cursor paging",
+    "name": "shows the viewer's favorited flag on a cursor page"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "cursor paging: comments",
+    "name": "pages comments newest first, once each, ending with nextCursor null"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "cursor paging: comments",
+    "name": "never skips or repeats when comments are added between pages"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "cursor paging: comments",
+    "name": "never skips or repeats when comments are deleted between pages"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "cursor paging: comments",
+    "name": "is total even when comments share a createdAt"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "cursor paging: comments",
+    "name": "returns nextCursor as a string with a limit smaller than the comment count"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "validation",
+    "name": "rejects a malformed cursor with the usual error envelope"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "validation",
+    "name": "rejects a cursor with its end altered"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "validation",
+    "name": "rejects a cursor with its middle altered"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "validation",
+    "name": "rejects a cursor whose position was edited"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "validation",
+    "name": "rejects a truncated cursor"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "validation",
+    "name": "rejects a cursor made for a filter when it is used without one"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "validation",
+    "name": "rejects a cursor used with a different tag"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "validation",
+    "name": "rejects an unfiltered cursor used with a filter"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "validation",
+    "name": "rejects a cursor used with a different author"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "validation",
+    "name": "rejects a list cursor on the feed, and a feed cursor on the list"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "validation",
+    "name": "rejects an article cursor on comments, and a comment cursor on articles"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "validation",
+    "name": "rejects cursor together with offset"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "validation",
+    "name": "rejects cursor together with offset=0, and on the feed"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "validation",
+    "name": "still requires sign-in for the feed when a cursor is sent"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "backward compatibility",
+    "name": "offset paging is unchanged"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "backward compatibility",
+    "name": "offset paging works with filters and the feed"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "backward compatibility",
+    "name": "offset past the end returns an empty page with the total"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "backward compatibility",
+    "name": "a request without limit, offset or cursor still returns the newest articles first"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "backward compatibility",
+    "name": "a bad limit or offset is still a 422 in the old envelope"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "backward compatibility",
+    "name": "an offset client can still walk the whole list, a cursor client in between changes nothing"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "backward compatibility",
+    "name": "unpaged comments return everything, newest first"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "backward compatibility",
+    "name": "a comments limit alone returns the newest page"
+  },
+  {
+    "file": "cursor.grader.test.ts",
+    "group": "backward compatibility",
+    "name": "comments keep their shape"
+  },
+  {
+    "file": "cursor.web.grader.test.tsx",
+    "group": "web: load more",
+    "name": "the home page loads more articles and keeps the loaded ones on screen"
+  },
+  {
+    "file": "cursor.web.grader.test.tsx",
+    "group": "web: load more",
+    "name": "the home page asks for the next page with the cursor it was given, not an offset"
+  },
+  {
+    "file": "cursor.web.grader.test.tsx",
+    "group": "web: load more",
+    "name": "the Load more button is gone on the last page"
+  },
+  {
+    "file": "cursor.web.grader.test.tsx",
+    "group": "web: load more",
+    "name": "there is no Load more button when everything fits on one page"
+  },
+  {
+    "file": "cursor.web.grader.test.tsx",
+    "group": "web: load more",
+    "name": "numbered pagination is gone"
+  },
+  {
+    "file": "cursor.web.grader.test.tsx",
+    "group": "web: load more",
+    "name": "the signed-in feed loads more the same way"
+  },
+  {
+    "file": "cursor.web.grader.test.tsx",
+    "group": "web: load more",
+    "name": "the profile's articles load more, keeping the author filter"
+  },
+  {
+    "file": "cursor.web.grader.test.tsx",
+    "group": "web: load more",
+    "name": "the profile's favorited tab loads more, keeping the favorited filter"
+  },
+  {
+    "file": "cursor.web.grader.test.tsx",
+    "group": "web: load more",
+    "name": "comments on the article page load more and stay on screen"
+  },
+  {
+    "file": "cursor.web.grader.test.tsx",
+    "group": "web: load more",
+    "name": "the comments' Load more button is gone on the last page"
+  },
+  {
+    "file": "regression",
+    "group": "regression",
+    "name": "your new tests fail on the seeded code and pass on your fix"
+  }
+]

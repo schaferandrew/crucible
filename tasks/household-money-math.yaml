@@ -7,7 +7,7 @@ category: math
 area: math
 tier: temper
 version: 1
-rubric_version: 1
+rubric_version: 2
 status: provisional
 auto_grade: false
 repo: null
@@ -30,42 +30,47 @@ prompt: 'Everyday money and measurement questions. Show your working, and round 
   End with a section headed ANSWERS, one line per question in the form `1. <answer>`.
 
   '
+# Only the ANSWERS block is scored: four equal items, one per question (each criterion is one point).
 checks:
 - id: interest
-  type: required_patterns
-  patterns:
-  - (?im)^\W*1[.)]\s*.*\$?\s*5,?636\.36\b
+  type: items
+  header: ANSWERS
+  items:
+  - {id: interest, key: '1', expect: 5636.36, normalize: money, label: 'Answer 1 is $5,636.36'}
   rule: Answer 1 is $5,636.36 (monthly compounding, 36 periods).
 - id: boxes
-  type: required_patterns
-  patterns:
-  - (?im)^\W*2[.)]\s*.*\b87\b
+  type: items
+  header: ANSWERS
+  items:
+  - {id: boxes, key: '2', expect: 87, normalize: number, label: 'Answer 2 is 87 boxes'}
   rule: Answer 2 is 87 boxes (2,035 sq ft, rounded up).
 - id: gas
-  type: required_patterns
-  patterns:
-  - (?im)^\W*3[.)]\s*.*\$?\s*47\.14\b
+  type: items
+  header: ANSWERS
+  items:
+  - {id: gas, key: '3', expect: 47.14, normalize: money, label: 'Answer 3 is $47.14'}
   rule: Answer 3 is $47.14.
 - id: split
-  type: required_patterns
-  patterns:
-  - (?im)^\W*4[.)]\s*.*\$?\s*54\.34\b
+  type: items
+  header: ANSWERS
+  items:
+  - {id: split, key: '4', expect: 54.34, normalize: money, label: 'Answer 4 is $54.34'}
   rule: Answer 4 is $54.34 each (tip on the pre-tax amount, added to the taxed total).
 rubric:
 - criterion: Compound interest
-  max_score: 3
+  max_score: 1
   check: interest
   description: Answer 1 is $5,636.36 (monthly compounding, 36 periods).
 - criterion: Boxes
-  max_score: 2
+  max_score: 1
   check: boxes
   description: Answer 2 is 87 boxes (2,035 sq ft, rounded up).
 - criterion: Gas cost
-  max_score: 2
+  max_score: 1
   check: gas
   description: Answer 3 is $47.14.
 - criterion: Split bill
-  max_score: 3
+  max_score: 1
   check: split
   description: Answer 4 is $54.34 each (tip on the pre-tax amount, added to the taxed total).
 critical_failure: null

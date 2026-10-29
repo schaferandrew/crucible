@@ -1,0 +1,27 @@
+# Hidden tests for cursor-pagination (formerly CODE-12); see crucible/graders.py.
+# Isolated: the tests run in a fresh copy of repos/conduit-monorepo that takes only the source
+# folders below from the model's workspace, so the package.json files, the test setup and the
+# seeded tests (the RealWorld contract suite among them) stay as seeded.
+isolated: true
+artifacts: [apps/api/src, apps/web/src, packages/shared/src]
+# The seeded repo has no lockfile (editorial-review-workflow shares it), so the grader pins its own:
+# the same file as that grader's, installed from the unchanged seeded package.json files
+lockfile: package-lock.json
+test_roots:
+  "*.web.grader.test.tsx": apps/web
+  "*.grader.test.ts": apps/api
+# Caps, not points. Only the API's seeded tests: the seeded web test "loads the next page by offset"
+# asserts the numbered pagination the brief tells the model to replace, so no correct answer passes it.
+existing_tests: [apps/api]
+unchanged: [apps/api/test/realworld.contract.test.ts]
+# The model's own new tests: pass on its fix, fail on the seeded code. One test in the pool
+regression_tests: [apps/api, apps/web]
+timeout: 600
+# `crucible grader cursor-pagination` grades each of these and checks the score lands in its range
+oracle:
+  solution: [10, 10]
+  seeded: [0, 0]
+  calibration:
+    offset-cursor: [6, 6]              # the cursor is an offset in disguise: repeats and skips under creates and deletes; 8.73 by tests, capped at 6
+    unsigned-cursor: [7.5, 9.3]        # positions are right, but the cursor is forgeable and not bound to its query
+    breaks-offset-clients: [5, 5]      # everything cursor-related, but offset requests ignore offset: capped at 5

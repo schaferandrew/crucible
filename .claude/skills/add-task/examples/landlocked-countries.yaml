@@ -1,0 +1,86 @@
+# Validation cases for landlocked-countries (GEOG-2, version 2, rubric 2), checked with validate.py.
+# Wrong answers are adapted from real runs of the earlier version where they exist, keeping their mistakes.
+- answer: 'Landlocked: Bolivia, Kazakhstan, Austria, Laos, Paraguay, Serbia, Ethiopia, Uzbekistan, Zambia, Hungary, Mongolia
+
+    Not landlocked: Croatia, Eritrea, Mozambique, Vietnam, Slovenia, Jordan, Bosnia and Herzegovina, Togo, Iraq, DR Congo, Belgium
+
+    Doubly landlocked: Uzbekistan'
+  expect: 10.0
+  name: reference
+- answer: 'Reasoning.
+
+
+    **Landlocked:** Austria, Bolivia, Ethiopia, Hungary, Kazakhstan, Laos, Mongolia, Paraguay, Serbia, Uzbekistan and Zambia
+
+    **Not landlocked:** Belgium, Bosnia and Herzegovina, Croatia, Democratic Republic of the Congo, Eritrea, Iraq, Jordan, Mozambique, Slovenia, Togo, Vietnam
+
+    **Doubly landlocked:** Uzbekistan.'
+  expect: 10.0
+  name: reference prose first, bold labels, and, DRC alias
+- answer: '```
+
+    - Landlocked: Bolivia; Kazakhstan; Austria; Laos; Paraguay; Serbia; Ethiopia; Uzbekistan; Zambia; Hungary; Mongolia
+
+    - Not landlocked: Croatia; Eritrea; Mozambique; Vietnam; Slovenia; Jordan; Bosnia and Herzegovina; Togo; Iraq; DR Congo; Belgium
+
+    - Doubly landlocked: Uzbekistan
+
+    ```'
+  expect: 10.0
+  name: reference fenced bullets semicolons
+- answer: ''
+  expect: 0.0
+  name: empty
+- answer: "\n \n"
+  expect: 0.0
+  name: whitespace
+- answer: Bolivia and Austria are landlocked.
+  expect: 0.0
+  name: no labelled lines
+- answer: 'Landlocked: Bolivia, Kazakhstan, Austria, Laos, Paraguay, Serbia, Ethiopia, Uzbekistan, Zambia, Hungary, Mongolia, Croatia, Eritrea, Mozambique, Vietnam, Slovenia, Jordan, Bosnia and Herzegovina, Togo, Iraq, DR Congo, Belgium
+
+    Not landlocked: none
+
+    Doubly landlocked: Uzbekistan'
+  expect: 5.22
+  name: list everything as landlocked (blind)
+- answer: 'Landlocked: none
+
+    Not landlocked: Bolivia, Kazakhstan, Austria, Laos, Paraguay, Serbia, Ethiopia, Uzbekistan, Zambia, Hungary, Mongolia, Croatia, Eritrea, Mozambique, Vietnam, Slovenia, Jordan, Bosnia and Herzegovina, Togo, Iraq, DR Congo, Belgium
+
+    Doubly landlocked: None'
+  expect: 4.78
+  name: list nothing as landlocked, all coastal (blind)
+- answer: 'Landlocked: Bolivia, Kazakhstan, Austria, Laos, Paraguay, Serbia, Ethiopia, Uzbekistan, Zambia, Hungary, Mongolia, Croatia, Eritrea, Mozambique, Vietnam, Slovenia, Jordan, Bosnia and Herzegovina, Togo, Iraq, DR Congo, Belgium
+
+    Not landlocked: Bolivia, Kazakhstan, Austria, Laos, Paraguay, Serbia, Ethiopia, Uzbekistan, Zambia, Hungary, Mongolia, Croatia, Eritrea, Mozambique, Vietnam, Slovenia, Jordan, Bosnia and Herzegovina, Togo, Iraq, DR Congo, Belgium
+
+    Doubly landlocked: None'
+  expect: 0.0
+  name: everything on both lines
+- answer: 'Landlocked: Bolivia, Kazakhstan, Austria, Laos, Paraguay, Serbia, Ethiopia, Uzbekistan, Zambia, Hungary, Mongolia, Slovenia, Jordan, Bosnia and Herzegovina, Togo, Iraq, DR Congo, Belgium
+
+    Not landlocked: Croatia, Eritrea, Mozambique, Vietnam
+
+    Doubly landlocked: Uzbekistan'
+  expect: 6.96
+  name: 'classic answer: fall for the 7 look-alikes'
+- answer: 'Landlocked: Bolivia, Kazakhstan, Austria, Laos, Paraguay, Ethiopia, Uzbekistan, Zambia, Hungary, Mongolia
+
+    Not landlocked: Croatia, Eritrea, Mozambique, Vietnam, Slovenia, Jordan, Bosnia and Herzegovina, Togo, Iraq, DR Congo, Belgium, Serbia
+
+    Doubly landlocked: None'
+  expect: 9.13
+  name: 'gemma-12b ro shape: Serbia wrong line, no doubly'
+- answer: 'Landlocked: Bolivia, Austria, Laos, Paraguay, Serbia, Ethiopia, Uzbekistan, Zambia, Hungary, Mongolia
+
+    Not landlocked: Croatia, Eritrea, Mozambique, Vietnam, Slovenia, Jordan, Bosnia and Herzegovina, Togo, Iraq, DR Congo, Belgium
+
+    Doubly landlocked: Austria'
+  expect: 9.13
+  name: 'gpt-oss shape: Kazakhstan missing, doubly Austria'
+- answer: 'Landlocked: Bolivia, Kazakhstan, Austria, Laos, Paraguay, Serbia, Ethiopia, Uzbekistan, Zambia, Hungary, Mongolia
+
+    Doubly landlocked: Uzbekistan'
+  expect: 5.22
+  name: Not landlocked line missing

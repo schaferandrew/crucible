@@ -1,4 +1,5 @@
 2026-10-22T09:03:00.000Z deploy api v1.7.2 rollback=false status=succeeded
-2026-10-23T16:36:10.000Z deploy api v1.8.0 started by ci (commit 7f3e91c "perf: cache hot read endpoints (PERF-212)")
+2026-10-23T16:36:10.000Z deploy api v1.8.0 started by ci (commit 7f3e91c, 6 changes since v1.7.2)
+2026-10-23T16:36:10.000Z release notes v1.8.0: PERF-212 PERF-219 OPS-3071 DEP-88 DOC-41 FIX-1204
 2026-10-23T16:42:10.000Z deploy api v1.8.0 status=succeeded instances=4 NODE_ENV=production
 2026-10-23T16:43:10.000Z healthcheck api v1.8.0 p95_ms=41 error_rate=0.000

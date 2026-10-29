@@ -119,12 +119,12 @@ def test_small_local_context_refuses_agent_runs(monkeypatch):
 
 def test_markdown_emphasis_does_not_hide_a_fix():
     prompt = workspace.load_task("WRIT-1b")
-    text = ("The station was louder **than** she remembered it, people talking *too* fast. "
+    text = ("CORRECTED:\nThe station was louder **than** she remembered it, people talking *too* fast. "
             "Not waiting for her, exactly. That would have been too kind. Still—she was back. "
             "Mara stepped off the train and into a city that smelled like rain, hot asphalt, and somebody's breakfast. "
-            "I kept the fragments; they look intentional. " + "word " * 40)
+            "And she didn't know whether to laugh, or leave.\n\nPOSSIBLY INTENTIONAL:\n- the fragments")
     by_id = {r["id"]: r for r in checks.run_checks(prompt, text)}
-    assert by_id["fixes_than"]["passed"] and by_id["fixes_too"]["passed"] and by_id["keeps_fragments"]["passed"]
+    assert by_id["errors_fixed"]["passed"] and by_id["voice_kept"]["passed"] and by_id["flags_intent"]["passed"]
 
 
 def test_required_patterns_min_matches():
@@ -157,8 +157,12 @@ EVERY_TYPE = [
     {"id": "described", "type": "list_items", "each_matches": r"\S+\s*(—|-|:)\s*\S+"},
     {"id": "grounded", "type": "grounded_numbers"},
     {"id": "grade", "type": "grade_closeness", "actual_score": 5, "width": 100},
+    {"id": "cited", "type": "cited_paragraphs",
+     "items": [{"id": "s", "source": "S1", "absent": True}, {"id": "f", "cited": ["S1"], "all": ["x"]}]},
     {"id": "block", "type": "items", "normalize": "letter_set",
      "items": [{"id": "q", "expect": ["B"], "of": ["A", "B", "C"]}, {"id": "n", "key": "2", "expect": 2}]},
+    {"id": "times", "type": "time_options", "dataset": "spark", "items": [{"id": "c", "kind": "count", "min": 0}]},
+    {"id": "tools", "type": "tool_calls", "items": [{"id": "t", "tool": "get_current_time"}]},
 ]
 
 
@@ -169,9 +173,14 @@ def test_an_empty_answer_fails_every_check_type(text):
     results = checks.run_checks({"checks": EVERY_TYPE, "prompt": "Source: 1,234"}, text)
     assert [r["passed"] for r in results] == [False] * len(EVERY_TYPE)
     assert {r["detail"] for r in results} == {"no answer to check"}
-    block = results[-1]
+    by_id = {r["id"]: r for r in results}
     # Every item fails, expanded as a real block would be (3 letters + 1 line), so the total doesn't change
+    block = by_id["block"]
     assert block["share"] == 0.0 and len(block["items"]) == 4 and not any(i["passed"] for i in block["items"])
+    # The other item-scoring checks fail one item per entry
+    for check, n in (("cited", 2), ("times", 1), ("tools", 1)):
+        assert by_id[check]["share"] == 0.0 and len(by_id[check]["items"]) == n
+        assert not any(i["passed"] for i in by_id[check]["items"])
 
 
 def test_an_empty_file_fails_its_checks(tmp_path):

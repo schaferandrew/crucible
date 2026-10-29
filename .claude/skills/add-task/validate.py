@@ -3,7 +3,9 @@
     uv run python .claude/skills/add-task/validate.py <task> <cases.yaml>
 
 cases.yaml is a list of {name, expect, answer}; `expect` is the score out of 10 worked out by hand
-(items passed / all items x 10), and `answer` the model's whole reply. Exits 1 if any case misses.
+(items passed / all items x 10), and `answer` the model's whole reply. For a task with `tool_calls`
+checks (the calendar tasks), a case can add `tools`, the calls the agent made: a list of
+[name, {args}] pairs. Caps (`cap_if_failed`) apply as in a run. Exits 1 if any case misses.
 """
 import sys
 from pathlib import Path
@@ -13,10 +15,13 @@ import yaml
 from crucible import checks, workspace
 
 
-def score(task: dict, text: str) -> tuple[float, list[dict]]:
-    results = checks.run_checks(task, text)
+def score(task: dict, text: str, tools: list | None = None) -> tuple[float, list[dict]]:
+    calls = [{"name": name, "args": args} for name, args in tools] if tools is not None else None
+    results = checks.run_checks(task, text, tool_calls=calls)
     earned = checks.criterion_scores(task, results)
-    return round(sum(earned.values()) / sum(item["max_score"] for item in task["rubric"]) * 10, 2), results
+    got = round(sum(earned.values()) / sum(item["max_score"] for item in task["rubric"]) * 10, 2)
+    cap = checks._cap(task, earned)
+    return (min(got, cap) if cap is not None else got), results
 
 
 def main() -> None:
@@ -25,7 +30,7 @@ def main() -> None:
     misses = 0
     print("| Answer | Expected | Actual |\n|---|---|---|")
     for case in cases:
-        got, results = score(task, case.get("answer") or "")
+        got, results = score(task, case.get("answer") or "", case.get("tools"))
         ok = abs(got - round(float(case["expect"]), 2)) < 0.01
         misses += not ok
         print(f"| {case['name']} | {float(case['expect']):.2f} | {got:.2f}{'' if ok else '  MISS'} |")

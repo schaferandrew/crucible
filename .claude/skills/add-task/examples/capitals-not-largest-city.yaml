@@ -1,0 +1,13 @@
+# Validation cases for capitals-not-largest-city (GEOG-1, version 1, rubric 2), checked with validate.py.
+# Wrong answers are adapted from real runs of the earlier version where they exist, keeping their mistakes.
+- {name: reference, expect: 10.0, answer: "Australia: Canberra\nCanada: Ottawa\nBrazil: Brasília\nNigeria: Abuja\nTürkiye: Ankara\nSwitzerland: Bern"}
+- {name: reference prose first, expect: 10.0, answer: "Not the biggest cities.\n\nAustralia: Canberra\nCanada: Ottawa\nBrazil: Brasília\nNigeria: Abuja\nTürkiye: Ankara\nSwitzerland: Bern"}
+- {name: bold, bullets, ascii, Turkey, Berne, expect: 10.0, answer: "- **Australia**: Canberra\n- Canada: **Ottawa**\n* Brazil: Brasilia\n* Nigeria: Abuja.\n* Turkey: Ankara\n* Switzerland: Berne"}
+- {name: fenced, expect: 10.0, answer: "```\nAustralia: Canberra\nCanada: Ottawa\nBrazil: Brasília\nNigeria: Abuja\nTürkiye: Ankara\nSwitzerland: Bern\n```"}
+- {name: draft then corrected line, expect: 10.0, answer: "Canada: Toronto\nAustralia: Canberra\nCanada: Ottawa\nBrazil: Brasília\nNigeria: Abuja\nTürkiye: Ankara\nSwitzerland: Bern"}
+- {name: empty, expect: 0.0, answer: ""}
+- {name: whitespace, expect: 0.0, answer: " \n \n"}
+- {name: capitals in prose only, expect: 0.0, answer: "The capitals are Canberra, Ottawa, Brasilia, Abuja, Ankara and Bern."}
+- {name: big-city trap answers, expect: 0.0, answer: "Australia: Sydney\nCanada: Toronto\nBrazil: Rio de Janeiro\nNigeria: Lagos\nTürkiye: Istanbul\nSwitzerland: Zurich"}
+- {name: three right three traps, expect: 5.0, answer: "Australia: Canberra\nCanada: Toronto\nBrazil: Rio\nNigeria: Abuja\nTürkiye: Istanbul\nSwitzerland: Bern"}
+- {name: sentence not a name (Not Sydney but Canberra), expect: 8.33, answer: "Australia: Not Sydney but Canberra\nCanada: Ottawa\nBrazil: Brasília\nNigeria: Abuja\nTürkiye: Ankara\nSwitzerland: Bern"}

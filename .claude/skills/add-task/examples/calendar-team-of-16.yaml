@@ -1,0 +1,188 @@
+# Validation cases for calendar-team-of-16 (TASK-6, version 2, rubric 2), checked with validate.py.
+# Wrong answers are adapted from real runs of the earlier version where they exist, keeping their mistakes. Cases with `tools` list the calls the agent made (read by the tool_calls checks).
+- name: reference
+  expect: 10
+  answer: 'Reasoning.
+
+
+    OPTIONS:
+
+    2026-09-01 13:00 CDT
+
+    2026-09-02 09:00 CDT
+
+    2026-09-08 11:00 CDT'
+  tools:
+  - &id001
+    - get_freebusy
+    - calendars:
+      - id: jamie@example.com
+      - id: priya@example.com
+      - id: marcus@example.com
+      - id: dana@example.com
+      - id: theo@example.com
+      - id: lena@example.com
+      - id: omar@example.com
+      - id: chloe@example.com
+      - id: ravi@example.com
+      - id: sofia@example.com
+      - id: ben@example.com
+      - id: nina@example.com
+      - id: caleb@example.com
+      - id: mei@example.com
+      - id: eli@example.com
+      timeMin: x
+      timeMax: y
+  - - get_current_time
+    - {}
+  - - list_events
+    - {}
+- name: reference, eastern zone
+  expect: 10
+  answer: 'Reasoning.
+
+
+    OPTIONS:
+
+    2026-09-01 14:00 EDT
+
+    2026-09-02 09:00 CDT
+
+    2026-09-08 11:00 CDT'
+  tools: &id002
+  - *id001
+- name: empty
+  expect: 0
+  answer: ''
+  tools: *id002
+- name: no block (tool item still earns)
+  expect: 2
+  answer: Tuesday at 1.
+  tools: *id002
+- name: Labor Day option
+  expect: 4
+  answer: 'Reasoning.
+
+
+    OPTIONS:
+
+    2026-09-07 10:00 CDT
+
+    2026-09-01 13:00 CDT
+
+    2026-09-02 09:00 CDT'
+  tools: *id002
+- name: option after 4 PM Central (Marcus)
+  expect: 4
+  answer: 'Reasoning.
+
+
+    OPTIONS:
+
+    2026-09-08 16:00 CDT
+
+    2026-09-01 13:00 CDT
+
+    2026-09-02 09:00 CDT'
+  tools: *id002
+- name: Priya out 9/10
+  expect: 4
+  answer: 'Reasoning.
+
+
+    OPTIONS:
+
+    2026-09-10 11:00 CDT
+
+    2026-09-01 13:00 CDT
+
+    2026-09-02 09:00 CDT'
+  tools: *id002
+- name: four options
+  expect: 8
+  answer: 'Reasoning.
+
+
+    OPTIONS:
+
+    2026-09-01 13:00 CDT
+
+    2026-09-02 09:00 CDT
+
+    2026-09-08 11:00 CDT
+
+    2026-09-03 14:00 CDT'
+  tools: *id002
+- name: two options
+  expect: 8
+  answer: 'Reasoning.
+
+
+    OPTIONS:
+
+    2026-09-01 13:00 CDT
+
+    2026-09-02 09:00 CDT'
+  tools: *id002
+- name: no get_freebusy
+  expect: 8
+  answer: 'Reasoning.
+
+
+    OPTIONS:
+
+    2026-09-01 13:00 CDT
+
+    2026-09-02 09:00 CDT
+
+    2026-09-08 11:00 CDT'
+  tools:
+  - - list_events
+    - {}
+- name: 14 of 15 calendars
+  expect: 8
+  answer: 'Reasoning.
+
+
+    OPTIONS:
+
+    2026-09-01 13:00 CDT
+
+    2026-09-02 09:00 CDT
+
+    2026-09-08 11:00 CDT'
+  tools:
+  - - get_freebusy
+    - calendars:
+      - id: jamie@example.com
+      - id: priya@example.com
+      - id: marcus@example.com
+      - id: dana@example.com
+      - id: theo@example.com
+      - id: lena@example.com
+      - id: omar@example.com
+      - id: chloe@example.com
+      - id: ravi@example.com
+      - id: sofia@example.com
+      - id: ben@example.com
+      - id: nina@example.com
+      - id: caleb@example.com
+      - id: mei@example.com
+- name: string ids and primary
+  expect: 10
+  answer: 'Reasoning.
+
+
+    OPTIONS:
+
+    2026-09-01 13:00 CDT
+
+    2026-09-02 09:00 CDT
+
+    2026-09-08 11:00 CDT'
+  tools:
+  - - get_freebusy
+    - calendars: '["jamie@example.com", "priya@example.com", "marcus@example.com",
+        "dana@example.com", "theo@example.com", "lena@example.com", "omar@example.com",
+        "chloe@example.com", "ravi@example.com", "sofia@example.com", "ben@example.com",
+        "nina@example.com", "caleb@example.com", "mei@example.com", "eli@example.com"]'

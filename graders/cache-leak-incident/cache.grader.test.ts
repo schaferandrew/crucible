@@ -1,7 +1,6 @@
-// Hidden acceptance tests for C13 (response-cache incident). Never copied into the model's workspace.
-// The judge copies this file to apps/api/test/hidden/ in a scratch copy and runs:
-//   npx vitest run test/hidden    (from apps/api)
-// The cache is turned on through the interface the task says to keep: createApp(db, { responseCacheTtlMs }).
+// Hidden tests for cache-leak-incident (formerly CODE-13); see crucible/graders.py. Never copied into the
+// model's workspace: the grader copies this file to apps/api/test/hidden/ in a fresh copy of the seeded repo.
+// The app is built the way the prompt says to keep working: createApp(db, { responseCacheTtlMs }).
 import request from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../../src/app";
@@ -56,6 +55,22 @@ describe("per-viewer fields are never shared through the cache", () => {
     expect(asStranger.body.articles[0]).toMatchObject({ favorited: false, author: { following: false } });
   });
 
+  it("article: author.following belongs to the viewer", async () => {
+    await request(app).post("/api/profiles/author/follow").set(as(fan)).expect(200);
+    const asFan = await request(app).get(`/api/articles/${slug}`).set(as(fan)).expect(200);
+    expect(asFan.body.article.author.following).toBe(true);
+    const asStranger = await request(app).get(`/api/articles/${slug}`).set(as(stranger)).expect(200);
+    expect(asStranger.body.article.author.following).toBe(false);
+  });
+
+  it("filtered lists: favorited belongs to the viewer", async () => {
+    await request(app).post(`/api/articles/${slug}/favorite`).set(as(fan)).expect(200);
+    const asFan = await request(app).get("/api/articles?tag=t").set(as(fan)).expect(200);
+    expect(asFan.body.articles[0].favorited).toBe(true);
+    const asStranger = await request(app).get("/api/articles?tag=t").set(as(stranger)).expect(200);
+    expect(asStranger.body.articles[0].favorited).toBe(false);
+  });
+
   it("profiles: following belongs to the viewer", async () => {
     await request(app).post("/api/profiles/author/follow").set(as(fan)).expect(200);
     const asFan = await request(app).get("/api/profiles/author").set(as(fan)).expect(200);
@@ -89,6 +104,14 @@ describe("writes are visible immediately", () => {
     await request(app).post(`/api/articles/${slug}/favorite`).set(as(fan)).expect(200);
     const res = await request(app).get(`/api/articles/${slug}`).set(as(stranger)).expect(200);
     expect(res.body.article.favoritesCount).toBe(1);
+  });
+
+  it("unfavoriting", async () => {
+    await request(app).post(`/api/articles/${slug}/favorite`).set(as(fan)).expect(200);
+    expect((await request(app).get(`/api/articles/${slug}`).set(as(fan))).body.article.favorited).toBe(true);
+    await request(app).delete(`/api/articles/${slug}/favorite`).set(as(fan)).expect(200);
+    const res = await request(app).get(`/api/articles/${slug}`).set(as(fan)).expect(200);
+    expect(res.body.article).toMatchObject({ favorited: false, favoritesCount: 0 });
   });
 
   it("follows and unfollows", async () => {

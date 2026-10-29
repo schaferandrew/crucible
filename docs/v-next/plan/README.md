@@ -11,9 +11,21 @@ author has reported back to the orchestrating session.
 | [A2 Leak scan](A2-leak-scan.md) | A | crucible (read-only) | Haiku | — | done: [report](reports/A2-leak-scan.md) |
 | [A3 Data-driven dashboard](A3-portfolio-data-driven.md) | A | portfolio | Sonnet | — | done: portfolio `claude/a3-crucible-data-driven-862318` (e76cd73); awaiting review and merge |
 | [C Crucible 3.0.0](C-crucible-3.0.0.md) | C | crucible | Opus | A1 | started, on top of the A1 branch |
-| [D Task conversions](D-task-conversions.md) | D | crucible | Opus first two, then Sonnet per task | C merged | outline |
+| [D Task conversions](D-task-conversions.md) | D | crucible | Opus first two, then Sonnet per task | C merged | exemplars merged (3.1.0); wave 1 (17 tasks) done, combined as Crucible 3.2.0 on `claude/crucible-3-2-0-91cb06`, awaiting merge; CODE-2b and RSCH-2b moved to Suite v3 |
 | [E Calibration runs](E-calibration.md) | E | crucible | Sonnet | D tasks as they land | outline |
 | F Suite v2 cut and site switch | F | both | orchestrator, with Andrew | D, E | — |
+
+## Lean plan (Andrew's decision, 2026-10-29)
+
+Suite v2 ships with what wave 1 converted, rather than waiting for every conversion:
+
+- Combine the eight wave-1 branches into one release, Crucible 3.2.0.
+- Cap CODE-12's core requirement: `cap_if_failed: 6` on cursor correctness, so cursors that skip or
+  repeat under concurrent writes can't score near 10.
+- Commit the wave-1 validation cases to `.claude/skills/add-task/examples/`.
+- **`navbar-hamburger-menu` (CODE-2b) and `weather-vs-normal` (RSCH-2b) move to Suite v3.** Their
+  conversions need new infrastructure (the first Playwright grader; a frozen `web` fixture host), which
+  doesn't fit Suite v2. They are not converted in D.
 
 ## Rules for every session
 

@@ -2,7 +2,9 @@
 
 ## 1.8.0 (2026-10-23)
 
-- perf: cache hot read endpoints (GET /articles, /articles/:slug, /profiles/:username, /tags) for 60s in production (PERF-212). p95 on /articles drops from 410ms to 38ms in staging load tests. Enabled with `createApp(db, { responseCacheTtlMs })`; our load tests and server.ts rely on that option.
+- perf: request pipeline changes for production (PERF-212, PERF-219)
+- chore: bump express, supertest and vitest (DEP-88)
+- docs: README run instructions (DOC-41)
 - fix: tag list ordering ties broken alphabetically
 
 ## 1.7.2 (2026-10-15)
