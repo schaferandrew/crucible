@@ -35,6 +35,22 @@ here ([docs/versioning.md](docs/versioning.md)).
   (read the line that names an event, with aliases, instead of a numbered label; for scoring a year per
   event whatever order the lines are in).
 
+- **`time_options` check:** scores an `OPTIONS:` block of `YYYY-MM-DD HH:MM <time zone>` lines against a
+  mock-calendar dataset. The ground-truth start times are computed from the dataset (`free_starts()`),
+  not listed in the task. Item kinds: `in_set` (every option a distinct valid start), `count`,
+  `includes_any` (a valid option matching a weekday, date or time), `not_before_now`, `avoid` (dates and
+  date ranges) and `latest_end`. Zones are read by name (`CDT`, `Central`, `America/Chicago`) or offset.
+- **`tool_calls` check:** scores what the agent did, from the run's `session.json` (pi and opencode
+  formats) rather than its reply: a tool was called, and for `get_freebusy` with `covers`, every
+  calendar of a dataset's team was named. `checks.session_tool_calls()` and a `tool_calls=` argument to
+  `run_checks()` expose the calls.
+
+### Changed
+
+- **Mock calendar data is part of a task's content hash.** `mock-calendar:<dataset>` hashes the dataset
+  JSON and the server (`calendar_server.py`), so editing either shows up as drift in `crucible versions`
+  (it was not hashed before). Only the three calendar tasks are affected.
+
 ## 3.1.0 (2026-10-29)
 
 Scoring fixes and the first converted tasks for Suite v2: empty answers score 0, answer blocks

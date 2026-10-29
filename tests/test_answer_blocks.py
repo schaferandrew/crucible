@@ -1,4 +1,6 @@
 """The answer-block parser and the `items` check (fact-check-history is the first task to use them)."""
+import json
+
 import pytest
 
 from crucible import checks
@@ -245,3 +247,106 @@ def test_news_briefing_oracle():
 
     assert score(ref) == 10.0 and score("") == 0.0
     assert score(ref + "\n\nOkoro won. [S10]") == 9.09
+
+# --------------------------------------------------------------------------
+# time_options and tool_calls (the calendar tasks)
+# --------------------------------------------------------------------------
+
+PAIR = {"id": "t", "type": "time_options", "header": "OPTIONS", "dataset": "pair", "minutes": 60,
+        "attendees": ["alex@example.com", "jamie@example.com"], "until": "2026-09-05T00:00:00"}
+
+
+def _times(items, text, **check):
+    (result,) = checks.run_checks({"checks": [{**PAIR, "items": items, **check}]}, text)
+    return result, {i["id"]: i["passed"] for i in result["items"]}
+
+
+def test_time_options_truth_comes_from_the_dataset():
+    items = [{"id": "valid", "kind": "in_set"}]
+    # Thu 13:00 is open only because Alex declined his 1:00-3:00 event; Mon 13:00 is a real conflict
+    assert _times(items, "OPTIONS:\n2026-09-03 13:00 CDT")[1] == {"valid": True}
+    assert _times(items, "OPTIONS:\n2026-08-31 13:00 CDT")[1] == {"valid": False}
+    assert _times(items, "OPTIONS:\n2026-09-03 13:00 CDT\n2026-09-03 13:00 CDT")[1] == {"valid": False}   # a repeat
+    assert _times(items, "OPTIONS:\n2026-09-03 13:00")[1] == {"valid": False}                            # no zone
+
+
+@pytest.mark.parametrize("line", [
+    "2026-09-03 13:00 CDT", "- 2026-09-03 13:00 America/Chicago", "1. 2026-09-03 14:00 EDT - Thursday",
+    "2026-09-03T13:00-05:00", "2026-09-03 1:00 pm Central", "2026-09-03 18:00 UTC", "2026-09-03 13:00 (CT)"])
+def test_time_options_zones_and_shapes(line):
+    assert _times([{"id": "valid", "kind": "in_set"}], f"OPTIONS:\n{line}")[1] == {"valid": True}
+
+
+def test_time_options_rules():
+    items = [{"id": "count", "kind": "count", "min": 2, "max": 3},
+             {"id": "status", "kind": "includes_any", "match": [{"weekday": "fri"}, {"date": "2026-09-03", "time": "13:00"}]},
+             {"id": "past", "kind": "not_before_now"},
+             {"id": "days", "kind": "avoid", "dates": ["2026-09-03"], "ranges": [["2026-09-08", "2026-09-09"]]},
+             {"id": "close", "kind": "latest_end", "time": "16:00"}]
+    ok = _times(items, "OPTIONS:\n2026-09-04 10:30 CDT\n2026-09-02 15:30 CDT")[1]
+    assert ok == {"count": True, "status": True, "past": True, "days": True, "close": False}   # 15:30 + 60 min ends at 16:30, after 16:00
+    got = _times(items, "OPTIONS:\n2026-08-31 08:00 CDT\n2026-09-03 11:00 CDT\n2026-09-02 17:00 CDT\n2026-09-04 09:00 CDT")[1]
+    assert got == {"count": False, "status": False, "past": False, "days": False, "close": False}
+    # A Friday that isn't free doesn't show the status was read
+    assert _times(items, "OPTIONS:\n2026-09-04 09:00 CDT\n2026-09-02 15:30 CDT")[1]["status"] is False
+
+
+def test_time_options_need_a_block():
+    items = [{"id": "valid", "kind": "in_set"}, {"id": "days", "kind": "avoid", "dates": ["2026-09-07"]}]
+    for text in ("Thursday at 1.", "", "OPTIONS:\nsometime Thursday"):
+        result, passed = _times(items, text)
+        assert not any(passed.values()) and result["share"] == 0.0 and len(result["items"]) == 2
+
+
+def test_time_options_team_and_empty_answer():
+    team = {"id": "t", "type": "time_options", "dataset": "forge", "team": "Platform", "minutes": 60,
+            "until": "2026-09-15T00:00:00", "items": [{"id": "valid", "kind": "in_set"}, {"id": "n", "kind": "count", "min": 3, "max": 3}]}
+    (result,) = checks.run_checks({"checks": [team]}, "OPTIONS:\n2026-09-01 13:00 CDT\n2026-09-02 09:00 CDT\n2026-09-08 12:00 EDT")
+    assert result["passed"] and result["share"] == 1.0
+    (result,) = checks.run_checks({"checks": [team]}, "")
+    assert not result["passed"] and result["detail"] == "no answer to check" and len(result["items"]) == 2
+
+
+def test_tool_calls_from_the_session(tmp_path):
+    (tmp_path / "session.json").write_text(json.dumps([
+        {"type": "toolCall", "name": "get_current_time", "args": {}},
+        {"type": "toolCall", "name": "mock-calendar_get_freebusy", "args": {"calendars": [{"id": "jamie@example.com"}]}},
+        {"type": "toolCallResult", "name": "get_current_time", "result": "list_events"},
+        {"type": "assistantMessage", "message": "I called list_events."}]))
+    assert [c["name"] for c in checks.session_tool_calls(tmp_path)] == ["get_current_time", "mock-calendar_get_freebusy"]
+    check = {"id": "g", "type": "tool_calls", "items": [
+        {"id": "time", "tool": "get_current_time"}, {"id": "events", "tool": "list_events"},
+        {"id": "fb", "tool": "get_freebusy", "covers": {"dataset": "pair", "team": "Platform"}}]}
+    (result,) = checks.run_checks({"checks": [check]}, "I called list_events.", tmp_path)
+    # claiming a call isn't making one; the pair's Platform team is Alex (the user) and Jamie
+    assert {i["id"]: i["passed"] for i in result["items"]} == {"time": True, "events": False, "fb": True}
+
+
+def test_tool_calls_without_a_session_fail(tmp_path):
+    check = {"id": "g", "type": "tool_calls", "items": [{"id": "time", "tool": "get_current_time"}]}
+    (result,) = checks.run_checks({"checks": [check]}, "an answer", tmp_path)
+    assert not result["passed"] and result["items"][0]["detail"] == "no session record"
+
+
+def test_opencode_session_tool_calls(tmp_path):
+    (tmp_path / "session.json").write_text(json.dumps({"messages": [{"type": "assistant", "content": [
+        {"type": "tool", "name": "mock-calendar_list_events", "state": {"input": {"calendarId": "primary"}}},
+        {"type": "text", "text": "done"}]}]}))
+    assert checks.session_tool_calls(tmp_path) == [{"name": "mock-calendar_list_events", "args": {"calendarId": "primary"}}]
+
+
+def _capped(task_id, text, tool_calls=()):
+    from crucible import workspace
+    task = workspace.load_task(task_id)
+    scores = checks.criterion_scores(task, checks.run_checks(task, text, tool_calls=list(tool_calls)))
+    return checks._cap(task, scores)
+
+
+def test_calendar_tasks_cap_a_wrong_core_answer():
+    tools = [{"name": "get_current_time", "args": {}}, {"name": "list_events", "args": {}}]
+    assert _capped("calendar-free-at-330", "3:30 PM\n\nANSWER: free", tools) is None
+    assert _capped("calendar-free-at-330", "3:30 PM\n\nANSWER: busy", tools) == 2.5
+    assert _capped("calendar-free-at-330", "3:30 PM, free", tools) == 2.5
+    assert _capped("calendar-hour-with-jamie", "OPTIONS:\n2026-09-04 10:30 CDT\n2026-09-03 13:00 CDT") is None
+    assert _capped("calendar-hour-with-jamie", "OPTIONS:\n2026-09-04 10:30 CDT\n2026-09-01 10:00 CDT") == 4
+    assert _capped("calendar-team-of-16", "OPTIONS:\n2026-09-01 13:00 CDT\n2026-09-02 09:00 CDT\n2026-09-07 10:00 CDT") == 4

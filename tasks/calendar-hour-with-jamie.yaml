@@ -8,35 +8,52 @@ mcp_servers:
 category: long_agent
 area: everyday
 tier: temper
-version: 1
-rubric_version: 1
+version: 2
+rubric_version: 2
 status: provisional
 auto_grade: true
 repo: null
-# Dataset pair (fixtures/mock-calendar/pair.json). "Now" is Mon 2026-08-31 8:30 AM.
-# Ground truth: 60-minute starts (30-minute grid, 9-5 weekdays, both free):
-#   Wed 15:30 16:00 | Thu 11:00 13:00 16:00 | Fri 10:30 11:00 15:00 15:30 16:00
-# The prompt only says it is for work: the model must infer business hours. Nothing
-# works Monday or Tuesday. The model reads Alex's events (list_events) and
-# sees Jamie only as busy blocks (get_freebusy; her events are not readable, 403).
-# Thu 13:00 depends on Alex's declined 1:00-3:00 Design sync, Fri on a transparent
-# all-day birthday; Jamie's declined Thu 1:1 is already open in her free/busy.
 prompt: |
   I need to meet up with Jamie for an hour sometime this week for work. Find a time that works for both of us.
+
+  Explain your reasoning first if it helps. Then end your reply with this block, and nothing after it:
+
+  OPTIONS:
+  YYYY-MM-DD HH:MM <time zone>
+
+  One line per option, in 24-hour time, with a time zone abbreviation or name (for example CDT or America/Chicago). Give two or three options, best first.
+checks:
+- id: options_valid
+  type: time_options
+  header: OPTIONS
+  dataset: pair
+  attendees: [alex@example.com, jamie@example.com]
+  until: '2026-09-05T00:00:00'
+  minutes: 60
+  items:
+  - {id: valid, kind: in_set, label: 'Every option is a time both are free, in business hours'}
+  rule: 'Every OPTIONS line is a 60-minute start that is free for both people inside weekday 9-5 and after now (computed from the dataset), with no repeats. Any other option caps the score at 4.'
+- id: options_count
+  type: time_options
+  header: OPTIONS
+  items:
+  - {id: count, kind: count, min: 2, max: 3, label: 'Two or three options'}
+  rule: 'The OPTIONS block has two or three lines.'
+- id: options_handling
+  type: time_options
+  header: OPTIONS
+  dataset: pair
+  attendees: [alex@example.com, jamie@example.com]
+  until: '2026-09-05T00:00:00'
+  minutes: 60
+  items:
+  - id: status
+    kind: includes_any
+    match: [{weekday: fri}, {date: '2026-09-03', time: '13:00'}]
+    label: 'Offers a time that depends on a declined or transparent event'
+  - {id: not_past, kind: not_before_now, label: 'No option before now'}
+  rule: 'At least one valid option is Thursday 13:00 or on Friday (it needs Alex''s declined and transparent events read as not blocking), and no option is before Monday 8:30 AM.'
 rubric:
-  - criterion: "Only valid times"
-    max_score: 4
-    description: "Every proposed time is free on both calendars, inside business hours (9-5, weekdays) without being told, and after now. Starts must come from the ground-truth list."
-  - criterion: "Reads event status correctly"
-    max_score: 2
-    description: "Treats Alex's declined and transparent (shown as free) events as not blocking, e.g. offers Thu 1:00 PM or Friday."
-  - criterion: "Concrete options"
-    max_score: 2
-    description: "Offers two or three specific date/time options rather than a single guess or general advice."
-  - criterion: "Completeness"
-    max_score: 1
-    description: "Does not claim nothing works, and does not rule out valid days (Wed, Thu, Fri)."
-  - criterion: "Clear answer"
-    max_score: 1
-    description: "Day, date and time are unambiguous, with the time zone or assumptions stated."
-critical_failure: "Recommending a time that conflicts with a real event on either calendar caps score at 4."
+- {criterion: Valid options, max_score: 1, cap_if_failed: 4, check: options_valid, description: 'Every option is a ground-truth start; recommending a time that is busy, outside hours or in the past caps the score at 4.'}
+- {criterion: Two or three options, max_score: 1, check: options_count, description: 'The block has two or three options.'}
+- {criterion: Reads event status and time, max_score: 2, check: options_handling, description: 'Uses a time that needs declined/transparent events read correctly, and nothing in the past.'}

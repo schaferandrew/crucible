@@ -8,40 +8,60 @@ mcp_servers:
 category: long_agent
 area: everyday
 tier: forge
-version: 1
-rubric_version: 1
+version: 2
+rubric_version: 2
 status: provisional
 auto_grade: true
 repo: null
-# Dataset forge (fixtures/mock-calendar/forge.json). "Now" is Mon 2026-08-31 8:30 AM.
-# Ground truth, 60-minute starts (everyone free, inside 9-5 in their own zone):
-#   Tue 9/1 13:00 13:30 | Wed 9/2 09:00 | Thu 9/3 14:00 14:30 15:00
-#   Tue 9/8 11:00       | Wed 9/9 15:00
-# The prompt only says it is a work meeting: the model must infer business hours
-# (9-5 in each person's own zone). "My team" = the 16 calendars described "Platform" in list_calendars (Alex is the
-# user), not the Design people (jordan, sam) or the Atlas room. The model reads
-# Alex's events (list_events) and everyone else as busy blocks (get_freebusy,
-# 15 calls or one batched call), then intersects. Traps: Labor Day 9/7; Priya out
-# 9/10-9/11 (out-of-office events); Marcus is in New York (timeZone in
-# list_calendars), so 9-5 Eastern ends at 4 PM Central and Tue 9/8 4-5 PM is open
-# for 15 people but not him; declined/transparent events on the windows are
-# already open in free/busy; nothing is free on 8/31 or 9/14 so both readings of "next two weeks" agree.
 prompt: |
   Find an hour in the next two weeks for a work meeting with everyone on my team. Give me your top three options.
+
+  Explain your reasoning first if it helps. Then end your reply with this block, and nothing after it:
+
+  OPTIONS:
+  YYYY-MM-DD HH:MM <time zone>
+
+  One line per option, in 24-hour time, with a time zone abbreviation or name (for example CDT or America/Chicago). Give exactly three options, best first.
+checks:
+- id: options_valid
+  type: time_options
+  header: OPTIONS
+  dataset: forge
+  team: Platform
+  until: '2026-09-15T00:00:00'
+  minutes: 60
+  items:
+  - {id: valid, kind: in_set, label: 'Every option is a time all 16 are free, in their business hours'}
+  rule: 'Every OPTIONS line is a 60-minute start free for all 16 Platform calendars inside each person''s 9-5 weekday (computed from the dataset), with no repeats. Any other option caps the score at 4.'
+- id: options_count
+  type: time_options
+  header: OPTIONS
+  items:
+  - {id: count, kind: count, min: 3, max: 3, label: 'Exactly three options'}
+  rule: 'The OPTIONS block has exactly three lines.'
+- id: constraints
+  type: time_options
+  header: OPTIONS
+  dataset: forge
+  minutes: 60
+  items:
+  - id: days
+    kind: avoid
+    dates: ['2026-09-07']
+    ranges: [['2026-09-10', '2026-09-11']]
+    label: 'None on Labor Day or while Priya is out'
+  - {id: close, kind: latest_end, time: '16:00', label: 'None ends after 4 PM Central'}
+  rule: 'No option falls on Labor Day (9/7) or on 9/10-9/11, and none ends after 16:00 Central (Marcus works 9-5 in New York).'
+- id: team
+  type: tool_calls
+  items:
+  - id: freebusy
+    tool: get_freebusy
+    covers: {dataset: forge, team: Platform}
+    label: 'get_freebusy covered the 15 other Platform calendars'
+  rule: 'The run''s get_freebusy calls (read from the session) named all 15 Platform calendars other than the user''s own.'
 rubric:
-  - criterion: "Identifies the team"
-    max_score: 2
-    description: "Uses exactly the 16 Platform team calendars (found via list_calendars); does not include the Design people or the Atlas room, and does not drop anyone."
-  - criterion: "Only valid options"
-    max_score: 4
-    description: "Every option is free for all 16 and inside business hours for everyone, inferred without being told, including Marcus's (9-5 in New York, so ends 4 PM Central). Starts must come from the ground-truth list."
-  - criterion: "Handles the constraints"
-    max_score: 2
-    description: "Offers nothing on Labor Day or while Priya is out, and nothing after 4 PM Central (Marcus)."
-  - criterion: "Completeness"
-    max_score: 1
-    description: "Finds the valid windows rather than giving up or offering fewer than three when at least three exist."
-  - criterion: "Clear, ranked answer"
-    max_score: 1
-    description: "Three options with day, date and time, ranked with a brief reason."
-critical_failure: "Recommending a time when anyone on the team is busy or outside their working hours caps score at 4."
+- {criterion: Valid options, max_score: 1, cap_if_failed: 4, check: options_valid, description: 'Every option is a ground-truth start; a busy time, Labor Day, Priya out, or a time past 4 PM Central caps the score at 4.'}
+- {criterion: Exactly three options, max_score: 1, check: options_count, description: 'The block has three options.'}
+- {criterion: Handles the constraints, max_score: 2, check: constraints, description: 'Nothing on Labor Day or 9/10-9/11, nothing ending after 4 PM Central.'}
+- {criterion: Identifies the team, max_score: 1, check: team, description: 'get_freebusy covered the 15 Platform calendars.'}

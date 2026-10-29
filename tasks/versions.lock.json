@@ -21,25 +21,25 @@
     "rubric_hash": "a89eea7caac68e18"
   },
   "calendar-free-at-330": {
-    "version": 1,
-    "content_hash": "6739207e3d393ffe",
-    "prompt_hash": "f484dc6da4ecdefe",
-    "rubric_version": 1,
-    "rubric_hash": "b69b7486f14e46de"
+    "version": 2,
+    "content_hash": "6d145f996bd1436b",
+    "prompt_hash": "befffc248f09c86a",
+    "rubric_version": 2,
+    "rubric_hash": "d2ed1dccfdb0032f"
   },
   "calendar-hour-with-jamie": {
-    "version": 1,
-    "content_hash": "fa15f6d36a2b30bd",
-    "prompt_hash": "1c78c0bb4b1c5fcd",
-    "rubric_version": 1,
-    "rubric_hash": "899baaaeaaf39117"
+    "version": 2,
+    "content_hash": "6bab741addfb16f9",
+    "prompt_hash": "d3359b2437bcd208",
+    "rubric_version": 2,
+    "rubric_hash": "84fe475354719203"
   },
   "calendar-team-of-16": {
-    "version": 1,
-    "content_hash": "2088915022bd90fe",
-    "prompt_hash": "a238f219f769b6ee",
-    "rubric_version": 1,
-    "rubric_hash": "514500bcc8e3df95"
+    "version": 2,
+    "content_hash": "b3eb371da517cb6a",
+    "prompt_hash": "7fab073a33646753",
+    "rubric_version": 2,
+    "rubric_hash": "28b2d02d8b0aedf0"
   },
   "capitals-not-largest-city": {
     "version": 1,

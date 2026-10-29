@@ -161,6 +161,8 @@ EVERY_TYPE = [
      "items": [{"id": "s", "source": "S1", "absent": True}, {"id": "f", "cited": ["S1"], "all": ["x"]}]},
     {"id": "block", "type": "items", "normalize": "letter_set",
      "items": [{"id": "q", "expect": ["B"], "of": ["A", "B", "C"]}, {"id": "n", "key": "2", "expect": 2}]},
+    {"id": "times", "type": "time_options", "dataset": "spark", "items": [{"id": "c", "kind": "count", "min": 0}]},
+    {"id": "tools", "type": "tool_calls", "items": [{"id": "t", "tool": "get_current_time"}]},
 ]
 
 
@@ -171,9 +173,14 @@ def test_an_empty_answer_fails_every_check_type(text):
     results = checks.run_checks({"checks": EVERY_TYPE, "prompt": "Source: 1,234"}, text)
     assert [r["passed"] for r in results] == [False] * len(EVERY_TYPE)
     assert {r["detail"] for r in results} == {"no answer to check"}
-    block = results[-1]
+    by_id = {r["id"]: r for r in results}
     # Every item fails, expanded as a real block would be (3 letters + 1 line), so the total doesn't change
+    block = by_id["block"]
     assert block["share"] == 0.0 and len(block["items"]) == 4 and not any(i["passed"] for i in block["items"])
+    # The other item-scoring checks fail one item per entry
+    for check, n in (("cited", 2), ("times", 1), ("tools", 1)):
+        assert by_id[check]["share"] == 0.0 and len(by_id[check]["items"]) == n
+        assert not any(i["passed"] for i in by_id[check]["items"])
 
 
 def test_an_empty_file_fails_its_checks(tmp_path):

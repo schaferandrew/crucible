@@ -8,27 +8,39 @@ mcp_servers:
 category: everyday
 area: everyday
 tier: spark
-version: 1
-rubric_version: 1
+version: 2
+rubric_version: 2
 status: provisional
 auto_grade: true
 repo: null
-# Dataset spark (fixtures/mock-calendar/spark.json). "Now" is Tue 2026-09-01 11:20 AM.
-# Ground truth: free at 3:30 PM today. Design review runs 2:00-3:30, so it ends
-# exactly at 3:30 (not a conflict); next event is the 4:00 customer call.
 prompt: |
   Am I free at 3:30?
+
+  Explain your reasoning first if it helps. Then end your reply with this block, and nothing after it:
+
+  ANSWER: free|busy
+
+  Write `free` or `busy` after the colon, and nothing else on that line. Say in your reasoning which day and time you checked.
+checks:
+- id: answer
+  type: items
+  header: ANSWER
+  normalize: name
+  items:
+  - {id: free, expect: free, label: 'ANSWER is free'}
+  rule: 'The ANSWER: line says free (the Design review ends at exactly 3:30, which is not a conflict).'
+- id: states_time
+  type: required_patterns
+  min_matches: 1
+  patterns: ['\bp\.?m\b', 'afternoon', 'today']
+  rule: 'The reply says which time it checked: PM, this afternoon or today (3:30 AM has already passed).'
+- id: grounded
+  type: tool_calls
+  items:
+  - {id: time, tool: get_current_time, label: 'Called get_current_time'}
+  - {id: events, tool: list_events, label: 'Called list_events'}
+  rule: 'The run called get_current_time and list_events (read from the session, not the reply).'
 rubric:
-  - criterion: "Correct answer"
-    max_score: 5
-    description: "Says the user is free at 3:30 PM today. The Design review ends at exactly 3:30, which is not a conflict."
-  - criterion: "States its assumption"
-    max_score: 2
-    description: "Makes clear it took 3:30 to mean 3:30 PM today (3:30 AM has passed), rather than silently assuming."
-  - criterion: "Grounded in the calendar"
-    max_score: 2
-    description: "Checked the calendar and current time with tools instead of guessing; mentions what surrounds the slot (review ends 3:30, next event 4:00)."
-  - criterion: "Concise"
-    max_score: 1
-    description: "Answers directly in a sentence or two, without a calendar dump."
-critical_failure: "Saying the user has a conflict at 3:30 caps score at 3."
+- {criterion: Correct answer, max_score: 1, cap_if_failed: 2.5, check: answer, description: 'The ANSWER line says free.'}
+- {criterion: States its assumption, max_score: 1, check: states_time, description: 'Says PM, this afternoon or today.'}
+- {criterion: Grounded in the calendar, max_score: 2, check: grounded, description: 'Called get_current_time and list_events.'}
