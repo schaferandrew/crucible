@@ -6,51 +6,67 @@ needs_tools: false
 category: history
 area: history
 tier: spark
-version: 1
-rubric_version: 1
+version: 2
+rubric_version: 2
 status: provisional
 auto_grade: false
 repo: null
-prompt: 'Put these events in chronological order, oldest first. One line each, with the year.
-
+prompt: |
+  Put these events in chronological order, oldest first, and give the year of each.
 
   - The first Moon landing
-
   - The signing of Magna Carta
-
   - The fall of the Berlin Wall
-
   - The start of the First World War
-
   - The printing of the Gutenberg Bible
-
   - The start of the French Revolution
 
-  '
+  Explain your reasoning first if it helps. Then end your reply with this block, and nothing after it:
+
+  ORDER:
+  1. <event> — <year>
+
+  One line per event, oldest first, numbered from 1. Give only the event and its year, not a sentence.
+# Only the last ORDER: block is scored, as 21 equal items: the 15 pairs of events (each pair in the right
+# order, so one swapped event costs one item, not half the score) and the six years (Gutenberg: 1450-1456).
+# Each year is read from the line that names its event, so a misplaced event isn't penalised twice.
 checks:
 - id: order
-  type: required_patterns
-  patterns:
-  - (?is)magna carta.*gutenberg.*french revolution.*(first world war|world war (i|1|one)\b|\bwwi\b).*moon.*berlin wall
-  rule: 'Lists them in order: Magna Carta, Gutenberg Bible, French Revolution, First World War, Moon landing, Berlin Wall.'
+  type: items
+  header: ORDER
+  normalize: ordering
+  items:
+  - {id: order, expect: [Magna Carta, Gutenberg Bible, French Revolution, First World War, Moon landing, Berlin Wall]}
+  aliases:
+    Gutenberg Bible: [Gutenberg]
+    First World War: [World War I, World War 1, World War One, WWI, WW1, Great War]
+    Moon landing: [Apollo 11, Moon landings]
+  rule: 'Puts the events in order, oldest first: Magna Carta, Gutenberg Bible, French Revolution, First World War,
+    Moon landing, Berlin Wall; one item per pair of events (15).'
 - id: years
-  type: required_patterns
-  patterns:
-  - \b1215\b
-  - \b145\d\b
-  - \b1789\b
-  - \b1914\b
-  - \b1969\b
-  - \b1989\b
-  rule: 'Gives the years: 1215, 1450s, 1789, 1914, 1969, 1989.'
+  type: items
+  header: ORDER
+  normalize: year
+  items:
+  - {id: magna, find: Magna Carta, expect: 1215, label: 'Magna Carta dated 1215'}
+  - {id: gutenberg, find: Gutenberg Bible, expect: [1450, 1451, 1452, 1453, 1454, 1455, 1456], label: 'Gutenberg Bible dated 1450-1456'}
+  - {id: french, find: French Revolution, expect: 1789, label: 'French Revolution dated 1789'}
+  - {id: ww1, find: First World War, expect: 1914, label: 'First World War dated 1914'}
+  - {id: moon, find: Moon landing, expect: 1969, label: 'Moon landing dated 1969'}
+  - {id: wall, find: Berlin Wall, expect: 1989, label: 'Berlin Wall dated 1989'}
+  aliases:
+    Gutenberg Bible: [Gutenberg]
+    First World War: [World War I, World War 1, World War One, WWI, WW1, Great War]
+    Moon landing: [Apollo 11, Moon landings]
+  rule: 'Gives each event its year, on its own line: Magna Carta 1215, Gutenberg Bible 1450-1456, French Revolution
+    1789, First World War 1914, Moon landing 1969, Berlin Wall 1989; one item per event.'
 rubric:
 - criterion: Order
-  max_score: 5
+  max_score: 15
   check: order
-  description: 'Lists them in order: Magna Carta, Gutenberg Bible, French Revolution, First World War, Moon landing, Berlin
-    Wall.'
+  description: Each of the 15 pairs of events is in the right order, oldest first (one point each).
 - criterion: Years
-  max_score: 5
+  max_score: 6
   check: years
-  description: 'Gives the years: 1215, 1450s, 1789, 1914, 1969, 1989.'
+  description: 'Each event has its year: 1215, 1450-1456, 1789, 1914, 1969, 1989 (one point each).'
 critical_failure: null

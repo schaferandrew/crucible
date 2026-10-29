@@ -45,8 +45,8 @@
     "version": 1,
     "content_hash": "247e19c02dbb774c",
     "prompt_hash": "fd57b295736ee7a3",
-    "rubric_version": 1,
-    "rubric_hash": "5f56bc1ccddd03dd"
+    "rubric_version": 2,
+    "rubric_hash": "63748bedb94bf1b8"
   },
   "cold-window-advice": {
     "version": 1,
@@ -143,8 +143,8 @@
     "version": 1,
     "content_hash": "7f6f5246841ce00c",
     "prompt_hash": "d409bbcc8192297b",
-    "rubric_version": 1,
-    "rubric_hash": "8d892908b5c59c65"
+    "rubric_version": 2,
+    "rubric_hash": "3a7f59dac961798f"
   },
   "interest-calculator-cli": {
     "version": 1,
@@ -168,18 +168,18 @@
     "rubric_hash": "fc01b9277a213309"
   },
   "landlocked-countries": {
-    "version": 1,
-    "content_hash": "9fac71a4ce0fff18",
-    "prompt_hash": "a973a3d5d8cfb0cd",
-    "rubric_version": 1,
-    "rubric_hash": "8edabc9afec16b4f"
+    "version": 2,
+    "content_hash": "7b5379ce8b6a3e04",
+    "prompt_hash": "c406ed07ccfdf5f6",
+    "rubric_version": 2,
+    "rubric_hash": "f75bb0a15226bc61"
   },
   "letter-from-1863": {
     "version": 1,
     "content_hash": "f73283c0960967b1",
     "prompt_hash": "95a8a9508291f698",
-    "rubric_version": 1,
-    "rubric_hash": "3eba539e1a059980"
+    "rubric_version": 2,
+    "rubric_hash": "44543ae2a21316cd"
   },
   "live-weather-open-ended": {
     "version": 1,
@@ -259,11 +259,11 @@
     "rubric_hash": "307cd16e5d9b4cbf"
   },
   "order-historical-events": {
-    "version": 1,
-    "content_hash": "13862dc73f7033eb",
-    "prompt_hash": "e2eab6ee067b179f",
-    "rubric_version": 1,
-    "rubric_hash": "9ce7eb8389398c5b"
+    "version": 2,
+    "content_hash": "172ee5b11307dd30",
+    "prompt_hash": "de7bbe4885f1e2dc",
+    "rubric_version": 2,
+    "rubric_hash": "f66e11cca0e3815d"
   },
   "proofread-customer-email": {
     "version": 2,
@@ -322,11 +322,11 @@
     "rubric_hash": "ef1ee05d951a00ff"
   },
   "seating-logic-puzzle": {
-    "version": 2,
-    "content_hash": "d205d3bad1048689",
-    "prompt_hash": "01f6bf5e5f9cd084",
-    "rubric_version": 2,
-    "rubric_hash": "ef4c3db9d4f7ff0a"
+    "version": 3,
+    "content_hash": "4bc46a0e3e4f1478",
+    "prompt_hash": "5285d00b6bc6205f",
+    "rubric_version": 3,
+    "rubric_hash": "ba4027243454539b"
   },
   "sink-leak-advice": {
     "version": 1,

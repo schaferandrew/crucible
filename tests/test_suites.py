@@ -113,25 +113,21 @@ def test_a_version_bump_is_allowed_after_a_suite(sandbox):
 
 
 def test_patch_pins_rubric_fixes_only(sandbox):
-    # Tasks pinned in v1 may have a pending content bump in the repo (a patch refuses those): treat them as already re-cut
-    path = sandbox / "suites" / "v1.yaml"
-    suite = yaml.safe_load(path.read_text())
+    # Tasks converted since Suite v1 wait for the next cut with a content bump, which a patch refuses: pin them
+    # in the sandbox as already re-cut, so this test only sees rubric fixes
+    v1 = sandbox / "suites" / "v1.yaml"
+    suite = yaml.safe_load(v1.read_text())
+    lock = versioning.read_lock()
     for pin in suite["tasks"]:
-        now = versioning.read_lock()[pin["id"]]
-        pin["version"], pin["content_hash"] = now["version"], now.get("content_hash", pin.get("content_hash"))
-    path.write_text(yaml.safe_dump(suite, sort_keys=False, allow_unicode=True))
+        if lock[pin["id"]]["version"] != pin["version"]:
+            pin.update({k: lock[pin["id"]][k] for k in ("version", "content_hash")})
+    v1.write_text(yaml.safe_dump(suite, sort_keys=False, allow_unicode=True))
     p = workspace.load_task("fire-truck-color")
     rubric = [{**item, "description": item["description"] + " (clarified)"} for item in p["rubric"]]
     _edit(sandbox, "fire-truck-color", rubric=rubric, rubric_version=p["rubric_version"] + 1)
     versioning.write_lock()
     assert suites.verify() == []
     lock = versioning.read_lock()
-    # Tasks the repo itself has converted since Suite v1 (version bumped, awaiting the next cut) would make
-    # patch refuse; drop their pins in the sandbox, as a cut would replace them
-    v1 = sandbox / "suites" / "v1.yaml"
-    suite = yaml.safe_load(v1.read_text())
-    suite["tasks"] = [t for t in suite["tasks"] if t["id"] == "fire-truck-color" or lock[t["id"]]["version"] == t["version"]]
-    v1.write_text(yaml.safe_dump(suite, sort_keys=False))
     # The repo's own rubric fixes since Suite v1 (if any) are pinned too
     fixed = sorted(t for t, pin in suites.pins(suites.latest()).items() if lock[t]["rubric_version"] > pin["rubric_version"])
     path, bumped = suites.patch(date="2026-11-20")

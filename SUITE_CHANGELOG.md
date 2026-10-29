@@ -62,6 +62,32 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
 
 - names-for-one-character (formerly WRIT-2b): version 2, rubric 4. The answer is a `NAMES:` block of 20 numbered `First Last — reason` lines and a `TOP FIVE:` block, scored as 6 equal items: 20 lines, all distinct, every line with a reason, no blocklisted name, five top names, all from the list. No new constraints (decision D11: kept as a saturated task). Runs of version 1 no longer count; rerun it.
 
+- household-money-math (formerly MATH-2): rubric 2, still provisional. The four answers weigh the same
+  (they were 3/2/2/3) and are read from the ANSWERS block only. Stored runs are rescored.
+
+- capitals-not-largest-city (formerly GEOG-1): rubric 2, still provisional. Each of the six
+  `Country: Capital` lines is its own item (a capital named anywhere in the reply no longer counts), and
+  the redundant big-city trap check is gone. Stored runs are rescored.
+
+- landlocked-countries (formerly GEOG-2): version 2, rubric 2, still provisional. The list grew from 15 to
+  22 countries, seven coastal look-alikes mixed in (Bosnia and Herzegovina, DR Congo, Jordan, Iraq,
+  Slovenia, Togo, Belgium), so listing everything as landlocked no longer pays (it scored 7.5). Scored as
+  23 equal items: each country on the right line (and not the other), plus the doubly landlocked one.
+  Listing all as landlocked now scores 5.2, none 4.8. Runs of version 1 no longer count; rerun it.
+
+- letter-from-1863 (formerly HIST-3): rubric 2, still provisional. 11 equal items, one per letter,
+  each correctly in or out of the `ANACHRONISMS:` line, instead of two all-or-nothing halves. Stored
+  runs are rescored.
+
+- seating-logic-puzzle (formerly MATH-4): version 3, rubric 3, still active. The prompt
+  no longer asks for stated assumptions; the `Chair n:` lines and `ANSWER:` are scored as 5 equal items
+  (four chairs, the answer). The `assumptions` and duplicate `no_wrong_answer` criteria are gone. Runs of
+  version 2 no longer count; rerun it.
+
+- order-historical-events (formerly HIST-1): version 2, rubric 2, still provisional. The answer is an
+  `ORDER:` block of six numbered `event — year` lines, scored as 21 equal items: the 15 event pairs in
+  the right order and the 6 years (Gutenberg 1450-1456). Runs of version 1 no longer count; rerun it.
+
 - fact-check-history (formerly HIST-2), now "Fact-check twelve history claims": version 2, rubric 2,
   still provisional. The paragraph became twelve numbered claims with one fact each (five wrong, seven
   true), and the answer is an `ERRORS:` block of `<number>: <corrected value>` lines, scored as 17 equal
