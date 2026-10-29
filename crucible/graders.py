@@ -27,6 +27,9 @@ An isolated grader.yaml can also declare:
     default "."), for a monorepo whose apps each have their own vitest setup
   - `existing_tests`: folders whose seeded tests must still pass on the model's artifacts (`existing`)
   - `unchanged`: files the model must leave as seeded (`contract_unchanged`)
+  - `regression_tests`: folders where the model's own tests go. Its new or changed test files must pass
+    on its fix and at least one must fail on the seeded code; that counts as one more test in the pool
+    (group `regression`), so it weighs one test and fails on an unchanged repo
 Under `scoring: per_test` these two are caps (`cap_if_failed`), never points: they pass on the seeded
 repo, so paying for them would pay for doing nothing.
 """
@@ -55,6 +58,11 @@ EXPECTED_FILENAME = "expected.json"
 NOT_SOURCE = ("node_modules", ".next", ".git", "dist", "test-results")
 CONTRACT = "apps/api/test/realworld.contract.test.ts"
 SPECIAL = ("existing", "contract_unchanged", "regression")
+# Pass on the seeded repo, so under per-test scoring they only cap
+GATES = ("existing", "contract_unchanged")
+TEST_FILE = re.compile(r"\.test\.tsx?$")
+REGRESSION_TEST = {"file": "regression", "group": "regression",
+                   "name": "your new tests fail on the seeded code and pass on your fix"}
 TEST_NAME = re.compile(r"""^\s*it\(\s*(["'`])(.+?)\1""", re.M)
 GROUP_NAME = re.compile(r"""^\s*describe\(\s*(["'`])(.+?)\1""", re.M)
 
@@ -309,6 +317,50 @@ def _unchanged(repo: Path, workspace: Path, paths: list[str]) -> bool:
     return all(read(workspace / rel) == read(repo / rel) for rel in paths)
 
 
+def _changed_files(repo: Path, workspace: Path, roots: list[str], skip: set[str]) -> list[str]:
+    """Files under the roots that the model added or changed (hidden tests and installs aside)."""
+    found = []
+    for root in roots:
+        for path in sorted((workspace / root).rglob("*")) if (workspace / root).is_dir() else []:
+            rel = path.relative_to(workspace)
+            if not path.is_file() or set(rel.parts) & {*NOT_SOURCE, "hidden"} or rel.as_posix() in skip:
+                continue
+            seeded = repo / rel
+            if not seeded.is_file() or seeded.read_bytes() != path.read_bytes():
+                found.append(rel.as_posix())
+    return found
+
+
+def _isolated_regression(repo: Path, workspace: Path, copy: Path, modules: Path, cfg: dict) -> dict:
+    """The model's new or changed tests, with any helpers it changed: they must pass in the grading copy
+    (its fix) and at least one must fail in a copy with the seeded source."""
+    artifacts = cfg.get("artifacts") or []
+    changed = _changed_files(repo, workspace, cfg["regression_tests"], set(cfg.get("unchanged") or []))
+    tests = [p for p in changed if TEST_FILE.search(p)]
+    if not tests:
+        return {"passed": False, "files": [], "detail": "no new or changed test files"}
+    support = [p for p in changed if not any(p == a or p.startswith(a.rstrip("/") + "/") for a in artifacts)]
+    seeded = copy.parent / "seeded"
+    _grading_copy(repo, workspace, [], seeded)
+    _link_node_modules(modules, seeded)
+    for rel in sorted(set(support + tests)):
+        for dest in ((copy, seeded) if rel in support else (seeded,)):
+            (dest / rel).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(workspace / rel, dest / rel)
+    after_ok, before_failed = True, False
+    for root in cfg["regression_tests"]:
+        mine = [Path(p).relative_to(root).as_posix() for p in tests if p.startswith(root.rstrip("/") + "/")]
+        if not mine:
+            continue
+        after, error = _vitest(copy / root, mine, timeout=cfg.get("timeout", 600))
+        after_ok &= bool(after) and not error and all(t["passed"] for t in after)
+        before, error = _vitest(seeded / root, mine, timeout=cfg.get("timeout", 600))
+        before_failed |= bool(error) or any(not t["passed"] for t in before)
+    return {"passed": after_ok and before_failed, "files": tests,
+            "detail": ("pass on the fix and catch the bug on the seeded code" if after_ok and before_failed
+                       else "don't pass on the fix" if not after_ok else "pass on the seeded code too, so they don't catch the bug")}
+
+
 def expected_tests(grader: str) -> list[dict] | None:
     """Every test the grader declares, as recorded in expected.json; None before it's recorded."""
     path = GRADERS_DIR / grader / EXPECTED_FILENAME
@@ -357,6 +409,10 @@ def run_isolated(workspace: Path, prompt_def: dict) -> dict:
             tests += found
             if error:
                 errors.append(error if root == "." else f"{root}: {error}")
+        if cfg.get("regression_tests"):  # last: the model's changed test helpers go into the copy
+            record["regression"] = _isolated_regression(repo, workspace, copy, modules, cfg)
+            tests.append({**REGRESSION_TEST, "passed": record["regression"]["passed"],
+                          "error": None if record["regression"]["passed"] else record["regression"]["detail"]})
     # A test that never ran (its file didn't load, or vitest died) counts as failed. Before expected.json
     # is recorded, only a file that reported nothing falls back to the tests it spells out.
     ran = {(t["file"], t["group"], t["name"]) for t in tests}
@@ -404,7 +460,7 @@ def per_test_cap(prompt_def: dict, record: dict | None) -> float | None:
     """Under per-test scoring, the lowest `cap_if_failed` among the gate criteria (`existing`,
     `contract_unchanged`) that failed. Gates earn no points; they only cap."""
     caps = [item["cap_if_failed"] for item in prompt_def.get("rubric", [])
-            if item.get("hidden_tests") in SPECIAL and "cap_if_failed" in item
+            if item.get("hidden_tests") in GATES and "cap_if_failed" in item
             and not criterion_result(item["hidden_tests"], record or {})[0]]
     return min(caps) if caps else None
 

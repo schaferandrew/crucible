@@ -19,12 +19,15 @@ here ([docs/versioning.md](docs/versioning.md)).
 - **Isolated graders for npm workspaces monorepos.** A `grader.yaml` can now declare `lockfile` (a
   lockfile kept with the grader, for a seeded repo that has none), `test_roots` (which folder each
   hidden test file runs in, e.g. `apps/api`), `existing_tests` (folders whose seeded tests must
-  still pass on the model's source) and `unchanged` (files the model must leave as seeded). The
+  still pass on the model's source), `unchanged` (files the model must leave as seeded) and
+  `regression_tests` (the model's own new tests must pass on its fix and catch the bug on the
+  seeded code, scored as one more test in the pool). The
   install is cached per workspace manifest, and the workspace's own package links resolve to the
   model's source in the grading copy, not to the cache.
 - **Caps under per-test scoring.** With `scoring: per_test`, the `existing` and `contract_unchanged`
   criteria are caps (`cap_if_failed`), never points: they pass on the seeded repo, so a run that
-  changes nothing no longer earns them (`graders.per_test_cap`).
+  changes nothing no longer earns them, and the score record lists them under `capped_at`, not as
+  criteria.
 
 ## 3.0.0 (2026-10-29)
 

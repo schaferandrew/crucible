@@ -85,6 +85,17 @@ def test_gates_cap_instead_of_paying(existing, unchanged, cap):
     assert graders.per_test_cap(CAPPED, record) == cap
 
 
+def test_per_test_score_is_capped_by_a_failed_gate(tmp_path):
+    (tmp_path / "meta.json").write_text(json.dumps({"run_id": "m/c/CODE-11/1", "test_id": "CODE-11"}))
+    grader = {"tests": _tests(("contract", True), ("contract", True)), "existing": {"passed": False},
+              "contract_unchanged": True}
+    record = checks.save_check_score(tmp_path, CAPPED, [], grader)
+    assert record["scores"]["_overall"] == 5 and record["capped_at"] == 5     # 10 by tests, capped
+    assert [c["criterion"] for c in record["criteria"]] == ["Contract"]       # gates earn no points
+    grader["existing"]["passed"] = True
+    assert checks.save_check_score(tmp_path, CAPPED, [], grader)["scores"]["_overall"] == 10.0
+
+
 def test_no_gate_results_means_no_unchanged_cap():
     # A grader that doesn't check the contract file can't fail that gate; a missing existing run does fail
     assert graders.per_test_cap(CAPPED, {"tests": []}) == 5
@@ -142,6 +153,58 @@ def test_plain_installs_link_the_whole_folder(tmp_path):
     (tmp_path / "copy").mkdir()
     graders._link_node_modules(tmp_path / "cache" / "node_modules", tmp_path / "copy")
     assert (tmp_path / "copy" / "node_modules").is_symlink()
+
+
+def test_changed_files_are_new_or_edited_tests_and_helpers(tmp_path):
+    repo, ws = tmp_path / "repo", tmp_path / "ws"
+    for root in (repo, ws):
+        (root / "apps" / "api" / "test").mkdir(parents=True)
+        (root / "apps" / "api" / "test" / "contract.test.ts").write_text("seeded")
+        (root / "apps" / "api" / "test" / "helpers.ts").write_text("seeded")
+    (ws / "apps" / "api" / "test" / "helpers.ts").write_text("changed")
+    (ws / "apps" / "api" / "test" / "review.test.ts").write_text("new")
+    (ws / "apps" / "api" / "test" / "hidden").mkdir()
+    (ws / "apps" / "api" / "test" / "hidden" / "x.grader.test.ts").write_text("left over")
+    (ws / "apps" / "api" / "node_modules").mkdir()
+    (ws / "apps" / "api" / "node_modules" / "a.test.ts").write_text("installed")
+    (ws / "apps" / "api" / "test" / "contract.test.ts").write_text("edited")
+    assert graders._changed_files(repo, ws, ["apps/api", "apps/web"], {"apps/api/test/contract.test.ts"}) == [
+        "apps/api/test/helpers.ts", "apps/api/test/review.test.ts"]
+
+
+@pytest.mark.parametrize("after, before, passed", [
+    (True, False, True),     # passes on the fix, catches the bug on the seeded code
+    (True, True, False),     # passes on the seeded code too
+    (False, False, False)])  # fails on the fix
+def test_isolated_regression(tmp_path, monkeypatch, after, before, passed):
+    repo, ws, copy = tmp_path / "repo", tmp_path / "ws", tmp_path / "grade" / "copy"
+    for root in (repo, ws, copy):
+        (root / "apps" / "api" / "src").mkdir(parents=True)
+        (root / "apps" / "api" / "src" / "app.ts").write_text("seeded")
+    (ws / "apps" / "api" / "src" / "app.ts").write_text("fixed")
+    (ws / "apps" / "api" / "test").mkdir()
+    (ws / "apps" / "api" / "test" / "review.test.ts").write_text("new")
+    monkeypatch.setattr(graders, "_link_node_modules", lambda modules, dest: None)
+    ran = []
+
+    def vitest(app_dir, args, timeout=300):
+        fixed = (app_dir / "src" / "app.ts").read_text() == "fixed"
+        assert (app_dir / "test" / "review.test.ts").read_text() == "new"   # both copies get the model's test
+        ran.append(fixed)
+        return [{"passed": after if fixed else before}], None
+    monkeypatch.setattr(graders, "_vitest", vitest)
+    cfg = {"artifacts": ["apps/api/src"], "regression_tests": ["apps/api"]}
+    (copy / "apps" / "api" / "src" / "app.ts").write_text("fixed")         # the grading copy holds the fix
+    result = graders._isolated_regression(repo, ws, copy, tmp_path, cfg)
+    assert result["passed"] is passed and result["files"] == ["apps/api/test/review.test.ts"]
+    assert ran == [True, False]
+
+
+def test_no_new_tests_fails_regression(tmp_path):
+    (tmp_path / "repo").mkdir(), (tmp_path / "ws").mkdir()
+    result = graders._isolated_regression(tmp_path / "repo", tmp_path / "ws", tmp_path / "copy", tmp_path,
+                                          {"regression_tests": ["apps/api"]})
+    assert result == {"passed": False, "files": [], "detail": "no new or changed test files"}
 
 
 ISOLATED = [t for t in workspace.all_task_ids()

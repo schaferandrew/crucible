@@ -489,13 +489,15 @@ def per_test(prompt_def: dict) -> bool:
 
 
 def _per_test_criteria(prompt_def: dict, grader: dict | None) -> tuple[list[dict], float | None]:
-    from crucible.graders import selected_tests
+    from crucible.graders import GATES, selected_tests
     tests = (grader or {}).get("tests") or []
+    # Gates (existing tests, an untouched contract) earn no points under per-test scoring; they only cap
+    rubric = [item for item in prompt_def["rubric"] if item["hidden_tests"] not in GATES]
     if not tests:
         return [{"criterion": item["criterion"], "max_score": None, "score": 0.0, "detail": "no hidden test results"}
-                for item in prompt_def["rubric"]], 0.0
+                for item in rubric], 0.0
     criteria = []
-    for item in prompt_def["rubric"]:
+    for item in rubric:
         mine = selected_tests(item["hidden_tests"], tests)
         passed = sum(t["passed"] for t in mine)
         criteria.append({"criterion": item["criterion"], "max_score": round(len(mine) / len(tests) * 10, 2),
@@ -517,12 +519,14 @@ def save_check_score(run_dir: Path, prompt_def: dict, results: list[dict], grade
     """
     if not fully_checked(prompt_def):
         return None
-    from crucible import provenance, runrecord, versioning
+    from crucible import graders, provenance, runrecord, versioning
     from crucible.graders import criterion_result
     meta = json.loads((run_dir / "meta.json").read_text(encoding="utf-8"))
     if per_test(prompt_def):
         criteria, overall = _per_test_criteria(prompt_def, grader)
-        scores, cap = {c["criterion"]: c["score"] for c in criteria}, None
+        scores, cap = {c["criterion"]: c["score"] for c in criteria}, graders.per_test_cap(prompt_def, grader)
+        if cap is not None and overall is not None:
+            overall = min(overall, cap)
     else:
         scores = criterion_scores(prompt_def, results, grader)
         # Points earned over points available: a 3-point criterion weighs three times a 1-point one
