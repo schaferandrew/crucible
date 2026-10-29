@@ -16,7 +16,9 @@ deterministic and is scored the moment its run ends.
   earned / points available x 10. A criterion with `cap_if_failed` caps the score when it earns
   nothing (e.g. a modified contract suite).
 - **Per test** (`scoring: per_test`). Every hidden test weighs the same: passed / all tests x 10.
-  A criterion's points are the share of the tests it selects.
+  A criterion's points are the share of the tests it selects. Gates (`existing`, `contract_unchanged`)
+  earn nothing and only cap; a test criterion with `cap_if_failed` keeps its points and also caps the
+  score when any one of its tests fails (cursor-pagination's cursor correctness, capped at 6).
 
 ## Score records
 

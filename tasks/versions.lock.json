@@ -66,8 +66,8 @@
     "version": 2,
     "content_hash": "840e2d2836e3ca9a",
     "prompt_hash": "1c454cdf50b5cf81",
-    "rubric_version": 3,
-    "rubric_hash": "348168fcac990906"
+    "rubric_version": 4,
+    "rubric_hash": "c9a169ab0763f926"
   },
   "editorial-review-workflow": {
     "version": 3,

@@ -22,6 +22,6 @@ oracle:
   solution: [10, 10]
   seeded: [0, 0]
   calibration:
-    offset-cursor: [7.8, 9.5]          # the cursor is an offset in disguise: repeats and skips under creates and deletes
+    offset-cursor: [6, 6]              # the cursor is an offset in disguise: repeats and skips under creates and deletes; 8.73 by tests, capped at 6
     unsigned-cursor: [7.5, 9.3]        # positions are right, but the cursor is forgeable and not bound to its query
     breaks-offset-clients: [5, 5]      # everything cursor-related, but offset requests ignore offset: capped at 5

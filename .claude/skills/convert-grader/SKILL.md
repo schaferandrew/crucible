@@ -102,6 +102,9 @@ rubric:
 - **Gates are caps.** `existing` and `contract_unchanged` pass on the seeded repo, so as points they pay
   for doing nothing. Under `per_test` they earn nothing; when they fail they cap the score. Give them
   `cap_if_failed` and no `max_score`.
+- **A core requirement can cap too.** When a fixture that misses the task's point still scores high by tests
+  (cursor-pagination's offset-cursor: 8.73, its cursors repeat under concurrent writes), give that test
+  criterion `cap_if_failed`: its tests keep their points, and any one failing caps the score (6 there).
 - **"Regression tests" is one test in the pool**, not points and not a cap: with `regression_tests` in
   grader.yaml the grader adds one synthetic result, "your new tests fail on the seeded code and pass on
   your fix". It weighs exactly one test, and an unchanged repo fails it (no new tests). A cap would punish

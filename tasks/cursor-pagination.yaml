@@ -7,7 +7,7 @@ category: coding_repo
 area: coding
 tier: forge
 version: 2
-rubric_version: 3
+rubric_version: 4
 status: provisional
 auto_grade: true
 repo: conduit-monorepo
@@ -39,7 +39,8 @@ prompt: |
 rubric:
 - criterion: Cursor correctness
   hidden_tests: cursor paging
-  description: 'Hidden tests: every article and comment once, newest first, stable under ties, creates, deletes and favorites between pages, on every filter and the feed.'
+  cap_if_failed: 6
+  description: 'Hidden tests: every article and comment once, newest first, stable under ties, creates, deletes and favorites between pages, on every filter and the feed. The core requirement: its tests earn their points, and if any of them fails the score is capped at 6.'
 - criterion: Validation and safety
   hidden_tests: validation
   description: 'Hidden tests: malformed, tampered, mismatched and conflicting cursors are rejected with a 422 on cursor.'
@@ -60,4 +61,4 @@ rubric:
   hidden_tests: contract_unchanged
   cap_if_failed: 4
   description: apps/api/test/realworld.contract.test.ts is exactly as seeded; modifying it caps the score at 4. A cap, not points.
-critical_failure: Every hidden test weighs the same; the score is tests passed / all tests x 10. Failing the seeded API tests caps it at 5, and modifying the contract suite caps it at 4. Write-ups aren't scored.
+critical_failure: Every hidden test weighs the same; the score is tests passed / all tests x 10. A cursor that skips or repeats (any cursor correctness test failing) caps it at 6, failing the seeded API tests caps it at 5, and modifying the contract suite caps it at 4. Write-ups aren't scored.

@@ -31,7 +31,8 @@ An isolated grader.yaml can also declare:
     on its fix and at least one must fail on the seeded code; that counts as one more test in the pool
     (group `regression`), so it weighs one test and fails on an unchanged repo
 Under `scoring: per_test` these two are caps (`cap_if_failed`), never points: they pass on the seeded
-repo, so paying for them would pay for doing nothing.
+repo, so paying for them would pay for doing nothing. A test criterion can carry `cap_if_failed` too:
+its tests still earn their points, and when any one of them fails the score is capped.
 """
 from __future__ import annotations
 
@@ -457,11 +458,14 @@ def selected_tests(selector: str, tests: list[dict]) -> list[dict]:
 
 
 def per_test_cap(prompt_def: dict, record: dict | None) -> float | None:
-    """Under per-test scoring, the lowest `cap_if_failed` among the gate criteria (`existing`,
-    `contract_unchanged`) that failed. Gates earn no points; they only cap."""
+    """Under per-test scoring, the lowest `cap_if_failed` among the criteria that didn't fully pass.
+
+    Gates (`existing`, `contract_unchanged`) earn no points; they only cap. Any other criterion with
+    `cap_if_failed` keeps its tests' points and also caps the score when any one of its tests fails:
+    a core requirement half met (cursors that repeat under concurrent writes) can't score near 10."""
     caps = [item["cap_if_failed"] for item in prompt_def.get("rubric", [])
-            if item.get("hidden_tests") in GATES and "cap_if_failed" in item
-            and not criterion_result(item["hidden_tests"], record or {})[0]]
+            if item.get("hidden_tests") and "cap_if_failed" in item
+            and criterion_result(item["hidden_tests"], record or {})[0] < 1]
     return min(caps) if caps else None
 
 
