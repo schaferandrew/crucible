@@ -10,6 +10,17 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
 
 ## Unreleased
 
+- proofread-economics-essay (formerly WRIT-1c): version 2, rubric 3, now provisional. The essay became
+  eighteen numbered sentences, one claim each: three planted language errors (is/are, it's/its,
+  then/than), six planted overstatements (legally required, lazy, inevitably causes hyperinflation,
+  proves ... completely ineffective, definitively debunked ... at all, "Inflation is when ... because")
+  and nine accurate sentences. The answer is an `ERRORS:` block (`<number>: <corrected word>`) and a
+  `FLAGS:` block (`<number>: overstated|imprecise|unclear|misleading`, any label counts), scored as 18
+  equal items: the three fixes, the six overstatements flagged, the nine accurate sentences left
+  unflagged. Flagging every sentence scores 5.0, flagging none 5.0. This replaces `fixes_treasury`,
+  which passed any reply containing "Treasury securities" and failed replies that quoted the
+  lowercase original (most runs scored 7.0). Runs of version 1 no longer count; rerun it.
+
 - fact-check-history (formerly HIST-2), now "Fact-check twelve history claims": version 2, rubric 2,
   still provisional. The paragraph became twelve numbered claims with one fact each (five wrong, seven
   true), and the answer is an `ERRORS:` block of `<number>: <corrected value>` lines, scored as 17 equal

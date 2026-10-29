@@ -6,49 +6,80 @@ needs_tools: false
 category: writing
 area: writing
 tier: temper
-version: 1
-rubric_version: 2
-status: active
+version: 2
+rubric_version: 3
+status: provisional
 auto_grade: false
 repo: null
 prompt: |
-  Proofread this economics essay for objective language errors. Then separately flag claims, terminology, or wording that are potentially unclear, overstated, or technically imprecise. Do not rewrite the author's argument into your own argument.
+  Proofread this economics essay. Its sentences are numbered, one claim each. Do two separate jobs. First, find the objective language errors (spelling, grammar, agreement, word choice). Second, flag sentences whose claims, terminology or wording are overstated, imprecise, unclear or misleading. Do not rewrite the author's argument into your own argument, and flag a sentence only when something in it is actually wrong with the claim or the wording.
 
-  Inflation is when prices go up because the government prints too much money. This is obvious if you think about it: if there's more money chasing the same amount of stuff, each dollar is worth less. The Consumer Price Index (CPI) measures inflation by tracking a basket of goods that the average household buys, and when CPI rises above 2% annually, the Federal Reserve is legally required to raise interest rates. Many economists believe that the natural rate of unemployment is around 4%, which means anyone above that is either lazy or the victim of bad policy. Quantitative easing, which the Fed started after 2008, is basically just printing money to buy treasury bonds, which devalues the currency and inevitably causes hyperinflation. Japan's experience with deflation in the 1990s proves that monetary policy is completely ineffective at stimulating demand. Most importantly, supply-side economics has been definitively debunked by the failed Reagan tax cuts, which increased the deficit without growing the economy at all.
+  1. Inflation is when prices go up because the government prints too much money.
+  2. The Consumer Price Index (CPI) measures inflation by tracking the prices of a basket of goods and services that households buy.
+  3. The prices in the basket is weighted by how much households spend on each item.
+  4. When CPI rises above 2% annually, the Federal Reserve is legally required to raise interest rates.
+  5. The Federal Reserve's long-run inflation goal is 2%.
+  6. A central bank can lose it's credibility if it keeps missing its inflation target.
+  7. Many economists estimate that the natural rate of unemployment in the United States is around 4%.
+  8. Anyone unemployed above that rate is either lazy or the victim of bad policy.
+  9. Quantitative easing is a policy in which a central bank buys long-term securities to lower long-term interest rates.
+  10. The Federal Reserve began large-scale asset purchases in late 2008.
+  11. Quantitative easing, which is basically just printing money, inevitably causes hyperinflation.
+  12. Raising interest rates makes loans more expensive then they were before.
+  13. Japan's economy stagnated after its asset price bubble burst in the early 1990s.
+  14. Japan's experience with deflation in the 1990s proves that monetary policy is completely ineffective at stimulating demand.
+  15. Supply-side economics holds that lower taxes encourage production and investment.
+  16. The Reagan administration cut the top federal income tax rate sharply in the 1980s.
+  17. The federal budget deficit grew during the 1980s.
+  18. Supply-side economics has been definitively debunked by the Reagan tax cuts, which increased the deficit without growing the economy at all.
+
+  Explain your reasoning first if it helps. Then end your reply with these two blocks, and nothing after them:
+
+  ERRORS:
+  <number>: <corrected value>
+
+  FLAGS:
+  <number>: <overstated|imprecise|unclear|misleading>
+
+  One line per numbered sentence with a language error in ERRORS, and none for the others. Give only the corrected value (a word or short phrase), not a sentence. One line per numbered sentence you flag in FLAGS, with the one word that says what is wrong with it. If there is nothing for a block, write `ERRORS: none` or `FLAGS: none`.
+# Only the last ERRORS: and FLAGS: blocks are scored, as 18 equal items. Language errors in 3 (are), 6 (its)
+# and 12 (than). Overstated: 1, 4, 8, 11, 14, 18. Accurate controls: 2, 5, 7, 9, 10, 13, 15, 16, 17.
+# The balance (decision D12): flagging all 18 sentences with every fix right scores 9/18 = 5.0 (the nine
+# controls are lost); flagging none scores 9/18 = 5.0 (only the controls are earned). The label after
+# the number in FLAGS is not scored: any of the four counts.
 checks:
-  - id: answered
-    type: non_empty
-    min_words: 80
-    rule: "Produces a substantive answer (at least 80 words)."
-  - id: fixes_treasury
-    type: required_patterns
-    case_sensitive: true
-    patterns: ['Treasury (bonds|securities)']
-    rule: "Capitalizes 'Treasury' in 'Treasury bonds' (case-sensitive)."
-  - id: separate_flags
-    type: required_patterns
-    patterns: ['\b(overstat\w*|imprecise|unclear|misleading|inaccurate|unsupported)\b']
-    rule: "Has a separate part flagging claims as overstated, imprecise, unclear or misleading."
-  - id: names_overstatements
-    type: required_patterns
-    min_matches: 3
-    patterns: ['legally required', '\blazy\b', 'hyperinflation', '(debunked|Reagan)', 'Inflation is when', 'completely ineffective']
-    rule: "Discusses at least 3 of the planted overstatements (legally required, lazy, hyperinflation, debunked/Reagan, 'Inflation is when', completely ineffective)."
+- id: language_errors
+  type: items
+  header: [ERRORS, ERROR]
+  normalize: name
+  items:
+  - {id: agreement, key: '3', expect: are, aliases: [are weighted], label: 'Sentence 3 corrected to "are"'}
+  - {id: its, key: '6', expect: its, aliases: [its credibility], label: 'Sentence 6 corrected to "its"'}
+  - {id: than, key: '12', expect: than, label: 'Sentence 12 corrected to "than"'}
+  rule: 'Fixes each planted language error with its corrected word alone: 3 "is" to "are", 6 "it''s" to "its", 12 "then" to "than"; one item per fix.'
+- id: overstatements_flagged
+  type: items
+  header: [FLAGS, FLAG]
+  items:
+  - {id: flagged, expect: [1, 4, 8, 11, 14, 18], of: [1, 4, 8, 11, 14, 18], normalize: line_set}
+  rule: 'Flags each planted overstatement in the FLAGS: block, with any of the four labels: 1 (Inflation is when ... because), 4 (legally required), 8 (lazy), 11 (inevitably causes hyperinflation), 14 (proves ... completely ineffective), 18 (definitively debunked ... at all); one item per sentence.'
+- id: accurate_kept
+  type: items
+  header: [FLAGS, FLAG]
+  items:
+  - {id: unflagged, expect: [], of: [2, 5, 7, 9, 10, 13, 15, 16, 17], normalize: line_set}
+  rule: 'Leaves the accurate sentences (2, 5, 7, 9, 10, 13, 15, 16 and 17) out of the FLAGS: block; one item per sentence.'
 rubric:
-  - criterion: "Answered"
-    max_score: 1
-    check: answered
-    description: "A substantive answer."
-  - criterion: "Fixes the language error"
-    max_score: 3
-    check: fixes_treasury
-    description: "treasury -> Treasury."
-  - criterion: "Flags claims separately"
-    max_score: 3
-    check: separate_flags
-    description: "Claims flagged apart from language fixes."
-  - criterion: "Finds the overstatements"
-    max_score: 3
-    check: names_overstatements
-    description: "At least three planted overstatements discussed."
+- criterion: Language errors fixed
+  max_score: 3
+  check: language_errors
+  description: Each of the three planted language errors is listed with the right corrected word (one point each).
+- criterion: Overstatements flagged
+  max_score: 6
+  check: overstatements_flagged
+  description: Each of the six planted overstatements is flagged, whichever label is used (one point each).
+- criterion: Accurate sentences left alone
+  max_score: 9
+  check: accurate_kept
+  description: Each of the nine accurate sentences is left out of the flags (one point each).
 critical_failure: null

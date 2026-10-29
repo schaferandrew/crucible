@@ -273,11 +273,11 @@
     "rubric_hash": "7d57227f67a0b9e9"
   },
   "proofread-economics-essay": {
-    "version": 1,
-    "content_hash": "cf3ca397d5295f66",
-    "prompt_hash": "bfe7fd4646b8cab3",
-    "rubric_version": 2,
-    "rubric_hash": "0fefa4c8e6e7b983"
+    "version": 2,
+    "content_hash": "2bc3c8fb72053c52",
+    "prompt_hash": "26245d725b221ed4",
+    "rubric_version": 3,
+    "rubric_hash": "936fb11c6fb812f3"
   },
   "proofread-literary-paragraph": {
     "version": 1,
