@@ -371,13 +371,20 @@ def _ordering_entries(lines: list[str]) -> list[str]:
     return _line_entries(lines)
 
 
-NAME_LIST_SPLIT = re.compile(r"\s*(?:,|;|/|&|\band\b)\s*", re.IGNORECASE)
+NAME_LIST_SPLIT = re.compile(r"\s*(?:,|;|/|&)\s*")
+AND_SPLIT = re.compile(r"\s+and\s+", re.IGNORECASE)
 
 
 def _name_list(value: str) -> set[str]:
-    """The names a line lists, folded: "Bolivia, Laos (Asia) and Chad" is bolivia, laos, chad."""
+    """The names a line lists, folded: "Bolivia, Laos (Asia) and Chad" is bolivia, laos, chad.
+
+    "A and B" counts as both A and B, and as the one name "A and B" (Bosnia and Herzegovina)."""
     value = re.sub(r"\([^)]*\)", " ", value)
-    return {n for n in (_fold(part) for part in NAME_LIST_SPLIT.split(value)) if n and n != "none"}
+    parts = []
+    for part in NAME_LIST_SPLIT.split(value):
+        pieces = AND_SPLIT.split(part)
+        parts += [" and ".join(pieces[i:j]) for i in range(len(pieces)) for j in range(i + 1, len(pieces) + 1)]
+    return {n for n in (_fold(p) for p in parts) if n and n != "none"}
 
 
 def _line_value(lines: list[str], key) -> str | None:

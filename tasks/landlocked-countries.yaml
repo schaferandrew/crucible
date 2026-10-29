@@ -6,7 +6,7 @@ needs_tools: false
 category: geography
 area: geography
 tier: temper
-version: 1
+version: 2
 rubric_version: 2
 status: provisional
 auto_grade: false
@@ -14,9 +14,8 @@ repo: null
 prompt: 'Which of these countries are landlocked (no coastline on the open ocean or a sea connected to it)?
 
 
-  Croatia, Bolivia, Kazakhstan, Eritrea, Austria, Laos, Mozambique, Paraguay, Serbia, Vietnam, Ethiopia, Uzbekistan, Zambia,
-  Hungary, Mongolia
-
+  Croatia, Bolivia, Slovenia, Kazakhstan, Eritrea, Austria, Jordan, Laos, Mozambique, Paraguay, Bosnia and Herzegovina,
+  Serbia, Vietnam, Ethiopia, Togo, Uzbekistan, Zambia, Iraq, Hungary, DR Congo, Mongolia, Belgium
 
   Then say which one of them is doubly landlocked (surrounded only by landlocked countries).
 
@@ -31,8 +30,9 @@ prompt: 'Which of these countries are landlocked (no coastline on the open ocean
 
   '
 # Header-less: the three labelled lines of the reply are the block (the last line with a label wins).
-# 16 equal items: each of the 11 landlocked countries on the Landlocked line (and not on the other), each
-# of the 4 coastal ones on the Not landlocked line (and not on the other), and the doubly landlocked one.
+# 23 equal items: each of the 11 landlocked countries on the Landlocked line (and not on the other), each
+# of the 11 coastal ones (7 look landlocked: Bosnia and Herzegovina, DR Congo, Jordan, Iraq, Slovenia, Togo,
+# Belgium) on the Not landlocked line (and not on the other), and the doubly landlocked one.
 checks:
 - id: landlocked_found
   type: items
@@ -54,9 +54,10 @@ checks:
     key: Not landlocked
     not_in: [Landlocked]
     normalize: name_set
-    expect: [Croatia, Eritrea, Mozambique, Vietnam]
+    expect: [Croatia, Eritrea, Mozambique, Vietnam, Slovenia, Jordan, Bosnia and Herzegovina, Togo, Iraq, DR Congo, Belgium]
+    aliases: {DR Congo: [Democratic Republic of the Congo, DRC, Congo-Kinshasa], Bosnia and Herzegovina: [Bosnia, Bosnia-Herzegovina]}
   rule: 'Lists each coastal country on the Not landlocked line, and not on the Landlocked line: Croatia, Eritrea,
-    Mozambique, Vietnam; one item per country.'
+    Mozambique, Vietnam, Slovenia, Jordan, Bosnia and Herzegovina, Togo, Iraq, DR Congo, Belgium; one item per country.'
 - id: doubly
   type: items
   header: null
@@ -69,9 +70,9 @@ rubric:
   check: landlocked_found
   description: Each of the 11 landlocked countries is on the Landlocked line and not on the other (one point each).
 - criterion: Coastal countries on the right line
-  max_score: 4
+  max_score: 11
   check: coastal_not_listed
-  description: Each of Croatia, Eritrea, Mozambique and Vietnam is on the Not landlocked line and not on the other
+  description: Each of the 11 coastal countries (Croatia, Eritrea, Mozambique, Vietnam and the look-alikes Slovenia, Jordan, Bosnia and Herzegovina, Togo, Iraq, DR Congo, Belgium) is on the Not landlocked line and not on the other
     (one point each).
 - criterion: Doubly landlocked
   max_score: 1

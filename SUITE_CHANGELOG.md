@@ -17,9 +17,11 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
   `Country: Capital` lines is its own item (a capital named anywhere in the reply no longer counts), and
   the redundant big-city trap check is gone. Stored runs are rescored.
 
-- landlocked-countries (formerly GEOG-2): rubric 2, still provisional. 16 equal items instead of a
-  4-point all-or-nothing criterion: each of the 15 countries on the right line (and not the other),
-  plus the doubly landlocked one. Stored runs are rescored.
+- landlocked-countries (formerly GEOG-2): version 2, rubric 2, still provisional. The list grew from 15 to
+  22 countries, seven coastal look-alikes mixed in (Bosnia and Herzegovina, DR Congo, Jordan, Iraq,
+  Slovenia, Togo, Belgium), so listing everything as landlocked no longer pays (it scored 7.5). Scored as
+  23 equal items: each country on the right line (and not the other), plus the doubly landlocked one.
+  Listing all as landlocked now scores 5.2, none 4.8. Runs of version 1 no longer count; rerun it.
 
 - letter-from-1863 (formerly HIST-3): rubric 2, still provisional. 11 equal items, one per letter,
   each correctly in or out of the `ANACHRONISMS:` line, instead of two all-or-nothing halves. Stored

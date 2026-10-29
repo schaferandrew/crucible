@@ -56,3 +56,10 @@ def test_new_kinds_fail_every_item_without_a_block():
              {"id": "y", "find": "X", "expect": 1, "normalize": "year"}]
     result = _score(items, "plain prose", header="ORDER")
     assert result["share"] == 0.0 and len(result["items"]) == 3
+
+
+def test_name_set_reads_a_name_containing_and():
+    items = [{"id": "c", "key": "Coastal", "expect": ["Bosnia and Herzegovina", "Togo"], "normalize": "name_set"}]
+    assert _score(items, "Coastal: Togo, Bosnia and Herzegovina", header=None)["passed"]
+    assert _score(items, "Coastal: Bosnia and Herzegovina and Togo", header=None)["passed"]
+    assert not _score(items, "Coastal: Togo, Bosnia", header=None)["passed"]

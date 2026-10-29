@@ -168,11 +168,11 @@
     "rubric_hash": "fc01b9277a213309"
   },
   "landlocked-countries": {
-    "version": 1,
-    "content_hash": "9fac71a4ce0fff18",
-    "prompt_hash": "a973a3d5d8cfb0cd",
+    "version": 2,
+    "content_hash": "7b5379ce8b6a3e04",
+    "prompt_hash": "c406ed07ccfdf5f6",
     "rubric_version": 2,
-    "rubric_hash": "2a76b4781a23b721"
+    "rubric_hash": "f75bb0a15226bc61"
   },
   "letter-from-1863": {
     "version": 1,
