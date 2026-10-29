@@ -3342,7 +3342,7 @@
           "kind": "calendar#event",
           "id": "dana048",
           "status": "confirmed",
-          "summary": "Vendor sync (declined)",
+          "summary": "Vendor sync",
           "start": {
             "dateTime": "2026-09-01T13:00:00-05:00",
             "timeZone": "America/Chicago"
@@ -4248,7 +4248,7 @@
           "kind": "calendar#event",
           "id": "theo051",
           "status": "confirmed",
-          "summary": "Lunch & learn (optional)",
+          "summary": "Lunch & learn",
           "start": {
             "dateTime": "2026-09-01T13:30:00-05:00",
             "timeZone": "America/Chicago"
@@ -5360,7 +5360,7 @@
           "kind": "calendar#event",
           "id": "lena050",
           "status": "confirmed",
-          "summary": "Design crit (declined)",
+          "summary": "Design crit",
           "start": {
             "dateTime": "2026-09-03T14:00:00-05:00",
             "timeZone": "America/Chicago"
@@ -6462,7 +6462,7 @@
           "kind": "calendar#event",
           "id": "omar044",
           "status": "confirmed",
-          "summary": "Focus block",
+          "summary": "Writing time",
           "start": {
             "dateTime": "2026-09-09T15:00:00-05:00",
             "timeZone": "America/Chicago"

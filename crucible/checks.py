@@ -448,6 +448,278 @@ def _items_check(check: dict, text: str) -> tuple[bool, str, float, list[dict]]:
     return passed == len(results), detail, share, results
 
 
+
+# --------------------------------------------------------------------------
+# Time options and session tool calls (the calendar tasks)
+# --------------------------------------------------------------------------
+#
+# `time_options` scores a block of proposed meeting times against the mock calendar dataset the task
+# ran on. The set of right answers is computed from the dataset (the server's free_starts()), never
+# written out by hand in the task. Each line of the block is `YYYY-MM-DD HH:MM <time zone>`; a line
+# with no recognised zone, or no date and time, is an option that can't be valid. One result per item:
+#
+#     - id: options
+#       type: time_options
+#       header: OPTIONS
+#       dataset: pair                     # fixtures/mock-calendar/pair.json
+#       attendees: [alex@example.com, jamie@example.com]   # or `team: Platform`: every calendar in that team
+#       until: "2026-09-05T00:00:00"      # the search window runs from the dataset's "now" to here
+#       minutes: 60                       # meeting length; `step` is the start grid (default 30)
+#       items:
+#         - {id: valid, kind: in_set}                     # at least one option, each a distinct ground-truth start
+#         - {id: count, kind: count, min: 2, max: 3}      # option lines in the block
+#         - {id: handled, kind: includes_any,             # at least one VALID option matching a selector
+#            match: [{weekday: fri}, {date: "2026-09-03", time: "13:00"}]}   # in the dataset's zone
+#         - {id: not_past, kind: not_before_now}          # no option before the dataset's "now"
+#         - {id: dates, kind: avoid, dates: ["2026-09-07"], ranges: [["2026-09-10", "2026-09-11"]]}
+#         - {id: close, kind: latest_end, time: "16:00"}  # no option ends after 16:00 in the dataset's zone
+#
+# `tool_calls` scores what the agent did, read from the run's session record (session.json), not the
+# answer: an item passes when the tool was called at least once, and with `covers: {dataset, team}`
+# only when its `calendars` argument, over all calls, named every calendar in that team except the
+# user's own (whose events list_events reads). Without a session record every item fails.
+
+OPTION_LINE = re.compile(
+    r"(?P<y>\d{4})-(?P<mo>\d{1,2})-(?P<d>\d{1,2})[ T]+(?P<h>\d{1,2}):(?P<m>\d{2})(?::\d{2})?[ \t]*(?P<ampm>[ap]\.?m\b\.?)?"
+    r"[ \t]*\(?(?P<tz>[+-]\d{2}:?\d{2}\b|UTC[+-]\d{1,2}(?::\d{2})?|[A-Za-z]+(?:/[A-Za-z_]+)?)?", re.IGNORECASE)
+# Zone names models write for the datasets' zones. CST/EST/MST/PST are read as the region's local time
+# (people write them for "Central" all year round), so a September "CST" is still Chicago.
+ZONE_ALIASES = {
+    "America/Chicago": ["cdt", "cst", "ct", "central", "america/chicago", "chicago"],
+    "America/New_York": ["edt", "est", "et", "eastern", "america/new_york", "new_york"],
+    "America/Denver": ["mdt", "mst", "mt", "mountain", "america/denver"],
+    "America/Los_Angeles": ["pdt", "pst", "pt", "pacific", "america/los_angeles"],
+    "Europe/London": ["bst", "europe/london"],
+    "UTC": ["utc", "gmt", "z"],
+}
+
+
+def _zone_offset(text: str | None):
+    """A time zone as written ("CDT", "Central", "America/Chicago", "-05:00", "UTC-5") to a fixed offset, else None."""
+    from datetime import timedelta
+    from crucible.mcp_servers import calendar_server as cs
+    if not text:
+        return None
+    word = text.strip().lower()
+    for zone, names in ZONE_ALIASES.items():
+        if word in names:
+            return cs.fixed_offset(cs.ZONES[zone])
+    found = re.fullmatch(r"(?:utc)?([+-])(\d{1,2}):?(\d{2})?", word)
+    if found:
+        sign = -1 if found.group(1) == "-" else 1
+        return timezone(sign * timedelta(hours=int(found.group(2)), minutes=int(found.group(3) or 0)))
+    return None
+
+
+def _option(line: str) -> dict:
+    """{line, start} for one block line; start is an aware datetime, or None when the line has no date, time
+    and recognised zone."""
+    found = OPTION_LINE.search(line)
+    option = {"line": line, "start": None}
+    if not found:
+        return option
+    hour, ampm = int(found.group("h")), (found.group("ampm") or "").lower().replace(".", "")
+    if ampm == "pm" and hour < 12:
+        hour += 12
+    elif ampm == "am" and hour == 12:
+        hour = 0
+    tz = _zone_offset(found.group("tz"))
+    try:
+        if tz is not None:
+            option["start"] = datetime(int(found.group("y")), int(found.group("mo")), int(found.group("d")),
+                                       hour, int(found.group("m")), tzinfo=tz)
+    except ValueError:
+        pass
+    return option
+
+
+_TRUTH: dict = {}
+
+
+def _dataset(name: str):
+    from crucible.mcp_servers.calendar_server import Calendar
+    if ("cal", name) not in _TRUTH:
+        _TRUTH[("cal", name)] = Calendar.load(name)
+    return _TRUTH[("cal", name)]
+
+
+def _team_ids(cal, team: str) -> list[str]:
+    return [cid for cid, c in cal.calendars.items() if c.get("team") == team]
+
+
+def _truth(check: dict):
+    """(dataset, the ground-truth start times): free_starts() for the check's attendees over its window."""
+    from crucible.mcp_servers.calendar_server import free_starts, parse_time
+    cal = _dataset(check["dataset"])
+    attendees = check.get("attendees") or _team_ids(cal, check["team"])
+    key = ("truth", check["dataset"], tuple(attendees), check["until"], check["minutes"], check.get("step", 30))
+    if key not in _TRUTH:
+        starts = free_starts(cal, attendees, cal.now.isoformat(), check["until"], check["minutes"], check.get("step", 30))
+        _TRUTH[key] = set(starts)
+    return cal, _TRUTH[key]
+
+
+def _matches(selector: dict, local: datetime) -> bool:
+    """A selector's weekday (mon..sun), date and time, each only when it states them, against a local time."""
+    if "weekday" in selector and local.strftime("%a").lower() != str(selector["weekday"])[:3].lower():
+        return False
+    if "date" in selector and local.date().isoformat() != str(selector["date"]):
+        return False
+    return "time" not in selector or local.strftime("%H:%M") == str(selector["time"])
+
+
+def _time_item(item: dict, check: dict, options: list[dict]) -> dict:
+    kind, label = item["kind"], item.get("label")
+    parsed = [o for o in options if o["start"] is not None]
+
+    def result(passed: bool, detail: str, default_label: str) -> dict:
+        return {"id": item["id"], "label": label or default_label, "passed": passed, "detail": detail}
+
+    def judged(default_label: str, bad_option) -> dict:
+        """Passes when at least one option parsed and none is rejected by bad_option(local_start)."""
+        if not parsed:
+            return result(False, "no option with a date, time and time zone", default_label)
+        bad = [o["line"] for o in parsed if bad_option(o["start"])]
+        return result(not bad, "none found" if not bad else "found: " + "; ".join(bad[:3]), default_label)
+
+    if kind == "count":
+        n, low, high = len(options), item.get("min", 1), item.get("max")
+        want = f"exactly {low}" if high == low else (f"{low} to {high}" if high is not None else f"at least {low}")
+        return result(n >= low and (high is None or n <= high), f"{n} options (want {want})", f"{want} options")
+    cal, truth = (_truth(check) if kind in ("in_set", "includes_any") else (_dataset(check["dataset"]), set()))
+    local = lambda o: o["start"].astimezone(cal.tz)   # noqa: E731
+    valid = [o for o in parsed if o["start"] in truth]
+    if kind == "in_set":
+        starts = [o["start"] for o in valid]
+        bad = [o["line"] for o in options if o["start"] is None or o["start"] not in truth]
+        if len(set(starts)) < len(starts):
+            bad.append("an option repeated")
+        return result(bool(options) and not bad, "all valid" if options and not bad else
+                      ("no options" if not options else "not valid: " + "; ".join(bad[:3])), "Every option is a free time")
+    if kind == "includes_any":
+        hit = [o["line"] for o in valid if any(_matches(s, local(o)) for s in item["match"])]
+        return result(bool(hit), f"matched {hit[0]}" if hit else "no valid option matches", "Includes a time that needs the event status")
+    if kind == "not_before_now":
+        return judged("No option is in the past", lambda start: start < cal.now)
+    if kind == "avoid":
+        dates, ranges = {str(d) for d in item.get("dates") or []}, item.get("ranges") or []
+
+        def hits(start: datetime) -> bool:
+            day = start.astimezone(cal.tz).date().isoformat()
+            return day in dates or any(str(a) <= day <= str(b) for a, b in ranges)
+        return judged("No option on an excluded day", hits)
+    if kind == "latest_end":
+        from datetime import timedelta
+        cutoff = _minutes_of(item["time"])
+
+        def late(start: datetime) -> bool:
+            end = start.astimezone(cal.tz) + timedelta(minutes=check["minutes"])
+            return end.date() != start.astimezone(cal.tz).date() or end.hour * 60 + end.minute > cutoff
+        return judged(f"No meeting ends after {item['time']}", late)
+    raise ValueError(f"unknown time_options item kind: {kind}")
+
+
+def _minutes_of(hhmm: str) -> int:
+    return int(hhmm[:2]) * 60 + int(hhmm[3:])
+
+
+def _time_options_check(check: dict, text: str) -> tuple[bool, str, float, list[dict]]:
+    """Each rule about the proposed times scored on its own; share = items passed / all items."""
+    header = check.get("header", "OPTIONS")
+    if not text.strip():
+        return False, NO_ANSWER, 0.0, _failed_items(check, NO_ANSWER)
+    lines = answer_block(text, header)
+    if lines is None:
+        name = header if isinstance(header, str) else header[0]
+        return False, f"no {name.rstrip(':')}: block", 0.0, _failed_items(check, "no answer block")
+    options = [_option(line) for line in lines]
+    results = [_time_item(item, check, options) for item in check["items"]]
+    return _summarize(results)
+
+
+def _summarize(results: list[dict]) -> tuple[bool, str, float, list[dict]]:
+    passed = sum(r["passed"] for r in results)
+    share = round(passed / len(results), 4) if results else 0.0
+    failed = [f"{r['id']} ({r['detail']})" for r in results if not r["passed"]]
+    detail = f"{passed}/{len(results)} items" + ("; failed: " + ", ".join(failed[:6]) if failed else "")
+    return passed == len(results), detail, share, results
+
+
+def session_tool_calls(run_dir: Path) -> list[dict] | None:
+    """[{name, args}] for every tool the agent called, from session.json; None without a readable session.
+
+    Reads both session formats (pi's normalized events, opencode's export). The model's answer is never
+    part of it: a model can claim it checked the calendar without having called anything."""
+    path = run_dir / "session.json"
+    if not path.is_file():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return None
+    calls = []
+    if isinstance(data, list):
+        calls = [{"name": e.get("name", ""), "args": e.get("args") or {}} for e in data
+                 if isinstance(e, dict) and e.get("type") == "toolCall"]
+    elif isinstance(data, dict):
+        for msg in data.get("messages", []):
+            for part in (msg.get("parts") or msg.get("content") or []) if isinstance(msg, dict) else []:
+                if isinstance(part, dict) and part.get("type") in ("tool", "tool-invocation", "tool_use"):
+                    state = part.get("state") if isinstance(part.get("state"), dict) else {}
+                    calls.append({"name": part.get("name") or part.get("tool") or "",
+                                  "args": state.get("input") or part.get("input") or part.get("args") or {}})
+    return calls
+
+
+def _is_tool(called: str, tool: str) -> bool:
+    """The tool's own name, or one a harness prefixes with the server's ("mock-calendar_list_events")."""
+    return called == tool or any(called.endswith(sep + tool) for sep in ("_", "__", ".", "/", ":"))
+
+
+def _calendar_ids(args) -> set[str]:
+    """The calendar ids a get_freebusy call named: [{"id": ...}], ["..."] or a JSON string of either."""
+    if isinstance(args, dict):
+        args = args.get("calendars")
+    if isinstance(args, str):
+        try:
+            args = json.loads(args)
+        except json.JSONDecodeError:
+            return set()
+    if not isinstance(args, list):
+        return set()
+    return {str(c.get("id") if isinstance(c, dict) else c) for c in args}
+
+
+def _tool_calls_check(check: dict, text: str) -> tuple[bool, str, float, list[dict]]:
+    """Each expected tool call scored on its own; share = items passed / all items."""
+    calls = check.get("_tool_calls")
+    if calls is None:
+        return False, "no session record", 0.0, _failed_items(check, "no session record")
+    results = []
+    for item in check["items"]:
+        mine = [c for c in calls if _is_tool(str(c["name"]), item["tool"])]
+        label = item.get("label", f"Called {item['tool']}")
+        if not mine:
+            results.append({"id": item["id"], "label": label, "passed": False, "detail": "not called"})
+        elif item.get("covers"):
+            cal = _dataset(item["covers"]["dataset"])
+            need = set(_team_ids(cal, item["covers"]["team"])) - {cal.owner}
+            seen = set().union(*(_calendar_ids(c["args"]) for c in mine))
+            missing = sorted(need - seen)
+            results.append({"id": item["id"], "label": label, "passed": not missing,
+                            "detail": f"{len(need) - len(missing)}/{len(need)} calendars"
+                                      + (f"; missing {', '.join(m.split('@')[0] for m in missing[:5])}" if missing else "")})
+        else:
+            results.append({"id": item["id"], "label": label, "passed": True, "detail": f"{len(mine)} call(s)"})
+    return _summarize(results)
+
+
+def _failed_items(check: dict, detail: str) -> list[dict]:
+    """Every item of a time_options or tool_calls check failed, one result per item."""
+    return [{"id": item["id"], "label": item.get("label", item["id"]), "passed": False, "detail": detail}
+            for item in check["items"]]
+
+
 # A check returns (passed, detail), or (passed, detail, share) when it earns partial credit, plus the
 # per-item results when it scores items (passed, detail, share, items)
 CHECKS: dict[str, Callable[[dict, str], tuple]] = {
@@ -459,14 +731,17 @@ CHECKS: dict[str, Callable[[dict, str], tuple]] = {
     "line_count": _line_count,
     "list_items": _list_items,
     "items": _items_check,
+    "time_options": _time_options_check,
+    "tool_calls": _tool_calls_check,
 }
 
 
-def run_checks(prompt_def: dict, text: str, run_dir: Path | None = None) -> list[dict]:
+def run_checks(prompt_def: dict, text: str, run_dir: Path | None = None, tool_calls: list[dict] | None = None) -> list[dict]:
     """[{id, type, passed, detail, rule}] for every check the prompt declares.
 
     A check runs on the final answer, or with `file:` on that file in the run's workspace
-    (e.g. a postmortem the model was asked to write)."""
+    (e.g. a postmortem the model was asked to write). `tool_calls` ([{name, args}]) is what a `tool_calls`
+    check reads; without it they come from the run's session record."""
     results = []
     text = plain(text)
     for check in prompt_def.get("checks") or []:
@@ -483,9 +758,14 @@ def run_checks(prompt_def: dict, text: str, run_dir: Path | None = None) -> list
             # duplicates and no undescribed items, but there is nothing to score (B2)
             results.append({"id": check["id"], "type": check["type"], "passed": False, "detail": NO_ANSWER,
                             "rule": check.get("rule"),
-                            **({"share": 0.0, "items": _all_failed(check, NO_ANSWER)} if check["type"] == "items" else {})})
+                            **({"share": 0.0, "items": _all_failed(check, NO_ANSWER)} if check["type"] == "items" else {}),
+                            **({"share": 0.0, "items": _failed_items(check, NO_ANSWER)}
+                               if check["type"] in ("time_options", "tool_calls") else {})})
             continue
-        passed, detail, *extra = CHECKS[check["type"]]({**check, "_source": prompt_def.get("prompt", "")}, subject)
+        if check["type"] == "tool_calls" and tool_calls is None and run_dir:
+            tool_calls = session_tool_calls(run_dir)
+        passed, detail, *extra = CHECKS[check["type"]](
+            {**check, "_source": prompt_def.get("prompt", ""), "_tool_calls": tool_calls}, subject)
         results.append({"id": check["id"], "type": check["type"], "passed": passed, "detail": detail,
                         "rule": check.get("rule"), **({"share": extra[0]} if extra else {}),
                         # Per-item results (the items check), for the dashboard's detail view

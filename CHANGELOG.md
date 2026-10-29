@@ -12,6 +12,20 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## Unreleased
+
+### Added
+
+- **`time_options` check:** scores an `OPTIONS:` block of `YYYY-MM-DD HH:MM <time zone>` lines against a
+  mock-calendar dataset. The ground-truth start times are computed from the dataset (`free_starts()`),
+  not listed in the task. Item kinds: `in_set` (every option a distinct valid start), `count`,
+  `includes_any` (a valid option matching a weekday, date or time), `not_before_now`, `avoid` (dates and
+  date ranges) and `latest_end`. Zones are read by name (`CDT`, `Central`, `America/Chicago`) or offset.
+- **`tool_calls` check:** scores what the agent did, from the run's `session.json` (pi and opencode
+  formats) rather than its reply: a tool was called, and for `get_freebusy` with `covers`, every
+  calendar of a dataset's team was named. `checks.session_tool_calls()` and a `tool_calls=` argument to
+  `run_checks()` expose the calls.
+
 ## 3.1.0 (2026-10-29)
 
 Scoring fixes and the first converted tasks for Suite v2: empty answers score 0, answer blocks

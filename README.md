@@ -416,7 +416,7 @@ A dataset fixes "now" (so tests never depend on the real date), the calendars an
 | TASK-5 | `pair` | An hour with Jamie this week: read my events, then Jamie's busy blocks. My declined and "free" events look busy. |
 | TASK-6 | `forge` | An hour for a team of 16 in two weeks: holiday, out-of-office, a New York teammate, non-team calendars to leave out, declined and "free" decoys. |
 
-Each prompt's YAML comments hold the ground truth, and `free_starts()` in the server computes it for unit tests and graders. The datasets are regenerated with `python fixtures/mock-calendar/build.py`, which re-checks them against that oracle.
+The tasks end with an `ANSWER:` or `OPTIONS:` block and are scored by checks. The right answers are not written down anywhere in a task: the `time_options` check computes them from the dataset with `free_starts()` in the server. The datasets are regenerated with `python graders/mock-calendar/build.py` (kept under `graders/`, never in `fixtures/`, because it holds the ground truth), which re-checks them against that oracle.
 
 Caveat: harnesses may put the real current date in the model's context, which disagrees with the dataset's "now". The tasks expect the model to ask the calendar for the time.
 

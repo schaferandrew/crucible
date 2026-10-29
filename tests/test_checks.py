@@ -159,6 +159,8 @@ EVERY_TYPE = [
     {"id": "grade", "type": "grade_closeness", "actual_score": 5, "width": 100},
     {"id": "block", "type": "items", "normalize": "letter_set",
      "items": [{"id": "q", "expect": ["B"], "of": ["A", "B", "C"]}, {"id": "n", "key": "2", "expect": 2}]},
+    {"id": "times", "type": "time_options", "dataset": "spark", "items": [{"id": "c", "kind": "count", "min": 0}]},
+    {"id": "tools", "type": "tool_calls", "items": [{"id": "t", "tool": "get_current_time"}]},
 ]
 
 
@@ -169,7 +171,7 @@ def test_an_empty_answer_fails_every_check_type(text):
     results = checks.run_checks({"checks": EVERY_TYPE, "prompt": "Source: 1,234"}, text)
     assert [r["passed"] for r in results] == [False] * len(EVERY_TYPE)
     assert {r["detail"] for r in results} == {"no answer to check"}
-    block = results[-1]
+    block = results[9]
     # Every item fails, expanded as a real block would be (3 letters + 1 line), so the total doesn't change
     assert block["share"] == 0.0 and len(block["items"]) == 4 and not any(i["passed"] for i in block["items"])
 

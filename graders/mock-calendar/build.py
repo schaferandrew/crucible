@@ -6,7 +6,12 @@ were made, so a dataset can be changed in one readable place. It checks each
 result against the server's own free_starts() oracle, so the data and the
 documented answers cannot drift apart.
 
-    python fixtures/mock-calendar/build.py
+    python graders/mock-calendar/build.py
+
+This file holds the ground truth and the traps, so it lives under graders/, which is never copied
+into an agent's workspace (fixtures/ can be). It writes the datasets to fixtures/mock-calendar/.
+Event titles must never state the conclusion ("declined", "optional"): the declined or
+transparent status belongs in the event data, where reading it is part of the task.
 
 Datasets (the scheduling tests that use each):
   spark - TASK-4, "am I free at 3:30?": one calendar, one boundary trap.
@@ -22,7 +27,8 @@ import sys
 from datetime import date, timedelta
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parent                     # graders/mock-calendar/
+DATA = HERE.parent.parent / "fixtures" / "mock-calendar"   # where the datasets are served from
 sys.path.insert(0, str(HERE.parent.parent))
 from crucible.mcp_servers.calendar_server import Calendar, free_starts  # noqa: E402
 
@@ -96,7 +102,7 @@ def dataset(name: str, now: str, calendars: list[Person], tools: list[str], owne
 def write(data: dict) -> Calendar:
     for cal in data["calendars"]:
         cal["events"].sort(key=lambda e: e["start"].get("dateTime") or e["start"]["date"] + "T00:00:00")
-    (HERE / f"{data['name']}.json").write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    (DATA / f"{data['name']}.json").write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
     return Calendar(data)
 
 
@@ -139,7 +145,7 @@ def build_pair() -> dict:
     alex.add("2026-09-02", "09:30", "11:30", "Interview loop", location="Conference Room C")
     alex.add("2026-09-02", "13:00", "14:00", "Planning", location="Conference Room A")
     alex.add("2026-09-03", "10:00", "11:00", "Sprint review", location="Zoom")
-    alex.add("2026-09-03", "13:00", "15:00", "Design sync (declined)", declined=True)
+    alex.add("2026-09-03", "13:00", "15:00", "Design sync", declined=True)
     alex.add("2026-09-03", "15:00", "16:00", "Project review", location="Zoom")
     alex.all_day("2026-09-04", "Priya's birthday", transparency="transparent", event_type="birthday")
     jamie.add("2026-08-31", "09:00", "11:00", "Hiring sync", location="Zoom")
@@ -149,7 +155,7 @@ def build_pair() -> dict:
     jamie.add("2026-09-02", "09:00", "12:00", "Offsite workshop", location="Downtown office")
     jamie.add("2026-09-02", "14:00", "15:30", "Budget review", location="Conference Room B")
     jamie.add("2026-09-03", "09:30", "10:30", "Sprint review", location="Zoom")
-    jamie.add("2026-09-03", "11:00", "12:00", "1:1 with Alex (declined)", declined=True)
+    jamie.add("2026-09-03", "11:00", "12:00", "1:1 with Alex", declined=True)
     jamie.add("2026-09-03", "14:00", "16:00", "Roadmap review", location="Conference Room A")
     jamie.add("2026-09-04", "09:00", "10:30", "Team retro", location="Zoom")
     jamie.add("2026-09-04", "13:30", "15:00", "Customer demo", location="Zoom")
@@ -227,10 +233,10 @@ def build_forge() -> dict:
 
     # Declined / "free" events sitting on an open window: not busy, but they look it
     by_id = {p.cal["id"]: p for p in people}
-    by_id["dana@example.com"].add("2026-09-01", "13:00", "14:00", "Vendor sync (declined)", declined=True)
-    by_id["theo@example.com"].add("2026-09-01", "13:30", "14:30", "Lunch & learn (optional)", transparency="transparent")
-    by_id["lena@example.com"].add("2026-09-03", "14:00", "15:00", "Design crit (declined)", declined=True)
-    by_id["omar@example.com"].add("2026-09-09", "15:00", "16:00", "Focus block", transparency="transparent")
+    by_id["dana@example.com"].add("2026-09-01", "13:00", "14:00", "Vendor sync", declined=True)
+    by_id["theo@example.com"].add("2026-09-01", "13:30", "14:30", "Lunch & learn", transparency="transparent")
+    by_id["lena@example.com"].add("2026-09-03", "14:00", "15:00", "Design crit", declined=True)
+    by_id["omar@example.com"].add("2026-09-09", "15:00", "16:00", "Writing time", transparency="transparent")
     # Near misses: exactly one person blocks an otherwise open stretch
     by_id["ravi@example.com"].add("2026-09-10", "13:00", "15:00", "Customer onsite")
     by_id["sofia@example.com"].add("2026-09-04", "14:00", "15:00", "Dentist")
