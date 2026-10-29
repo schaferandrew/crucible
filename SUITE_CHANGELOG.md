@@ -32,6 +32,20 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
   workspaces: gpt-oss-20b and gemma-4-e4b 2.0 → 0, qwen3.5-9b 2.43 → 0.77, qwen3.6-35b-a3b
   4.96 → 4.62, deepseek-v4.1-flash (task version 2) 9.33 → 9.23.
 
+- **cursor-pagination (formerly CODE-12): rubric 2 → 3, still provisional.** Same conversion as
+  editorial-review-workflow. The hidden tests now run in a fresh copy of the seeded repo with only the
+  model's source folders, and every test weighs the same (tests passed / all x 10). The old grader paid
+  for doing nothing: gemma-4-e4b and gpt-oss-20b made no changes and scored 3.0. The 10 old tests grew to
+  55: concurrent creates, deletes (of the cursor's own article, and unread ones), favorites and churn
+  between pages, comments paged and stable, one validation test per way a cursor can be wrong
+  (tampered, forged position, other tag, author, endpoint, offset), backward compatibility of offset
+  clients and unpaged comments, and ten web tests for Load more (home tabs, feed, profile tabs,
+  comments). "Existing tests" (the seeded API tests) and "Contract suite untouched" are caps (5 and 4),
+  not points; "Regression tests" is one test in the pool. The seeded web tests are not part of the cap:
+  one of them asserts the numbered pagination the brief tells the model to replace. Stored runs, old
+  → new: gemma-4-e4b 3.0 → 0.0 and gpt-oss-20b 3.0 → 0.0 (no-ops), deepseek-v4.1-flash-free 10.0 → 10.0
+  (55/55). Task version unchanged, so stored runs were rescored.
+
 ## Suite v1 (2026-10-28)
 
 The active tasks as scored on the dashboard on 2026-10-28: 24 tasks (21 chat, 3 agentic), at the
