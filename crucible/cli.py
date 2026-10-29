@@ -3,14 +3,15 @@
 
 Usage:
     crucible run
-    crucible run CODE-11 --model openrouter/moonshotai/kimi-k2.6
+    crucible run editorial-review-workflow --model openrouter/moonshotai/kimi-k2.6
     crucible publish
 """
 from __future__ import annotations
 import sys
 from pathlib import Path
 
-from crucible import bundle, checks, exporter, graders, judge, reporter, runner, scorer, versioning
+from crucible import (bundle, checks, exporter, graders, judge, migrate, reporter, runner, runrecord, scorer, suites,
+                      tasks, versioning)
 
 
 def _get_version() -> str:
@@ -29,28 +30,34 @@ Usage:
   crucible <command> [args...]
 
 Commands:
-  run      Run tests. With no arguments it asks what to run; scoring happens automatically
+  run      Run tasks. With no arguments it asks what to run; scoring happens automatically
+  task     List tasks, or show one (`crucible task show react-lead-form`)
   checks   Re-run programmatic checks and hidden tests on existing runs; --doc PATH writes the rules doc
   grader   Check an isolated grader against its oracle: seeded repo, reference solution, calibration fixtures
-  versions Check test versions against the lock; --update, --release NAME, --backfill runs
-  publish  Write this machine's results into the portfolio's data folder (validated)
-  export   Flatten runs into one JSON file
+  versions Check task versions against the lock; --update rewrites it
+  suite    List, verify, cut or patch suites (which tasks are scored, at which versions)
+  publish  Add this machine's results to the dashboard's data folder (bundle format 3, validated)
+  export   Write the old single-file bundle (--format 2) the dashboard reads until it switches
+  migrate  Bring runs from before Crucible 3.0.0 into the new layout (--dry-run first)
+  status   Mark a run invalid or withdrawn after the fact (a status record), or show its status
   report   Generate a comparison report across runs
 
 Not ready yet (review needs more infrastructure; never part of a run):
   score    Review a run by hand against its rubric
   judge    Save an AI judge's review of a run
 
-Sections, areas and tiers:
-  chat     writing (WRIT), math (MATH), geography (GEOG), history (HIST), general knowledge (KNOW), evals (EVAL)
-  agentic  coding (CODE), research (RSCH), everyday tasks (TASK)
+Modes, areas and tiers:
+  chat     writing, math, geography, history, general knowledge, evals
+  agentic  coding, research, everyday tasks
   tiers    spark (the basics, a gate), temper (everyday work, the headline), forge (frontier-level)
+
+Tasks are named by slug (react-lead-form); earlier IDs (CODE-16) still work and print the new name.
 
 Examples:
   crucible run                                              # asks what to run
-  crucible run chat --model lmstudio/qwen/qwen3.5-9b         # every chat test
+  crucible run chat --model lmstudio/qwen/qwen3.5-9b         # every chat task
   crucible run coding --tier forge --agent pi --model ollama/qwen3:30b-a3b
-  crucible run CODE-2b --model openrouter/moonshotai/kimi-k2.6 --watch
+  crucible run navbar-hamburger-menu --model openrouter/moonshotai/kimi-k2.6 --watch
   crucible publish                                          # update the dashboard data
 
 Options:
@@ -65,7 +72,8 @@ Run 'crucible <command> -h' for command-specific options.
 COMMANDS = {
     "run": runner.main, "score": scorer.main, "report": reporter.main,
     "judge": judge.main, "versions": versioning.main, "export": exporter.main, "publish": bundle.main, "checks": checks.main,
-    "grader": graders.main,
+    "grader": graders.main, "task": tasks.main, "suite": suites.main, "migrate": migrate.main,
+    "status": runrecord.status_main,
 }
 
 

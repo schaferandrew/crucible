@@ -3,9 +3,11 @@ import json
 
 import pytest
 
+from tests.records import run_meta
+
 from crucible import checks, evals, workspace
 
-EVAL_IDS = [t for t in workspace.all_test_ids() if t.startswith("EVAL-")]
+EVAL_IDS = [t for t in workspace.all_task_ids() if workspace.load_task(t)["area"] == "evals"]
 CHECK = {"id": "grade", "type": "grade_closeness", "scale": [0, 10], "actual_score": 7, "width": 3}
 
 
@@ -77,10 +79,10 @@ class TestScoring:
         assert checks.criterion_scores(prompt, results) == {"Grade accuracy": 8.95}
 
     def test_run_is_scored_without_a_judge(self, tmp_path):
-        prompt = workspace.load_prompt("EVAL-3")
+        prompt = workspace.load_task("EVAL-3")
         run_dir = tmp_path / "run"
         run_dir.mkdir()
-        (run_dir / "meta.json").write_text(json.dumps({"run_id": "r", "test_id": "EVAL-3"}))
+        (run_dir / "meta.json").write_text(json.dumps(run_meta(prompt["id"], prompt["version"])))
         (run_dir / "stdout.txt").write_text("It claims O(n log n), which is wrong.\nGRADE: 2", encoding="utf-8")
 
         record = checks.save_check_score(run_dir, prompt, checks.check_results(run_dir, prompt))
@@ -93,7 +95,7 @@ class TestScoring:
 @pytest.mark.parametrize("test_id", EVAL_IDS)
 class TestEvalPrompts:
     def test_is_fully_checked_and_in_range(self, test_id):
-        prompt = workspace.load_prompt(test_id)
+        prompt = workspace.load_task(test_id)
         assert prompt["category"] == "evals" and prompt["area"] == "evals"
         assert prompt["needs_tools"] is False
         assert checks.fully_checked(prompt)
@@ -102,11 +104,11 @@ class TestEvalPrompts:
         assert check["type"] == "grade_closeness" and lo <= check["actual_score"] <= hi
 
     def test_hidden_score_is_not_shown_to_the_model(self, test_id):
-        prompt = workspace.load_prompt(test_id)
+        prompt = workspace.load_task(test_id)
         assert "actual_score" not in prompt["prompt"]
         assert "hidden_answer" not in prompt["prompt"]
         assert "GRADE:" in prompt["prompt"]
 
 
 def test_there_are_three_eval_prompts():
-    assert EVAL_IDS == ["EVAL-1", "EVAL-2", "EVAL-3"]
+    assert EVAL_IDS == ["grade-binary-search-answer", "grade-palindrome-function", "grade-two-sentence-summary"]

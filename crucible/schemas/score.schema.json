@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/schaferandrew/crucible/blob/main/crucible/schemas/score.schema.json",
+  "title": "Crucible score record (bundle format 3)",
+  "description": "One score of one run at one rubric version: _data/crucible/scores/<yyyy-mm>/<run_uuid>.r<rubric_version>.<method>.json. `raw` is the source of truth; `score` is passed / total x scale, then any cap.",
+  "type": "object",
+  "required": [
+    "record",
+    "format_version",
+    "run_uuid",
+    "rubric_version",
+    "method",
+    "raw",
+    "score",
+    "scale"
+  ],
+  "properties": {
+    "record": {
+      "type": "string",
+      "enum": [
+        "score"
+      ]
+    },
+    "format_version": {
+      "type": "integer",
+      "enum": [
+        3
+      ]
+    },
+    "run_uuid": {
+      "type": "string"
+    },
+    "rubric_version": {
+      "type": "integer"
+    },
+    "rubric_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "method": {
+      "type": "string"
+    },
+    "scored_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "crucible_version": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "raw": {
+      "type": "object",
+      "required": [
+        "passed",
+        "total",
+        "unit"
+      ],
+      "properties": {
+        "passed": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "total": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": "string"
+        }
+      }
+    },
+    "score": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "scale": {
+      "type": "number"
+    },
+    "capped_at": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "passed": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "passed"
+        ],
+        "properties": {
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "group": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "passed": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "groups": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "passed",
+          "total"
+        ],
+        "properties": {
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "passed": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "total": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -14,7 +14,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 # Changes here can move a score; changes elsewhere (docs, tests) can't
-SCORED_PATHS = ("crucible", "prompts", "graders", "fixtures", "repos")
+SCORED_PATHS = ("crucible", "tasks", "graders", "fixtures", "repos")
 
 
 def crucible_version() -> str | None:

@@ -273,7 +273,7 @@ class TestWiring:
 
     @pytest.mark.parametrize("test_id,dataset", CALENDAR_TESTS.items())
     def test_prompts_declare_an_existing_dataset(self, test_id, dataset):
-        prompt = workspace.load_prompt(test_id)
+        prompt = workspace.load_task(test_id)
         assert prompt["mcp_servers"] == [f"mock-calendar:{dataset}"]
         assert (cs.DATASET_DIR / f"{dataset}.json").is_file()
         assert available_mcp_servers(prompt["mcp_servers"]) == prompt["mcp_servers"]

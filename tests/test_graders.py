@@ -57,7 +57,7 @@ def test_grading_copy_takes_only_artifacts(tmp_path):
 
 
 def test_tests_that_never_ran_count_as_failed(tmp_path, monkeypatch):
-    prompt = workspace.load_prompt("CODE-16")
+    prompt = workspace.load_task("CODE-16")
     expected = graders.expected_tests(prompt["grader"])
     modules = tmp_path / "node_modules"
     modules.mkdir()
@@ -71,13 +71,13 @@ def test_tests_that_never_ran_count_as_failed(tmp_path, monkeypatch):
     assert record["errors"]
 
 
-ISOLATED = [t for t in workspace.all_test_ids()
-            if (p := workspace.load_prompt(t)).get("grader") and graders.grader_config(p["grader"]).get("isolated")]
+ISOLATED = [t for t in workspace.all_task_ids()
+            if (p := workspace.load_task(t)).get("grader") and graders.grader_config(p["grader"]).get("isolated")]
 
 
 @pytest.mark.parametrize("test_id", ISOLATED)
 def test_isolated_graders_are_complete(test_id):
-    prompt = workspace.load_prompt(test_id)
+    prompt = workspace.load_task(test_id)
     root = graders.GRADERS_DIR / prompt["grader"]
     cfg = graders.grader_config(prompt["grader"])
     assert (root / "solution").is_dir(), "an isolated grader needs a reference solution"
@@ -93,7 +93,7 @@ def test_isolated_graders_are_complete(test_id):
 
 
 def test_per_test_rubrics_are_all_hidden_tests():
-    for test_id in workspace.all_test_ids():
-        prompt = workspace.load_prompt(test_id)
+    for test_id in workspace.all_task_ids():
+        prompt = workspace.load_task(test_id)
         if checks.per_test(prompt):
             assert all(item.get("hidden_tests") and not item.get("check") for item in prompt["rubric"]), test_id

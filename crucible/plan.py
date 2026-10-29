@@ -7,7 +7,6 @@ modes are never mixed in one score, so a plan lists them as separate groups.
 """
 from __future__ import annotations
 
-import json
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -25,7 +24,7 @@ MAX_TIMEOUT = 1200
 
 @dataclass
 class Step:
-    test_id: str
+    task_id: str
     mode: str
     area: str
     tier: str
@@ -46,7 +45,7 @@ class Plan:
 
 
 def all_prompts() -> dict[str, dict]:
-    return {t: workspace.load_prompt(t) for t in workspace.all_test_ids()}
+    return {t: workspace.load_task(t) for t in workspace.all_task_ids()}
 
 
 def select(selectors: list[str], mode: str | None = None, area: str | None = None,
@@ -57,6 +56,7 @@ def select(selectors: list[str], mode: str | None = None, area: str | None = Non
     """
     prompts = {t: p for t, p in all_prompts().items() if p.get("status") != "retired"}
     by_lower = {t.lower(): t for t in prompts}
+    aliases = workspace.aliases()
     chosen: set[str] = set()
     for sel in selectors or ["all"]:
         key = sel.lower()
@@ -70,17 +70,21 @@ def select(selectors: list[str], mode: str | None = None, area: str | None = Non
             chosen |= {t for t, p in prompts.items() if p.get("area") == key}
         elif key in by_lower:
             chosen.add(by_lower[key])
+        elif aliases.get(key) in prompts:
+            # Old IDs keep working; say once what the task is called now
+            print(f"Note: {sel} is now {aliases[key]}")
+            chosen.add(aliases[key])
         else:
-            raise ValueError(f"'{sel}' isn't a test ID, mode ({', '.join(MODES)}), area or tier")
+            raise ValueError(f"'{sel}' isn't a task, mode ({', '.join(MODES)}), area or tier")
     keep = [t for t in chosen
             if (not mode or mode_for(prompts[t]) == mode)
             and (not area or prompts[t].get("area") == area)
             and (not tier or prompts[t].get("tier") == tier)
             and (include_provisional or prompts[t].get("status") != "provisional")]
-    return sort_tests(keep, prompts)
+    return sort_tasks(keep, prompts)
 
 
-def sort_tests(test_ids: list[str], prompts: dict[str, dict]) -> list[str]:
+def sort_tasks(task_ids: list[str], prompts: dict[str, dict]) -> list[str]:
     """Chat before agentic, then by area menu order, tier (easiest first) and ID."""
     def key(t: str):
         p = prompts[t]
@@ -89,16 +93,16 @@ def sort_tests(test_ids: list[str], prompts: dict[str, dict]) -> list[str]:
         num = [int(n) if n.isdigit() else n for n in re.split(r"(\d+)", t)]
         return (MODES.index(mode), areas.index(p["area"]) if p.get("area") in areas else 99,
                 TIERS.index(p.get("tier", "temper")), num)
-    return sorted(test_ids, key=key)
+    return sorted(task_ids, key=key)
 
 
-def build(model: str, test_ids: list[str], harness: str | None = None, timeout: int | None = None,
+def build(model: str, task_ids: list[str], harness: str | None = None, timeout: int | None = None,
           skip_done: bool = False, runs_dir: Path = Path("runs"), allow_long: bool = False,
           reasoning: str = "default") -> Plan:
     """A plan for these tests. `harness` is the agentic harness; chat tests always use direct."""
     prompts = all_prompts()
     plan = Plan(model=model, reasoning=reasoning)
-    for t in test_ids:
+    for t in task_ids:
         p = prompts[t]
         mode = mode_for(p)
         h = MODE_HARNESSES[mode][0] if mode == "chat" else (harness or DEFAULT_AGENTIC_HARNESS)
@@ -110,23 +114,19 @@ def build(model: str, test_ids: list[str], harness: str | None = None, timeout: 
     return plan
 
 
-def model_slug(model: str, reasoning: str = "default") -> str:
-    from crucible.reasoning import slug_suffix
-    return re.sub(r'[/:\\<>"|?*]', "_", model or "default") + slug_suffix(reasoning)
+model_slug = workspace.model_slug
 
 
-def has_current_run(runs_dir: Path, model: str, test_id: str, prompt_def: dict, harness: str,
+def has_current_run(runs_dir: Path, model: str, task_id: str, prompt_def: dict, harness: str,
                     reasoning: str = "default") -> bool:
-    """A valid run of this test's current version, by this model, harness and reasoning level, already exists."""
+    """A valid run of this task's current version, by this model, harness and reasoning level, already exists."""
+    from crucible import runrecord
     current = versioning.content_hash(prompt_def)
-    for meta_file in (runs_dir / model_slug(model, reasoning)).glob(f"*/{test_id}/*/meta.json"):
-        try:
-            meta = json.loads(meta_file.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            continue
-        if ((meta.get("test") or {}).get("content_hash") == current and meta.get("agent") == harness
-                and (meta.get("reasoning") or "default") == reasoning
-                and not meta.get("invalid") and meta.get("outcome") != "harness_error"):
+    for run_dir in sorted((runs_dir / model_slug(model, reasoning) / task_id).glob("*")):
+        meta = runrecord.read(run_dir)
+        if (meta and meta["task"].get("content_hash") == current and meta["harness"].get("id") == harness
+                and meta["model"]["reasoning"].get("requested") == reasoning
+                and not runrecord.invalid(run_dir, meta) and meta["outcome"].get("status") != "harness_error"):
             return True
     return False
 
@@ -161,7 +161,7 @@ def describe(plan: Plan) -> list[str]:
     for mode, steps in plan.groups():
         harnesses = sorted({s.harness for s in steps})
         lines.append(f"{MODE_LABELS[mode]} ({', '.join(harnesses)}): {len(steps)} test{'' if len(steps) == 1 else 's'}")
-        lines.append("  " + " ".join(s.test_id for s in steps))
+        lines.append("  " + " ".join(s.task_id for s in steps))
     if plan.skipped_done:
         lines.append(f"Already run on the current version, skipped: {' '.join(plan.skipped_done)}")
     return lines

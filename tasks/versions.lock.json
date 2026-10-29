@@ -1,0 +1,359 @@
+{
+  "accessibility-audit-fixes": {
+    "version": 1,
+    "content_hash": "02332049fef999c1",
+    "prompt_hash": "42fcd7d2ecc5bc48",
+    "rubric_version": 2,
+    "rubric_hash": "a701f80115ca7b14"
+  },
+  "blank-dashboard-debug": {
+    "version": 1,
+    "content_hash": "886b61994e6a3ba4",
+    "prompt_hash": "a891288ef6b407dc",
+    "rubric_version": 1,
+    "rubric_hash": "21c080734296e3ae"
+  },
+  "cache-leak-incident": {
+    "version": 2,
+    "content_hash": "e972a448a401602f",
+    "prompt_hash": "bc6b2585c30b0255",
+    "rubric_version": 3,
+    "rubric_hash": "9d48c0b1139a1179"
+  },
+  "calendar-free-at-330": {
+    "version": 1,
+    "content_hash": "6739207e3d393ffe",
+    "prompt_hash": "f484dc6da4ecdefe",
+    "rubric_version": 1,
+    "rubric_hash": "b69b7486f14e46de"
+  },
+  "calendar-hour-with-jamie": {
+    "version": 1,
+    "content_hash": "fa15f6d36a2b30bd",
+    "prompt_hash": "1c78c0bb4b1c5fcd",
+    "rubric_version": 1,
+    "rubric_hash": "899baaaeaaf39117"
+  },
+  "calendar-team-of-16": {
+    "version": 1,
+    "content_hash": "2088915022bd90fe",
+    "prompt_hash": "a238f219f769b6ee",
+    "rubric_version": 1,
+    "rubric_hash": "514500bcc8e3df95"
+  },
+  "capitals-not-largest-city": {
+    "version": 1,
+    "content_hash": "247e19c02dbb774c",
+    "prompt_hash": "fd57b295736ee7a3",
+    "rubric_version": 1,
+    "rubric_hash": "5f56bc1ccddd03dd"
+  },
+  "cold-window-advice": {
+    "version": 1,
+    "content_hash": "2759295f9b679c22",
+    "prompt_hash": "7f6ed53a39f4b88b",
+    "rubric_version": 1,
+    "rubric_hash": "0c2c6dde35233dbb"
+  },
+  "competition-math": {
+    "version": 1,
+    "content_hash": "a5574ec7fbcf8a8a",
+    "prompt_hash": "204e9ad9aed6880d",
+    "rubric_version": 1,
+    "rubric_hash": "f6ab32399662966b"
+  },
+  "cursor-pagination": {
+    "version": 2,
+    "content_hash": "840e2d2836e3ca9a",
+    "prompt_hash": "1c454cdf50b5cf81",
+    "rubric_version": 2,
+    "rubric_hash": "9e06f7e7aaaf188b"
+  },
+  "editorial-review-workflow": {
+    "version": 3,
+    "content_hash": "02dc7545b79f29a4",
+    "prompt_hash": "c8ef51b07f0eb930",
+    "rubric_version": 3,
+    "rubric_hash": "f0bb23c14680a69e"
+  },
+  "explain-enshittification": {
+    "version": 1,
+    "content_hash": "1e5f06a7c8971c8d",
+    "prompt_hash": "71e05f9cca3f6397",
+    "rubric_version": 1,
+    "rubric_hash": "d9cacdbf6a4a9eec"
+  },
+  "explain-solar-panels": {
+    "version": 1,
+    "content_hash": "1027eaac33dc38cf",
+    "prompt_hash": "e98d9d353b498f82",
+    "rubric_version": 1,
+    "rubric_hash": "c043a55be28cc70b"
+  },
+  "fact-check-history": {
+    "version": 1,
+    "content_hash": "d2211f643f7da6e2",
+    "prompt_hash": "67ef42cbe1c6b559",
+    "rubric_version": 1,
+    "rubric_hash": "2d7d0af0e447aabb"
+  },
+  "fire-truck-color": {
+    "version": 1,
+    "content_hash": "4f544d69ec35ecb1",
+    "prompt_hash": "eac044f86facbf74",
+    "rubric_version": 2,
+    "rubric_hash": "93b038f024a752e9"
+  },
+  "furnace-wont-start-advice": {
+    "version": 1,
+    "content_hash": "a848774700f202c9",
+    "prompt_hash": "075f339793456fdc",
+    "rubric_version": 1,
+    "rubric_hash": "befe0ec35d957bcf"
+  },
+  "geography-trick-questions": {
+    "version": 1,
+    "content_hash": "5a1af1208cb9b9a5",
+    "prompt_hash": "96937781baeb8792",
+    "rubric_version": 1,
+    "rubric_hash": "5944fb9d7568cdce"
+  },
+  "grade-binary-search-answer": {
+    "version": 1,
+    "content_hash": "e914619e43d38223",
+    "prompt_hash": "e766827f302b1995",
+    "rubric_version": 1,
+    "rubric_hash": "8f27c5af40bbe68b"
+  },
+  "grade-palindrome-function": {
+    "version": 1,
+    "content_hash": "07e7a478cef8a182",
+    "prompt_hash": "80051ab95a6797fa",
+    "rubric_version": 1,
+    "rubric_hash": "bb12e2e785065ea5"
+  },
+  "grade-two-sentence-summary": {
+    "version": 1,
+    "content_hash": "0289e039fdb2109c",
+    "prompt_hash": "d0a8f503a24efa5f",
+    "rubric_version": 1,
+    "rubric_hash": "26bf360f734a2bbb"
+  },
+  "household-money-math": {
+    "version": 1,
+    "content_hash": "7f6f5246841ce00c",
+    "prompt_hash": "d409bbcc8192297b",
+    "rubric_version": 1,
+    "rubric_hash": "8d892908b5c59c65"
+  },
+  "interest-calculator-cli": {
+    "version": 1,
+    "content_hash": "0988983917902a9b",
+    "prompt_hash": "4ec863637c7bc1d9",
+    "rubric_version": 1,
+    "rubric_hash": "b4526238202a2890"
+  },
+  "interest-cli-open-ended": {
+    "version": 1,
+    "content_hash": "3b9f318817e376d9",
+    "prompt_hash": "e31e4c0081833174",
+    "rubric_version": 1,
+    "rubric_hash": "b4526238202a2890"
+  },
+  "invite-signup-loop": {
+    "version": 1,
+    "content_hash": "634f3fbe8532d3f6",
+    "prompt_hash": "6f82599c6c194ee3",
+    "rubric_version": 2,
+    "rubric_hash": "fc01b9277a213309"
+  },
+  "landlocked-countries": {
+    "version": 1,
+    "content_hash": "9fac71a4ce0fff18",
+    "prompt_hash": "a973a3d5d8cfb0cd",
+    "rubric_version": 1,
+    "rubric_hash": "8edabc9afec16b4f"
+  },
+  "letter-from-1863": {
+    "version": 1,
+    "content_hash": "f73283c0960967b1",
+    "prompt_hash": "95a8a9508291f698",
+    "rubric_version": 1,
+    "rubric_hash": "3eba539e1a059980"
+  },
+  "live-weather-open-ended": {
+    "version": 1,
+    "content_hash": "754205c797e0d802",
+    "prompt_hash": "ec96546965db8a44",
+    "rubric_version": 1,
+    "rubric_hash": "ae34f3fe94b7fe66"
+  },
+  "login-recovery": {
+    "version": 1,
+    "content_hash": "e9e834e92247adcf",
+    "prompt_hash": "d500776e3561c603",
+    "rubric_version": 1,
+    "rubric_hash": "ad8018cfb54871da"
+  },
+  "login-recovery-repeat": {
+    "version": 1,
+    "content_hash": "f3bb28464091c844",
+    "prompt_hash": "72ff8c34183a9f5e",
+    "rubric_version": 1,
+    "rubric_hash": "ad8018cfb54871da"
+  },
+  "morning-brief-priorities": {
+    "version": 2,
+    "content_hash": "202c33240181c8a2",
+    "prompt_hash": "0bd229d3574c96e6",
+    "rubric_version": 1,
+    "rubric_hash": "9be26bf680b4a305"
+  },
+  "morning-brief-spanish": {
+    "version": 1,
+    "content_hash": "2542cbccc8bd54d8",
+    "prompt_hash": "d14c8fde91dbcfc7",
+    "rubric_version": 1,
+    "rubric_hash": "aa1c9b0a9e16d06c"
+  },
+  "names-for-one-character": {
+    "version": 1,
+    "content_hash": "1910aa6ceae57f5f",
+    "prompt_hash": "03a109aefa2ef4b3",
+    "rubric_version": 2,
+    "rubric_hash": "70e05ca5984d3fd8"
+  },
+  "navbar-hamburger-menu": {
+    "version": 1,
+    "content_hash": "f7a87a0eb3d44428",
+    "prompt_hash": "d86f19bdf50ee54e",
+    "rubric_version": 1,
+    "rubric_hash": "ca8989fc10f5a77b"
+  },
+  "news-briefing-from-feeds": {
+    "version": 1,
+    "content_hash": "90676e2bd371ebdd",
+    "prompt_hash": "54bc04fe44e71492",
+    "rubric_version": 1,
+    "rubric_hash": "d3f8886190097bb1"
+  },
+  "nextjs-course": {
+    "version": 1,
+    "content_hash": "70399bdaa597c714",
+    "prompt_hash": "29ab0a55acf12a69",
+    "rubric_version": 1,
+    "rubric_hash": "9f2f5e1d70daa4e2"
+  },
+  "nextjs-server-data-boundary": {
+    "version": 1,
+    "content_hash": "2cc412271b315917",
+    "prompt_hash": "b17d421ec1389e3c",
+    "rubric_version": 1,
+    "rubric_hash": "86ebc893b53ed345"
+  },
+  "novel-character-names": {
+    "version": 1,
+    "content_hash": "b4472099e92507a3",
+    "prompt_hash": "40627576d7598f33",
+    "rubric_version": 2,
+    "rubric_hash": "307cd16e5d9b4cbf"
+  },
+  "order-historical-events": {
+    "version": 1,
+    "content_hash": "13862dc73f7033eb",
+    "prompt_hash": "e2eab6ee067b179f",
+    "rubric_version": 1,
+    "rubric_hash": "9ce7eb8389398c5b"
+  },
+  "proofread-customer-email": {
+    "version": 1,
+    "content_hash": "a872d4387f1ee1a5",
+    "prompt_hash": "1e527ac8fa45766e",
+    "rubric_version": 3,
+    "rubric_hash": "7d57227f67a0b9e9"
+  },
+  "proofread-economics-essay": {
+    "version": 1,
+    "content_hash": "cf3ca397d5295f66",
+    "prompt_hash": "bfe7fd4646b8cab3",
+    "rubric_version": 2,
+    "rubric_hash": "0fefa4c8e6e7b983"
+  },
+  "proofread-literary-paragraph": {
+    "version": 1,
+    "content_hash": "dcee0a8daeeef330",
+    "prompt_hash": "d216bb305dd627f2",
+    "rubric_version": 2,
+    "rubric_hash": "e3b3571f5658103d"
+  },
+  "react-lead-form": {
+    "version": 1,
+    "content_hash": "02ccc27101b8f69d",
+    "prompt_hash": "409a630369feac74",
+    "rubric_version": 1,
+    "rubric_hash": "248484a519654873"
+  },
+  "recipe-and-discount": {
+    "version": 1,
+    "content_hash": "ecffd5c5d188690b",
+    "prompt_hash": "7a0a0f64e67adae9",
+    "rubric_version": 1,
+    "rubric_hash": "49bc3014358a2314"
+  },
+  "responsive-navbar-open-ended": {
+    "version": 1,
+    "content_hash": "ca972102bf2b075d",
+    "prompt_hash": "a76aeee1927cd1a6",
+    "rubric_version": 1,
+    "rubric_hash": "ca8989fc10f5a77b"
+  },
+  "river-haiku-banned-words": {
+    "version": 1,
+    "content_hash": "abfd04ef9376bbaa",
+    "prompt_hash": "48f9caaab0fbfacf",
+    "rubric_version": 2,
+    "rubric_hash": "66b089cf0968cc9e"
+  },
+  "running-toilet-advice": {
+    "version": 1,
+    "content_hash": "b38d7c27044f2c74",
+    "prompt_hash": "c7270b42a3f9badd",
+    "rubric_version": 1,
+    "rubric_hash": "ef1ee05d951a00ff"
+  },
+  "seating-logic-puzzle": {
+    "version": 2,
+    "content_hash": "d205d3bad1048689",
+    "prompt_hash": "01f6bf5e5f9cd084",
+    "rubric_version": 2,
+    "rubric_hash": "ef4c3db9d4f7ff0a"
+  },
+  "sink-leak-advice": {
+    "version": 1,
+    "content_hash": "7c8651fbdc5f18bb",
+    "prompt_hash": "7fd3be0e4fc2387c",
+    "rubric_version": 1,
+    "rubric_hash": "58c3e214665a719a"
+  },
+  "todays-local-news": {
+    "version": 1,
+    "content_hash": "b068345550f97489",
+    "prompt_hash": "eba6c341df9b1b6b",
+    "rubric_version": 1,
+    "rubric_hash": "78a82e60de366899"
+  },
+  "two-calendar-slots-json": {
+    "version": 2,
+    "content_hash": "22fad633f8f09b64",
+    "prompt_hash": "969a003fd72a79b7",
+    "rubric_version": 1,
+    "rubric_hash": "177ecbdd7545302c"
+  },
+  "weather-vs-normal": {
+    "version": 1,
+    "content_hash": "cfb6f914f61da64a",
+    "prompt_hash": "f67e6c2bd0ebe7a4",
+    "rubric_version": 1,
+    "rubric_hash": "6a6bc0ce940711f7"
+  }
+}

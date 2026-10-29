@@ -353,7 +353,7 @@
                   "boolean",
                   "null"
                 ],
-                "description": "Uncommitted changes under crucible/, prompts/, graders/, fixtures/ or repos/"
+                "description": "Uncommitted changes under crucible/, prompts/ (tasks/ since 3.0.0), graders/, fixtures/ or repos/"
               },
               "machine_id": {
                 "type": [

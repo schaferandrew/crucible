@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Hidden acceptance tests for repo tests (Forge): run automatically after each run, and score it.
 
-A test with `grader: forge/<id>` has hidden vitest files in graders/forge/<id>/ that the model never
+A task with `grader: <slug>` has hidden vitest files in graders/<slug>/ that the model never
 sees. After the run they're copied into the finished workspace (`*.web.grader.test.tsx` into
 apps/web/test/hidden, other `*.grader.test.ts` into apps/api/test/hidden), run, and removed again.
 Alongside them the grader records whether the repo's own suite still passes, whether the contract
@@ -347,7 +347,8 @@ def _oracle_case(prompt_def: dict, overlay: Path | None, tmp: Path, name: str) -
     shutil.copytree(REPOS_DIR / prompt_def["repo"], workspace, ignore=shutil.ignore_patterns(*NOT_SOURCE))
     if overlay:
         shutil.copytree(overlay, workspace, dirs_exist_ok=True)
-    (run_dir / "meta.json").write_text(json.dumps({"run_id": name, "test_id": prompt_def["test_id"]}), encoding="utf-8")
+    (run_dir / "meta.json").write_text(json.dumps({"record": "run", "run_uuid": None, "run_path": name,
+                                                   "task": {"id": prompt_def["id"]}}), encoding="utf-8")
     record = run(run_dir, prompt_def)
     score = checks.save_check_score(run_dir, prompt_def, checks.check_results(run_dir, prompt_def), record)
     return {"record": record, "score": score["scores"]["_overall"] if score else None,
@@ -355,20 +356,20 @@ def _oracle_case(prompt_def: dict, overlay: Path | None, tmp: Path, name: str) -
 
 
 def main() -> None:
-    """`crucible grader TEST`: grade the seeded repo, the reference solution and each calibration fixture,
+    """`crucible grader TASK`: grade the seeded repo, the reference solution and each calibration fixture,
     and check each lands in the score range grader.yaml's `oracle` declares."""
     import argparse
     from crucible import workspace
     parser = argparse.ArgumentParser(prog="crucible grader", description=main.__doc__)
-    parser.add_argument("test", help="Test ID, e.g. CODE-16")
+    parser.add_argument("task", help="The task, e.g. react-lead-form (an earlier ID like CODE-16 works too)")
     parser.add_argument("--write-expected", action="store_true",
                         help=f"Record every test the reference solution runs into {EXPECTED_FILENAME} (all must pass)")
     args = parser.parse_args()
-    prompt_def = workspace.load_prompt(args.test)
+    prompt_def = workspace.load_task(args.task)
     grader = prompt_def.get("grader")
     cfg = grader_config(grader) if grader else {}
     if not cfg.get("isolated"):
-        raise SystemExit(f"{args.test} has no isolated grader (grader.yaml with isolated: true)")
+        raise SystemExit(f"{args.task} has no isolated grader (grader.yaml with isolated: true)")
     oracle = cfg.get("oracle") or {}
     root = GRADERS_DIR / grader
     cases = [("solution", root / "solution", oracle.get("solution", [10, 10])),

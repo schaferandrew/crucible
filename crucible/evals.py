@@ -16,7 +16,7 @@ check (see crucible/checks.py) that holds the hidden "actual" score:
 Points follow a Gaussian (bell curve) in the distance from the actual score,
 exp(-(error / width)^2): an exact match earns full points, small misses cost little, and the
 penalty accelerates the farther away the grade is. A missing or out-of-range grade earns none. The model's full reply (its reasoning) is kept as `checked_text` in
-check_results.json and shown as the run's output on the dashboard.
+its score record and shown as the run's output on the dashboard.
 """
 from __future__ import annotations
 

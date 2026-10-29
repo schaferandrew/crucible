@@ -1,17 +1,15 @@
-"""Test versions, content hashes, releases and backfill: what keeps scores comparable.
+"""Task versions and content hashes: what keeps scores comparable.
 
-A test's *content* is everything the model sees or works on: the prompt text,
+A task's *content* is everything the model sees or works on: the prompt text,
 whether it gets tools, the seeded repo, fixtures and mock MCP data. Its
 *rubric* is everything the scorer uses. They version separately:
 
   content changed -> bump `version`        -> old runs are not comparable (rerun)
   rubric changed  -> bump `rubric_version` -> re-score stored outputs (no rerun)
 
-prompts/versions.lock.json records the hashes each declared version was cut
-from. `crucible versions` checks the lock (CI runs the same check), `--update`
-rewrites it after a deliberate bump, `--release NAME` pins the active tests
-into releases/NAME.yaml, and `--backfill` stamps runs recorded before versions
-existed.
+tasks/versions.lock.json records the hashes each declared version was cut
+from. `crucible versions` checks the lock (CI runs the same check) and `--update`
+rewrites it after a deliberate bump. Suites pin these hashes (crucible/suites.py).
 """
 from __future__ import annotations
 
@@ -19,16 +17,12 @@ import argparse
 import hashlib
 import json
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 
-import yaml
 
 from crucible import workspace
-from crucible.taxonomy import CATEGORY_WEIGHTS, TIERS
 
-LOCK_PATH = workspace.PROMPTS_DIR / "versions.lock.json"
-RELEASES_DIR = workspace.REPO_ROOT / "releases"
+LOCK_PATH = workspace.TASKS_DIR / "versions.lock.json"
 
 # Prompt fields that change what the model does vs. how the run is graded
 CONTENT_FIELDS = ("prompt", "needs_tools", "repo", "fixtures", "mcp_servers")
@@ -88,10 +82,11 @@ def content_hash(prompt_def: dict) -> str:
 
 def rubric_hash(prompt_def: dict) -> str:
     parts = [_canonical({k: prompt_def.get(k) for k in RUBRIC_FIELDS})]
-    # Hidden grader tests are part of how a run is scored, so editing one is a rubric change
+    # Hidden grader tests are part of how a run is scored, so editing one is a rubric change. The
+    # folder's name is the task's ID, which isn't hashed: renaming a task never changes its hashes.
     grader = prompt_def.get("grader")
     if grader:
-        parts += [grader.encode(), *_tree_bytes(GRADERS_DIR / grader)]
+        parts += _tree_bytes(GRADERS_DIR / grader)
     # Programmatic checks score criteria too; hashed only when present so other tests' hashes hold
     if prompt_def.get("checks"):
         parts.append(_canonical({"checks": prompt_def["checks"]}))
@@ -108,14 +103,7 @@ def prompt_text_hash(text: str) -> str:
     return _sha(text.replace("\r\n", "\n").rstrip().encode("utf-8"))
 
 
-def _sent_prompt_hashes(prompt_def: dict) -> set[str]:
-    """Hashes of every form of the prompt a harness saves: as written, or with fixtures inlined (direct)."""
-    text = prompt_def.get("prompt", "")
-    return {prompt_text_hash(text),
-            prompt_text_hash(workspace.inline_fixtures(text, workspace.fixture_names(prompt_def)))}
-
-
-def test_identity(prompt_def: dict) -> dict:
+def task_identity(prompt_def: dict) -> dict:
     """What a run or score records about the test it used."""
     return {
         "version": prompt_def.get("version"),
@@ -133,9 +121,9 @@ def test_identity(prompt_def: dict) -> dict:
 
 def compute_lock() -> dict:
     lock = {}
-    for test_id in workspace.all_test_ids():
-        prompt_def = workspace.load_prompt(test_id)
-        lock[test_id] = {
+    for task_id in workspace.all_task_ids():
+        prompt_def = workspace.load_task(task_id)
+        lock[task_id] = {
             "version": prompt_def.get("version"),
             "content_hash": content_hash(prompt_def),
             "prompt_hash": prompt_text_hash(prompt_def.get("prompt", "")),
@@ -154,23 +142,23 @@ def check_lock(current: dict | None = None, locked: dict | None = None) -> list[
     current = compute_lock() if current is None else current
     locked = read_lock() if locked is None else locked
     problems = []
-    for test_id, now in current.items():
-        then = locked.get(test_id)
+    for task_id, now in current.items():
+        then = locked.get(task_id)
         if then is None:
-            problems.append(f"{test_id}: not in the lock; run `crucible versions --update`")
+            problems.append(f"{task_id}: not in the lock; run `crucible versions --update`")
             continue
         for kind, version_key in (("content", "version"), ("rubric", "rubric_version")):
             changed = now[f"{kind}_hash"] != then[f"{kind}_hash"]
             bumped = now[version_key] != then[version_key]
             if changed and not bumped:
-                problems.append(f"{test_id}: {kind} changed but {version_key} is still {now[version_key]}; "
-                                f"bump {version_key} in prompts/{test_id}.yaml, then `crucible versions --update`")
+                problems.append(f"{task_id}: {kind} changed but {version_key} is still {now[version_key]}; "
+                                f"bump {version_key} in tasks/{task_id}.yaml, then `crucible versions --update`")
             elif bumped and not changed:
-                problems.append(f"{test_id}: {version_key} bumped to {now[version_key]} without a {kind} change")
+                problems.append(f"{task_id}: {version_key} bumped to {now[version_key]} without a {kind} change")
             elif bumped and changed:
-                problems.append(f"{test_id}: {version_key} bumped; run `crucible versions --update` to record it")
-    for test_id in locked.keys() - current.keys():
-        problems.append(f"{test_id}: in the lock but its prompt is gone; retire it with status: retired instead")
+                problems.append(f"{task_id}: {version_key} bumped; run `crucible versions --update` to record it")
+    for task_id in locked.keys() - current.keys():
+        problems.append(f"{task_id}: in the lock but its task file is gone; retire it with status: retired instead")
     return problems
 
 
@@ -179,104 +167,13 @@ def write_lock() -> None:
 
 
 # --------------------------------------------------------------------------
-# Releases
-# --------------------------------------------------------------------------
-
-def build_release(name: str, judge_model: str, judge_prompt_version: int) -> dict:
-    tests = []
-    for test_id in workspace.all_test_ids():
-        p = workspace.load_prompt(test_id)
-        if p.get("status") != "active":
-            continue
-        tests.append({"id": test_id, "version": p["version"], "rubric_version": p["rubric_version"],
-                      "tier": p["tier"], "category": p["category"]})
-    return {
-        "release": name,
-        "created": datetime.now(timezone.utc).date().isoformat(),
-        "judge": {"model": judge_model, "prompt_version": judge_prompt_version},
-        "tiers": list(TIERS),
-        "category_weights": CATEGORY_WEIGHTS,
-        "tests": tests,
-    }
-
-
-def write_release(name: str, judge_model: str, judge_prompt_version: int) -> Path:
-    RELEASES_DIR.mkdir(exist_ok=True)
-    path = RELEASES_DIR / f"{name}.yaml"
-    if path.exists():
-        raise FileExistsError(f"{path} exists; releases are immutable, cut a new one")
-    release = build_release(name, judge_model, judge_prompt_version)
-    path.write_text(yaml.safe_dump(release, sort_keys=False), encoding="utf-8")
-    return path
-
-
-def latest_release() -> dict | None:
-    paths = sorted(RELEASES_DIR.glob("*.yaml"))
-    return yaml.safe_load(paths[-1].read_text(encoding="utf-8")) if paths else None
-
-
-# --------------------------------------------------------------------------
-# Backfill runs recorded before versioning
-# --------------------------------------------------------------------------
-
-def backfill_run(run_dir: Path, lock: dict) -> str:
-    """Stamp meta.json and score files with the test version they used. Returns what happened."""
-    meta_path = run_dir / "meta.json"
-    meta = json.loads(meta_path.read_text(encoding="utf-8"))
-    if "test" in meta and not meta["test"].get("backfilled"):
-        return "already versioned"
-    locked = lock.get(meta.get("test_id"))
-    prompt_txt = run_dir / "prompt.txt"
-    if not locked or not prompt_txt.exists():
-        return "skipped (unknown test or no prompt.txt)"
-
-    # The lock describes the current prompts, so the current prompt's sent forms are that version's
-    current = workspace.load_prompt(meta["test_id"])
-    matches = (current.get("version") == locked["version"]
-               and prompt_text_hash(prompt_txt.read_text(encoding="utf-8")) in _sent_prompt_hashes(current))
-    meta["test"] = {
-        "version": locked["version"] if matches else None,
-        "rubric_version": None,
-        "content_hash": None,  # repos and fixtures weren't recorded at run time
-        "backfilled": True,
-        "note": ("prompt.txt matches this version; repo and fixtures assumed unchanged"
-                 if matches else "prompt.txt differs from every recorded version; not comparable"),
-    }
-    meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
-
-    # Score files scored against today's rubric when they were written after the rubric was locked
-    for name in ("results.json", "agent_results.json"):
-        path = run_dir / name
-        if not path.exists():
-            continue
-        scores = json.loads(path.read_text(encoding="utf-8"))
-        if "rubric_version" not in scores:
-            scores["rubric_version"] = locked["rubric_version"]
-            scores["rubric_version_backfilled"] = True
-            path.write_text(json.dumps(scores, indent=2) + "\n", encoding="utf-8")
-    return f"v{locked['version']}" if matches else "prompt differs"
-
-
-def backfill(runs_dir: Path) -> dict[str, int]:
-    lock = read_lock() or compute_lock()
-    counts: dict[str, int] = {}
-    for meta_path in sorted(runs_dir.glob("*/*/*/*/meta.json")):
-        outcome = backfill_run(meta_path.parent, lock)
-        counts[outcome] = counts.get(outcome, 0) + 1
-    return counts
-
-
-# --------------------------------------------------------------------------
 # CLI
 # --------------------------------------------------------------------------
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="crucible versions",
-                                     description="Check test versions against the lock, update it, cut a release or backfill runs")
-    parser.add_argument("--update", action="store_true", help="Rewrite prompts/versions.lock.json from the current prompts")
-    parser.add_argument("--release", metavar="NAME", help="Pin active tests into releases/NAME.yaml (e.g. 2026.11)")
-    parser.add_argument("--judge-model", default="claude-opus-5-5", help="Agent judge for the release")
-    parser.add_argument("--backfill", metavar="RUNS_DIR", type=Path, help="Stamp unversioned runs with their test version")
+                                     description="Check task versions against the lock, or update it")
+    parser.add_argument("--update", action="store_true", help="Rewrite tasks/versions.lock.json from the current tasks")
     args = parser.parse_args()
 
     if args.update:
@@ -286,15 +183,9 @@ def main() -> None:
     for problem in problems:
         print(f"  {problem}")
     if problems:
+        print("See docs/versioning.md#task-versions")
         sys.exit(1)
-    print(f"Lock is clean ({len(read_lock())} tests).")
-
-    if args.release:
-        from crucible.judge import JUDGE_PROMPT_VERSION
-        print(f"Wrote {write_release(args.release, args.judge_model, JUDGE_PROMPT_VERSION)}")
-    if args.backfill:
-        for outcome, n in sorted(backfill(args.backfill).items()):
-            print(f"  {n:4d}  {outcome}")
+    print(f"Lock is clean ({len(read_lock())} tasks).")
 
 
 if __name__ == "__main__":

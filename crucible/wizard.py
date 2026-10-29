@@ -19,10 +19,7 @@ from crucible import plan as planner
 from crucible.agents import AGENTS
 from crucible.model_picker import pick_model
 from crucible.providers import LMSTUDIO_BASE_URL
-from crucible.taxonomy import AREAS, MODE_BLURBS, MODE_HARNESSES, MODE_LABELS, MODES, TIERS, mode_for
-
-TIER_BLURBS = {"spark": "the basics, a pass/fail gate", "temper": "everyday work, the headline score",
-               "forge": "frontier-level work, slow"}
+from crucible.taxonomy import AREAS, MODE_BLURBS, MODE_HARNESSES, MODE_LABELS, MODES, TIER_BLURBS, TIERS, mode_for
 
 
 class Cancelled(Exception):
@@ -219,7 +216,7 @@ def _count(prompts: dict[str, dict], **match) -> int:
                for p in prompts.values() if p.get("status") != "retired")
 
 
-def ask_tests(prompts: dict[str, dict]) -> dict:
+def ask_tasks(prompts: dict[str, dict]) -> dict:
     """{selectors, mode, area, tier} describing what to run."""
     what = choose("What do you want to run?", [
         (f"Everything ({_count(prompts)}): both modes, run as two separate groups", "all"),
@@ -227,7 +224,7 @@ def ask_tests(prompts: dict[str, dict]) -> dict:
         ("Pick individual tests", "pick"),
     ])
     if what == "pick":
-        return {"selectors": ask_test_ids(prompts), "mode": None, "area": None, "tier": None}
+        return {"selectors": ask_task_ids(prompts), "mode": None, "area": None, "tier": None}
     if what == "all":
         tier = choose("Which tiers?", [("All tiers", None), *[
             (f"{t.title()}: {TIER_BLURBS[t]} ({_count(prompts, tier=t)})", t) for t in TIERS]])
@@ -243,12 +240,12 @@ def ask_tests(prompts: dict[str, dict]) -> dict:
     return {"selectors": [], "mode": what, "area": area, "tier": tier}
 
 
-def ask_test_ids(prompts: dict[str, dict]) -> list[str]:
+def ask_task_ids(prompts: dict[str, dict]) -> list[str]:
     print()
     for mode in MODES:
         print(f"  {MODE_LABELS[mode]}")
         for area, label in AREAS[mode].items():
-            ids = planner.sort_tests([t for t, p in prompts.items() if p.get("area") == area
+            ids = planner.sort_tasks([t for t, p in prompts.items() if p.get("area") == area
                                       and p.get("status") != "retired"], prompts)
             if ids:
                 print(f"    {label:<14}" + " ".join(f"{t}({prompts[t]['tier'][0]})" for t in ids))
@@ -301,7 +298,7 @@ def run_wizard(args) -> tuple[planner.Plan, dict] | None:
         prompts = planner.all_prompts()
         model = args.model or ask_model(args.output)
         picked = ({"selectors": args.test, "mode": args.mode, "area": args.area, "tier": args.tier}
-                  if (args.test or args.mode or args.area or args.tier) else ask_tests(prompts))
+                  if (args.test or args.mode or args.area or args.tier) else ask_tasks(prompts))
         tests = planner.select(picked["selectors"], picked["mode"], picked["area"], picked["tier"])
         if not tests:
             print("No tests match that.")

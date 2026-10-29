@@ -1,0 +1,423 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/schaferandrew/crucible/blob/main/crucible/schemas/run.schema.json",
+  "title": "Crucible run record (bundle format 3)",
+  "description": "One run, immutable once published: _data/crucible/runs/<yyyy-mm>/<run_uuid>.json. See docs/data-model.md. Unknown fields are ignored by readers.",
+  "type": "object",
+  "required": [
+    "record",
+    "format_version",
+    "run_uuid",
+    "run_path",
+    "started_at",
+    "task",
+    "harness",
+    "model",
+    "endpoint",
+    "hardware",
+    "outcome",
+    "metrics",
+    "provenance"
+  ],
+  "properties": {
+    "record": {
+      "type": "string",
+      "enum": [
+        "run"
+      ]
+    },
+    "format_version": {
+      "type": "integer",
+      "enum": [
+        3
+      ]
+    },
+    "run_uuid": {
+      "type": "string"
+    },
+    "run_path": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "legacy_run_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "started_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "ended_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "elapsed_s": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "task": {
+      "type": "object",
+      "required": [
+        "id",
+        "version"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "version": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "rubric_version": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "content_hash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rubric_hash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "alias": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "harness": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "required": [
+        "id",
+        "base",
+        "variant_key",
+        "reasoning"
+      ],
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "base": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "publisher": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "artifact": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "format": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "quant": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reasoning": {
+          "type": "object",
+          "required": [
+            "requested"
+          ],
+          "properties": {
+            "requested": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "resolved": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "context_loaded": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "variant_key": {
+          "type": "string"
+        },
+        "display": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "endpoint": {
+      "type": "object",
+      "required": [
+        "where",
+        "provider"
+      ],
+      "properties": {
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "provider": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "app": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "served_via": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "device": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "resolved_model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "hardware": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "key": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "class": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "accelerators": {
+          "type": "array"
+        },
+        "system_memory_gb": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "cpu": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "offload": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "outcome": {
+      "type": "object",
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "harness_status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "returncode": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "timed_out": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "invalid": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "leaks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "metrics": {
+      "type": "object"
+    },
+    "output_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "content_hash"
+      ],
+      "properties": {
+        "crucible_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "crucible_commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "crucible_dirty": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "machine_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "machine_label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "content_hash": {
+          "type": "string"
+        },
+        "submitter": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "verification": {
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

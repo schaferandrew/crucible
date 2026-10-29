@@ -26,31 +26,20 @@ jobs:
       - name: Run tests (includes pi end-to-end against a scripted model)
         run: python -m pytest -v
 
-  # Every change that lands on main is a release (see AGENTS.md): a PR that touches the code or
-  # the tests must bump the version and add that version's changelog entry.
-  release-notes:
+  # Two release tracks (docs/versioning.md#releases): tool changes need a version bump and a CHANGELOG.md
+  # entry; task changes need a SUITE_CHANGELOG.md entry, a clean lock and a suite that still holds;
+  # suite files are never edited. The logic is crucible/ci.py, tested in tests/test_ci.py.
+  release-check:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Version bump and changelog entry
-        env:
-          BASE: ${{ github.event.pull_request.base.sha }}
-        run: |
-          changed=$(git diff --name-only "$BASE"...HEAD -- crucible prompts graders fixtures repos pyproject.toml)
-          if [ -z "$changed" ]; then echo "No code or test changes: no release needed."; exit 0; fi
-          version() { sed -n 's/^version = "\(.*\)"/\1/p'; }
-          old=$(git show "$BASE":pyproject.toml | version)
-          new=$(version < pyproject.toml)
-          echo "version: $old -> $new"
-          if [ "$old" = "$new" ]; then
-            echo "::error file=pyproject.toml::This PR changes code or tests but keeps version $old. Bump it (see AGENTS.md)."
-            exit 1
-          fi
-          if ! grep -q "^## $new " CHANGELOG.md; then
-            echo "::error file=CHANGELOG.md::Add a '## $new (YYYY-MM-DD)' section describing this release (see AGENTS.md)."
-            exit 1
-          fi
-          echo "Release $new is described in CHANGELOG.md."
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install crucible
+        run: python -m pip install -e .
+      - name: Release check
+        run: python -m crucible.ci --base "${{ github.event.pull_request.base.sha }}"

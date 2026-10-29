@@ -1,0 +1,56 @@
+id: order-historical-events
+name: Put events in order
+aliases:
+- HIST-1
+needs_tools: false
+category: history
+area: history
+tier: spark
+version: 1
+rubric_version: 1
+status: provisional
+auto_grade: false
+repo: null
+prompt: 'Put these events in chronological order, oldest first. One line each, with the year.
+
+
+  - The first Moon landing
+
+  - The signing of Magna Carta
+
+  - The fall of the Berlin Wall
+
+  - The start of the First World War
+
+  - The printing of the Gutenberg Bible
+
+  - The start of the French Revolution
+
+  '
+checks:
+- id: order
+  type: required_patterns
+  patterns:
+  - (?is)magna carta.*gutenberg.*french revolution.*(first world war|world war (i|1|one)\b|\bwwi\b).*moon.*berlin wall
+  rule: 'Lists them in order: Magna Carta, Gutenberg Bible, French Revolution, First World War, Moon landing, Berlin Wall.'
+- id: years
+  type: required_patterns
+  patterns:
+  - \b1215\b
+  - \b145\d\b
+  - \b1789\b
+  - \b1914\b
+  - \b1969\b
+  - \b1989\b
+  rule: 'Gives the years: 1215, 1450s, 1789, 1914, 1969, 1989.'
+rubric:
+- criterion: Order
+  max_score: 5
+  check: order
+  description: 'Lists them in order: Magna Carta, Gutenberg Bible, French Revolution, First World War, Moon landing, Berlin
+    Wall.'
+- criterion: Years
+  max_score: 5
+  check: years
+  description: 'Gives the years: 1215, 1450s, 1789, 1914, 1969, 1989.'
+critical_failure: null

@@ -1,0 +1,34 @@
+id: calendar-free-at-330
+name: "Am I free at 3:30?"
+aliases:
+- TASK-4
+needs_tools: true
+mcp_servers:
+  - mock-calendar:spark
+category: everyday
+area: everyday
+tier: spark
+version: 1
+rubric_version: 1
+status: provisional
+auto_grade: true
+repo: null
+# Dataset spark (fixtures/mock-calendar/spark.json). "Now" is Tue 2026-09-01 11:20 AM.
+# Ground truth: free at 3:30 PM today. Design review runs 2:00-3:30, so it ends
+# exactly at 3:30 (not a conflict); next event is the 4:00 customer call.
+prompt: |
+  Am I free at 3:30?
+rubric:
+  - criterion: "Correct answer"
+    max_score: 5
+    description: "Says the user is free at 3:30 PM today. The Design review ends at exactly 3:30, which is not a conflict."
+  - criterion: "States its assumption"
+    max_score: 2
+    description: "Makes clear it took 3:30 to mean 3:30 PM today (3:30 AM has passed), rather than silently assuming."
+  - criterion: "Grounded in the calendar"
+    max_score: 2
+    description: "Checked the calendar and current time with tools instead of guessing; mentions what surrounds the slot (review ends 3:30, next event 4:00)."
+  - criterion: "Concise"
+    max_score: 1
+    description: "Answers directly in a sentence or two, without a calendar dump."
+critical_failure: "Saying the user has a conflict at 3:30 caps score at 3."

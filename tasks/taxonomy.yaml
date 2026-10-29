@@ -1,0 +1,61 @@
+# How tasks are grouped and scored: suite data, not code. crucible/taxonomy.py reads this file, and
+# `crucible suite cut` pins the weights and tier gates into the suite it writes. Changing an area,
+# category, tier or weight here is a suite change (docs/versioning.md); renaming one breaks old runs.
+
+# Areas by mode (chat: one API call, no tools; agentic: a harness with tools), in menu order
+areas:
+  chat:
+    - {id: writing, label: Writing}
+    - {id: math, label: "Math & logic"}
+    - {id: geography, label: Geography}
+    - {id: history, label: History}
+    - {id: general, label: General knowledge}
+    - {id: evals, label: Evals}
+  agentic:
+    - {id: coding, label: Coding}
+    - {id: research, label: Research}
+    - {id: everyday, label: Everyday}
+
+# Category -> weight when aggregating a full sweep across categories. Must sum to 1.0.
+# Scoring a single run never uses these weights.
+categories:
+  coding_build: 0.10
+  coding_debug: 0.10
+  coding_repo: 0.10
+  browser_tool: 0.10
+  writing: 0.10
+  everyday: 0.10
+  reasoning: 0.05
+  structured_data: 0.05
+  long_agent: 0.05
+  home_maintenance: 0.05
+  math: 0.05
+  geography: 0.05
+  history: 0.05
+  evals: 0.05
+
+# Difficulty tiers, easiest first; each is scored on its own, never blended (docs/task-tiers.md).
+# role: gate (pass/fail), headline (the main score) or stretch
+tiers:
+  - id: spark
+    label: Spark
+    blurb: the basics, a pass/fail gate
+    role: gate
+    gate: {mean: 8, min: 5}
+  - id: temper
+    label: Temper
+    blurb: everyday work, the headline score
+    role: headline
+  - id: forge
+    label: Forge
+    blurb: frontier-level work, slow
+    role: stretch
+
+# provisional tasks run and show up but stay out of tier scores until a suite cut makes them active
+statuses: [provisional, active, retired]
+
+# How the dashboard aggregates: a tier needs coverage_min of its tasks run; repeats are averaged
+scoring_policy:
+  coverage_min: 0.75
+  in_progress_below: 0.75
+  repeat_aggregate: mean

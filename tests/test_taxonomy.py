@@ -2,18 +2,18 @@ import pytest
 
 from crucible import plan as planner
 from crucible import workspace
-from crucible.taxonomy import (AREAS, CATEGORY_WEIGHTS, MODE_HARNESSES, TEST_STATUSES, TIERS, harness_problem,
+from crucible.taxonomy import (AREAS, CATEGORY_WEIGHTS, MODE_HARNESSES, TASK_STATUSES, TIERS, harness_problem,
                                mode_for, validate_area, validate_category, validate_status, validate_tier)
 
 
 class TestModesAndAreas:
-    def test_every_prompt_has_an_area_in_its_mode(self):
-        for t in workspace.all_test_ids():
-            validate_area(workspace.load_prompt(t))
+    def test_every_task_has_an_area_in_its_mode(self):
+        for t in workspace.all_task_ids():
+            validate_area(workspace.load_task(t))
 
     def test_area_must_match_mode(self):
         with pytest.raises(ValueError):
-            validate_area({"test_id": "X", "needs_tools": False, "area": "coding"})
+            validate_area({"id": "x", "needs_tools": False, "area": "coding"})
 
     def test_areas_belong_to_one_mode(self):
         assert not set(AREAS["chat"]) & set(AREAS["agentic"])
@@ -29,7 +29,7 @@ class TestModesAndAreas:
 
 class TestSelection:
     def test_all_is_everything_not_retired(self):
-        live = [t for t in workspace.all_test_ids() if workspace.load_prompt(t).get("status") != "retired"]
+        live = [t for t in workspace.all_task_ids() if workspace.load_task(t).get("status") != "retired"]
         assert sorted(planner.select([])) == sorted(live) == sorted(planner.select(["all"]))
 
     def test_chat_comes_before_agentic_and_tiers_easiest_first(self):
@@ -44,22 +44,29 @@ class TestSelection:
         assert tests and all(mode_for(prompts[t]) == "chat" and prompts[t]["tier"] == "spark" for t in tests)
         assert set(planner.select(["writing"])) == {t for t, p in prompts.items() if p.get("area") == "writing"}
 
-    def test_ids_are_case_insensitive_and_unknown_raises(self):
-        assert planner.select(["writ-2"]) == ["WRIT-2"]
+    def test_slugs_and_old_ids_select_the_same_task(self, capsys):
+        assert planner.select(["novel-character-names"]) == ["novel-character-names"]
+        assert capsys.readouterr().out == ""
+        # Earlier IDs, in any case and from any generation, resolve with a one-line notice
+        assert planner.select(["writ-2"]) == ["novel-character-names"]
+        assert "writ-2 is now novel-character-names" in capsys.readouterr().out
+        assert planner.select(["C11"]) == ["editorial-review-workflow"]  # C11 -> CODE-11 -> slug
         with pytest.raises(ValueError):
             planner.select(["nope"])
 
     def test_chat_steps_run_direct_whatever_the_agent(self):
-        plan = planner.build("lmstudio/x", ["WRIT-2", "CODE-1"], harness="pi")
-        assert {s.test_id: s.harness for s in plan.steps} == {"WRIT-2": "direct", "CODE-1": "pi"}
+        plan = planner.build("lmstudio/x", ["novel-character-names", "interest-cli-open-ended"], harness="pi")
+        assert {s.task_id: s.harness for s in plan.steps} == {"novel-character-names": "direct",
+                                                              "interest-cli-open-ended": "pi"}
         assert all(s.harness in MODE_HARNESSES[s.mode] for s in plan.steps)
 
     def test_tier_timeouts(self):
-        plan = planner.build("m/x", ["WRIT-1a", "WRIT-2", "CODE-11"])
+        tasks = ["proofread-customer-email", "novel-character-names", "editorial-review-workflow"]
+        plan = planner.build("m/x", tasks)
         assert [s.timeout for s in plan.steps] == [300, 900, 1200]
-        assert all(s.timeout == 1200 for s in planner.build("m/x", ["CODE-11"], timeout=3600).steps)
-        assert planner.build("m/x", ["CODE-11"], timeout=3600, allow_long=True).steps[0].timeout == 3600
-        assert all(s.timeout == 60 for s in planner.build("m/x", ["WRIT-1a", "CODE-11"], timeout=60).steps)
+        assert all(s.timeout == 1200 for s in planner.build("m/x", tasks[2:], timeout=3600).steps)
+        assert planner.build("m/x", tasks[2:], timeout=3600, allow_long=True).steps[0].timeout == 3600
+        assert all(s.timeout == 60 for s in planner.build("m/x", tasks, timeout=60).steps)
 
     def test_command_line_round_trips(self):
         plan = planner.build("lmstudio/x", planner.select(["chat"], tier="spark"))
@@ -89,7 +96,7 @@ class TestTiersAndStatus:
             validate_tier("hard")
 
     def test_statuses(self):
-        for s in TEST_STATUSES:
+        for s in TASK_STATUSES:
             validate_status(s)
         with pytest.raises(ValueError):
             validate_status("draft")

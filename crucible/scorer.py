@@ -12,9 +12,9 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from crucible import versioning
+from crucible import runrecord, versioning
 from crucible.taxonomy import validate_category
-from crucible.workspace import REPO_ROOT, load_prompt
+from crucible.workspace import REPO_ROOT, load_task
 
 RUNS_DIR = REPO_ROOT / "runs"
 MAX_DISPLAY_CHARS = 3000
@@ -97,16 +97,17 @@ def _ask_score(max_score: float) -> float | None:
 
 def _raw_metrics(meta: dict) -> dict:
     """Metrics auto-extracted by the runner, plus derived success flags."""
+    outcome = meta.get("outcome") or {}
     return {
         "user_interventions": 0,
         **(meta.get("metrics") or {}),
-        "final_success": meta.get("timed_out") is not True and meta.get("returncode") in (0, None),
+        "final_success": outcome.get("timed_out") is not True and outcome.get("returncode") in (0, None),
     }
 
 
-def score_interactive(test_id: str, run_dir: Path, meta: dict | None = None) -> dict:
+def score_interactive(task_id: str, run_dir: Path, meta: dict | None = None) -> dict:
     """Show prompt, reference answer and model output; collect rubric scores."""
-    prompt = load_prompt(test_id)
+    prompt = load_task(task_id)
     validate_category(prompt.get("category"))
     prompt_path = run_dir / "prompt.txt"
     prompt_text = prompt_path.read_text(encoding="utf-8") if prompt_path.exists() else prompt["prompt"]
@@ -114,7 +115,7 @@ def score_interactive(test_id: str, run_dir: Path, meta: dict | None = None) -> 
     if len(output) > MAX_DISPLAY_CHARS:
         output = output[:MAX_DISPLAY_CHARS] + "\n... [truncated, see stdout.txt for full output]"
 
-    print(f"\n{'='*60}\nScoring {test_id}\n{'='*60}")
+    print(f"\n{'='*60}\nScoring {task_id}\n{'='*60}")
     _print_section("PROMPT:", prompt_text)
     if prompt.get("hidden_answer"):
         _print_section("HIDDEN ANSWER (for reference):", str(prompt["hidden_answer"]))
@@ -151,24 +152,25 @@ def overall_score(scores: dict, rubric: list[dict]) -> float | None:
 
 def score_run(run_dir: Path) -> Path:
     """Score one run interactively and save results.json; returns its path."""
-    meta = _read_json(run_dir / "meta.json")
-    # Layout is .../<test_id>/<timestamp>/ for runs that predate meta.json
-    test_id = meta.get("test_id") or run_dir.parent.name
-    prompt_def = load_prompt(test_id)
+    meta = runrecord.read(run_dir)
+    if not meta:
+        raise SystemExit(f"{run_dir} has no run record (runs from before 3.0.0 need `crucible migrate`)")
+    task_id = meta["task"]["id"]
+    prompt_def = load_task(task_id)
     # A rubric score only means something against the content the run actually saw
-    run_version = (meta.get("test") or {}).get("version")
+    run_version = meta["task"].get("version")
     if run_version is not None and run_version != prompt_def.get("version"):
-        raise SystemExit(f"{test_id}: this run used v{run_version}, but the prompt is now "
+        raise SystemExit(f"{task_id}: this run used v{run_version}, but the prompt is now "
                          f"v{prompt_def.get('version')}; rerun instead of re-scoring")
-    scores = score_interactive(test_id, run_dir, meta)
+    scores = score_interactive(task_id, run_dir, meta)
     overall = overall_score(scores, prompt_def.get("rubric", []))
     if overall is not None:
         scores["_overall"] = overall
 
     results_path = run_dir / "results.json"
     results_path.write_text(json.dumps({
-        "run_id": meta.get("run_id") or run_dir.name,
-        "test_id": test_id,
+        "run_path": meta.get("run_path"),
+        "task_id": task_id,
         "scorer": {"type": "human"},
         "test_version": prompt_def.get("version"),
         "rubric_version": prompt_def.get("rubric_version"),
@@ -182,7 +184,7 @@ def score_run(run_dir: Path) -> Path:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Score a benchmark run")
-    parser.add_argument("run_id", help="Run ID (model/category/test/timestamp), its timestamp, or a path")
+    parser.add_argument("run_id", help="Run path (model/task/timestamp), its timestamp, or a path")
     args = parser.parse_args()
     try:
         run_dir = find_run_dir(args.run_id)

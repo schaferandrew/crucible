@@ -38,7 +38,7 @@ def _summary_row(run_id: str, run: dict | None) -> str:
     meta = run["meta"]
     overall = _scores(run).get("_overall")
     score = f"{overall}/10" if overall is not None else "N/A"
-    return (f"| {run_id} | {meta.get('test_id', '?')} | {meta.get('model', '?')} "
+    return (f"| {run_id} | {meta.get('task_id', '?')} | {meta.get('model', '?')} "
             f"| {meta.get('elapsed_time', '?')}s | {score} |")
 
 
@@ -57,7 +57,7 @@ def generate_report(run_ids: list[str]) -> str:
         "# Crucible Benchmark Report",
         f"Generated: {datetime.now().isoformat()}",
         "",
-        "| Run | Test | Model | Elapsed | Score |",
+        "| Run | Task | Model | Elapsed | Score |",
         "|-----|------|-------|---------|-------|",
         *(_summary_row(run_id, run) for run_id, run in runs.items()),
         "",

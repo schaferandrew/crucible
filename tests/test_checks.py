@@ -3,12 +3,14 @@ import json
 
 import pytest
 
+from tests.records import run_meta
+
 from crucible import checks, judge, workspace
 
 
 @pytest.fixture
 def w3():
-    return workspace.load_prompt("WRIT-3")
+    return workspace.load_task("WRIT-3")
 
 
 @pytest.mark.parametrize("text, passed", [
@@ -54,7 +56,7 @@ def test_final_answer_falls_back_to_stdout(tmp_path):
 def test_judge_cannot_override_a_check(tmp_path, w3):
     run_dir = tmp_path / "run"
     run_dir.mkdir()
-    (run_dir / "meta.json").write_text(json.dumps({"test_id": "WRIT-3", "run_id": "m/writing/WRIT-3/x", "test": {"version": w3["version"]}}))
+    (run_dir / "meta.json").write_text(json.dumps(run_meta(w3["id"], w3["version"])))
     (run_dir / "stdout.txt").write_text("Along the riverbank\nreeds bow to passing light\nstones remember snow")
     criteria = {c["criterion"]: {"score": c["max_score"], "note": "judge says fine"} for c in w3["rubric"]}
     results = judge.save_agent_score(run_dir, {"criteria": criteria})
@@ -116,7 +118,7 @@ def test_small_local_context_refuses_agent_runs(monkeypatch):
 
 
 def test_markdown_emphasis_does_not_hide_a_fix():
-    prompt = workspace.load_prompt("WRIT-1b")
+    prompt = workspace.load_task("WRIT-1b")
     text = ("The station was louder **than** she remembered it, people talking *too* fast. "
             "Not waiting for her, exactly. That would have been too kind. Still—she was back. "
             "Mara stepped off the train and into a city that smelled like rain, hot asphalt, and somebody's breakfast. "
@@ -146,35 +148,39 @@ def test_list_items_counts_and_distinct_within():
 
 
 def test_fully_checked_tests_score_without_a_judge(tmp_path):
-    w3 = workspace.load_prompt("WRIT-3")
+    w3 = workspace.load_task("WRIT-3")
     run_dir = tmp_path / "run"
     run_dir.mkdir()
-    (run_dir / "meta.json").write_text(json.dumps({"test_id": "WRIT-3", "run_id": "m/writing/WRIT-3/x"}))
+    (run_dir / "meta.json").write_text(json.dumps(run_meta(w3["id"], w3["version"])))
     (run_dir / "stdout.txt").write_text("Cold stones hum below\na heron folds into dusk\nthe current keeps time")
     record = checks.save_check_score(run_dir, w3, checks.check_results(run_dir, w3))
     assert record["passed"] and record["scores"]["_overall"] == 10.0
     assert record["scorer"] == {"type": "checks"} and record["checked_text"].startswith("Cold stones")
-    assert json.loads((run_dir / "check_results.json").read_text())["rubric_version"] == w3["rubric_version"]
+    score = json.loads((run_dir / "scores" / f"r{w3['rubric_version']}.checks.json").read_text())
+    assert score["score"] == 10.0 and score["raw"] == {"passed": 10, "total": 10, "unit": "points"}
+    assert score["run_uuid"] == run_meta(w3["id"])["run_uuid"] and score["rubric_version"] == w3["rubric_version"]
+    assert {i["group"] for i in score["items"]} <= {c["criterion"] for c in w3["rubric"]}
 
 
 def test_every_writing_test_is_deterministic():
     for test_id in ("WRIT-1a", "WRIT-1b", "WRIT-1c", "WRIT-2", "WRIT-2b", "WRIT-3"):
-        p = workspace.load_prompt(test_id)
+        p = workspace.load_task(test_id)
         assert checks.fully_checked(p), test_id
         assert all(c.get("rule") for c in p["checks"]), f"{test_id}: every check needs a plain-English rule"
         bound = {item["check"] for item in p["rubric"]}
         assert bound <= {c["id"] for c in p["checks"]}, test_id
 
 
-@pytest.mark.parametrize("meta, stdout, outcome", [
-    ({"returncode": 1, "timed_out": False, "metrics": {}}, "", "harness_error"),
-    ({"returncode": 0, "timed_out": False, "metrics": {}}, "", "harness_error"),
-    ({"returncode": 0, "timed_out": False, "metrics": {"model_responses": 3, "tokens_out": 50}}, "", "no_answer"),
-    ({"returncode": 1, "timed_out": False, "metrics": {"tokens_out": 50}}, "partial", "failed"),
-    ({"returncode": None, "timed_out": True, "metrics": {}}, "", "timeout"),
-    ({"returncode": 0, "timed_out": False, "metrics": {"tokens_out": 9}}, "Red.", "completed"),
+@pytest.mark.parametrize("returncode, timed_out, metrics, stdout, outcome", [
+    (1, False, {}, "", "harness_error"),
+    (0, False, {}, "", "harness_error"),
+    (0, False, {"model_responses": 3, "tokens_out": 50}, "", "no_answer"),
+    (1, False, {"tokens_out": 50}, "partial", "failed"),
+    (None, True, {}, "", "timeout"),
+    (0, False, {"tokens_out": 9}, "Red.", "completed"),
 ])
-def test_outcome_classification(tmp_path, meta, stdout, outcome):
+def test_outcome_classification(tmp_path, returncode, timed_out, metrics, stdout, outcome):
     from crucible.runner import classify_outcome
     (tmp_path / "stdout.txt").write_text(stdout)
+    meta = {"outcome": {"returncode": returncode, "timed_out": timed_out}, "metrics": metrics}
     assert classify_outcome(meta, tmp_path) == outcome

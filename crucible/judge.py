@@ -17,7 +17,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from crucible import checks, versioning, workspace
+from crucible import checks, runrecord, versioning, workspace
 from crucible.scorer import overall_score
 
 # Bump when judge_instructions.md changes in a way that could move scores
@@ -35,13 +35,15 @@ class JudgeError(ValueError):
 
 def save_agent_score(run_dir: Path, payload: dict, judge_model: str = DEFAULT_JUDGE_MODEL) -> dict:
     """Validate a judge's payload against the run's rubric and write agent_results.json."""
-    meta = json.loads((run_dir / "meta.json").read_text(encoding="utf-8"))
-    prompt_def = workspace.load_prompt(meta["test_id"])
+    meta = runrecord.read(run_dir)
+    if not meta:
+        raise JudgeError(f"{run_dir} has no run record (runs from before 3.0.0 need `crucible migrate`)")
+    prompt_def = workspace.load_task(meta["task"]["id"])
 
     # A score only means something against the content the run actually saw
-    run_version = (meta.get("test") or {}).get("version")
+    run_version = meta["task"].get("version")
     if run_version is not None and run_version != prompt_def.get("version"):
-        raise JudgeError(f"run used {meta['test_id']} v{run_version}, but the prompt is now "
+        raise JudgeError(f"run used {meta['task']['id']} v{run_version}, but the task is now "
                          f"v{prompt_def.get('version')}; rerun instead of re-scoring")
 
     max_scores = {item["criterion"]: item["max_score"] for item in prompt_def.get("rubric", [])}
@@ -69,8 +71,8 @@ def save_agent_score(run_dir: Path, payload: dict, judge_model: str = DEFAULT_JU
         overall = min(overall, float(cap))
 
     results = {
-        "run_id": meta["run_id"],
-        "test_id": meta["test_id"],
+        "run_path": meta["run_path"],
+        "task_id": meta["task"]["id"],
         "scorer": {"type": "agent", "model": judge_model, "prompt_version": JUDGE_PROMPT_VERSION},
         "caveat": CAVEAT,
         "test_version": prompt_def.get("version"),
@@ -99,7 +101,7 @@ def main() -> None:
     except (JudgeError, FileNotFoundError, json.JSONDecodeError) as exc:
         print(f"Not saved: {exc}")
         sys.exit(1)
-    print(f"{results['test_id']}: {results['scores']['_overall']}/10 -> {args.run_dir / RESULTS_FILENAME}")
+    print(f"{results['task_id']}: {results['scores']['_overall']}/10 -> {args.run_dir / RESULTS_FILENAME}")
 
 
 if __name__ == "__main__":

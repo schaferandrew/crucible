@@ -1,12 +1,82 @@
 # Changelog
 
-Crucible follows [semantic versioning](https://semver.org). The stable surface is the
-test IDs, the chat/agentic sections, the harness names, the CLI and the results bundle
-format (`crucible/schemas/results.schema.json`): an incompatible change to any of them is
-a new major version. New tests, test version bumps, new areas and dashboard or CLI
-improvements are minor releases; fixes that change no behavior anyone relies on are patches.
-Every change that lands on `main` is a release (see [AGENTS.md](AGENTS.md)), and CI checks
-that a pull request touching the code or tests bumps the version and adds its entry here.
+Crucible's own releases: the tool people install. What changed in the benchmark itself (which tasks
+are scored, at which versions) is in [SUITE_CHANGELOG.md](SUITE_CHANGELOG.md).
+
+Crucible follows [semantic versioning](https://semver.org). The stable surface is the CLI and its
+flags, the task YAML format, check and grader formats, harness names, the run record and bundle
+formats, and the identity rules (the slug format, `run_uuid`). An incompatible change to any of them
+is a new major version; new features, check types, harnesses and CLI or dashboard improvements are
+minor; fixes that change no behavior anyone relies on are patches. Which tasks exist, and their
+slugs, tiers and weights, are suite data, not part of this surface. Every change to `crucible/`,
+`pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
+here ([docs/versioning.md](docs/versioning.md)).
+
+## 3.0.0 (2026-10-29)
+
+Tests become tasks with permanent slugs, runs get a permanent identity and a new layout, and results
+publish as one file per run. **No score changed:** every task keeps its content, rubric and versions,
+and every stored score is carried over as it was. Runs from earlier versions must be migrated once
+with `crucible migrate` (try `--dry-run` first) before any other command reads them.
+
+### Breaking
+
+- **Task IDs are slugs.** `CODE-16` is now `react-lead-form`: every task has a kebab-case `id`, a
+  `name` and its earlier IDs as `aliases`. Old IDs still work on the command line and print the new
+  name; [docs/task-id-map.json](docs/task-id-map.json) maps every earlier ID (including the 0.x ones,
+  `C11` → `CODE-11` → `editorial-review-workflow`) in one lookup.
+- **Task files** moved from `prompts/<ID>.yaml` to `tasks/<slug>.yaml`; the key `test_id:` is now
+  `id:`. The version lock is `tasks/versions.lock.json`, keyed by slug. Graders moved from
+  `graders/<tier>/<ID>/` to `graders/<slug>/`, and `grader:` names the slug.
+- **"Task" everywhere:** the CLI, menus, help and output say task; `crucible checks --test` is
+  `--task`; `crucible grader <task>`. New: `crucible task list` and `crucible task show <task>`.
+- **Run layout:** new runs are written to `runs/<model>/<task>/<timestamp>/` (no category folder).
+- **`meta.json` is the run record** ([docs/data-model.md](docs/data-model.md)): `run_uuid`, `run_path`,
+  `task {id, version, rubric_version, content_hash, rubric_hash, alias}`, `harness`, `model` (base,
+  publisher, format, quant, reasoning requested and resolved, variant key), `endpoint` (local or
+  cloud, provider, upstream), `hardware` (null for cloud runs), `outcome`, `metrics`, `provenance`,
+  and `local` for what is never published. The 2.4.0 fields `model_variant`, `hardware_key` and
+  `endpoint` moved into `model`, `hardware` and `endpoint`.
+- **Scores are score records**, `scores/r<rubric_version>.<method>.json` in the run folder, with the
+  raw counts (`passed`, `total`, `unit`) and the normalized score; `check_results.json` is no longer
+  written. Invalidations after the fact are status records (`status.json`, `crucible status <run>
+  --invalid REASON`).
+- **Bundle format 3** ([docs/bundle-format.md](docs/bundle-format.md)): `crucible publish` writes a
+  catalog per suite and one file per run, score record and status record under `_data/crucible/`,
+  and outputs outside `_data`. It is additive and idempotent, keyed by `run_uuid`, validates every
+  file, and `crucible publish --check <dir>` validates a folder and recomputes content hashes. It no
+  longer writes `<machine>.json`; `crucible export --format 2` still writes that single-file bundle
+  for the live dashboard until it switches.
+- **Suites replace releases.** `releases/2026.11.yaml` is gone; `suites/v1.yaml` pins the active
+  tasks as the dashboard scored them on 2026-10-28 (the release is kept inside it for the record).
+  `crucible versions --release` and `--backfill` are removed; use `crucible suite` and
+  `crucible migrate`.
+- **Taxonomy is suite data:** areas, categories, weights, tiers and statuses moved from
+  `crucible/taxonomy.py` to `tasks/taxonomy.yaml`. The area prefixes (`WRIT`, `CODE`, ...) are gone.
+- Changing a grader task's rubric hash: the hash no longer includes the grader folder's path (it held
+  the old ID). The six grader tasks' `rubric_hash` values changed once, one to one; no version moved.
+
+### Added
+
+- **`crucible migrate [--dry-run] [--runs DIR] [--machine NAME]`** moves runs from before 3.0.0 into
+  the new layout and record: it mints a permanent legacy `run_uuid` (UUIDv5 of the recorded hostname
+  and the old `run_id`) into every run before anything moves, rewrites `meta.json` (the old one is
+  kept under `local.legacy_meta`), fills publisher and format where the model key implies them, drops
+  cloud runs' hardware, and turns `check_results.json` into a score record at the rubric version it
+  was scored under, copying the score. Running it twice changes nothing.
+  `crucible migrate --bundle FILE --to DIR` converts a published format-2 bundle into records, with
+  the same UUIDs.
+- **`crucible suite list | verify | cut | patch`**: `cut v3 --promote … --retire …` makes tasks active
+  or retired and pins the lock into `suites/v3.yaml`; `patch` pins rubric fixes into `v3.1` and
+  rescores stored runs; `verify` checks the current suite still holds. Suite membership is derived
+  from task versions, never stored on runs. `SUITE_CHANGELOG.md` records each suite.
+- **Two release tracks** in CI (`python -m crucible.ci`): tool changes need a version bump and a
+  changelog entry; task changes need a SUITE_CHANGELOG entry, a clean lock and a suite that holds;
+  suite files are never edited.
+- Docs: [versioning](docs/versioning.md), [scoring](docs/scoring.md), [data model](docs/data-model.md),
+  [bundle format](docs/bundle-format.md); `docs/test-tiers.md` is now `docs/task-tiers.md`; the README
+  documents the `items` check.
+- Skills: `calibrate-task`, `cut-suite`, and `publish-results` updated for format 3.
 
 ## 2.4.0 (2026-10-29)
 

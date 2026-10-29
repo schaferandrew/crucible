@@ -46,13 +46,13 @@ def _run_crucible(tmp_path, server, *args):
 
 
 def test_e4_with_mock_mcp(tmp_path, fake_model):
-    proc = _run_crucible(tmp_path, fake_model, "TASK-2")
+    proc = _run_crucible(tmp_path, fake_model, "morning-brief-spanish")
     assert proc.returncode == 0, proc.stdout + proc.stderr
 
-    (run_dir,) = (tmp_path / "runs" / "ollama_fake-model" / "everyday" / "TASK-2").iterdir()
+    (run_dir,) = (tmp_path / "runs" / "ollama_fake-model" / "morning-brief-spanish").iterdir()
     meta = json.loads((run_dir / "meta.json").read_text(encoding="utf-8"))
-    assert meta["agent"] == "pi"
-    assert meta["returncode"] == 0 and not meta["timed_out"]
+    assert meta["record"] == "run" and meta["harness"]["id"] == "pi" and meta["task"]["id"] == "morning-brief-spanish"
+    assert meta["outcome"]["returncode"] == 0 and not meta["outcome"]["timed_out"]
     assert meta["metrics"]["tool_calls"] == 2
     assert meta["metrics"]["tokens_in"] == 300 and meta["metrics"]["tokens_out"] == 30
     assert meta["metrics"]["tests_passed"] == 3

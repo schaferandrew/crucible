@@ -1,11 +1,13 @@
 """Test versions keep scores comparable: content and rubric changes must be declared."""
 import json
+from pathlib import Path
 
 import pytest
 import yaml
 
 from crucible import judge, versioning, workspace
-from crucible.taxonomy import TEST_STATUSES, TIERS
+from crucible.taxonomy import TASK_STATUSES, TIERS
+from tests.records import run_meta
 
 
 def _entry(version=1, content="c1", rubric_version=1, rubric="r1"):
@@ -36,18 +38,18 @@ class TestCheckLock:
     def test_new_and_removed_tests(self):
         problems = versioning.check_lock({"C9": _entry()}, {"CODE-1": _entry()})
         assert any("C9: not in the lock" in p for p in problems)
-        assert any("CODE-1: in the lock but its prompt is gone" in p for p in problems)
+        assert any("CODE-1: in the lock but its task file is gone" in p for p in problems)
 
 
 class TestHashes:
     def test_rubric_edit_changes_only_rubric_hash(self):
-        p = workspace.load_prompt("CODE-3")
+        p = workspace.load_task("CODE-3")
         edited = {**p, "rubric": p["rubric"] + [{"criterion": "x", "max_score": 1}]}
         assert versioning.content_hash(edited) == versioning.content_hash(p)
         assert versioning.rubric_hash(edited) != versioning.rubric_hash(p)
 
     def test_prompt_edit_changes_content_hash(self):
-        p = workspace.load_prompt("KNOW-1")
+        p = workspace.load_task("KNOW-1")
         assert versioning.content_hash({**p, "prompt": p["prompt"] + " Be brief."}) != versioning.content_hash(p)
 
     def test_repo_files_are_content(self, tmp_path, monkeypatch):
@@ -74,68 +76,110 @@ class TestHashes:
 class TestRepoPrompts:
     """The real prompts: every test declares tier, versions and status, and matches the lock."""
 
-    @pytest.mark.parametrize("test_id", workspace.all_test_ids())
+    @pytest.mark.parametrize("test_id", workspace.all_task_ids())
     def test_declares_tier_and_versions(self, test_id):
-        p = workspace.load_prompt(test_id)
+        p = workspace.load_task(test_id)
         assert p.get("tier") in TIERS
-        assert p.get("status") in TEST_STATUSES
+        assert p.get("status") in TASK_STATUSES
         assert isinstance(p.get("version"), int) and p["version"] >= 1
         assert isinstance(p.get("rubric_version"), int) and p["rubric_version"] >= 1
 
     def test_lock_is_clean(self):
         assert versioning.check_lock() == []
 
-    def test_release_lists_only_active_tests_at_current_versions(self):
-        release = versioning.latest_release()
-        assert release is not None
-        for t in release["tests"]:
-            p = workspace.load_prompt(t["id"])
-            # A release is immutable; it may trail the prompts, but never point at a version that never existed
-            assert t["version"] <= p["version"]
-            assert t["tier"] in TIERS
+    def test_every_task_has_a_valid_unique_slug_and_its_old_id(self):
+        from crucible.taxonomy import validate_id
+        seen: dict[str, str] = {}
+        for task_id in workspace.all_task_ids():
+            p = workspace.load_task(task_id)
+            validate_id(p["id"])
+            assert p["id"] == task_id, f"tasks/{task_id}.yaml declares id {p['id']}"
+            assert p.get("name") and "test_id" not in p
+            for alias in [task_id, *(p.get("aliases") or [])]:
+                assert alias.lower() not in seen, f"{alias} names both {seen.get(alias.lower())} and {task_id}"
+                seen[alias.lower()] = task_id
 
 
-class TestBackfill:
-    def _run(self, tmp_path, prompt_text):
-        run_dir = tmp_path / "runs" / "m" / "everyday" / "KNOW-1" / "20260101_000000"
-        run_dir.mkdir(parents=True)
-        (run_dir / "prompt.txt").write_text(prompt_text, encoding="utf-8")
-        (run_dir / "meta.json").write_text(json.dumps({"test_id": "KNOW-1", "run_id": "m/everyday/KNOW-1/x"}))
-        (run_dir / "agent_results.json").write_text(json.dumps({"scores": {"_overall": 9.0}}))
-        return run_dir
+LEGACY_LOCK = json.loads((Path(__file__).parent / "fixtures" / "versions.lock.2.4.0.json").read_text(encoding="utf-8"))
 
-    def test_matching_prompt_gets_version(self, tmp_path):
-        run_dir = self._run(tmp_path, workspace.load_prompt("KNOW-1")["prompt"])
-        lock = versioning.compute_lock()
-        assert versioning.backfill_run(run_dir, lock) == f"v{lock['KNOW-1']['version']}"
-        meta = json.loads((run_dir / "meta.json").read_text())
-        assert meta["test"]["version"] == lock["KNOW-1"]["version"] and meta["test"]["backfilled"]
-        scores = json.loads((run_dir / "agent_results.json").read_text())
-        assert scores["rubric_version"] == lock["KNOW-1"]["rubric_version"]
-        # Backfilled stamps can be redone (e.g. after a matching fix); real ones can't
-        assert versioning.backfill_run(run_dir, lock) == f"v{lock['KNOW-1']['version']}"
-        meta["test"] = {"version": 1}
-        (run_dir / "meta.json").write_text(json.dumps(meta))
-        assert versioning.backfill_run(run_dir, lock) == "already versioned"
 
-    def test_direct_prompt_with_inlined_fixture_matches(self, tmp_path):
-        p = workspace.load_prompt("TASK-1")
-        sent = workspace.inline_fixtures(p["prompt"], workspace.fixture_names(p))
-        run_dir = self._run(tmp_path, sent)
-        meta = json.loads((run_dir / "meta.json").read_text())
-        meta["test_id"] = "TASK-1"
-        (run_dir / "meta.json").write_text(json.dumps(meta))
-        assert versioning.backfill_run(run_dir, versioning.compute_lock()) == f"v{p['version']}"
+def _legacy_rubric_hash(p: dict, grader_path: str) -> str:
+    """rubric_hash as 2.4.0 computed it: the grader's folder path (tier/ID) was hashed too."""
+    parts = [versioning._canonical({k: p.get(k) for k in versioning.RUBRIC_FIELDS}),
+             grader_path.encode(), *versioning._tree_bytes(versioning.GRADERS_DIR / p["grader"])]
+    if p.get("checks"):
+        parts.append(versioning._canonical({"checks": p["checks"]}))
+    if p.get("scoring"):
+        parts.append(versioning._canonical({"scoring": p["scoring"]}))
+    return versioning._sha(*parts)
 
-    def test_different_prompt_is_not_comparable(self, tmp_path):
-        run_dir = self._run(tmp_path, "An older wording of the question.")
-        assert versioning.backfill_run(run_dir, versioning.compute_lock()) == "prompt differs"
-        assert json.loads((run_dir / "meta.json").read_text())["test"]["version"] is None
+
+class TestRenameKeepsHashes:
+    """3.0.0 renamed every task; no task's content or rubric changed, so no version moved."""
+
+    @pytest.mark.parametrize("task_id", workspace.all_task_ids())
+    def test_versions_and_content_hash_unchanged(self, task_id):
+        p = workspace.load_task(task_id)
+        old = LEGACY_LOCK[p["aliases"][0]]
+        now = versioning.read_lock()[task_id]
+        assert (now["version"], now["rubric_version"]) == (old["version"], old["rubric_version"])
+        assert now["content_hash"] == old["content_hash"] and now["prompt_hash"] == old["prompt_hash"]
+
+    @pytest.mark.parametrize("task_id", workspace.all_task_ids())
+    def test_rubric_hash_unchanged_or_only_the_folder_name_left_it(self, task_id):
+        p = workspace.load_task(task_id)
+        old = LEGACY_LOCK[p["aliases"][0]]["rubric_hash"]
+        now = versioning.read_lock()[task_id]["rubric_hash"]
+        if not p.get("grader"):
+            assert now == old
+            return
+        # A grader task hashed its folder path (forge/CODE-11), which held the old ID. Hashing the same
+        # files under the old path reproduces the 2.4.0 hash, so nothing but the name changed.
+        tier = "temper" if p["aliases"][0] == "CODE-16" else "forge"
+        assert _legacy_rubric_hash(p, f"{tier}/{p['aliases'][0]}") == old
+        assert now == versioning.rubric_hash(p)
+
+    def test_new_rubric_hashes_map_one_to_one(self):
+        lock = versioning.read_lock()
+        pairs = {(LEGACY_LOCK[workspace.load_task(t)["aliases"][0]]["rubric_hash"], lock[t]["rubric_hash"]) for t in lock}
+        # Each old hash became exactly one new hash, and no two old hashes became the same one
+        assert len(pairs) == len({old for old, _ in pairs}) == len({new for _, new in pairs})
+
+
+class TestTaskIdMap:
+    MAP = json.loads((workspace.ID_MAP_PATH).read_text(encoding="utf-8"))
+
+    def test_every_old_id_resolves_in_one_lookup(self):
+        tasks = set(workspace.all_task_ids())
+        for old, entry in self.MAP.items():
+            assert entry["id"] in tasks, old
+            assert workspace.resolve(old)[0] == entry["id"]
+
+    def test_chained_ids(self):
+        # C11 was renamed CODE-11 in 1.0.0 and editorial-review-workflow in 3.0.0
+        assert self.MAP["C11"] == {"id": "editorial-review-workflow", "via": "CODE-11"}
+        assert workspace.resolve("C11") == ("editorial-review-workflow", "C11")
+        assert workspace.resolve("code-11") == ("editorial-review-workflow", "code-11")
+        assert workspace.resolve("editorial-review-workflow") == ("editorial-review-workflow", None)
+        with pytest.raises(KeyError):
+            workspace.resolve("CODE-99")
+
+    def test_every_task_is_in_the_map_under_its_alias(self):
+        for task_id in workspace.all_task_ids():
+            alias = workspace.load_task(task_id)["aliases"][0]
+            assert self.MAP[alias]["id"] == task_id
+
+    @pytest.mark.parametrize("bad", ["CODE-16", "react_lead_form", "-lead", "lead--form", "x" * 41,
+                                     "react-lead-form-hard", "spark-capitals"])
+    def test_slug_rules(self, bad):
+        from crucible.taxonomy import validate_id
+        with pytest.raises(ValueError):
+            validate_id(bad)
 
 
 # A test the judge scores: active, no checks bound to its criteria, no hidden grader
-JUDGED = next(t for t in workspace.all_test_ids()
-              if (p := workspace.load_prompt(t)).get("status") == "active"
+JUDGED = next(t for t in workspace.all_task_ids()
+              if (p := workspace.load_task(t)).get("status") == "active"
               and not p.get("checks") and not p.get("grader"))
 
 
@@ -143,8 +187,7 @@ class TestJudge:
     def _run(self, tmp_path, version):
         run_dir = tmp_path / "run"
         run_dir.mkdir()
-        (run_dir / "meta.json").write_text(json.dumps(
-            {"test_id": JUDGED, "run_id": f"m/x/{JUDGED}/x", "test": {"version": version}}))
+        (run_dir / "meta.json").write_text(json.dumps(run_meta(JUDGED, version)))
         return run_dir
 
     @staticmethod
@@ -152,7 +195,7 @@ class TestJudge:
         return {c["criterion"]: {"score": c["max_score"], "note": "ok"} for c in p["rubric"]}
 
     def test_saves_with_provenance(self, tmp_path):
-        p = workspace.load_prompt(JUDGED)
+        p = workspace.load_task(JUDGED)
         results = judge.save_agent_score(self._run(tmp_path, p["version"]),
                                          {"criteria": self._full_marks(p), "summary": "ok"})
         assert results["scores"]["_overall"] == 10.0
@@ -161,13 +204,13 @@ class TestJudge:
                                      "prompt_version": judge.JUDGE_PROMPT_VERSION}
 
     def test_score_cap(self, tmp_path):
-        p = workspace.load_prompt(JUDGED)
+        p = workspace.load_task(JUDGED)
         results = judge.save_agent_score(self._run(tmp_path, p["version"]),
                                          {"criteria": self._full_marks(p), "score_cap": 3})
         assert results["scores"]["_overall"] == 3.0
 
     def test_rejects_wrong_criteria_and_ranges(self, tmp_path):
-        p = workspace.load_prompt(JUDGED)
+        p = workspace.load_task(JUDGED)
         run_dir = self._run(tmp_path, p["version"])
         with pytest.raises(judge.JudgeError, match="criterion mismatch"):
             judge.save_agent_score(run_dir, {"criteria": {"Made up": {"score": 1}}})
@@ -176,14 +219,14 @@ class TestJudge:
             judge.save_agent_score(run_dir, {"criteria": too_high})
 
     def test_refuses_run_from_another_test_version(self, tmp_path):
-        p = workspace.load_prompt(JUDGED)
+        p = workspace.load_task(JUDGED)
         with pytest.raises(judge.JudgeError, match="rerun"):
             judge.save_agent_score(self._run(tmp_path, p["version"] + 1), {"criteria": {}})
 
 
 class TestWorkspaceIsolation:
     def test_workspace_lives_outside_the_checkout_and_moves_back(self, tmp_path):
-        run_dir = tmp_path / "runs" / "m" / "coding_debug" / "CODE-2" / "ts"
+        run_dir = tmp_path / "runs" / "m" / "responsive-navbar-open-ended" / "ts"
         run_dir.mkdir(parents=True)
         ws = workspace.setup_workspace(run_dir, {"repo": "navbar-responsive"})
         assert workspace.REPO_ROOT not in ws.resolve().parents
@@ -198,7 +241,7 @@ class TestWorkspaceIsolation:
         from crucible import runner
         run_dir = tmp_path / "run"
         run_dir.mkdir()
-        grader = workspace.REPO_ROOT / "graders" / "forge" / "CODE-11" / "editorial.grader.test.ts"
+        grader = workspace.REPO_ROOT / "graders" / "editorial-review-workflow" / "editorial.grader.test.ts"
         (run_dir / "stderr.txt").write_text(f"$ cat {grader}\nok\n")
         (run_dir / "stdout.txt").write_text(f"working in {run_dir.resolve()}/workspace\n")
         assert runner.find_leaks(run_dir) == [str(grader)]

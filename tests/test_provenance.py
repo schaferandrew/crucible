@@ -3,7 +3,7 @@ import json
 import os
 import re
 
-from crucible import environment, provenance, providers, runner
+from crucible import environment, provenance, providers, runner, runrecord
 
 
 def test_machine_id_is_minted_once(tmp_path, monkeypatch):
@@ -65,23 +65,40 @@ def test_openrouter_endpoint(tmp_path, monkeypatch):
     assert environment.endpoint("lmstudio/qwen/qwen3.5-9b", tmp_path) == {"upstream": None, "resolved_model": None}
 
 
-def test_model_variant(monkeypatch):
-    monkeypatch.setattr(environment, "reasoning_resolved", lambda model, level: "off" if level == "off" else None)
-    local = runner.model_variant("lmstudio/qwen/qwen3.5-9b", "off",
-                                 {"publisher": "lmstudio-community", "format": "gguf", "quantization": "Q4_K_M"})
-    assert local == {"publisher": "lmstudio-community", "format": "gguf", "quant": "Q4_K_M", "reasoning_resolved": "off"}
-    cloud = runner.model_variant("openrouter/openai/gpt-x", "default", {"provider": "openrouter", "local": False})
-    assert cloud == {"publisher": "openai", "format": None, "quant": None, "reasoning_resolved": None}
+def test_model_record():
+    local = runrecord.model_record("lmstudio/qwen/qwen3.5-9b", "off", "off",
+                                   {"provider": "lmstudio", "local": True, "publisher": "lmstudio-community",
+                                    "format": "gguf", "quantization": "Q4_K_M", "context_length": 100096})
+    assert (local["base"], local["publisher"], local["format"], local["quant"]) == (
+        "qwen/qwen3.5-9b", "lmstudio-community", "gguf", "Q4_K_M")
+    assert local["reasoning"] == {"requested": "off", "resolved": "off"} and local["context_loaded"] == 100096
+    assert local["variant_key"] == "qwen/qwen3.5-9b|lmstudio-community|gguf|q4_k_m"
+    cloud = runrecord.model_record("openrouter/openai/gpt-x-2026-10-01", "default", None,
+                                   {"provider": "openrouter", "local": False})
+    assert (cloud["base"], cloud["publisher"], cloud["format"]) == ("openai/gpt-x", "openai", None)
+    assert cloud["variant_key"] == "openai/gpt-x|openai|api|-"
 
 
-def test_hardware_key_only_for_local_runs():
+def test_variant_implied_by_the_model_key():
+    assert runrecord.implied_variant("lmstudio/mlx-community/muse-glimmer-30b", None) == {
+        "publisher": "mlx-community", "format": "mlx"}
+    assert runrecord.implied_variant("ollama/qwen3.5:9b-mlx", None)["format"] == "mlx"
+    assert runrecord.implied_variant("lmstudio/qwen/qwen3.5-9b", "4bit")["format"] == "mlx"
+    assert runrecord.implied_variant("lmstudio/qwen/qwen3.5-9b", "Q4_K_M") == {"publisher": None, "format": None}
+    assert runrecord.normalize_quant("4bit") == "mlx-4bit" and runrecord.normalize_quant("MXFP4") == "mxfp4"
+
+
+def test_hardware_only_for_local_runs():
     machine = {"hostname": "Ironwood", "cpu": "Apple M1 Pro", "gpu": None, "ram_gb": 32.0}
-    assert runner.hardware_key({"machine": machine, "inference": {"local": True, "same_machine": True}}) == "m1-pro-32gb"
-    served = {"local": True, "same_machine": False, "device": "Whitehall"}
-    assert runner.hardware_key({"machine": machine, "inference": served}) == "rtx-5070-ti-16gb"
-    assert runner.hardware_key({"machine": machine, "inference": {"local": False}}) is None
-    unknown_peer = {"local": True, "same_machine": False, "device": "somebox"}
-    assert runner.hardware_key({"machine": machine, "inference": unknown_peer}) is None
+    here = runrecord.hardware_record("lmstudio/x", machine, {"local": True, "same_machine": True})
+    assert here["key"] == "m1-pro-32gb" and here["class"] == "apple_silicon" and here["label"] == "Ironwood"
+    served = runrecord.hardware_record("lmstudio/x", machine, {"local": True, "same_machine": False, "device": "Whitehall"})
+    assert served["key"] == "rtx-5070-ti-16gb" and served["class"] == "discrete_gpu"
+    assert runrecord.hardware_record("openrouter/a/b", machine, {"local": False}) is None
+    # A run with no inference record: cloud by its provider, so never the laptop's hardware
+    assert runrecord.hardware_record("openrouter/a/b", machine, {}) is None
+    unknown_peer = runrecord.hardware_record("lmstudio/x", machine, {"local": True, "same_machine": False, "device": "box"})
+    assert unknown_peer["key"] is None and unknown_peer["label"] == "box"
 
 
 def test_machine_file_is_isolated_in_tests():

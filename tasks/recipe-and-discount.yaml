@@ -1,0 +1,45 @@
+id: recipe-and-discount
+name: Recipe scaling and a discount
+aliases:
+- MATH-1
+needs_tools: false
+category: math
+area: math
+tier: spark
+version: 1
+rubric_version: 1
+status: provisional
+auto_grade: false
+repo: null
+prompt: 'Two quick calculations. Show your working briefly.
+
+
+  1. A bread recipe for 4 people uses 300 g of flour. How much flour for 10 people?
+
+  2. A jacket costs $84.60 and is 15% off. What is the sale price, to the cent?
+
+
+  End with a section headed ANSWERS, one line per question in the form `1. <answer>`.
+
+  '
+checks:
+- id: flour
+  type: required_patterns
+  patterns:
+  - (?im)^\W*1[.)]\s*.*\b750\s*(g|grams)\b
+  rule: Answer 1 is 750 g.
+- id: sale_price
+  type: required_patterns
+  patterns:
+  - (?im)^\W*2[.)]\s*.*\$?\s*71\.91\b
+  rule: Answer 2 is $71.91.
+rubric:
+- criterion: Flour
+  max_score: 1
+  check: flour
+  description: Answer 1 is 750 g.
+- criterion: Sale price
+  max_score: 1
+  check: sale_price
+  description: Answer 2 is $71.91.
+critical_failure: null

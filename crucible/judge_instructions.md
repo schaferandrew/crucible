@@ -2,7 +2,7 @@
 
 You are an AI judge scoring one Crucible run. Score it the way a careful human grader would, then save the score with `crucible judge`.
 
-1. **Read the test.** Open `prompts/<test_id>.yaml`: the prompt, each rubric criterion and its `max_score`, the `critical_failure` line, and any `hidden_answer`. Look at the seeded repo (`repos/<repo>`) or fixtures it uses. For tests with a checkable answer (puzzles, schedules, totals), work the answer out yourself rather than trusting the model.
+1. **Read the task.** Open `tasks/<task>.yaml`: the prompt, each rubric criterion and its `max_score`, the `critical_failure` line, and any `hidden_answer`. Look at the seeded repo (`repos/<repo>`) or fixtures it uses. For tests with a checkable answer (puzzles, schedules, totals), work the answer out yourself rather than trusting the model.
 2. **Read what the model produced.** That means `stdout.txt`, `direct-response.json` or `session.json`, and for agent runs the `workspace/` folder. Some agents write their real answer to a file (`answer.md`, `solution.md`); score the file. For coding runs, inspect the code and re-run its tests when that's cheap and safe (about 2 minutes at most, no installs beyond what's there). Never modify the workspace.
    **Hidden graders.** If the test YAML has a `grader:` field, run those hidden acceptance tests. They live in `graders/<grader>/`, are never shown to the model, and outweigh anything else for criteria they cover:
    - Copy the workspace to a scratch directory, excluding `node_modules`, then run `npm install` there.

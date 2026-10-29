@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/schaferandrew/crucible/blob/main/crucible/schemas/status.schema.json",
+  "title": "Crucible status records (bundle format 3)",
+  "description": "A run's status changes, oldest first, only ever appended to: _data/crucible/status/<run_uuid>.json. The last entry wins.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "record",
+      "run_uuid",
+      "at",
+      "by"
+    ],
+    "properties": {
+      "record": {
+        "type": "string",
+        "enum": [
+          "status"
+        ]
+      },
+      "run_uuid": {
+        "type": "string"
+      },
+      "at": {
+        "type": "string"
+      },
+      "invalid": {
+        "type": [
+          "object",
+          "null"
+        ]
+      },
+      "withdrawn": {
+        "type": [
+          "object",
+          "null"
+        ]
+      },
+      "valid": {
+        "type": [
+          "boolean",
+          "null"
+        ]
+      },
+      "by": {
+        "type": "string"
+      }
+    }
+  }
+}
