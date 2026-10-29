@@ -157,6 +157,8 @@ EVERY_TYPE = [
     {"id": "described", "type": "list_items", "each_matches": r"\S+\s*(—|-|:)\s*\S+"},
     {"id": "grounded", "type": "grounded_numbers"},
     {"id": "grade", "type": "grade_closeness", "actual_score": 5, "width": 100},
+    {"id": "cited", "type": "cited_paragraphs",
+     "items": [{"id": "s", "source": "S1", "absent": True}, {"id": "f", "cited": ["S1"], "all": ["x"]}]},
     {"id": "block", "type": "items", "normalize": "letter_set",
      "items": [{"id": "q", "expect": ["B"], "of": ["A", "B", "C"]}, {"id": "n", "key": "2", "expect": 2}]},
 ]

@@ -427,6 +427,8 @@ ITEM_KINDS = ("number", "money", "name", "year", "letter_set", "line_set", "line
 
 def _all_failed(check: dict, detail: str) -> list[dict]:
     """Every item failed, expanded as a block would be (each letter, each pair), so the total stays the same."""
+    if check["type"] == "cited_paragraphs":
+        return [{**_score_cited(item, [], ""), "passed": False, "detail": detail} for item in check["items"]]
     return [{**r, "passed": False, "detail": detail}
             for n, item in enumerate(check["items"]) for r in _score_item(item, [], n, check)]
 
@@ -448,6 +450,116 @@ def _items_check(check: dict, text: str) -> tuple[bool, str, float, list[dict]]:
     return passed == len(results), detail, share, results
 
 
+# --------------------------------------------------------------------------
+# Cited paragraphs: a prose briefing whose paragraphs end with the numbered sources they used
+# --------------------------------------------------------------------------
+#
+#     checks:
+#       - id: sources
+#         type: cited_paragraphs
+#         items:
+#           - {id: s1, source: S1, with: [S2], only: [S1, S2, S9]}   # S1 cited in exactly one paragraph, together with
+#                                                                    # S2, and with no source outside the list
+#           - {id: s10, source: S10, absent: true}                   # never cited
+#           - {id: opinion, source: S9, marker: opinion}             # cited as `[S9 opinion]`
+#           - {id: levy, cited: [S1, S2], all: ['41\.6 million']}    # the paragraphs citing S1 or S2 hold every pattern
+#           - {id: stale, forbid: ['okoro']}                         # no pattern anywhere in the text (case-insensitive)
+#           - {id: bill, cited: [S7], all: ['expected to sign'], none: ['signed into law']}
+#
+# A citation is a bracket or parenthesis group of source IDs: `[S1, S2, S9]`, `[S1][S2]`, `(S3; S4)`,
+# `[S9 opinion]`, `[S9, opinion]`. Paragraphs are split at blank lines, headings and list bullets.
+# Every item weighs the same; the share is items passed / all items.
+
+CITATION_GROUP = re.compile(r"\[([^\[\]]*\bS\d+\b[^\[\]]*)\]|\(([^()\[\]]*\bS\d+\b[^()\[\]]*)\)", re.IGNORECASE)
+SOURCE_ID = re.compile(r"\bS(\d+)\b", re.IGNORECASE)
+BLOCK_START = re.compile(r"^\s*(?:#{1,6}\s|\d+[.)]\s|[-*•]\s)")
+
+
+def paragraphs(text: str) -> list[str]:
+    """Paragraphs of prose: blank lines, headings and list bullets start a new one (a heading stands alone)."""
+    out: list[str] = []
+    current: list[str] = []
+    for line in text.splitlines():
+        if not line.strip():
+            if current:
+                out.append(" ".join(current))
+            current = []
+        elif BLOCK_START.match(line):
+            if current:
+                out.append(" ".join(current))
+            current = [line.strip()]
+            if line.lstrip().startswith("#"):
+                out.append(" ".join(current))
+                current = []
+        else:
+            current.append(line.strip())
+    if current:
+        out.append(" ".join(current))
+    return out
+
+
+def citations(paragraph: str) -> tuple[set[str], set[str]]:
+    """(source IDs cited, source IDs cited as opinion) in one paragraph."""
+    cited: set[str] = set()
+    marked: set[str] = set()
+    for square, round_ in CITATION_GROUP.findall(paragraph):
+        group = square or round_
+        last: list[str] = []
+        for part in re.split(r"[,;/&]|\band\b", group, flags=re.IGNORECASE):
+            ids = ["S" + n for n in SOURCE_ID.findall(part)]
+            if ids:
+                last = ids
+                cited.update(ids)
+            if "opinion" in part.lower():
+                marked.update(last)
+    return cited, marked
+
+
+def _score_cited(item: dict, paras: list[tuple[str, set[str], set[str]]], text: str) -> dict:
+    label = item.get("label", item.get("id"))
+    result = lambda passed, detail: {"id": item["id"], "label": label, "passed": passed, "detail": detail}
+    if item.get("forbid") and "source" not in item and "cited" not in item:
+        hits = sorted({m.group(0).lower() for p in item["forbid"] for m in re.finditer(p, text, re.IGNORECASE)})
+        return result(not hits, "found: " + ", ".join(hits) if hits else "none found")
+    if "source" in item:
+        source = item["source"]
+        where = [(body, cited, marked) for body, cited, marked in paras if source in cited]
+        if item.get("absent"):
+            return result(not where, "not cited" if not where else f"cited in {len(where)} paragraph(s)")
+        if len(where) != 1:
+            return result(False, "not cited" if not where else f"cited in {len(where)} paragraphs (want 1)")
+        _, cited, marked = where[0]
+        missing = [s for s in item.get("with", []) if s not in cited]
+        stray = sorted(cited - set(item["only"]) - {source}) if item.get("only") else []
+        if missing:
+            return result(False, "not together with " + ", ".join(missing))
+        if stray:
+            return result(False, "paragraph also cites " + ", ".join(stray))
+        if item.get("marker") and source not in marked:
+            return result(False, f"not marked {item['marker']}")
+        return result(True, "cited once")
+    body = " ".join(b for b, cited, _ in paras if cited & set(item["cited"]))
+    if not body:
+        return result(False, "no paragraph cites " + ", ".join(item["cited"]))
+    missing = [p for p in item.get("all", []) if not re.search(p, body, re.IGNORECASE)]
+    found = [m.group(0).lower() for p in item.get("none", []) for m in re.finditer(p, body, re.IGNORECASE)]
+    if missing:
+        return result(False, "missing: " + ", ".join(missing[:3]))
+    if found:
+        return result(False, "found: " + ", ".join(sorted(set(found))))
+    return result(True, "found")
+
+
+def _cited_paragraphs_check(check: dict, text: str) -> tuple[bool, str, float, list[dict]]:
+    """Each expected item scored on its own, by the citations at the end of the briefing's paragraphs."""
+    paras = [(body, *citations(body)) for body in paragraphs(text)]
+    results = [_score_cited(item, paras, text) for item in check["items"]]
+    passed = sum(r["passed"] for r in results)
+    failed = [f"{r['id']} ({r['detail']})" for r in results if not r["passed"]]
+    detail = f"{passed}/{len(results)} items" + ("; failed: " + ", ".join(failed[:6]) if failed else "")
+    return passed == len(results), detail, round(passed / len(results), 4) if results else 0.0, results
+
+
 # A check returns (passed, detail), or (passed, detail, share) when it earns partial credit, plus the
 # per-item results when it scores items (passed, detail, share, items)
 CHECKS: dict[str, Callable[[dict, str], tuple]] = {
@@ -459,6 +571,7 @@ CHECKS: dict[str, Callable[[dict, str], tuple]] = {
     "line_count": _line_count,
     "list_items": _list_items,
     "items": _items_check,
+    "cited_paragraphs": _cited_paragraphs_check,
 }
 
 
@@ -483,7 +596,7 @@ def run_checks(prompt_def: dict, text: str, run_dir: Path | None = None) -> list
             # duplicates and no undescribed items, but there is nothing to score (B2)
             results.append({"id": check["id"], "type": check["type"], "passed": False, "detail": NO_ANSWER,
                             "rule": check.get("rule"),
-                            **({"share": 0.0, "items": _all_failed(check, NO_ANSWER)} if check["type"] == "items" else {})})
+                            **({"share": 0.0, "items": _all_failed(check, NO_ANSWER)} if check["type"] in ("items", "cited_paragraphs") else {})})
             continue
         passed, detail, *extra = CHECKS[check["type"]]({**check, "_source": prompt_def.get("prompt", "")}, subject)
         results.append({"id": check["id"], "type": check["type"], "passed": passed, "detail": detail,

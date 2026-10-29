@@ -231,11 +231,11 @@
     "rubric_hash": "ca8989fc10f5a77b"
   },
   "news-briefing-from-feeds": {
-    "version": 1,
-    "content_hash": "90676e2bd371ebdd",
-    "prompt_hash": "54bc04fe44e71492",
-    "rubric_version": 1,
-    "rubric_hash": "d3f8886190097bb1"
+    "version": 2,
+    "content_hash": "ab43c774dcf4271c",
+    "prompt_hash": "7f6d48bda8a045b5",
+    "rubric_version": 2,
+    "rubric_hash": "7f63c4216de11a95"
   },
   "nextjs-course": {
     "version": 1,

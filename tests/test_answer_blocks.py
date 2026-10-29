@@ -201,3 +201,47 @@ def test_fact_check_history_oracle():
                   11: 1990, 12: 1994}
     assert score("ERRORS:\n" + "\n".join(f"{n}: {v}" for n, v in everything.items())) == 5.88
     assert score("ERRORS: none") == 4.12
+
+
+def test_cited_paragraphs_check():
+    """Prose paragraphs found by their citations: cited once, together, marked, absent; facts per paragraph."""
+    items = [
+        {"id": "a", "source": "S1", "with": ["S2"], "only": ["S1", "S2", "S9"]},
+        {"id": "b", "source": "S2", "with": ["S1"]},
+        {"id": "c", "source": "S3", "absent": True},
+        {"id": "d", "source": "S9", "marker": "opinion"},
+        {"id": "e", "cited": ["S1"], "all": ["41\\.6"], "none": ["signed"]},
+        {"id": "f", "forbid": ["okoro"]},
+    ]
+    p = {"checks": [{"id": "c", "type": "cited_paragraphs", "items": items}]}
+
+    def passed(text):
+        r = checks.run_checks(p, text)[0]
+        return {i["id"]: i["passed"] for i in r["items"]}
+
+    good = "Levy of $41.6 million. [S1, S2, S9 opinion]\n\nOther story. [S4]"
+    assert all(passed(good).values())
+    assert all(passed("Levy of $41.6 million. (S1; S2), [S9, opinion]").values())
+    assert passed("Levy $41.6 million [S1]\n\nMore [S2, S9 opinion]")["a"] is False   # not merged
+    assert passed("Levy $41.6 million [S1, S2, S9]")["d"] is False                    # opinion unmarked
+    assert passed("Levy $41.6 million [S1, S2, S9 opinion]\n\nOkoro [S3]") == {
+        "a": True, "b": True, "c": False, "d": True, "e": True, "f": False}
+    assert passed("Levy [S1, S2, S4] 41.6 [S9 opinion]")["a"] is False                # stray source
+    assert not any(passed("Levy $41.6 million, signed. [S1, S2, S9 opinion]")[k] for k in ["e"])
+    empty = checks.run_checks(p, "")[0]
+    assert not empty["passed"] and empty["share"] == 0.0 and len(empty["items"]) == 6
+
+
+def test_news_briefing_oracle():
+    from crucible import workspace
+    p = workspace.load_task("news-briefing-from-feeds")
+    ref = ("The council voted 7-2 on a $41.6 million levy. [S1, S2, S9 opinion]\n\nOne firefighter was hurt. [S3, S4]\n\n"
+           "Ledger reporters said about 300, organizers more than 1,000, police 400. [S5, S6]\n\n"
+           "The governor is expected to sign it. [S7]\n\nRates rose 0.25 to 3.75%. [S8]")
+
+    def score(text):
+        results = checks.run_checks(p, text)
+        return round(sum(checks.criterion_scores(p, results).values()) / 22 * 10, 2)
+
+    assert score(ref) == 10.0 and score("") == 0.0
+    assert score(ref + "\n\nOkoro won. [S10]") == 9.09

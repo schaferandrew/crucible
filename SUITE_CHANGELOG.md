@@ -8,6 +8,8 @@ are in [CHANGELOG.md](CHANGELOG.md); how the two version numbers work is in
 Suites are cut with `crucible suite cut` (a new major) or `crucible suite patch` (rubric fixes, stored
 runs rescored). Task changes between cuts go under `## Unreleased`.
 
+## Unreleased
+
 - **accessibility-audit-fixes (formerly CODE-15): rubric 2 → 3, still provisional.** Now an isolated,
   per-test grader (`artifacts`: apps/web/src). 38 hidden tests cover all six audit findings (dialog 9,
   read more 6, tag filter 7, button names 6, form errors 6, status messages 4) plus the model's own
@@ -19,8 +21,6 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
   still pass" (cap 5) and "Contract suite untouched" (cap 4) are caps, not points. Reference solution
   with native `<dialog>`, `<button>` and `<select>`, and three calibration fixtures. Stored runs:
   gemma-4-e4b and gpt-oss-20b (both no-ops) 2.31 → 0.0.
-
-## Unreleased
 
 - cache-leak-incident (formerly CODE-13): version 3, rubric 4, still provisional. An isolated, per-test
   grader: 17 equal tests (12 on the cache's behaviour, 4 on the postmortem, 1 for the model's regression
@@ -35,6 +35,15 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
   the leaky version 2 and don't count for version 3; rescored on copies for reference: gemma-4-e4b 1.0 to 0.0,
   gpt-oss-20b 2.0 to 0.0 (no-op runs), deepseek-v4.1-flash 10.0 to 7.65 (13/17: it passes every cache test and
   the regression test; the four postmortem lines didn't exist in its prompt).
+
+- news-briefing-from-feeds (formerly KNOW-4): version 2, rubric 2, still provisional. The ten sources are
+  numbered `[S1]` to `[S10]` and the briefing stays prose, one paragraph per story, each ending with its
+  sources (`[S1, S2, S9 opinion]`). Now fully deterministic, 22 equal items: the nine same-day sources each
+  cited exactly once with the levy, fire and rally sources combined (9), the stale S10 not cited and Okoro
+  and "school board" absent (2), the column cited as opinion (1), nine facts found in the paragraph by its
+  citations (levy $41.6 million and 7-2, one firefighter, the three attributed crowd estimates, "expected to
+  sign", 3.75% and 0.25), and no invented figures (1). Replaces the two judge criteria and the outlet-name
+  and word-count checks. Runs of version 1 no longer count; rerun it.
 
 - fact-check-history (formerly HIST-2), now "Fact-check twelve history claims": version 2, rubric 2,
   still provisional. The paragraph became twelve numbered claims with one fact each (five wrong, seven
