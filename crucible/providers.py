@@ -10,6 +10,7 @@ import contextvars
 import json
 import os
 import time
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from typing import Callable
@@ -114,6 +115,18 @@ def fetch_openrouter_pricing(model_id: str) -> tuple[float, float] | None:
         return None
 
 
+def fetch_openrouter_generation(generation_id: str) -> dict | None:
+    """OpenRouter's record of one request (provider_name, model, ...); None when unavailable."""
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    if not api_key or not generation_id:
+        return None
+    try:
+        return _get_json(f"{OPENROUTER_BASE_URL}/generation?id={urllib.parse.quote(generation_id)}",
+                         headers={"Authorization": f"Bearer {api_key}"}).get("data")
+    except Exception:
+        return None
+
+
 def fetch_openrouter_key_usage() -> float | None:
     """Total USD billed to OPENROUTER_API_KEY so far (None without a key or when unreachable)."""
     api_key = os.environ.get("OPENROUTER_API_KEY")
@@ -148,6 +161,8 @@ class _StreamTimer:
         self._reported = 0.0
         # Why the response ended, as the provider reports it ("stop", or "length" when it ran out of room)
         self.finish_reason: str | None = None
+        # Who answered, as the stream reports it: OpenRouter names the upstream provider and the dated model
+        self.served: dict = {}
 
     def token(self, reasoning: str = "", answer: str = ""):
         now = time.monotonic()
@@ -169,6 +184,9 @@ class _StreamTimer:
             "tokens_out": tokens_out,
             "reasoning": "".join(self.reasoning),
             "finish_reason": self.finish_reason,
+            "generation_id": self.served.get("id"),
+            "served_model": self.served.get("model"),
+            "served_provider": self.served.get("provider"),
         }
 
 
@@ -247,6 +265,9 @@ def _call_openai_compatible(url: str, model_id: str, prompt: str, timeout: int,
             chunk = json.loads(data)
             if chunk.get("error"):
                 raise RuntimeError(f"Provider error: {chunk['error']}")
+            for field in ("id", "model", "provider"):
+                if isinstance(chunk.get(field), str) and chunk[field]:
+                    timer.served.setdefault(field, chunk[field])
             for choice in chunk.get("choices") or []:
                 timer.finish_reason = choice.get("finish_reason") or timer.finish_reason
                 delta = choice.get("delta") or {}

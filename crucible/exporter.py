@@ -104,13 +104,12 @@ def _hidden_tests(run_dir: Path) -> dict | None:
 def _hardware(machine: dict, inference: dict) -> dict | None:
     """The machine that ran inference: this one, or the LM Link device that served the model.
 
-    Hostname is the machine's short name (e.g. Ironwood); never the endpoint address.
+    Hostname is the machine's short name (e.g. Ironwood); never the endpoint address. A cloud
+    run has none: the machine that sent the request didn't run the model.
     """
-    if inference.get("same_machine") is False:
-        device = inference.get("device")
-        return hardware.specs(device) or ({"hostname": device, "cpu": None, "gpu": None, "ram_gb": None}
-                                          if device else None)
-    return {k: machine.get(k) for k in ("hostname", "cpu", "gpu", "ram_gb")} if machine else None
+    if inference.get("local") is False:
+        return None
+    return hardware.serving(machine, inference)
 
 
 def export_run(run_dir: Path, tests: dict[str, dict]) -> dict | None:
@@ -164,6 +163,12 @@ def export_run(run_dir: Path, tests: dict[str, dict]) -> dict | None:
         "inference": {k: inference.get(k) for k in ("provider", "local", "same_machine", "served_via",
                                                      "device", "quantization", "context_length")} if inference else None,
         **{key: metrics.get(key) for key in METRIC_KEYS},
+        # Recorded from 2.4.0 on; older runs export null
+        "run_uuid": meta.get("run_uuid"),
+        "provenance": meta.get("provenance"),
+        "model_variant": meta.get("model_variant"),
+        "hardware_key": meta.get("hardware_key"),
+        "endpoint": meta.get("endpoint"),
     }
 
 

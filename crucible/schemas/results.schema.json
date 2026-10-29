@@ -31,7 +31,8 @@
           "type": "string"
         },
         "crucible_version": {
-          "type": "string"
+          "type": "string",
+          "description": "The crucible version that wrote the bundle"
         }
       }
     },
@@ -268,7 +269,8 @@
             "type": [
               "object",
               "null"
-            ]
+            ],
+            "description": "The machine that ran the model: hostname, cpu, gpu, ram_gb; null for cloud runs"
           },
           "inference": {
             "type": [
@@ -318,6 +320,114 @@
               "null"
             ],
             "description": "Characters of reasoning the model streamed (direct runs)"
+          },
+          "run_uuid": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Permanent run identity (UUIDv4), minted when the run started; null for runs recorded before 2.4.0"
+          },
+          "provenance": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Which crucible produced the run",
+            "properties": {
+              "crucible_version": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "crucible_commit": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Short git SHA of the checkout; null outside git"
+              },
+              "crucible_dirty": {
+                "type": [
+                  "boolean",
+                  "null"
+                ],
+                "description": "Uncommitted changes under crucible/, prompts/, graders/, fixtures/ or repos/"
+              },
+              "machine_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Random ID minted once per machine; never the hostname"
+              }
+            }
+          },
+          "model_variant": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "The weights as a variant, and the reasoning level they ran at",
+            "properties": {
+              "publisher": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "format": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "gguf, mlx, ..."
+              },
+              "quant": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "reasoning_resolved": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The level the model actually ran at; null when it can't be told"
+              }
+            }
+          },
+          "hardware_key": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The device that ran the weights (m1-pro-32gb, rtx-5070-ti-16gb); null for cloud runs"
+          },
+          "endpoint": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Who served a cloud request",
+            "properties": {
+              "upstream": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "description": "The provider OpenRouter routed to: name, quant"
+              },
+              "resolved_model": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The model id the provider reported serving"
+              }
+            }
           }
         }
       }

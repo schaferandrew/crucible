@@ -11,6 +11,7 @@ import re
 import shutil
 import subprocess
 import sys
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -53,6 +54,7 @@ class RunDir:
     run_id: str   # <model_slug>/<category>/<test_id>/<timestamp>
     path: Path    # absolute
     title: str    # unique session title for agents that support one
+    run_uuid: str = ""  # permanent identity: survives renames and moves, unique across machines
 
 
 def new_run_dir(output_dir: Path, test_id: str, model: str | None, prompt_def: dict,
@@ -65,7 +67,7 @@ def new_run_dir(output_dir: Path, test_id: str, model: str | None, prompt_def: d
     run_id = f"{model_slug}/{category}/{test_id}/{now}"
     path = (output_dir / run_id).resolve()
     path.mkdir(parents=True, exist_ok=True)
-    return RunDir(run_id=run_id, path=path, title=f"{now}_{test_id}_{model_slug}")
+    return RunDir(run_id=run_id, path=path, title=f"{now}_{test_id}_{model_slug}", run_uuid=str(uuid.uuid4()))
 
 
 def _copy_into(src: Path, dest_dir: Path, contents_only: bool = False) -> None:

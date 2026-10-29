@@ -3,6 +3,7 @@ import json
 import os
 import subprocess
 import sys
+import uuid
 from pathlib import Path
 
 import pytest
@@ -38,6 +39,13 @@ def test_direct_records_tokens_and_ttft(tmp_path, fake_model, provider):
     assert fake_openai.FIRST_TOKEN_DELAY_S <= meta["metrics"]["ttft_s"] < 5
     assert meta["metrics"]["model_responses"] == 1
     assert "TTFT" in proc.stdout
+    # Identity and provenance, recorded from 2.4.0 on
+    assert uuid.UUID(meta["run_uuid"]).version == 4
+    assert set(meta["provenance"]) == {"crucible_version", "crucible_commit", "crucible_dirty", "machine_id"}
+    assert meta["provenance"]["machine_id"].startswith("m_")
+    assert set(meta["model_variant"]) == {"publisher", "format", "quant", "reasoning_resolved"}
+    assert meta["endpoint"] == {"upstream": None, "resolved_model": None}
+    assert meta["hardware_key"]  # a local run on this machine
 
 
 def test_eval_run_is_graded_automatically(tmp_path, fake_model):

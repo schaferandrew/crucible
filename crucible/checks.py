@@ -148,7 +148,270 @@ def _grounded_numbers(check: dict, text: str) -> tuple[bool, str]:
     return (not invented), ("every figure is in the sources" if not invented else "not in the sources: " + ", ".join(invented[:8]))
 
 
-# A check returns (passed, detail), or (passed, detail, share) when it earns partial credit
+# --------------------------------------------------------------------------
+# Answer blocks: score only the fixed block a model ends with, one item at a time
+# --------------------------------------------------------------------------
+#
+#     checks:
+#       - id: answers
+#         type: items
+#         header: ANSWERS            # or a list of names for the same block: [ERRORS, ERROR]
+#         normalize: number          # the default for every item; an item can name its own
+#         items:
+#           - {id: q1, key: "1", expect: 42}                    # the line labelled 1 / Q1 / 1. / 1)
+#           - {id: q2, key: "2", expect: 71.91, normalize: money}
+#           - {id: q3, key: France, expect: Paris, normalize: name, aliases: ["Paris, France"]}
+#           - {id: q4, expect: [B, D], of: [A, B, C, D, E], normalize: letter_set}   # 5 items: each letter in or out
+#           - {id: q5, expect: [Gutenberg, Columbus, Luther], normalize: ordering}  # 3 items: each pair in order
+#
+# An item with a `key` reads the block line with that label; without one, items take the block's
+# lines in order (ordering and letter_set without a key read the whole block). The score is
+# items passed / all items, each item weighing the same; a missing block scores 0.
+
+HEADER_MARKS = r"(?:#{1,6}\s*)?(?:[*_]{1,2}\s*)?"
+# Any other block's header ("TOP FIVE:") or a Markdown heading ends a block
+OTHER_HEADER = re.compile(r"^\s*(?:#{1,6}\s+\S.*|" + HEADER_MARKS + r"[A-Z][A-Z _/-]*[A-Z]\s*(?:[*_]{1,2})?\s*:\s*(?:[*_]{1,2})?\s*)$")
+FENCE = re.compile(r"^\s*(```|~~~)")
+
+
+def _header(names: str | list[str]) -> re.Pattern:
+    names = [names] if isinstance(names, str) else list(names)
+    alternatives = "|".join(re.escape(n.strip().rstrip(":")) for n in names)
+    # `ANSWERS:`, `**Answers**:`, `## ANSWERS`, `Answers` alone on its line; text after the colon is a first line
+    return re.compile(r"^\s*" + HEADER_MARKS + r"(?:" + alternatives + r")\s*(?:[*_]{1,2})?\s*(?::\s*(?:[*_]{1,2})?(.*)|$)",
+                      re.IGNORECASE)
+
+
+def answer_block(text: str, header: str | list[str]) -> list[str] | None:
+    """The lines of the last block under `header`: up to a blank line or the next header; None without one.
+
+    Tolerant of case, a missing colon, **bold** and `#` heading marks, and code fences (fence lines are
+    skipped). A model that writes a draft block and then a final one is scored on the final one."""
+    pattern = _header(header)
+    block: list[str] | None = None
+    collecting = False
+    for line in text.splitlines():
+        if FENCE.match(line):
+            continue
+        found = pattern.match(line)
+        if found:
+            block, collecting = [], True
+            rest = (found.group(1) or "").strip().strip("*_").strip()
+            if rest:
+                block.append(rest)
+            continue
+        if not collecting:
+            continue
+        if not line.strip():
+            collecting = not block  # blank lines right after the header don't end it
+            continue
+        if OTHER_HEADER.match(line):
+            collecting = False
+            continue
+        block.append(line.strip())
+    return block
+
+
+# A block line's label and value: "1. 42", "Q1: 42", "France: Paris", "2) $7", "- Gutenberg — 1450"
+BULLET = re.compile(r"^\s*[-*•]\s+")
+LABELLED = re.compile(r"^(?P<label>[^:=—–]{1,40}?)\s*(?:[:=]|\s[—–-]\s|\)|\.(?=\s))\s*(?P<value>.*)$")
+NUMERIC_LABEL = re.compile(r"^(?:q|question|no|item|#)?\s*(\d+)$")
+
+
+def _split(line: str) -> tuple[str | None, str]:
+    line = BULLET.sub("", line).strip()
+    found = LABELLED.match(line)
+    return (found.group("label").strip(), found.group("value").strip()) if found else (None, line)
+
+
+def _fold(text: str) -> str:
+    """Lowercase, accents and punctuation gone, whitespace collapsed: for short names only."""
+    import unicodedata
+    text = unicodedata.normalize("NFKD", str(text)).encode("ascii", "ignore").decode().lower()
+    text = re.sub(r"[^a-z0-9]+", " ", text).strip()
+    return re.sub(r"^the ", "", text)
+
+
+def _same_label(label: str | None, key) -> bool:
+    if label is None:
+        return False
+    key = str(key)
+    if key.isdigit():
+        found = NUMERIC_LABEL.match(_fold(label))
+        return bool(found) and int(found.group(1)) == int(key)
+    return _fold(label) == _fold(key)
+
+
+NUMBER_IN = re.compile(r"-?\d[\d,]*(?:\.\d+)?|-?\.\d+")
+
+
+def _number(value) -> float | None:
+    found = NUMBER_IN.search(str(value).replace(" ", "") if not isinstance(value, (int, float)) else str(value))
+    try:
+        return float(found.group(0).replace(",", "")) if found else None
+    except ValueError:
+        return None
+
+
+def _accepted(item: dict) -> list:
+    expect = item["expect"]
+    return list(expect) if isinstance(expect, list) else [expect]
+
+
+def _norm_number(item: dict, value: str, default_tolerance: float = 1e-9) -> tuple[bool, str]:
+    got = _number(value)
+    tolerance = float(item.get("tolerance", default_tolerance))
+    passed = got is not None and any(abs(got - float(e)) <= tolerance for e in _accepted(item))
+    return passed, f"got {value or 'nothing'}"
+
+
+def _norm_money(item: dict, value: str) -> tuple[bool, str]:
+    # Half a cent either way: $71.91 and 71.910 are the same amount, $71.92 isn't
+    return _norm_number(item, re.sub(r"(?i)usd|\$|€|£", "", value), 0.005)
+
+
+def _norm_name(item: dict, value: str, aliases: dict | None = None) -> tuple[bool, str]:
+    names = [*_accepted(item), *(item.get("aliases") or [])]
+    for name in list(names):
+        names += (aliases or {}).get(name) or []
+    passed = _fold(value) in {_fold(n) for n in names}
+    return passed, f"got {value or 'nothing'}"
+
+
+def _norm_line_number(item: dict, value: str) -> tuple[bool, str]:
+    found = re.search(r"\d+", value)
+    passed = bool(found) and int(found.group(0)) in {int(e) for e in _accepted(item)}
+    return passed, f"got {value or 'nothing'}"
+
+
+DATETIME = re.compile(r"(?:(?P<date>\d{4}[-/]\d{1,2}[-/]\d{1,2})[ T,]*)?(?P<h>\d{1,2}):(?P<m>\d{2})(?::(?P<s>\d{2}))?"
+                      r"\s*(?P<ampm>[ap]\.?m\.?)?\s*(?P<tz>[A-Za-z][A-Za-z_/+-]*)?", re.IGNORECASE)
+
+
+def _datetime(value) -> dict | None:
+    found = DATETIME.search(str(value))
+    if not found:
+        return None
+    hour = int(found.group("h"))
+    ampm = (found.group("ampm") or "").lower().replace(".", "")
+    if ampm == "pm" and hour < 12:
+        hour += 12
+    elif ampm == "am" and hour == 12:
+        hour = 0
+    date = found.group("date")
+    if date:
+        y, mo, d = re.split(r"[-/]", date)
+        date = f"{int(y):04d}-{int(mo):02d}-{int(d):02d}"
+    return {"date": date, "time": (hour, int(found.group("m"))), "seconds": found.group("s"),
+            "tz": (found.group("tz") or "").upper() or None}
+
+
+def _norm_datetime(item: dict, value: str) -> tuple[bool, str]:
+    """Same date, time and seconds and time zone, each only when the expected value states it."""
+    got = _datetime(value)
+
+    def matches(expected) -> bool:
+        want = _datetime(expected)
+        return bool(got and want) and all(want[k] is None or want[k] == got[k] for k in ("date", "time", "seconds", "tz"))
+
+    return any(matches(e) for e in _accepted(item)), f"got {value or 'nothing'}"
+
+
+LETTER = re.compile(r"(?<![A-Za-z])([A-Za-z])(?![A-Za-z])")
+
+
+def _letters(value: str) -> set[str]:
+    return set() if _fold(value) in ("none", "") else {m.upper() for m in LETTER.findall(value)}
+
+
+SEPARATORS = re.compile(r"\s*(?:,|;|>|→|->)\s*")
+
+
+def _ordering_entries(lines: list[str]) -> list[str]:
+    if len(lines) == 1:
+        return SEPARATORS.split(lines[0])
+    return [value if label is None or NUMERIC_LABEL.match(_fold(label)) else f"{label} {value}"
+            for label, value in map(_split, lines)]
+
+
+def _position(entries: list[str], name: str, item: dict, aliases: dict) -> int | None:
+    """The first entry naming `name` (or one of its aliases) as whole words."""
+    names = [name, *((item.get("aliases") or {}).get(name) or []), *(aliases.get(name) or [])]
+    folded = [f" {_fold(n)} " for n in names]
+    return next((i for i, entry in enumerate(entries) if any(n in f" {_fold(entry)} " for n in folded)), None)
+
+
+def _score_item(item: dict, lines: list[str], index: int, check: dict) -> list[dict]:
+    """One result per expected item; letter_set with `of:` and ordering expand into several."""
+    kind = item.get("normalize") or check.get("normalize") or "name"
+    aliases = check.get("aliases") or {}
+    label = item.get("label", item.get("id"))
+    if "key" in item:
+        values = [value for line_label, value in map(_split, lines) if _same_label(line_label, item["key"])]
+        value = values[-1] if values else None
+    elif kind in ("ordering", "letter_set"):
+        value = "\n".join(lines)
+    else:
+        value = _split(lines[index])[1] if index < len(lines) else None
+
+    if kind == "ordering":
+        entries = _ordering_entries(lines if "key" not in item else ([value] if value else []))
+        order = item["expect"]
+        positions = {name: _position(entries, name, item, aliases) for name in order}
+        results = []
+        for i, first in enumerate(order):
+            for second in order[i + 1:]:
+                a, b = positions[first], positions[second]
+                results.append({"id": f"{item['id']}:{first}<{second}", "label": f"{first} before {second}",
+                                "passed": a is not None and b is not None and a < b,
+                                "detail": "missing" if a is None or b is None else ("in order" if a < b else "out of order")})
+        return results
+    if kind == "letter_set":
+        got, want = _letters(value or ""), {str(e).upper() for e in _accepted(item)}
+        if item.get("of"):
+            return [{"id": f"{item['id']}:{letter}", "label": f"{letter} {'listed' if letter in want else 'left out'}",
+                     "passed": (letter in got) == (letter in want),
+                     "detail": "listed" if letter in got else "not listed"}
+                    for letter in (str(x).upper() for x in item["of"])]
+        return [{"id": item["id"], "label": label, "passed": got == want,
+                 "detail": f"got {', '.join(sorted(got)) or 'none'}"}]
+    if value is None:
+        return [{"id": item["id"], "label": label, "passed": False, "detail": "not in the block"}]
+    if kind == "name":
+        passed, detail = _norm_name(item, value, aliases)
+    else:
+        passed, detail = ITEM_NORMALIZERS[kind](item, value)
+    return [{"id": item["id"], "label": label, "passed": passed, "detail": detail}]
+
+
+ITEM_NORMALIZERS = {
+    "number": _norm_number,
+    "money": _norm_money,
+    "line_number": _norm_line_number,
+    "datetime": _norm_datetime,
+}
+ITEM_KINDS = ("number", "money", "name", "letter_set", "line_number", "datetime", "ordering")
+
+
+def _items_check(check: dict, text: str) -> tuple[bool, str, float, list[dict]]:
+    """Each expected item in the answer block scored on its own; share = items passed / all items."""
+    header = check.get("header", "ANSWERS")
+    lines = answer_block(text, header) if text.strip() else None
+    if lines is None:
+        items = [{"id": i["id"], "label": i.get("label", i["id"]), "passed": False, "detail": "no answer block"}
+                 for i in check["items"]]
+        name = header if isinstance(header, str) else header[0]
+        return False, f"no {name.rstrip(':')}: block", 0.0, items
+    results = [r for n, item in enumerate(check["items"]) for r in _score_item(item, lines, n, check)]
+    passed = sum(r["passed"] for r in results)
+    share = round(passed / len(results), 4) if results else 0.0
+    failed = [f"{r['id']} ({r['detail']})" for r in results if not r["passed"]]
+    detail = f"{passed}/{len(results)} items" + ("; failed: " + ", ".join(failed[:6]) if failed else "")
+    return passed == len(results), detail, share, results
+
+
+# A check returns (passed, detail), or (passed, detail, share) when it earns partial credit, plus the
+# per-item results when it scores items (passed, detail, share, items)
 CHECKS: dict[str, Callable[[dict, str], tuple]] = {
     "grade_closeness": evals.grade_closeness,
     "grounded_numbers": _grounded_numbers,
@@ -157,6 +420,7 @@ CHECKS: dict[str, Callable[[dict, str], tuple]] = {
     "forbidden_patterns": _forbidden_patterns,
     "line_count": _line_count,
     "list_items": _list_items,
+    "items": _items_check,
 }
 
 
@@ -176,9 +440,11 @@ def run_checks(prompt_def: dict, text: str, run_dir: Path | None = None) -> list
                                 "detail": f"{check['file']} wasn't written", "rule": check.get("rule")})
                 continue
             subject = plain(path.read_text(encoding="utf-8", errors="replace"))
-        passed, detail, *share = CHECKS[check["type"]]({**check, "_source": prompt_def.get("prompt", "")}, subject)
+        passed, detail, *extra = CHECKS[check["type"]]({**check, "_source": prompt_def.get("prompt", "")}, subject)
         results.append({"id": check["id"], "type": check["type"], "passed": passed, "detail": detail,
-                        "rule": check.get("rule"), **({"share": share[0]} if share else {})})
+                        "rule": check.get("rule"), **({"share": extra[0]} if extra else {}),
+                        # Per-item results (the items check), for the dashboard's detail view
+                        **({"items": extra[1]} if len(extra) > 1 else {})})
     return results
 
 

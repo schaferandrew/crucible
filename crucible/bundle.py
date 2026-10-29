@@ -15,7 +15,7 @@ import re
 import sys
 from pathlib import Path
 
-from crucible import exporter
+from crucible import exporter, provenance
 
 SCHEMA_PATH = Path(__file__).parent / "schemas" / "results.schema.json"
 # Where publish writes when --to isn't given: the portfolio checkout next to this one
@@ -73,7 +73,7 @@ def main() -> None:
     if folder is None:
         sys.exit("No data folder found; pass --to <portfolio>/_data/crucible (or set CRUCIBLE_PUBLISH_DIR).")
     data = exporter.export(args.runs)
-    data["source"] = {"machine": args.name}
+    data["source"] = {"machine": args.name, "crucible_version": provenance.crucible_version() or "unknown"}
     found = problems(data)
     if found:
         sys.exit("The bundle doesn't match the schema:\n" + "\n".join(found[:30]))

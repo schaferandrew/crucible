@@ -8,6 +8,39 @@ improvements are minor releases; fixes that change no behavior anyone relies on 
 Every change that lands on `main` is a release (see [AGENTS.md](AGENTS.md)), and CI checks
 that a pull request touching the code or tests bumps the version and adds its entry here.
 
+## 2.4.0 (2026-10-29)
+
+Groundwork for Suite v2. No score changes: every existing test scores exactly as in 2.3.0, and
+runs recorded before this version export as before, with null in the new fields.
+
+### Added
+
+- **Every new run records its identity and provenance** in `meta.json`: a permanent `run_uuid`
+  that survives renames and moves, and `provenance` with the Crucible version, the checkout's
+  commit, whether `crucible/`, `prompts/`, `graders/`, `fixtures/` or `repos/` had uncommitted
+  changes (so a run from an edited grader can be told apart), and a random `machine_id` minted
+  once into `~/.crucible/machine.json` (never the hostname).
+- **Model variant:** `model_variant` records who published the weights and their format
+  (LM Studio's `gguf` or `mlx`; Ollama models are `gguf`, published by their namespace), the
+  quantization, and `reasoning_resolved`, the level the model actually ran at (for `default`,
+  what LM Studio reports as the model's default; null when it can't be told).
+- **Cloud endpoint:** OpenRouter runs through `direct` record the upstream provider that served
+  the request and the dated model it resolved to (`endpoint`), best effort; null when unknown.
+- **Hardware key:** local runs record `hardware_key`, the device that ran the weights plus its
+  memory (`m1-pro-32gb`, `rtx-5070-ti-16gb`, `2x-rtx-3090-24gb`, `cpu-ryzen-7-7700-32gb`).
+- **`items` check and answer blocks** (not used by any test yet): scores only the fixed block an
+  answer ends with (`ANSWERS:`, `ERRORS:`, ...; tolerant of case, bold, a missing colon and code
+  fences; the last block wins), each expected item on its own, as the share of items passed.
+  Normalizers: `number`, `money`, `name` (with aliases), `letter_set`, `line_number`, `datetime`
+  and `ordering` (every pair in order). Per-item results are kept with the check's result.
+- The results bundle carries the new run fields (`run_uuid`, `provenance`, `model_variant`,
+  `hardware_key`, `endpoint`), all optional and nullable; the bundle format stays 2.
+  `crucible publish` records the Crucible version that wrote the bundle (`source.crucible_version`).
+
+### Changed
+
+- Cloud runs export no hardware (`hardware: null`) instead of the machine that sent the request.
+
 ## 2.3.0 (2026-10-29)
 
 ### Added

@@ -24,7 +24,8 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from crucible import checks, console, environment, graders, scorer, versioning, workspace
+from crucible import (checks, console, environment, graders, hardware, provenance, scorer, versioning,
+                      workspace)
 from crucible.agents import AGENTS, DEFAULT_AGENT, Agent, RunContext
 from crucible.agents.base import available_mcp_servers
 from crucible.cost import BilledCost
@@ -60,7 +61,7 @@ def _build_context(agent: Agent, test_id: str, prompt_def: dict, model: str | No
         test_id=test_id, run_id=run.run_id, run_dir=run.path, prompt_file=prompt_file,
         model=model, watch=watch, timeout=timeout, title=run.title, workspace=work_dir,
         mcp_servers=list(prompt_def.get("mcp_servers") or []),
-        fixtures=workspace.fixture_names(prompt_def), reasoning=reasoning,
+        fixtures=workspace.fixture_names(prompt_def), reasoning=reasoning, run_uuid=run.run_uuid,
     )
 
 
@@ -99,8 +100,10 @@ def _write_meta(ctx: RunContext, agent: Agent, prompt_def: dict, result: dict,
     # Every run dir has the same shape, even when the TUI printed to the terminal
     for name in ("stdout.txt", "stderr.txt"):
         (ctx.run_dir / name).touch()
+    env = environment.capture(ctx.model, agent.executable)
     meta = {
         "run_id": ctx.run_id,
+        "run_uuid": ctx.run_uuid,
         "test_id": ctx.test_id,
         "agent": agent.name,
         "model": ctx.model,
@@ -117,7 +120,15 @@ def _write_meta(ctx: RunContext, agent: Agent, prompt_def: dict, result: dict,
         # Which test content and rubric this run used: scores only compare within a version
         "test": versioning.test_identity(prompt_def),
         # Captured after the run, when a local server has the model loaded
-        "environment": environment.capture(ctx.model, agent.executable),
+        "environment": env,
+        # The weights as a variant (who converted them, into what format and quant) and the
+        # reasoning level they actually ran at
+        "model_variant": model_variant(ctx.model, ctx.reasoning, env["inference"]),
+        # The device that ran the weights; cloud runs have none
+        "hardware_key": hardware_key(env),
+        "endpoint": environment.endpoint(ctx.model, ctx.run_dir),
+        # Which crucible produced this run, from which checkout, on which machine
+        "provenance": provenance.capture(),
         # What the model could reach: tool access shapes scores (e.g. RSCH-2)
         "tools": {
             "builtin_web": agent.builtin_web_tools,
@@ -127,6 +138,24 @@ def _write_meta(ctx: RunContext, agent: Agent, prompt_def: dict, result: dict,
     }
     (ctx.run_dir / "meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
     return meta
+
+
+def model_variant(model: str | None, reasoning: str, inference: dict) -> dict:
+    """publisher, format, quant and reasoning_resolved; None where the provider doesn't say."""
+    publisher = inference.get("publisher")
+    if publisher is None and (model or "").startswith("openrouter/"):
+        publisher = model.split("/")[1] if model.count("/") > 1 else None
+    return {"publisher": publisher, "format": inference.get("format"), "quant": inference.get("quantization"),
+            "reasoning_resolved": environment.reasoning_resolved(model, reasoning)}
+
+
+def hardware_key(env: dict) -> str | None:
+    """The key of the machine that ran a local model (this one, or its LM Link peer)."""
+    inference = env.get("inference") or {}
+    if not inference.get("local"):
+        return None
+    specs = hardware.serving(env.get("machine") or {}, inference) or {}
+    return hardware.key(specs.get("cpu"), specs.get("gpu"), specs.get("ram_gb"))
 
 
 def run_single(test_id: str, model: str | None, watch: bool, timeout: int,
