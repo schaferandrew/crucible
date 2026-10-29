@@ -13,7 +13,8 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
 - cache-leak-incident (formerly CODE-13): version 3, rubric 4, still provisional. An isolated, per-test
   grader: 17 equal tests (12 on the cache's behaviour, 4 on the postmortem, 1 for the model's regression
   tests), run in a fresh copy of the seeded repo that takes only the API, web and shared source and
-  `incident/POSTMORTEM.md`. "Existing tests" (cap 5) and "contract untouched" (cap 4) no longer pay points.
+  `incident/POSTMORTEM.md`. The repo gains a seeded test that anonymous reads are still served from the cache, so
+  a fix that switches caching off fails "existing tests" and is capped at 5. "Existing tests" (cap 5) and "contract untouched" (cap 4) no longer pay points.
   The postmortem now starts with four fixed lines (`Deploy:`, `First affected request:`, `First report:`,
   `Affected users:`), one test each, so a stray "481" elsewhere no longer passes. Leaks removed: the deploy
   log's commit message and the CHANGELOG 1.8.0 entry no longer name the cache, and the comments in

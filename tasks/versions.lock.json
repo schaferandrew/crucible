@@ -15,10 +15,10 @@
   },
   "cache-leak-incident": {
     "version": 3,
-    "content_hash": "e30246116570a321",
+    "content_hash": "403fdd42d838cff4",
     "prompt_hash": "0c4e774776236c66",
     "rubric_version": 4,
-    "rubric_hash": "52dab6219780b2bf"
+    "rubric_hash": "a89eea7caac68e18"
   },
   "calendar-free-at-330": {
     "version": 1,
