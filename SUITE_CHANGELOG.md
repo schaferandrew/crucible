@@ -22,6 +22,20 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
 
 ## Unreleased
 
+- cache-leak-incident (formerly CODE-13): version 3, rubric 4, still provisional. An isolated, per-test
+  grader: 17 equal tests (12 on the cache's behaviour, 4 on the postmortem, 1 for the model's regression
+  tests), run in a fresh copy of the seeded repo that takes only the API, web and shared source and
+  `incident/POSTMORTEM.md`. The repo gains a seeded test that anonymous reads are still served from the cache, so
+  a fix that switches caching off fails "existing tests" and is capped at 5. "Existing tests" (cap 5) and "contract untouched" (cap 4) no longer pay points.
+  The postmortem now starts with four fixed lines (`Deploy:`, `First affected request:`, `First report:`,
+  `Affected users:`), one test each, so a stray "481" elsewhere no longer passes. Leaks removed: the deploy
+  log's commit message and the CHANGELOG 1.8.0 entry no longer name the cache, and the comments in
+  `responseCache.ts`, `app.ts` and `server.ts` and the prompt sentence naming the switch are gone (the logs'
+  `cache=HIT` evidence is unchanged; 371 / 481 affected users still hold). The stored runs were made with
+  the leaky version 2 and don't count for version 3; rescored on copies for reference: gemma-4-e4b 1.0 to 0.0,
+  gpt-oss-20b 2.0 to 0.0 (no-op runs), deepseek-v4.1-flash 10.0 to 7.65 (13/17: it passes every cache test and
+  the regression test; the four postmortem lines didn't exist in its prompt).
+
 - fact-check-history (formerly HIST-2), now "Fact-check twelve history claims": version 2, rubric 2,
   still provisional. The paragraph became twelve numbered claims with one fact each (five wrong, seven
   true), and the answer is an `ERRORS:` block of `<number>: <corrected value>` lines, scored as 17 equal

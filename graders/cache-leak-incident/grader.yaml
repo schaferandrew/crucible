@@ -1,0 +1,25 @@
+# Hidden tests for cache-leak-incident (formerly CODE-13); see crucible/graders.py.
+# Isolated: the tests run in a fresh copy of repos/conduit-incident that takes only the artifacts below
+# from the model's workspace, so package.json, the test setup and the seeded tests stay as seeded.
+isolated: true
+# The fix lives in the API source (the middleware); the web app and shared package are listed because a
+# fix could land there too. incident/POSTMORTEM.md is read by the postmortem tests.
+artifacts: [apps/api/src, apps/web/src, packages/shared/src, incident/POSTMORTEM.md]
+# The seeded repo has no lockfile (it is conduit-monorepo's package set), so the grader pins its own
+lockfile: package-lock.json
+test_roots:
+  "*.grader.test.ts": apps/api
+# Caps, not points (see the task's rubric): they pass on the seeded repo
+existing_tests: [apps/api, apps/web]
+unchanged: [apps/api/test/realworld.contract.test.ts]
+# The model's own new tests: pass on its fix, fail on the seeded code. One test in the pool
+regression_tests: [apps/api, apps/web]
+timeout: 600
+oracle:
+  solution: [10, 10]
+  seeded: [0, 0]
+  calibration:
+    writes-not-invalidated: [5, 6.8]   # per-viewer cache keys, but a write never clears the cache: edits, deletes, counts stay stale
+    postmortem-count-wrong: [9, 9.8] # the whole fix and tests, a postmortem that counts hits (427), not users
+    contract-edited: [4, 4]          # the whole fix, but the seeded contract suite was edited: capped at 4
+    cache-disabled: [5, 5]           # the whole fix by turning the cache off: the seeded cache test fails, capped at 5

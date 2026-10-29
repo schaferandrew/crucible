@@ -8,7 +8,6 @@ import { tagsRouter } from "./routes/tags";
 import { usersRouter } from "./routes/users";
 
 export interface AppOptions {
-  /** Cache hot GET endpoints for this long (PERF-212). Off when unset; production sets it. */
   responseCacheTtlMs?: number;
 }
 

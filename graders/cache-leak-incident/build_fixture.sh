@@ -4,7 +4,7 @@
 # repo, the overlay or make_logs.py, then bump C13's version (content changed).
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
-ROOT="$(cd "$HERE/../../.." && pwd)"
+ROOT="$(cd "$HERE/../.." && pwd)"
 OUT="$ROOT/repos/conduit-incident"
 rm -rf "$OUT"
 cp -R "$ROOT/repos/conduit-monorepo" "$OUT"
