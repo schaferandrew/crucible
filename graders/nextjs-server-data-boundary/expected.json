@@ -27,17 +27,17 @@
   {
     "file": "boundary.grader.test.ts",
     "group": "server data boundary",
+    "name": "the browser does not fetch the account itself"
+  },
+  {
+    "file": "boundary.grader.test.ts",
+    "group": "client bundle",
     "name": "the account data never reaches a client bundle"
   },
   {
     "file": "boundary.grader.test.ts",
-    "group": "server data boundary",
+    "group": "client bundle",
     "name": "other accounts' records are not sent to the browser in the page payload"
-  },
-  {
-    "file": "boundary.grader.test.ts",
-    "group": "server data boundary",
-    "name": "the browser does not fetch the account itself"
   },
   {
     "file": "regression",
