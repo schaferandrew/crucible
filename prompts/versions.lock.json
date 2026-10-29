@@ -41,6 +41,13 @@
     "rubric_version": 2,
     "rubric_hash": "804169460fed4eee"
   },
+  "CODE-16": {
+    "version": 1,
+    "content_hash": "02ccc27101b8f69d",
+    "prompt_hash": "409a630369feac74",
+    "rubric_version": 1,
+    "rubric_hash": "f8a8d3233616858b"
+  },
   "CODE-1b": {
     "version": 1,
     "content_hash": "0988983917902a9b",

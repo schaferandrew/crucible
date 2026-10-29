@@ -95,6 +95,8 @@ def rubric_hash(prompt_def: dict) -> str:
     # Programmatic checks score criteria too; hashed only when present so other tests' hashes hold
     if prompt_def.get("checks"):
         parts.append(_canonical({"checks": prompt_def["checks"]}))
+    if prompt_def.get("scoring"):
+        parts.append(_canonical({"scoring": prompt_def["scoring"]}))
     return _sha(*parts)
 
 

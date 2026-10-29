@@ -8,6 +8,40 @@ improvements are minor releases; fixes that change no behavior anyone relies on 
 Every change that lands on `main` is a release (see [AGENTS.md](AGENTS.md)), and CI checks
 that a pull request touching the code or tests bumps the version and adds its entry here.
 
+## 2.3.0 (2026-10-29)
+
+### Added
+
+- **CODE-16, React lead form (coding, temper, provisional).** A Next.js quote form that won't
+  build (a Server Component with event handlers) and can't be typed into (no state), to be fixed
+  and finished: required-field errors with `aria-invalid` and focus on the first error, and email
+  that is accepted as people type it but saved strictly (trimmed, lowercased, invalid addresses
+  never saved, whatever the client sends). 43 hidden tests in six levels that climb in difficulty.
+- **Per-test scoring** (`scoring: per_test`): every hidden test weighs the same and the score is
+  tests passed / all tests x 10, so a task can have any number of tests and never scores above 10.
+  Each criterion shows the share of the 10 points its tests carry.
+- **Isolated graders** (`grader.yaml` with `isolated: true`): hidden tests run in a fresh copy of
+  the seeded repo that takes only the declared source paths from the model's workspace, so a model
+  can't pass by editing package.json, the test config or node_modules. Dependencies are installed
+  once per lockfile and cached in `~/.crucible/cache` (`CRUCIBLE_CACHE` overrides). A test that
+  never runs, because its file fails to load, counts as failed.
+- **`crucible grader <test>`** checks an isolated grader against its oracle: the reference
+  solution must score 10, the seeded repo 0, and each calibration fixture (such as a form that
+  submits but validates nothing) inside its declared range. `--write-expected` records the
+  solution's test list.
+- The results bundle lists each test's human-readable `name`, when it has one.
+
+### Changed
+
+- Seeded repos with a `package-lock.json` install with `npm ci`, so every run starts from the same
+  dependency tree.
+
+### Fixed
+
+- pi runs no longer fail with "No API key found for lmstudio" when the user's `~/.pi/agent/auth.json`
+  holds an empty stored key for that provider. Each run gets its own pi config directory, so only
+  Crucible's provider settings apply.
+
 ## 2.2.0 (2026-10-26)
 
 ### Changed

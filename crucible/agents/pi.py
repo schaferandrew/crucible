@@ -9,6 +9,11 @@ config is never touched:
 - -e pi_extension.ts (+ --no-extensions for hermetic runs): registers local
   providers (ollama, LM Studio) and bridges declared MCP servers into native
   pi tools, configured via the CRUCIBLE_PI_CONFIG env var.
+- PI_CODING_AGENT_DIR points at a private <run>/pi-agent directory, so pi reads
+  no auth.json, models.json or settings.json (and no installed packages) from
+  the user's ~/.pi/agent. A stored credential there, such as an empty lmstudio
+  key, otherwise overrides the provider's apiKey and pi fails with
+  "No API key found".
 - The prompt is attached as @prompt.txt rather than passed inline.
 
 pi has no tool-approval prompts, so watch runs never stall on permissions.
@@ -25,6 +30,7 @@ from crucible.session import write_normalized
 
 EXTENSION = Path(__file__).resolve().parent / "pi_extension.ts"
 SESSION_DIRNAME = "pi-sessions"
+AGENT_DIRNAME = "pi-agent"  # pi's config directory for one run (PI_CODING_AGENT_DIR)
 TIMING_FILENAME = "pi-timing.ndjson"  # written by pi_extension.ts
 
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/") + "/v1"
@@ -171,7 +177,10 @@ class PiAgent(Agent):
             # (spaces, drive letters) out of the argument list
             f"@{ctx.prompt_file.name}", TASK_INSTRUCTION,
         ]
-        env = {"CRUCIBLE_PI_CONFIG": json.dumps(config)}
+        env = {
+            "CRUCIBLE_PI_CONFIG": json.dumps(config),
+            "PI_CODING_AGENT_DIR": str(ctx.run_dir / AGENT_DIRNAME),
+        }
         return Launch(cmd=cmd, cwd=ctx.workspace, env=env)
 
     def collect(self, ctx: RunContext) -> None:
