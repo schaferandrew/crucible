@@ -8,6 +8,18 @@ are in [CHANGELOG.md](CHANGELOG.md); how the two version numbers work is in
 Suites are cut with `crucible suite cut` (a new major) or `crucible suite patch` (rubric fixes, stored
 runs rescored). Task changes between cuts go under `## Unreleased`.
 
+- **accessibility-audit-fixes (formerly CODE-15): rubric 2 → 3, still provisional.** Now an isolated,
+  per-test grader (`artifacts`: apps/web/src). 38 hidden tests cover all six audit findings (dialog 9,
+  read more 6, tag filter 7, button names 6, form errors 6, status messages 4) plus the model's own
+  regression tests as one test; each weighs the same and every one fails on the seeded repo. New tests
+  cover keyboard paths (Enter and Space, Cancel and Delete from the keyboard, reopening the dialog),
+  ARIA states both ways, the other form fields, the count staying in the button's name and a live
+  region that persists. "No axe violations" passed the seeded repo, so it is no longer a free test:
+  axe now runs inside each finding's tests, which can't be set up without the fix. "Existing tests
+  still pass" (cap 5) and "Contract suite untouched" (cap 4) are caps, not points. Reference solution
+  with native `<dialog>`, `<button>` and `<select>`, and three calibration fixtures. Stored runs:
+  gemma-4-e4b and gpt-oss-20b (both no-ops) 2.31 → 0.0.
+
 ## Unreleased
 
 - fact-check-history (formerly HIST-2), now "Fact-check twelve history claims": version 2, rubric 2,
