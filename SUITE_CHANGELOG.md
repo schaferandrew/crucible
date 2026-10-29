@@ -10,7 +10,7 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
 
 ## Unreleased
 
-- proofread-economics-essay (formerly WRIT-1c): version 2, rubric 3, now provisional. The essay became
+- proofread-economics-essay (formerly WRIT-1c): version 2, rubric 3, still active. The essay became
   eighteen numbered sentences, one claim each: three planted language errors (is/are, it's/its,
   then/than), six planted overstatements (legally required, lazy, inevitably causes hyperinflation,
   proves ... completely ineffective, definitively debunked ... at all, "Inflation is when ... because")
