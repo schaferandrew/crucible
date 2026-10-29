@@ -190,12 +190,14 @@ def test_fact_check_history_oracle():
 
     def score(text):
         results = checks.run_checks(p, text)
-        assert sum(len(r["items"]) for r in results) == 13
-        return round(sum(checks.criterion_scores(p, results).values()) / 13 * 10, 2)
+        assert sum(len(r["items"]) for r in results) == 17
+        return round(sum(checks.criterion_scores(p, results).values()) / 17 * 10, 2)
 
-    reference = "Reasoning...\n\nERRORS:\n1: 1492\n2: King John\n4: 1815\n5: 1912\n7: 1989"
+    reference = "Reasoning...\n\nERRORS:\n2: King John\n3: 1492\n6: 1815\n7: 1912\n10: 1989"
     assert score(reference) == 10.0
     assert score("") == 0.0 and score("1493 → 1492") == 0.0
-    assert score("ERRORS:\n" + "\n".join(f"{n}: wrong" for n in range(1, 9))) == 3.85
-    assert score("ERRORS:\n1: 1492\n2: John\n3: 1776\n4: 1815\n5: 1912\n6: 1969\n7: 1989\n8: 1990") == 7.69
-    assert score("ERRORS: none") == 2.31
+    assert score("ERRORS:\n" + "\n".join(f"{n}: wrong" for n in range(1, 13))) == 2.94
+    everything = {1: 1066, 2: "John", 3: 1492, 4: 1776, 5: 1789, 6: 1815, 7: 1912, 8: 1947, 9: 1969, 10: 1989,
+                  11: 1990, 12: 1994}
+    assert score("ERRORS:\n" + "\n".join(f"{n}: {v}" for n, v in everything.items())) == 5.88
+    assert score("ERRORS: none") == 4.12

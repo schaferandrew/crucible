@@ -92,10 +92,10 @@
   },
   "fact-check-history": {
     "version": 2,
-    "content_hash": "9578f037f2a452db",
-    "prompt_hash": "000def6a0c435e07",
+    "content_hash": "33f30be6930d812b",
+    "prompt_hash": "3da80eceaa8c1782",
     "rubric_version": 2,
-    "rubric_hash": "b073f345ae8f4db1"
+    "rubric_hash": "0fdc5051fcd23767"
   },
   "fire-truck-color": {
     "version": 1,

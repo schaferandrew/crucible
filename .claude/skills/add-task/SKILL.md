@@ -17,20 +17,33 @@ change in `crucible/checks.py` (a tool release with tests and a CHANGELOG entry)
 ## 1. Inputs: numbered and atomic
 
 Number every claim, sentence, event or question, one checkable fact each, so an answer line can only refer to
-one of them. HIST-2 turned a paragraph into eight lines:
+one of them. HIST-2 turned a paragraph into twelve lines, five wrong and seven true:
 
 ```
-1. Christopher Columbus first reached the Americas in 1493.        <- wrong: 1492
-2. In 1215, King Richard sealed Magna Carta at Runnymede.          <- wrong: John
-3. The United States Declaration of Independence was adopted on July 4, 1776.
+1. The Battle of Hastings was fought in 1066.                       <- true
+2. In 1215, King Richard sealed Magna Carta at Runnymede.           <- wrong: John
+3. Christopher Columbus first reached the Americas in 1493.         <- wrong: 1492
 ...
-8. Germany was reunified in the year after the Berlin Wall fell.   <- true, its own line
+10. The Berlin Wall fell in November 1991.                          <- wrong: 1989
+11. Germany was reunified in the year after the Berlin Wall fell.   <- true, its own line
+12. Nelson Mandela was elected President of South Africa in 1994.   <- true
 ```
 
 - Every wrong item is correctable to **one short value**: a year, number, name, letter, date. If the fix would
   be a sentence, rewrite the item ("on its return voyage" became "sank in April 1913").
-- A detection task needs **accurate controls** (HIST-2 has 3 of 8), and leaving each one out is an item, so
-  flagging everything can't win.
+- A detection task needs **accurate controls**, and leaving each one out is an item, so flagging everything
+  can't win. Controls are clearly true, well-known facts from different eras and regions, never trick
+  questions. Spread the wrong items through the list rather than bunching them.
+- **Balance the counts before writing the prompt.** With W wrong items (each one item for being listed and
+  one for its correction) and C controls, there are N = 2W + C items, and the two blind strategies score:
+  - flag everything, every correction right: (2W) / N x 10 (the controls are all lost)
+  - flag nothing (`ERRORS: none`): C / N x 10 (only the controls are earned)
+
+  Each must be clearly below a correct answer, **roughly half (5) or less**. Since 2W + C = N, the two add up
+  to 10, so this means C close to 2W. HIST-2 started with W = 5, C = 3 (flag everything 7.69, flag nothing
+  2.31): too generous to flagging everything, so four true claims were added. With W = 5, C = 7 it is
+  N = 17, flag everything 5.88, flag nothing 4.12. Flagging everything with junk values earns only W / N
+  (2.94).
 - Don't put the answer in the prompt, a fixture, or a comment the model sees.
 
 ## 2. The answer block
@@ -75,26 +88,26 @@ checks:
   type: items
   header: [ERRORS, ERROR]          # names accepted for the block; case, bold, `##` and a missing colon are fine
   items:
-  - {id: listed, expect: [1, 2, 4, 5, 7], of: [1, 2, 4, 5, 7], normalize: line_set}   # 5 items
-  rule: 'Lists each inaccurate claim (1, 2, 4, 5 and 7) in the ERRORS: block; one item per line.'
+  - {id: listed, expect: [2, 3, 6, 7, 10], of: [2, 3, 6, 7, 10], normalize: line_set}   # 5 items
+  rule: 'Lists each inaccurate claim (2, 3, 6, 7 and 10) in the ERRORS: block; one item per line.'
 - id: corrections
   type: items
   header: [ERRORS, ERROR]
   normalize: year                  # default for this check's items
   items:
-  - {id: columbus, key: '1', expect: 1492, label: 'Line 1 corrected to 1492'}
   - {id: king, key: '2', expect: John, normalize: name, aliases: [King John], label: 'Line 2 corrected to King John'}
+  - {id: columbus, key: '3', expect: 1492, label: 'Line 3 corrected to 1492'}
   rule: 'Corrects each one to its value alone: ...'
 - id: accurate_kept
   type: items
   header: [ERRORS, ERROR]
   items:
-  - {id: listed, expect: [], of: [3, 6, 8], normalize: line_set}                      # 3 items
-  rule: 'Leaves the accurate claims (3, 6 and 8) out of the ERRORS: block; one item per claim.'
+  - {id: listed, expect: [], of: [1, 4, 5, 8, 9, 11, 12], normalize: line_set}         # 7 items
+  rule: 'Leaves the accurate claims (1, 4, 5, 8, 9, 11 and 12) out of the ERRORS: block; one item per claim.'
 rubric:
 - {criterion: Errors found, max_score: 5, check: errors_found, description: ...}
 - {criterion: Corrections, max_score: 5, check: corrections, description: ...}
-- {criterion: Accurate claims left alone, max_score: 3, check: accurate_kept, description: ...}
+- {criterion: Accurate claims left alone, max_score: 7, check: accurate_kept, description: ...}
 ```
 
 Normalizers (the header comment in `crucible/checks.py` has the full list):
@@ -132,8 +145,9 @@ of these must land where you expect:
 
 1. **Reference answer: 10**, with and without prose before the block.
 2. **Empty answer and whitespace only: 0.** Also an answer with no block (the old format): 0.
-3. **Gaming:** flagging every line scores well below 10 (HIST-2: 7.69 even with perfect corrections, 3.85 with
-   junk values); `ERRORS: none` earns only the controls (2.31).
+3. **Balance:** a "flag everything" case and an `ERRORS: none` case score what the balance formula in step 1
+   says, each roughly 5 or less (HIST-2: 5.88 flagging all 12 with perfect corrections, 2.94 with junk values,
+   4.12 for `ERRORS: none`).
 4. **Realistic wrong answers** from real runs of the old version. `runs/` in the main checkout is real data:
    copy it into your scratchpad (`rsync -a --exclude node_modules --exclude .git`), run
    `uv run crucible migrate --runs <copy>`, and read answers from the copy with `checks.final_answer(run_dir)`;

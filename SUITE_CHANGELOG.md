@@ -10,10 +10,11 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
 
 ## Unreleased
 
-- fact-check-history (formerly HIST-2), now "Fact-check eight history claims": version 2, rubric 2,
-  still provisional. The paragraph became eight numbered claims with one fact each, and the answer is
-  an `ERRORS:` block of `<number>: <corrected value>` lines, scored as 13 equal items: the five errors
-  found, their five corrections, and the three accurate claims left alone. This fixes a perfect answer
+- fact-check-history (formerly HIST-2), now "Fact-check twelve history claims": version 2, rubric 2,
+  still provisional. The paragraph became twelve numbered claims with one fact each (five wrong, seven
+  true), and the answer is an `ERRORS:` block of `<number>: <corrected value>` lines, scored as 17 equal
+  items: the five errors found, their five corrections, and the seven accurate claims left alone.
+  Flagging every claim scores at most 5.9, flagging none 4.1. This fixes a perfect answer
   scoring 5 (quoting "Runnymede" in the King John fix counted as flagging an accurate claim). Runs of
   version 1 no longer count; rerun it.
 
