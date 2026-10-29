@@ -18,9 +18,12 @@ def test_repo_suite_holds():
 
 def test_v1_comes_from_release_2026_11():
     v1 = suites.load("v1")
-    assert v1["from_release"] == "2026.11" and v1["cut_at"] == "2026-10-24"
+    assert v1["from_release"] == "2026.11" and v1["cut_at"] == "2026-10-28"
+    # Pins today's active tasks, not the stale release; the release is kept for the record
+    assert {"grade-palindrome-function", "grade-two-sentence-summary"} <= set(suites.pins(v1))
+    assert v1["release_2026_11"]["category_weights"]["coding_repo"] == 0.15
     assert abs(sum(v1["category_weights"].values()) - 1) < 1e-9
-    assert {t["alias"] for t in v1["release_pins"]["tests"]} >= {"CODE-1", "WRIT-1a"}
+    assert {t["alias"] for t in v1["release_2026_11"]["tests"]} >= {"CODE-1", "WRIT-1a"}
 
 
 def test_runs_count_in_suites_by_task_version():
@@ -81,11 +84,12 @@ def test_cut_refuses_without_a_changelog_entry_or_with_a_dirty_lock(sandbox):
         suites.cut("v2", promote=["WRIT-3"], check_graders=False)
     assert not (sandbox / "suites" / "v2.yaml").exists()
     (sandbox / "SUITE_CHANGELOG.md").write_text("# Suite changelog\n\n## Unreleased\n\n- x\n")
+    original = workspace.load_task("river-haiku-banned-words")["prompt"]
     _edit(sandbox, "river-haiku-banned-words", prompt="A different haiku.")
     with pytest.raises(ValueError, match="lock isn't clean"):
         suites.cut("v2", promote=["WRIT-3"], check_graders=False)
     with pytest.raises(ValueError, match="not provisional"):
-        _edit(sandbox, "river-haiku-banned-words", prompt=workspace.load_task("river-haiku-banned-words")["prompt"])
+        _edit(sandbox, "river-haiku-banned-words", prompt=original)
         suites.cut("v2", promote=["fire-truck-color"], check_graders=False)
 
 

@@ -1,7 +1,8 @@
-# Suite v1: written by `crucible suite`, never edited by hand (docs/versioning.md#suites).
+# Suite v1: the active tasks as scored on the dashboard on 2026-10-28, cut by Crucible 3.0.0. Never edit by hand (docs/versioning.md#suites).
+# release_2026_11 keeps releases/2026.11.yaml as it was cut, for the record; nothing reads it.
 suite: v1
 version: '1.0'
-cut_at: '2026-10-24'
+cut_at: '2026-10-28'
 from_release: '2026.11'
 judge:
   model: claude-opus-5-5
@@ -279,7 +280,9 @@ tasks:
   tier: spark
   category: everyday
   weight: 0.02
-release_pins:
+release_2026_11:
+  release: '2026.11'
+  created: '2026-10-24'
   category_weights:
     coding_build: 0.1
     coding_debug: 0.1

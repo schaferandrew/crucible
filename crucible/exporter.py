@@ -196,6 +196,15 @@ def export_run(run_dir: Path, tests: dict[str, dict]) -> dict | None:
     }
 
 
+def _release(suite: dict | None) -> dict | None:
+    """Format 2's `release`: the 2026.11 release Suite v1 came from, else the latest suite."""
+    if not suite:
+        return None
+    old = suite.get("release_2026_11") or {}
+    return {"release": old.get("release") or suite["suite"], "created": old.get("created") or suite.get("cut_at"),
+            "judge": suite.get("judge")}
+
+
 def export(runs_dir: Path, models: list[str] | None = None) -> dict:
     runrecord.require_migrated(runs_dir)
     tests = export_tests()
@@ -212,8 +221,7 @@ def export(runs_dir: Path, models: list[str] | None = None) -> dict:
     return {
         "format_version": FORMAT_VERSION,
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "release": ({"release": suite.get("from_release") or suite["suite"], "created": suite.get("cut_at"),
-                     "judge": suite.get("judge")} if suite else None),
+        "release": _release(suite),
         "agent_score_caveat": AGENT_CAVEAT,
         "harnesses": list(AGENTS),
         "modes": [{"id": m, "label": MODE_LABELS[m], "harnesses": list(MODE_HARNESSES[m]),
