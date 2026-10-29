@@ -102,6 +102,12 @@ def test_json_slots_are_computed_from_the_fixture():
              {"id": "v", "normalize": "json", "op": "all_valid", "path": "top3.start", "slots": spec},
              {"id": "why", "normalize": "json", "op": "each_nonempty", "path": "top3.explanation"}]
     truth = slots["truth"]
+    by_day = {"id": "d", "normalize": "json", "op": "listed_by_day", "path": "valid_slots", "slots": spec}
+    days = _run([by_day], _slots_doc(truth))
+    assert days["passed"] and len(days["items"]) == 8
+    dropped = _passed(_run([by_day], _slots_doc([t for t in truth if t != "2026-09-01T10:00"])))
+    assert [k for k, v in dropped.items() if not v] == ["d:2026-09-01"]
+    assert [k for k, v in _passed(_run([by_day], _slots_doc(truth + ["2026-08-31T10:00"]))).items() if not v] == ["d:2026-08-31"]
     result = _run(items, _slots_doc(truth))
     assert result["passed"] and len(result["items"]) == 85 + 6
     assert _run(items, "").get("share") == 0.0 and len(_run(items, "")["items"]) == 91

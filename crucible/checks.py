@@ -589,6 +589,7 @@ def _score_block_item(item: dict, lines: list[str], kind: str, text: str) -> dic
 #     slots: {fixture: calendar-fixture.json, minutes: 60, step: 30}   # every start with both people free, 9 to 5
 #     {id: parses, normalize: json, op: parses}                              # strict JSON object
 #     {id: listed, normalize: json, op: listed, path: valid_slots, slots: ...} # one item per true slot
+#     {id: days, normalize: json, op: listed_by_day, path: valid_slots, slots: ...}  # one item per day: all its true slots, none overlapping
 #     {id: free, normalize: json, op: no_conflict, paths: [valid_slots, top3.start], slots: ...}
 #     {id: hours, normalize: json, op: no_outside, paths: [valid_slots, top3.start], slots: ...}
 #     {id: three, normalize: json, op: count, path: top3, min: 3, max: 3}
@@ -816,6 +817,18 @@ def _json_item(item: dict, text: str) -> list[dict]:
         listed = {_slot_key(v, truth["tz"]) for v in (_json_list(data, item["path"]) if data else None) or []}
         return [{"id": f"{item['id']}:{s}", "label": f"{s} listed", "passed": s in listed,
                  "detail": "listed" if s in listed else ("not listed" if data else "not a JSON object")} for s in truth["truth"]]
+    if op == "listed_by_day":
+        listed = {_slot_key(v, truth["tz"]) for v in (_json_list(data, item["path"]) if data else None) or []}
+        results = []
+        for day in sorted({t[:10] for t in truth["grid"]}):
+            want = {t for t in truth["truth"] if t.startswith(day)}
+            extra = {t for t in truth["conflicts"] if t.startswith(day)} & listed
+            missing = want - listed
+            results.append({"id": f"{item['id']}:{day}", "label": f"{day}: every free start listed, none that overlaps an event",
+                            "passed": data is not None and not missing and not extra,
+                            "detail": "not a JSON object" if data is None else
+                            f"{len(want) - len(missing)}/{len(want)} listed" + (f"; {len(extra)} overlapping" if extra else "")})
+        return results
     if op == "parses":
         return [{"id": item["id"], "label": label, "passed": strict, "detail": "valid JSON" if strict else "not valid JSON"}]
     if data is None:

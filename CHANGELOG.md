@@ -18,7 +18,7 @@ here ([docs/versioning.md](docs/versioning.md)).
 
 - **`items` check, whole-document kinds** (use with `header: null`): `sections` (one item per `#` heading, present and
   in order), `language` (Spanish or not, by function-word share), `mention` (titles from `fixtures/mock-data`
-  mentioned in the reply) and `json` (ops on a JSON file: `parses`, `listed`, `count`, `all_valid`, `each_nonempty`,
+  mentioned in the reply) and `json` (ops on a JSON file: `parses`, `listed`, `listed_by_day`, `count`, `all_valid`, `each_nonempty`,
   `no_conflict`, `no_outside`; the right slots are computed from a fixture calendar). Block kinds (`pattern`,
   `each`, `count`, `distinct`, `language`) take `section:` to read one heading's lines, and `top_level: true` to
   count only outermost list items.

@@ -1,4 +1,4 @@
-# Validation cases for two-calendar-slots-json (TASK-1, version 3, rubric 2): 91 items (85 true slots + 6 more), each worth 10/91.
+# Validation cases for two-calendar-slots-json (TASK-1, version 3, rubric 2): 14 items (8 days + 6 more), each worth 10/14.
 # `files` is what the agent wrote to its workspace; the reply (`answer`) is not scored. Generated from the fixture; wrong answers adapt mistakes seen in real runs of version 2 (15-minute starts, a conflicting slot, weekends dropped, a misnamed file).
 - name: reference
   expect: 10
@@ -303,7 +303,7 @@
       \n    },\n    {\n      \"start\": \"2026-09-04T11:00\",\n      \"explanation\": \"Starts as Jamie's\
       \ workshop ends, with a clear block before the project review.\"\n    }\n  ],\n}"
 - name: prose around the JSON (not strictly valid)
-  expect: 9.89
+  expect: 9.29
   answer: I checked both calendars and wrote slots.json.
   files:
     slots.json: "Here is the file:\n{\n  \"valid_slots\": [\n    \"2026-08-31T11:00\",\n    \"2026-08-31T11:30\"\
@@ -334,7 +334,7 @@
       \n    },\n    {\n      \"start\": \"2026-09-04T11:00\",\n      \"explanation\": \"Starts as Jamie's\
       \ workshop ends, with a clear block before the project review.\"\n    }\n  ]\n}\nDone."
 - name: weekdays only (weekend slots left out)
-  expect: 6.7
+  expect: 8.57
   answer: I checked both calendars and wrote slots.json.
   files:
     slots.json: "{\n  \"valid_slots\": [\n    \"2026-08-31T11:00\",\n    \"2026-08-31T11:30\",\n    \"\
@@ -358,7 +358,7 @@
       ,\n      \"explanation\": \"Starts as Jamie's workshop ends, with a clear block before the project\
       \ review.\"\n    }\n  ]\n}"
 - name: top3 empty
-  expect: 9.67
+  expect: 7.86
   answer: I checked both calendars and wrote slots.json.
   files:
     slots.json: "{\n  \"valid_slots\": [\n    \"2026-08-31T11:00\",\n    \"2026-08-31T11:30\",\n    \"\
@@ -385,7 +385,7 @@
       ,\n    \"2026-09-07T15:00\",\n    \"2026-09-07T15:30\",\n    \"2026-09-07T16:00\"\n  ],\n  \"top3\"\
       : []\n}"
 - name: top3 only, no valid_slots
-  expect: 0.66
+  expect: 4.29
   answer: I checked both calendars and wrote slots.json.
   files:
     slots.json: '{"top3": [{"start": "2026-09-01T10:00", "explanation": "Right after Jamie''s standup
@@ -393,7 +393,7 @@
       after the budget meeting; mid-afternoon on a weekday."}, {"start": "2026-09-04T11:00", "explanation":
       "Starts as Jamie''s workshop ends, with a clear block before the project review."}]}'
 - name: 'gemma-like: 11:00, 11:15, 11:30 only'
-  expect: 0.66
+  expect: 2.86
   answer: I checked both calendars and wrote slots.json.
   files:
     slots.json: '{"valid_slots": ["2026-08-31T11:00", "2026-08-31T11:15", "2026-08-31T11:30"], "top3":
@@ -503,7 +503,7 @@
       start\": \"2026-09-04T11:00\",\n      \"explanation\": \"Starts as Jamie's workshop ends, with a\
       \ clear block before the project review.\"\n    }\n  ]\n}"
 - name: an off-grid start (11:15), not a conflict
-  expect: 9.89
+  expect: 9.29
   answer: I checked both calendars and wrote slots.json.
   files:
     slots.json: "{\n  \"valid_slots\": [\n    \"2026-08-31T11:00\",\n    \"2026-08-31T11:30\",\n    \"\
@@ -535,7 +535,7 @@
       explanation\": \"Starts as Jamie's workshop ends, with a clear block before the project review.\"\
       \n    }\n  ]\n}"
 - name: a start at 16:30 (ends after 5 PM)
-  expect: 9.89
+  expect: 9.29
   answer: I checked both calendars and wrote slots.json.
   files:
     slots.json: "{\n  \"valid_slots\": [\n    \"2026-08-31T11:00\",\n    \"2026-08-31T11:30\",\n    \"\
@@ -567,7 +567,7 @@
       explanation\": \"Starts as Jamie's workshop ends, with a clear block before the project review.\"\
       \n    }\n  ]\n}"
 - name: a start after the window (Sep 8)
-  expect: 9.89
+  expect: 9.29
   answer: I checked both calendars and wrote slots.json.
   files:
     slots.json: "{\n  \"valid_slots\": [\n    \"2026-08-31T11:00\",\n    \"2026-08-31T11:30\",\n    \"\
@@ -599,7 +599,7 @@
       explanation\": \"Starts as Jamie's workshop ends, with a clear block before the project review.\"\
       \n    }\n  ]\n}"
 - name: all of Sep 7 left out (15 slots)
-  expect: 8.35
+  expect: 9.29
   answer: I checked both calendars and wrote slots.json.
   files:
     slots.json: "{\n  \"valid_slots\": [\n    \"2026-08-31T11:00\",\n    \"2026-08-31T11:30\",\n    \"\
@@ -627,7 +627,7 @@
       explanation\": \"Starts as Jamie's workshop ends, with a clear block before the project review.\"\
       \n    }\n  ]\n}"
 - name: two top3 entries
-  expect: 9.89
+  expect: 9.29
   answer: I checked both calendars and wrote slots.json.
   files:
     slots.json: "{\n  \"valid_slots\": [\n    \"2026-08-31T11:00\",\n    \"2026-08-31T11:30\",\n    \"\
@@ -657,7 +657,7 @@
       ,\n      \"explanation\": \"Back-to-back after the budget meeting; mid-afternoon on a weekday.\"\
       \n    }\n  ]\n}"
 - name: four top3 entries
-  expect: 9.89
+  expect: 9.29
   answer: I checked both calendars and wrote slots.json.
   files:
     slots.json: "{\n  \"valid_slots\": [\n    \"2026-08-31T11:00\",\n    \"2026-08-31T11:30\",\n    \"\
@@ -689,7 +689,7 @@
       \ workshop ends, with a clear block before the project review.\"\n    },\n    {\n      \"start\"\
       : \"2026-09-03T13:00\",\n      \"explanation\": \"Both are free.\"\n    }\n  ]\n}"
 - name: top3 repeats a slot
-  expect: 9.89
+  expect: 9.29
   answer: I checked both calendars and wrote slots.json.
   files:
     slots.json: "{\n  \"valid_slots\": [\n    \"2026-08-31T11:00\",\n    \"2026-08-31T11:30\",\n    \"\
@@ -720,7 +720,7 @@
       \n    },\n    {\n      \"start\": \"2026-09-04T11:00\",\n      \"explanation\": \"Starts as Jamie's\
       \ workshop ends, with a clear block before the project review.\"\n    }\n  ]\n}"
 - name: one blank explanation
-  expect: 9.89
+  expect: 9.29
   answer: I checked both calendars and wrote slots.json.
   files:
     slots.json: "{\n  \"valid_slots\": [\n    \"2026-08-31T11:00\",\n    \"2026-08-31T11:30\",\n    \"\
@@ -751,7 +751,7 @@
       explanation\": \"Starts as Jamie's workshop ends, with a clear block before the project review.\"\
       \n    }\n  ]\n}"
 - name: no explanation fields
-  expect: 9.89
+  expect: 9.29
   answer: I checked both calendars and wrote slots.json.
   files:
     slots.json: "{\n  \"valid_slots\": [\n    \"2026-08-31T11:00\",\n    \"2026-08-31T11:30\",\n    \"\
@@ -779,7 +779,7 @@
       : [\n    {\n      \"start\": \"2026-09-01T10:00\"\n    },\n    {\n      \"start\": \"2026-09-02T14:00\"\
       \n    },\n    {\n      \"start\": \"2026-09-04T11:00\"\n    }\n  ]\n}"
 - name: top3 entries are bare strings, not objects
-  expect: 9.67
+  expect: 7.86
   answer: I checked both calendars and wrote slots.json.
   files:
     slots.json: "{\n  \"valid_slots\": [\n    \"2026-08-31T11:00\",\n    \"2026-08-31T11:30\",\n    \"\
