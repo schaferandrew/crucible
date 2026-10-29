@@ -1,107 +1,107 @@
 [
   {
     "file": "invites.grader.test.ts",
-    "group": "invited sign-ups",
+    "group": "invite sign-up: an invited address claims its account",
     "name": "someone who signs up with an invited email ends up with their invited account"
   },
   {
     "file": "invites.grader.test.ts",
-    "group": "invited sign-ups",
-    "name": "signing up doesn't count as accepting the terms"
-  },
-  {
-    "file": "invites.grader.test.ts",
-    "group": "invited sign-ups",
-    "name": "the terms are recorded when they accept them, and the profile is optional"
-  },
-  {
-    "file": "invites.grader.test.ts",
-    "group": "invited sign-ups",
-    "name": "the terms can't be skipped when accepting"
-  },
-  {
-    "file": "invites.grader.test.ts",
-    "group": "invited sign-ups",
+    "group": "invite sign-up: an invited address claims its account",
     "name": "an invited account can't be claimed twice"
   },
   {
     "file": "invites.grader.test.ts",
-    "group": "invited sign-ups",
+    "group": "invite sign-up: an invited address claims its account",
     "name": "an invited sign-up gets the username it chose, and can't take one that is in use"
   },
   {
     "file": "invites.grader.test.ts",
-    "group": "accepting an invite and regular sign-ups",
+    "group": "terms: recorded only when accepted",
+    "name": "signing up doesn't count as accepting the terms"
+  },
+  {
+    "file": "invites.grader.test.ts",
+    "group": "terms: recorded only when accepted",
+    "name": "the terms are recorded when they accept them, and the profile is optional"
+  },
+  {
+    "file": "invites.grader.test.ts",
+    "group": "terms: recorded only when accepted",
+    "name": "the terms can't be skipped when accepting"
+  },
+  {
+    "file": "invites.grader.test.ts",
+    "group": "unchanged: accepting an invite and regular sign-ups",
     "name": "accepting an invite records the terms and gives a working account, next to a claimed one"
   },
   {
     "file": "invites.grader.test.ts",
-    "group": "accepting an invite and regular sign-ups",
+    "group": "unchanged: accepting an invite and regular sign-ups",
     "name": "regular sign-ups are unchanged, next to an invited one"
   },
   {
     "file": "invites.grader.test.ts",
-    "group": "accepting an invite and regular sign-ups",
+    "group": "unchanged: accepting an invite and regular sign-ups",
     "name": "a real duplicate sign-up is still rejected, next to an invited one"
   },
   {
     "file": "loop.web.grader.test.tsx",
-    "group": "accounts that accepted an invite and are stuck today",
+    "group": "loop: accounts that accepted an invite and are stuck today",
     "name": "can reach the editor without a loop"
   },
   {
     "file": "loop.web.grader.test.tsx",
-    "group": "accounts that accepted an invite and are stuck today",
+    "group": "loop: accounts that accepted an invite and are stuck today",
     "name": "are taken to the editor from the welcome screen too"
   },
   {
     "file": "loop.web.grader.test.tsx",
-    "group": "accounts that accepted an invite and are stuck today",
+    "group": "loop: accounts that accepted an invite and are stuck today",
     "name": "aren't asked to fill in a profile first"
   },
   {
     "file": "loop.web.grader.test.tsx",
-    "group": "invited contributors who haven't accepted the terms",
+    "group": "terms: invited contributors who haven't accepted them",
     "name": "can't reach the editor, and aren't looped around"
   },
   {
     "file": "loop.web.grader.test.tsx",
-    "group": "invited contributors who haven't accepted the terms",
+    "group": "terms: invited contributors who haven't accepted them",
     "name": "are asked for the terms and not for a bio"
   },
   {
     "file": "loop.web.grader.test.tsx",
-    "group": "invited contributors who haven't accepted the terms",
+    "group": "terms: invited contributors who haven't accepted them",
     "name": "stay on the welcome screen when they open it"
   },
   {
     "file": "loop.web.grader.test.tsx",
-    "group": "invited contributors who haven't accepted the terms",
+    "group": "terms: invited contributors who haven't accepted them",
     "name": "reach the editor once they accept the terms"
   },
   {
     "file": "loop.web.grader.test.tsx",
-    "group": "accepting an invite",
+    "group": "loop: accepting an invite",
     "name": "lands in the editor with no loop"
   },
   {
     "file": "loop.web.grader.test.tsx",
-    "group": "everyone else is unchanged",
+    "group": "unchanged: everyone else",
     "name": "a new sign-up is sent to onboarding and stays there, with a bio and the terms (next to an invited contributor)"
   },
   {
     "file": "loop.web.grader.test.tsx",
-    "group": "everyone else is unchanged",
+    "group": "unchanged: everyone else",
     "name": "a new sign-up reaches the editor after onboarding (next to an invited contributor)"
   },
   {
     "file": "loop.web.grader.test.tsx",
-    "group": "everyone else is unchanged",
+    "group": "unchanged: everyone else",
     "name": "an onboarded user can write, and is sent home from the welcome screen (next to an invited contributor)"
   },
   {
     "file": "loop.web.grader.test.tsx",
-    "group": "everyone else is unchanged",
+    "group": "unchanged: everyone else",
     "name": "signed out goes to login (next to an invited contributor)"
   },
   {

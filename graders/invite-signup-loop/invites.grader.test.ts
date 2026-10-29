@@ -30,7 +30,7 @@ const signUp = (username: string, email: string, password = "password123") =>
 // Legal's requirements are the authority (docs/legal-contributor-terms.md): an account that can
 // publish has accepted the terms and we can show when. Each test below needs the sign-up path for
 // an invited address to work, which is what support reported for pending@example.com.
-describe("invited sign-ups", () => {
+describe("invite sign-up: an invited address claims its account", () => {
   it("someone who signs up with an invited email ends up with their invited account", async () => {
     await invite("pending@example.com");
     const res = await signUp("pending", "pending@example.com");
@@ -42,6 +42,24 @@ describe("invited sign-ups", () => {
       .send({ user: { email: "pending@example.com", password: "password123" } }).expect(200);
   });
 
+  it("an invited account can't be claimed twice", async () => {
+    await invite("once@example.com");
+    await signUp("once", "once@example.com").expect(201);
+    await signUp("twice", "once@example.com", "password456").expect(422);
+    await request(app).post("/api/users/login")
+      .send({ user: { email: "once@example.com", password: "password123" } }).expect(200);
+  });
+
+  it("an invited sign-up gets the username it chose, and can't take one that is in use", async () => {
+    await invite("pending@example.com");
+    await signUp("grace", "pending@example.com").expect(422);
+    const res = await signUp("pending", "pending@example.com");
+    expect(res.status).toBe(201);
+    expect(res.body.user.username).toBe("pending");
+  });
+});
+
+describe("terms: recorded only when accepted", () => {
   it("signing up doesn't count as accepting the terms", async () => {
     await invite("pending@example.com");
     const res = await signUp("pending", "pending@example.com");
@@ -74,25 +92,9 @@ describe("invited sign-ups", () => {
     const me = await request(app).get("/api/user").set(headers(signed.body.user.token)).expect(200);
     expect(me.body.user.termsAcceptedAt).toBeNull();
   });
-
-  it("an invited account can't be claimed twice", async () => {
-    await invite("once@example.com");
-    await signUp("once", "once@example.com").expect(201);
-    await signUp("twice", "once@example.com", "password456").expect(422);
-    await request(app).post("/api/users/login")
-      .send({ user: { email: "once@example.com", password: "password123" } }).expect(200);
-  });
-
-  it("an invited sign-up gets the username it chose, and can't take one that is in use", async () => {
-    await invite("pending@example.com");
-    await signUp("grace", "pending@example.com").expect(422);
-    const res = await signUp("pending", "pending@example.com");
-    expect(res.status).toBe(201);
-    expect(res.body.user.username).toBe("pending");
-  });
 });
 
-describe("accepting an invite and regular sign-ups", () => {
+describe("unchanged: accepting an invite and regular sign-ups", () => {
   it("accepting an invite records the terms and gives a working account, next to a claimed one", async () => {
     await invite("pending@example.com");
     expect((await signUp("pending", "pending@example.com")).status).toBe(201);

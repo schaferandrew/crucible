@@ -108,7 +108,7 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
 - invite-signup-loop (formerly CODE-14): version 2, rubric 3, still provisional. Scored by an isolated per-test
   grader: 21 hidden tests (12 web, 9 API) plus the model's own regression tests as one test, every test weighing the
   same, and none passing on the seeded repo. "Existing tests still pass" and "contract suite untouched" are now caps
-  (5 and 4), not points; they paid 2 of 10 for doing nothing. The tests assert Legal's requirements: an invited
+  (5 and 4), not points; they paid 2 of 10 for doing nothing. Skipping the Legal terms caps the score at 5. The tests assert Legal's requirements: an invited
   address claims its account once, the terms are recorded only when accepted, accounts already stuck work as they are,
   and regular sign-ups are unchanged. The prompt now says Legal's requirements are the authority. The repo's docs and
   comments no longer state the bug. Stored runs: gemma-4-e4b and gpt-oss-20b (both no-ops) 5.9 -> 0.0.

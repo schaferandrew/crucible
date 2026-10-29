@@ -27,14 +27,23 @@ prompt: |
   Finish with a short write-up: the root cause, the decisions you made and why, and anything you'd flag in code review.
 rubric:
 - criterion: No one gets stuck
-  hidden_tests: loop.web.grader.test.tsx
-  description: 'Hidden web tests: every kind of user lands in the right place with no loop. Accounts already stuck work
-    as they are, invited contributors reach the editor only once they have accepted the terms, and regular sign-ups
-    are unchanged.'
+  hidden_tests: 'loop'
+  description: 'Hidden web tests: accounts that accepted an invite (rosa, tomek) reach the editor as they are, and accepting
+    an invite lands in the editor, with no redirect loop.'
+- criterion: Terms before writing
+  hidden_tests: 'terms'
+  cap_if_failed: 5
+  description: 'Hidden tests: Legal is the authority. Invited contributors who haven''t accepted the terms can''t reach the
+    editor and aren''t asked for a bio, signing up doesn''t count as accepting, and acceptance is recorded. Missing any
+    of it caps the score at 5.'
 - criterion: Invited sign-ups
-  hidden_tests: invites.grader.test.ts
-  description: 'Hidden API tests: an invited address claims its account once, the terms are recorded only when accepted,
-    and regular sign-ups and real duplicates are unchanged.'
+  hidden_tests: 'invite sign-up'
+  description: 'Hidden API tests: someone who signs up with an invited address gets that account, once, with the username
+    they chose.'
+- criterion: Regular accounts unchanged
+  hidden_tests: 'unchanged'
+  description: 'Hidden tests: regular sign-ups, onboarding, sign-in, accepting an invite and real duplicates behave as
+    before.'
 - criterion: Regression tests
   hidden_tests: regression
   description: 'One test in the pool: the model''s new or changed tests pass on its fix, and at least one fails on

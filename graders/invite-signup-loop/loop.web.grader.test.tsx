@@ -68,7 +68,7 @@ async function visit(path: string, user: User | null, setup: () => void = () => 
   return { seen, final: () => seen[seen.length - 1], view, settle };
 }
 
-describe("accounts that accepted an invite and are stuck today", () => {
+describe("loop: accounts that accepted an invite and are stuck today", () => {
   it("can reach the editor without a loop", async () => {
     const r = await visit("/editor", USERS.invitedStuck);
     expect(r.final()).toBe("/editor");
@@ -88,7 +88,7 @@ describe("accounts that accepted an invite and are stuck today", () => {
   });
 });
 
-describe("invited contributors who haven't accepted the terms", () => {
+describe("terms: invited contributors who haven't accepted them", () => {
   it("can't reach the editor, and aren't looped around", async () => {
     const r = await visit("/editor", USERS.invitedNoTerms);
     expect(r.final()).not.toBe("/editor");
@@ -121,7 +121,7 @@ describe("invited contributors who haven't accepted the terms", () => {
   });
 });
 
-describe("accepting an invite", () => {
+describe("loop: accepting an invite", () => {
   it("lands in the editor with no loop", async () => {
     const accepted: User = { ...USERS.invitedStuck, username: "rosa", token: "fresh" };
     let accept!: ReturnType<typeof vi.spyOn>;
@@ -141,7 +141,7 @@ describe("accepting an invite", () => {
   });
 });
 
-describe("everyone else is unchanged", () => {
+describe("unchanged: everyone else", () => {
   it("a new sign-up is sent to onboarding and stays there, with a bio and the terms (next to an invited contributor)", async () => {
     const invited = await visit("/editor", USERS.invitedStuck);
     expect(invited.final()).toBe("/editor");
