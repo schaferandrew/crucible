@@ -156,9 +156,11 @@ def main(out_dir: Path, truth_path: Path) -> None:
         ticket_times.append((ts, ticket))
         app.append(f"{iso(ts)} INFO support webhook: ticket #{ticket} opened by {user} (category=data-incorrect)")
 
+    # An ordinary release: several unrelated changes, none of them described by what they do to reads
     deploy_log = [
         f"{iso(START + timedelta(hours=9, minutes=3))} deploy api v1.7.2 rollback=false status=succeeded",
-        f"{iso(DEPLOY - timedelta(minutes=6))} deploy api v1.8.0 started by ci (commit 7f3e91c \"perf: cache hot read endpoints (PERF-212)\")",
+        f"{iso(DEPLOY - timedelta(minutes=6))} deploy api v1.8.0 started by ci (commit 7f3e91c, 6 changes since v1.7.2)",
+        f"{iso(DEPLOY - timedelta(minutes=6))} release notes v1.8.0: PERF-212 PERF-219 OPS-3071 DEP-88 DOC-41 FIX-1204",
         f"{iso(DEPLOY)} deploy api v1.8.0 status=succeeded instances=4 NODE_ENV=production",
         f"{iso(DEPLOY + timedelta(minutes=1))} healthcheck api v1.8.0 p95_ms=41 error_rate=0.000",
     ]

@@ -14,11 +14,11 @@
     "rubric_hash": "21c080734296e3ae"
   },
   "cache-leak-incident": {
-    "version": 2,
-    "content_hash": "e972a448a401602f",
-    "prompt_hash": "bc6b2585c30b0255",
-    "rubric_version": 3,
-    "rubric_hash": "9d48c0b1139a1179"
+    "version": 3,
+    "content_hash": "e30246116570a321",
+    "prompt_hash": "0c4e774776236c66",
+    "rubric_version": 4,
+    "rubric_hash": "52dab6219780b2bf"
   },
   "calendar-free-at-330": {
     "version": 1,
