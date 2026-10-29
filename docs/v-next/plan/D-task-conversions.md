@@ -44,5 +44,5 @@ counting. Everything else is provisional until the Suite v2 cut.
 **Moved to Suite v3 (lean plan):** CODE-2b `navbar-hamburger-menu` (needs the first Playwright
 grader) and RSCH-2b `weather-vs-normal` (needs a frozen `web` fixture host). Not converted here.
 
-**Not yet done:** CODE-14, TASK-1 and TASK-2 conversions, and the retirements (CODE-1, CODE-2,
+**Not in wave 1:** CODE-14, TASK-1 and TASK-2 conversions (later waves), and the retirements (CODE-1, CODE-2,
 CODE-4b, CODE-6, RSCH-1, RSCH-2, WRIT-2), which happen at the cut.
