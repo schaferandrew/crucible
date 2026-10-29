@@ -10,6 +10,14 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
 
 ## Unreleased
 
+- news-briefing-from-feeds (formerly KNOW-4): version 2, rubric 2, still provisional. The ten sources are
+  numbered `[S1]` to `[S10]` and the briefing stays prose, one paragraph per story, each ending with its
+  sources (`[S1, S2, S9 opinion]`). Now fully deterministic, 22 equal items: the nine same-day sources each
+  cited exactly once with the levy, fire and rally sources combined (9), the stale S10 not cited and Okoro
+  and "school board" absent (2), the column cited as opinion (1), nine facts found in the paragraph by its
+  citations (levy $41.6 million and 7-2, one firefighter, the three attributed crowd estimates, "expected to
+  sign", 3.75% and 0.25), and no invented figures (1). Replaces the two judge criteria and the outlet-name
+  and word-count checks. Runs of version 1 no longer count; rerun it.
 - fact-check-history (formerly HIST-2), now "Fact-check twelve history claims": version 2, rubric 2,
   still provisional. The paragraph became twelve numbered claims with one fact each (five wrong, seven
   true), and the answer is an `ERRORS:` block of `<number>: <corrected value>` lines, scored as 17 equal

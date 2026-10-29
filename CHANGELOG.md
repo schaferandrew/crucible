@@ -12,6 +12,16 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## Unreleased
+
+### Added
+
+- **`cited_paragraphs` check:** scores a prose answer by the numbered sources its paragraphs cite
+  (`[S1, S2]`, `(S3; S4)`, `[S9 opinion]`): a source cited in exactly one paragraph (optionally together
+  with named others and no strangers), cited as opinion, or not cited at all; patterns required or
+  forbidden in the paragraphs citing given sources; patterns forbidden anywhere. One item per entry,
+  equal weight, like `items`.
+
 ## 3.1.0 (2026-10-29)
 
 Scoring fixes and the first converted tasks for Suite v2: empty answers score 0, answer blocks

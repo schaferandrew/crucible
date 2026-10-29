@@ -6,107 +6,114 @@ needs_tools: false
 category: everyday
 area: general
 tier: temper
-version: 1
-rubric_version: 1
+version: 2
+rubric_version: 2
 status: provisional
 auto_grade: false
 repo: null
 # News aggregation with accuracy preserved. The sources are supplied (a fictional city, so no
-# model can answer from memory) and contain the traps real news feeds do: the same story from
-# two outlets, a later correction, a disputed figure, an opinion column, a not-yet-final bill,
-# and a week-old item. Checks catch invented or altered figures; the judge scores the rest.
+# model can answer from memory) and numbered S1 to S10. They contain the traps real news feeds do:
+# the same story from two outlets, a later correction, a disputed figure, an opinion column, a
+# not-yet-final bill, and a week-old item. The briefing stays prose, one story per paragraph, each
+# paragraph ending with the sources it used, so a check can find a story by its citations.
+# Scored as 22 equal items (see the checks below); nothing is judged.
 prompt: |
   Below are this morning's items from my news feeds, all for Tuesday, March 10, for Port Ardmore. Write me a briefing from them.
 
   - Lead with the most important stories, and cover each story once even when several outlets report it.
-  - Keep every figure, name and status exactly as the sources give it. Where sources disagree, say so and attribute each version. Where a later report corrects an earlier one, use the correction.
-  - Say which outlet each item comes from, and keep opinion separate from reporting.
-  - Leave out anything that isn't from today.
+  - Keep every figure, name and status exactly as the sources give it. Where sources disagree, say so and attribute each version by name in the text (who said it). Where a later report corrects an earlier one, use the correction.
+  - Keep opinion separate from reporting: the opinion column is not a news report. Leave out anything that isn't from today.
   - Use only these sources; don't add background from elsewhere.
 
-  --- Ardmore Ledger, March 10, 7:05 a.m. ---
+  Write the briefing as prose, with one paragraph per story and no lists, tables or headings. Every paragraph ends with the sources it used, in square brackets, like `[S1, S2]`, and each source is cited once in the whole briefing. A story told by several sources is one paragraph that ends with all of them. The opinion column belongs in the paragraph of the story it argues about; mark it as opinion inside the brackets, as in `[S1, S2, S9 opinion]`. Don't list sources anywhere else and don't cite one you leave out.
+
+  --- [S1] Ardmore Ledger, March 10, 7:05 a.m. ---
   CITY COUNCIL APPROVES TRANSIT LEVY. The Port Ardmore City Council voted 7-2 late Monday to approve a $41.6 million transit levy spread over ten years. The money will fund three new bus routes and a rebuild of the Fulton Street station. Council member Ines Varga, who voted no, said the city had not published a cost estimate for households. The levy still needs a second reading on March 24.
 
-  --- Lakeshore Public Radio, March 10, 8:20 a.m. ---
+  --- [S2] Lakeshore Public Radio, March 10, 8:20 a.m. ---
   Port Ardmore's council backed the transit levy on a 7-2 vote. Mayor Theo Brandt called it "the biggest investment in buses this city has made in a generation." Collection would begin July 1 if the levy passes its second reading.
 
-  --- Statewide Wire, March 10, 6:10 a.m. ---
+  --- [S3] Statewide Wire, March 10, 6:10 a.m. ---
   WAREHOUSE FIRE ON KETTLE STREET. A fire broke out early Tuesday at a vacant warehouse on Kettle Street in Port Ardmore. Two firefighters were injured, according to an initial report from the scene. The cause is under investigation.
 
-  --- Lakeshore Public Radio, March 10, 11:40 a.m. ---
+  --- [S4] Lakeshore Public Radio, March 10, 11:40 a.m. ---
   UPDATE, Kettle Street fire: Fire Chief Ama Mensah said one firefighter was treated for smoke inhalation and released; earlier reports that two firefighters were injured were incorrect. Crews had the fire under control by 9:15 a.m. The cause remains under investigation.
 
-  --- Ardmore Ledger, March 10, 9:30 a.m. ---
+  --- [S5] Ardmore Ledger, March 10, 9:30 a.m. ---
   RALLY AT CITY HALL. Supporters of a proposed rent stabilization ordinance rallied outside City Hall on Monday evening. Ledger reporters at the scene estimated the crowd at about 300.
 
-  --- Lakeshore Public Radio, March 10, 9:45 a.m. ---
+  --- [S6] Lakeshore Public Radio, March 10, 9:45 a.m. ---
   Organizers of Monday's rent stabilization rally said more than 1,000 people attended. Police estimated the crowd at 400.
 
-  --- Statewide Wire, March 10, 10:00 a.m. ---
+  --- [S7] Statewide Wire, March 10, 10:00 a.m. ---
   TEACHER PAY BILL HEADS TO GOVERNOR. The state legislature passed a bill raising the minimum teacher salary to $48,500, by votes of 39-28 in the Senate and 81-52 in the House. Governor Lena Ruiz is expected to sign it this week, a spokesperson said. The increase would take effect in the fall term.
 
-  --- Global Dispatch, March 10, 5:50 a.m. ---
+  --- [S8] Global Dispatch, March 10, 5:50 a.m. ---
   The central bank of Veloria raised its benchmark interest rate by 0.25 percentage points to 3.75%, its third increase this year, citing inflation of 4.1%.
 
-  --- The Ardmore Bugle, opinion, March 10 ---
+  --- [S9] The Ardmore Bugle, opinion, March 10 ---
   COLUMN: THE LEVY IS A TAX GRAB. Columnist Rob Haddad argues that the transit levy will cost a typical household $900 a year and that the council rushed the vote. "Nobody asked the people paying for it," he writes.
 
-  --- Ardmore Ledger, March 3 ---
+  --- [S10] Ardmore Ledger, March 3 ---
   SCHOOL BOARD RESULTS. Delphine Okoro won the open seat on the Port Ardmore school board with 52% of the vote.
 checks:
-  - id: answered
-    type: non_empty
-    min_words: 120
-    rule: "Produces a substantive briefing (at least 120 words)."
-  - id: figures_exact
-    type: required_patterns
-    patterns: ['41\.6 million', '7\s*(-|–|to)\s*2', '48,500', '3\.75', '0\.25']
-    rule: "Keeps the key figures exactly: $41.6 million, the 7-2 vote, $48,500, 3.75% and 0.25 points."
-  - id: no_invented_figures
-    type: grounded_numbers
-    rule: "Every number in the briefing appears in the sources (whole numbers under 11 aside), so no figure was invented or altered."
-  - id: correction_used
-    type: required_patterns
-    patterns: ['\b(one|1|a|single) firefighter']
-    rule: "Reports the corrected injury count (one firefighter treated), not the initial two."
-  - id: bill_not_signed
-    type: forbidden_patterns
-    patterns: ['(?<!not )(?<!n''t )(?<!yet )\bsigned (it |the bill )?into law', '\bgovernor (lena )?(ruiz )?(has )?signed\b', '\bruiz (has )?signed\b']
-    rule: "Doesn't say the teacher pay bill was signed; the governor is only expected to sign it."
-  - id: stale_left_out
-    type: forbidden_patterns
-    patterns: ['okoro', 'school board']
-    rule: "Leaves out the week-old school board item."
-  - id: outlets_named
-    type: required_patterns
-    patterns: ['ledger', 'lakeshore|\bLPR\b', 'statewide wire', 'bugle', 'global dispatch']
-    min_matches: 4
-    rule: "Names the outlet behind the items (at least four of the five outlets)."
+- id: sources_once
+  type: cited_paragraphs
+  items:
+  - {id: s1, source: S1, with: [S2], only: [S1, S2, S9], label: 'S1 cited once, with S2, in the levy paragraph'}
+  - {id: s2, source: S2, with: [S1], only: [S1, S2, S9], label: 'S2 cited once, with S1, in the levy paragraph'}
+  - {id: s3, source: S3, with: [S4], only: [S3, S4], label: 'S3 cited once, with S4, in the fire paragraph'}
+  - {id: s4, source: S4, with: [S3], only: [S3, S4], label: 'S4 cited once, with S3, in the fire paragraph'}
+  - {id: s5, source: S5, with: [S6], only: [S5, S6], label: 'S5 cited once, with S6, in the rally paragraph'}
+  - {id: s6, source: S6, with: [S5], only: [S5, S6], label: 'S6 cited once, with S5, in the rally paragraph'}
+  - {id: s7, source: S7, only: [S7], label: 'S7 cited once, in the teacher pay paragraph'}
+  - {id: s8, source: S8, only: [S8], label: 'S8 cited once, in the interest rate paragraph'}
+  - {id: s9, source: S9, only: [S1, S2, S9], label: 'S9 cited once, in the levy paragraph'}
+  rule: 'Cites each of the nine sources from today exactly once: S1, S2 and S9 together in one paragraph (the levy), S3 and S4 together (the fire), S5 and S6 together (the rally), and S7 and S8 each in a paragraph of their own; one item per source.'
+- id: stale_left_out
+  type: cited_paragraphs
+  items:
+  - {id: s10, source: S10, absent: true, label: 'S10 (the March 3 school board item) not cited'}
+  - {id: names, forbid: ['okoro', 'school board'], label: 'Okoro and the school board not mentioned'}
+  rule: 'Leaves out the week-old school board item: S10 is not cited, and neither Okoro nor "school board" appears.'
+- id: opinion_marked
+  type: cited_paragraphs
+  items:
+  - {id: s9_opinion, source: S9, marker: opinion, label: 'S9 cited as opinion'}
+  rule: 'Marks the Bugle column as opinion in its citation, as in [S9 opinion].'
+- id: story_facts
+  type: cited_paragraphs
+  items:
+  - {id: levy_amount, cited: [S1, S2], all: ['41\.6 million'], label: 'Levy paragraph: $41.6 million'}
+  - {id: levy_vote, cited: [S1, S2], all: ['7\s*(-|–|‑|to)\s*2'], label: 'Levy paragraph: the 7-2 vote'}
+  - {id: fire_corrected, cited: [S3, S4], all: ['\b(one|1|a single|single) firefighter'], label: 'Fire paragraph: one firefighter (the correction)'}
+  - id: rally_ledger
+    cited: [S5, S6]
+    all: ['(ledger|reporters)[^.!?\n]{0,150}\b300\b|\b300\b[^.!?\n]{0,150}(ledger|reporters)']
+    label: 'Rally paragraph: about 300, attributed to the Ledger'
+  - id: rally_organizers
+    cited: [S5, S6]
+    all: ['organi[sz]ers?[^.!?\n]{0,150}1,000|1,000[^.!?\n]{0,150}organi[sz]ers?']
+    label: 'Rally paragraph: more than 1,000, attributed to organizers'
+  - id: rally_police
+    cited: [S5, S6]
+    all: ['police[^.!?\n]{0,150}\b400\b|\b400\b[^.!?\n]{0,150}police']
+    label: 'Rally paragraph: 400, attributed to police'
+  - id: bill_status
+    cited: [S7]
+    all: ['expected to sign']
+    none: ['(?<!not )(?<!n''t )(?<!yet )\bsigned (it |the bill )?into law', '\bgovernor (lena )?(ruiz )?(has )?signed\b', '\bruiz (has )?signed\b']
+    label: 'Teacher pay paragraph: expected to sign, not signed'
+  - {id: rate_level, cited: [S8], all: ['3\.75'], label: 'Rate paragraph: 3.75%'}
+  - {id: rate_rise, cited: [S8], all: ['0\.25'], label: 'Rate paragraph: 0.25 points'}
+  rule: 'In the paragraph found by its citations: the levy has $41.6 million and the 7-2 vote; the fire has the corrected count of one firefighter; the rally gives all three estimates, each attributed (about 300 to the Ledger or its reporters, more than 1,000 to organizers, 400 to police); the teacher pay bill is "expected to sign" and not signed; the rate story has 3.75% and 0.25. One item per fact.'
+- id: no_invented_figures
+  type: grounded_numbers
+  rule: "Every number in the briefing appears in the sources (whole numbers under 11 aside), so no figure was invented or altered."
 rubric:
-  - criterion: "Figures exact"
-    max_score: 2
-    check: figures_exact
-    description: "The key figures appear exactly as reported."
-  - criterion: "Nothing invented"
-    max_score: 2
-    check: no_invented_figures
-    description: "No number that isn't in the sources."
-  - criterion: "Correction used"
-    max_score: 1
-    check: correction_used
-    description: "The fire update's corrected count is used."
-  - criterion: "Status kept"
-    max_score: 1
-    check: bill_not_signed
-    description: "The bill is passed and awaiting signature, not law."
-  - criterion: "Stale item left out"
-    max_score: 1
-    check: stale_left_out
-    description: "The March 3 item isn't in the briefing."
-  - criterion: "Disputes and opinion handled"
-    max_score: 2
-    description: "The rally crowd gives all three estimates (about 300 from the Ledger, more than 1,000 from organizers, 400 from police) with attribution rather than picking one; the Bugle's $900 claim is presented as the columnist's opinion, not as fact; outlets are named."
-  - criterion: "Deduplicated and prioritized"
-    max_score: 1
-    description: "The levy, fire and rally each appear as one story combining their sources; the most consequential stories lead."
-critical_failure: "Stating the bill is law, reporting two injured firefighters as current fact, or presenting the columnist's $900 figure as an established cost caps the score at 4."
+- {criterion: 'Each source cited once, stories merged', max_score: 9, check: sources_once, description: 'The nine sources from today are each cited exactly once, the levy, fire and rally sources together in one paragraph each.'}
+- {criterion: 'Stale item left out', max_score: 2, check: stale_left_out, description: 'S10 is not cited and the March 3 school board result is not mentioned.'}
+- {criterion: 'Opinion marked', max_score: 1, check: opinion_marked, description: 'The Bugle column is cited as [S9 opinion].'}
+- {criterion: 'Story facts exact', max_score: 9, check: story_facts, description: 'Each story paragraph keeps its figures, correction, attributed disputed estimates and status.'}
+- {criterion: 'Nothing invented', max_score: 1, check: no_invented_figures, description: 'No number that is not in the sources.'}
+critical_failure: null
