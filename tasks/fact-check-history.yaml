@@ -1,82 +1,75 @@
 id: fact-check-history
-name: Fact-check a history paragraph
+name: Fact-check eight history claims
 aliases:
 - HIST-2
 needs_tools: false
 category: history
 area: history
 tier: temper
-version: 1
-rubric_version: 1
+version: 2
+rubric_version: 2
 status: provisional
 auto_grade: false
 repo: null
-prompt: 'Fact-check this paragraph before it goes in a newsletter. Some of it is wrong and some of it is right.
+prompt: |
+  Fact-check these claims before they go in a newsletter. Some of them are wrong and some are right.
 
+  1. Christopher Columbus first reached the Americas in 1493.
+  2. In 1215, King Richard sealed Magna Carta at Runnymede.
+  3. The United States Declaration of Independence was adopted on July 4, 1776.
+  4. Napoleon was finally defeated at the Battle of Waterloo in 1812.
+  5. The Titanic sank in April 1913.
+  6. Neil Armstrong and Buzz Aldrin landed on the Moon in July 1969.
+  7. The Berlin Wall fell in November 1991.
+  8. Germany was reunified in the year after the Berlin Wall fell.
 
-  "Christopher Columbus first reached the Americas in 1493. In 1215 King Richard sealed Magna Carta at Runnymede. The United
-  States Declaration of Independence was adopted on July 4, 1776. Napoleon was finally defeated at the Battle of Waterloo
-  in 1812. The Titanic sank in April 1912 on its return voyage from New York. Neil Armstrong and Buzz Aldrin landed on the
-  Moon in July 1969. The Berlin Wall fell in November 1991, and Germany reunified the following year."
+  Explain your reasoning first if it helps. Then end your reply with this block, and nothing after it:
 
+  ERRORS:
+  <number>: <corrected value>
 
-  List each error on its own line as `wrong → correct`. Don''t flag anything that is accurate.
-
-  '
+  One line per inaccurate numbered item, and none for accurate ones. Give only the corrected value (a year,
+  number or name), not a sentence. If every item is accurate, write `ERRORS: none`.
+# Only the last ERRORS: block is scored, as 13 equal items: lines 1, 2, 4, 5 and 7 listed, each with
+# the right correction, and lines 3, 6 and 8 left out. Three checks read the same block so the score
+# record shows the three groups.
 checks:
-- id: columbus
-  type: required_patterns
-  patterns:
-  - \b1492\b
-  rule: Corrects Columbus to 1492.
-- id: king_john
-  type: required_patterns
-  patterns:
-  - \bjohn\b
-  rule: Corrects the king to John.
-- id: waterloo
-  type: required_patterns
-  patterns:
-  - \b1815\b
-  rule: Corrects Waterloo to 1815.
-- id: maiden_voyage
-  type: required_patterns
-  patterns:
-  - \bmaiden\b
-  rule: Corrects the Titanic to its maiden voyage (to New York).
-- id: berlin_wall
-  type: required_patterns
-  patterns:
-  - \b1989\b
-  rule: Corrects the Berlin Wall to 1989.
-- id: no_false_flags
-  type: forbidden_patterns
-  patterns:
-  - (?im)^[^\n]*(1776|declaration|1969|armstrong|aldrin|runnymede)[^\n]*(→|->)
-  rule: Doesn't mark the Declaration (1776), the Moon landing (1969) or Runnymede as errors.
+- id: errors_found
+  type: items
+  header: [ERRORS, ERROR]
+  items:
+  - {id: listed, expect: [1, 2, 4, 5, 7], of: [1, 2, 4, 5, 7], normalize: line_set}
+  rule: 'Lists each inaccurate claim (1, 2, 4, 5 and 7) in the ERRORS: block; one item per line.'
+- id: corrections
+  type: items
+  header: [ERRORS, ERROR]
+  normalize: year
+  items:
+  - {id: columbus, key: '1', expect: 1492, label: 'Line 1 corrected to 1492'}
+  - {id: king, key: '2', expect: John, normalize: name, aliases: [King John, John of England, King John of England],
+     label: 'Line 2 corrected to King John'}
+  - {id: waterloo, key: '4', expect: 1815, label: 'Line 4 corrected to 1815'}
+  - {id: titanic, key: '5', expect: 1912, label: 'Line 5 corrected to 1912'}
+  - {id: berlin_wall, key: '7', expect: 1989, label: 'Line 7 corrected to 1989'}
+  rule: 'Corrects each one to its value alone: 1 to 1492, 2 to (King) John, 4 to 1815, 5 to 1912, 7 to 1989;
+    one item per correction.'
+- id: accurate_kept
+  type: items
+  header: [ERRORS, ERROR]
+  items:
+  - {id: listed, expect: [], of: [3, 6, 8], normalize: line_set}
+  rule: 'Leaves the accurate claims (3, 6 and 8) out of the ERRORS: block; one item per claim.'
 rubric:
-- criterion: Columbus
-  max_score: 1
-  check: columbus
-  description: Corrects Columbus to 1492.
-- criterion: King John
-  max_score: 1
-  check: king_john
-  description: Corrects the king to John.
-- criterion: Waterloo
-  max_score: 1
-  check: waterloo
-  description: Corrects Waterloo to 1815.
-- criterion: Maiden voyage
-  max_score: 1
-  check: maiden_voyage
-  description: Corrects the Titanic to its maiden voyage (to New York).
-- criterion: Berlin Wall
-  max_score: 1
-  check: berlin_wall
-  description: Corrects the Berlin Wall to 1989.
-- criterion: Nothing accurate flagged
+- criterion: Errors found
   max_score: 5
-  check: no_false_flags
-  description: Doesn't mark the Declaration (1776), the Moon landing (1969) or Runnymede as errors.
+  check: errors_found
+  description: Each of the five inaccurate claims is listed (one point each).
+- criterion: Corrections
+  max_score: 5
+  check: corrections
+  description: Each listed claim has the right corrected value (one point each).
+- criterion: Accurate claims left alone
+  max_score: 3
+  check: accurate_kept
+  description: Each of the three accurate claims is left out (one point each).
 critical_failure: null

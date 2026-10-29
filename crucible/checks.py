@@ -167,10 +167,13 @@ def _grounded_numbers(check: dict, text: str) -> tuple[bool, str]:
 #           - {id: q3, key: France, expect: Paris, normalize: name, aliases: ["Paris, France"]}
 #           - {id: q4, expect: [B, D], of: [A, B, C, D, E], normalize: letter_set}   # 5 items: each letter in or out
 #           - {id: q5, expect: [Gutenberg, Columbus, Luther], normalize: ordering}  # 3 items: each pair in order
+#           - {id: flagged, expect: [1, 4], of: [1, 2, 3, 4], normalize: line_set}  # 4 items: each line listed or not
+#           - {id: fix1, key: "1", expect: 1492, normalize: year}  # every year in the value is 1492
 #
 # An item with a `key` reads the block line with that label; without one, items take the block's
-# lines in order (ordering and letter_set without a key read the whole block). The score is
-# items passed / all items, each item weighing the same; a missing block scores 0.
+# lines in order (ordering, letter_set and line_set read the whole block). A value written as
+# `wrong → right` is scored on what follows the arrow. The score is items passed / all items, each
+# item weighing the same; a missing block scores 0.
 
 HEADER_MARKS = r"(?:#{1,6}\s*)?(?:[*_]{1,2}\s*)?"
 # Any other block's header ("TOP FIVE:") or a Markdown heading ends a block
@@ -219,7 +222,9 @@ def answer_block(text: str, header: str | list[str]) -> list[str] | None:
 # A block line's label and value: "1. 42", "Q1: 42", "France: Paris", "2) $7", "- Gutenberg — 1450"
 BULLET = re.compile(r"^\s*[-*•]\s+")
 LABELLED = re.compile(r"^(?P<label>[^:=—–]{1,40}?)\s*(?:[:=]|\s[—–-]\s|\)|\.(?=\s))\s*(?P<value>.*)$")
-NUMERIC_LABEL = re.compile(r"^(?:q|question|no|item|#)?\s*(\d+)$")
+NUMERIC_LABEL = re.compile(r"^(?:q|question|no|item|line|claim|sentence|#)?\s*(\d+)$")
+# "1493 → 1492": the corrected value is what follows the last arrow
+ARROW = re.compile(r"\s*(?:→|⇒|->|=>|\$\\rightarrow\$)\s*")
 
 
 def _split(line: str) -> tuple[str | None, str]:
@@ -280,6 +285,22 @@ def _norm_name(item: dict, value: str, aliases: dict | None = None) -> tuple[boo
         names += (aliases or {}).get(name) or []
     passed = _fold(value) in {_fold(n) for n in names}
     return passed, f"got {value or 'nothing'}"
+
+
+YEAR = re.compile(r"(?<![\d.,])\d{3,4}(?![\d,]|\.\d)")
+
+
+def _norm_year(item: dict, value: str) -> tuple[bool, str]:
+    """Every year (3 or 4 digits) in the value is an expected one: "18 June 1815" is 1815, "1812 or 1815" isn't."""
+    years = {int(y) for y in YEAR.findall(value)}
+    passed = bool(years) and years <= {int(e) for e in _accepted(item)}
+    return passed, f"got {value or 'nothing'}"
+
+
+def _line_numbers(lines: list[str]) -> set[int]:
+    """The numbers the block's lines are labelled with: "1: 1492", "Line 4 — 1815", "5. April 1912"."""
+    labels = [_fold(label) for label, _ in map(_split, lines) if label is not None]
+    return {int(found.group(1)) for found in map(NUMERIC_LABEL.match, labels) if found}
 
 
 def _norm_line_number(item: dict, value: str) -> tuple[bool, str]:
@@ -353,7 +374,7 @@ def _score_item(item: dict, lines: list[str], index: int, check: dict) -> list[d
     if "key" in item:
         values = [value for line_label, value in map(_split, lines) if _same_label(line_label, item["key"])]
         value = values[-1] if values else None
-    elif kind in ("ordering", "letter_set"):
+    elif kind in ("ordering", "letter_set", "line_set"):
         value = "\n".join(lines)
     else:
         value = _split(lines[index])[1] if index < len(lines) else None
@@ -379,8 +400,14 @@ def _score_item(item: dict, lines: list[str], index: int, check: dict) -> list[d
                     for letter in (str(x).upper() for x in item["of"])]
         return [{"id": item["id"], "label": label, "passed": got == want,
                  "detail": f"got {', '.join(sorted(got)) or 'none'}"}]
+    if kind == "line_set":
+        got, want = _line_numbers(lines), {int(e) for e in _accepted(item)}
+        return [{"id": f"{item['id']}:{n}", "label": f"Line {n} {'listed' if n in want else 'left out'}",
+                 "passed": (n in got) == (n in want), "detail": "listed" if n in got else "not listed"}
+                for n in (int(x) for x in item["of"])]
     if value is None:
         return [{"id": item["id"], "label": label, "passed": False, "detail": "not in the block"}]
+    value = ARROW.split(value)[-1]
     if kind == "name":
         passed, detail = _norm_name(item, value, aliases)
     else:
@@ -393,8 +420,9 @@ ITEM_NORMALIZERS = {
     "money": _norm_money,
     "line_number": _norm_line_number,
     "datetime": _norm_datetime,
+    "year": _norm_year,
 }
-ITEM_KINDS = ("number", "money", "name", "letter_set", "line_number", "datetime", "ordering")
+ITEM_KINDS = ("number", "money", "name", "year", "letter_set", "line_set", "line_number", "datetime", "ordering")
 
 
 def _all_failed(check: dict, detail: str) -> list[dict]:

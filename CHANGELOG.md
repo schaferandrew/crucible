@@ -14,6 +14,14 @@ here ([docs/versioning.md](docs/versioning.md)).
 
 ## Unreleased
 
+### Added
+
+- **`items` check:** a `line_set` kind (each numbered line in `of` listed in the block or left out, one
+  item per line, for detection tasks with accurate controls) and a `year` normalizer (every year in the
+  value must be an expected one, so "18 June 1815" is 1815 and "1812 or 1815" fails). A value written as
+  `wrong → right` (or `->`, `=>`) is scored on what follows the arrow, and block lines may be labelled
+  `Line 4`, `Claim 4` or `Sentence 4` as well as `4`.
+
 ### Fixed
 
 - **An empty answer scores 0.** Every check type now fails an empty or whitespace-only answer (or an

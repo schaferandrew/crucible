@@ -10,6 +10,13 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
 
 ## Unreleased
 
+- fact-check-history (formerly HIST-2), now "Fact-check eight history claims": version 2, rubric 2,
+  still provisional. The paragraph became eight numbered claims with one fact each, and the answer is
+  an `ERRORS:` block of `<number>: <corrected value>` lines, scored as 13 equal items: the five errors
+  found, their five corrections, and the three accurate claims left alone. This fixes a perfect answer
+  scoring 5 (quoting "Runnymede" in the King John fix counted as flagging an accurate claim). Runs of
+  version 1 no longer count; rerun it.
+
 - novel-character-names (formerly WRIT-2) and names-for-one-character (WRIT-2b): rubric 3. An empty
   answer now scores 0 (it scored 4.0 and 2.0: an empty list had no repeated names and no undescribed
   ones). Only gemma-4-26b-a4b-qat's timed-out runs change.

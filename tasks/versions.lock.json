@@ -91,11 +91,11 @@
     "rubric_hash": "c043a55be28cc70b"
   },
   "fact-check-history": {
-    "version": 1,
-    "content_hash": "d2211f643f7da6e2",
-    "prompt_hash": "67ef42cbe1c6b559",
-    "rubric_version": 1,
-    "rubric_hash": "2d7d0af0e447aabb"
+    "version": 2,
+    "content_hash": "9578f037f2a452db",
+    "prompt_hash": "000def6a0c435e07",
+    "rubric_version": 2,
+    "rubric_hash": "b073f345ae8f4db1"
   },
   "fire-truck-color": {
     "version": 1,

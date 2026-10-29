@@ -114,12 +114,20 @@ def _legacy_rubric_hash(p: dict, grader_path: str) -> str:
     return versioning._sha(*parts)
 
 
+def _skip_if_bumped_since_3_0_0(p: dict) -> None:
+    """A task changed after the rename carries a version bump, which `crucible versions` checks instead."""
+    old, now = LEGACY_LOCK[p["aliases"][0]], versioning.read_lock()[p["id"]]
+    if (now["version"], now["rubric_version"]) > (old["version"], old["rubric_version"]):
+        pytest.skip(f"{p['id']} changed after 3.0.0")
+
+
 class TestRenameKeepsHashes:
     """3.0.0 renamed every task; no task's content or rubric changed, so no version moved."""
 
     @pytest.mark.parametrize("task_id", workspace.all_task_ids())
     def test_versions_and_content_hash_unchanged(self, task_id):
         p = workspace.load_task(task_id)
+        _skip_if_bumped_since_3_0_0(p)
         old = LEGACY_LOCK[p["aliases"][0]]
         now = versioning.read_lock()[task_id]
         assert (now["version"], now["rubric_version"]) == (old["version"], old["rubric_version"])
@@ -128,6 +136,7 @@ class TestRenameKeepsHashes:
     @pytest.mark.parametrize("task_id", workspace.all_task_ids())
     def test_rubric_hash_unchanged_or_only_the_folder_name_left_it(self, task_id):
         p = workspace.load_task(task_id)
+        _skip_if_bumped_since_3_0_0(p)
         old = LEGACY_LOCK[p["aliases"][0]]["rubric_hash"]
         now = versioning.read_lock()[task_id]["rubric_hash"]
         if not p.get("grader"):
