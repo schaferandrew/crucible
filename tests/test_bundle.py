@@ -50,3 +50,16 @@ def test_published_bundle_has_no_escaped_emoji(tmp_path, monkeypatch):
     text = (tmp_path / "out" / "t.json").read_text(encoding="utf-8")
     assert "🎉" in text and "\\ud83c" not in text
     assert json.loads(text)["note"] == "done ✅ 🎉"
+
+
+def test_publish_records_the_crucible_version(tmp_path, monkeypatch):
+    import json
+    import sys
+    from crucible import bundle, provenance
+    (tmp_path / "runs").mkdir()
+    monkeypatch.setattr(sys, "argv", ["crucible publish", "--to", str(tmp_path / "out"), "--name", "t",
+                                      "--runs", str(tmp_path / "runs")])
+    bundle.main()
+    data = json.loads((tmp_path / "out" / "t.json").read_text(encoding="utf-8"))
+    assert data["source"] == {"machine": "t", "crucible_version": provenance.crucible_version()}
+    assert bundle.problems(data) == []

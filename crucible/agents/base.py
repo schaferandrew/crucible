@@ -66,6 +66,7 @@ class RunContext:
     mcp_servers: list[str] = field(default_factory=list)
     fixtures: list[str] = field(default_factory=list)
     reasoning: str = "default"      # a level from crucible.reasoning
+    run_uuid: str | None = None     # minted with the run directory
 
 
 @dataclass

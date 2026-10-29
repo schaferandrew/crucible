@@ -112,7 +112,9 @@ def _lmstudio(model_id: str) -> dict:
     base = providers.LMSTUDIO_BASE_URL.rsplit("/v1", 1)[0]
     info = _get(f"{base}/api/v0/models/{model_id}") or {}
     record = {"quantization": info.get("quantization"), "context_length": info.get("loaded_context_length"),
-              "max_context_length": info.get("max_context_length"), "arch": info.get("arch")}
+              "max_context_length": info.get("max_context_length"), "arch": info.get("arch"),
+              # Who converted the weights, and into what (gguf, mlx): the same model in two variants
+              "publisher": info.get("publisher"), "format": info.get("compatibility_type")}
     # The CLI talks to this machine's LM Studio, so it only describes a server on localhost
     if urlparse(base).hostname in LOCAL_HOSTS:
         record.update(lmstudio_device(model_id, _lms_json("ps"), _lms_json("link", "status")))
@@ -125,7 +127,14 @@ def _ollama(model_id: str) -> dict:
                    if m.get("name") == model_id or m.get("model") == model_id), {})
     details = show.get("details") or {}
     return {"quantization": details.get("quantization_level"), "context_length": loaded.get("context_length"),
-            "max_context_length": None, "arch": details.get("family")}
+            "max_context_length": None, "arch": details.get("family"),
+            "publisher": ollama_publisher(model_id), "format": "gguf"}
+
+
+def ollama_publisher(model_id: str) -> str | None:
+    """The namespace an Ollama model was pulled from ("unsloth" in hf.co/unsloth/qwen3:Q4), if any."""
+    namespace = model_id.split(":", 1)[0].split("/")[:-1]
+    return namespace[-1] if namespace else None
 
 
 PROVIDER_BASE_URLS = {
@@ -153,6 +162,45 @@ def inference(model: str | None) -> dict:
     }
     if provider in PROVIDER_DETAILS:
         record.update(PROVIDER_DETAILS[provider](model_id))
+    return record
+
+
+def reasoning_resolved(model: str | None, requested: str) -> str | None:
+    """The reasoning level the model actually ran at: the requested one, or for "default" what the
+    provider reports as the model's default (LM Studio lists it); None when that can't be told."""
+    if requested != "default":
+        return requested
+    try:
+        provider_def, model_id = providers.split_model(model or "")
+    except ValueError:
+        return None
+    if provider_def.name != "lmstudio":
+        return None
+    base = providers.LMSTUDIO_BASE_URL.rsplit("/v1", 1)[0]
+    for m in (_get(f"{base}/api/v1/models") or {}).get("models") or []:
+        ids = {m.get("key"), *(m.get("variants") or []), *(i.get("id") for i in m.get("loaded_instances") or [])}
+        if model_id in ids:
+            return ((m.get("capabilities") or {}).get("reasoning") or {}).get("default")
+    return None
+
+
+def endpoint(model: str | None, run_dir: Path) -> dict:
+    """Who served a cloud request: OpenRouter's upstream provider and the dated model it resolved to.
+
+    Read from the direct harness's response record, confirmed with OpenRouter's generation
+    endpoint when it answers; anything unknown stays None and never fails the run.
+    """
+    record = {"upstream": None, "resolved_model": None}
+    if not (model or "").startswith("openrouter/"):
+        return record
+    try:
+        response = json.loads((run_dir / "direct-response.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return record
+    generation = providers.fetch_openrouter_generation(response.get("generation_id")) or {}
+    upstream = generation.get("provider_name") or response.get("served_provider")
+    record["upstream"] = {"name": upstream, "quant": None} if upstream else None
+    record["resolved_model"] = response.get("served_model") or generation.get("model")
     return record
 
 
