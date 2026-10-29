@@ -1,9 +1,11 @@
-// Hidden acceptance tests for C11 v3 (editorial review from a product brief). Never copied into
-// the model's workspace. The judge copies this file to apps/api/test/hidden/ in a scratch copy
-// and runs:  npx vitest run test/hidden    (from apps/api)
+// Hidden acceptance tests for editorial-review-workflow (formerly CODE-11): editorial review from a
+// product brief. Never copied into the model's workspace. The grader (grader.yaml, isolated) runs
+// them from apps/api/test/hidden in a fresh copy of the seeded repo that takes only the model's
+// source folders; every test weighs the same.
 //
 // "contract" tests check the client contract the prompt spells out; "rules" tests check the
-// brief's rules it doesn't (no self-approval, private feedback, renames under review).
+// brief's rules it doesn't (private drafts everywhere, no self-approval, private feedback, renames
+// under review). Every test needs the review workflow to exist, so the seeded repo passes none.
 import request from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../../src/app";
@@ -101,6 +103,29 @@ describe("contract", () => {
     expect(drafts.body.articles.map((a: { slug: string }) => a.slug)).toEqual([d]);
     await request(app).get("/api/user/articles").expect(401);
   });
+
+  it("own articles: newest first, filtered by status, nobody else's", async () => {
+    const first = await draft(author, "Oldest");
+    await new Promise((r) => setTimeout(r, 5));
+    const second = await draft(author, "Middle");
+    await new Promise((r) => setTimeout(r, 5));
+    const third = await draft(author, "Newest");
+    await draft(reader, "Someone else's");
+    await request(app).post(`/api/articles/${second}/submit`).set(as(author)).expect(200);
+    const all = await request(app).get("/api/user/articles").set(as(author)).expect(200);
+    expect(all.body.articles.map((a: { slug: string }) => a.slug)).toEqual([third, second, first]);
+    expect(all.body.articles.map((a: { status: string }) => a.status)).toEqual(["draft", "in_review", "draft"]);
+    const inReview = await request(app).get("/api/user/articles?status=in_review").set(as(author)).expect(200);
+    expect(inReview.body.articles.map((a: { slug: string }) => a.slug)).toEqual([second]);
+    expect(inReview.body.articlesCount).toBe(1);
+  });
+
+  it("only the author submits a draft", async () => {
+    const slug = await draft(author, "Not yours");
+    await request(app).post(`/api/articles/${slug}/submit`).set(as(reader)).expect(403);
+    await request(app).post(`/api/articles/${slug}/submit`).expect(401);
+    expect((await request(app).get(`/api/articles/${slug}`).set(as(author)).expect(200)).body.article.status).toBe("draft");
+  });
 });
 
 describe("rules: unapproved work stays private", () => {
@@ -113,14 +138,37 @@ describe("rules: unapproved work stays private", () => {
     await request(app).post("/api/profiles/author/follow").set(as(reader)).expect(200);
   });
 
-  it("no list, filter or feed shows it", async () => {
-    for (const token of [undefined, reader, editor]) {
-      const headers = token ? as(token) : {};
-      for (const path of ["/api/articles", "/api/articles?author=author", "/api/articles?tag=leak", "/api/articles?favorited=author"]) {
-        const res = await request(app).get(path).set(headers).expect(200);
-        expect(res.body.articlesCount).toBe(0);
-      }
+  const signedOutReaderEditor = () => [undefined, reader, editor].map((t) => (t ? as(t) : {}));
+
+  it("the article list doesn't show it, signed in or out", async () => {
+    for (const headers of signedOutReaderEditor()) {
+      const res = await request(app).get("/api/articles").set(headers).expect(200);
+      expect(res.body.articlesCount).toBe(0);
+      expect(res.body.articles).toEqual([]);
     }
+  });
+
+  it("filtering by its author doesn't show it", async () => {
+    for (const headers of signedOutReaderEditor()) {
+      expect((await request(app).get("/api/articles?author=author").set(headers).expect(200)).body.articlesCount).toBe(0);
+    }
+  });
+
+  it("filtering by its tag doesn't show it", async () => {
+    for (const headers of signedOutReaderEditor()) {
+      expect((await request(app).get("/api/articles?tag=leak").set(headers).expect(200)).body.articlesCount).toBe(0);
+    }
+  });
+
+  it("filtering by who favorited it doesn't show it", async () => {
+    await request(app).post(`/api/articles/${hidden}/favorite`).set(as(author));
+    await request(app).post(`/api/articles/${review}/favorite`).set(as(editor));
+    for (const [fan, headers] of [["author", {}], ["author", as(reader)], ["ed", {}], ["ed", as(reader)]] as const) {
+      expect((await request(app).get(`/api/articles?favorited=${fan}`).set(headers).expect(200)).body.articlesCount).toBe(0);
+    }
+  });
+
+  it("a follower's feed doesn't show it", async () => {
     expect((await request(app).get("/api/articles/feed").set(as(reader)).expect(200)).body.articlesCount).toBe(0);
   });
 
@@ -128,16 +176,37 @@ describe("rules: unapproved work stays private", () => {
     expect((await request(app).get("/api/tags").expect(200)).body.tags).not.toContain("leak");
   });
 
-  it("direct access, comments and favorites 404 for anyone who can't see it", async () => {
+  it("direct access 404s for anyone who can't see it", async () => {
+    for (const [slug, token] of [[hidden, undefined], [hidden, reader], [hidden, editor], [review, undefined], [review, reader]] as const) {
+      await request(app).get(`/api/articles/${slug}`).set(token ? as(token) : {}).expect(404);
+    }
+  });
+
+  it("its comments 404 for anyone who can't see it", async () => {
     for (const [slug, token] of [[hidden, undefined], [hidden, reader], [hidden, editor], [review, reader]] as const) {
-      const headers = token ? as(token) : {};
-      await request(app).get(`/api/articles/${slug}`).set(headers).expect(404);
-      await request(app).get(`/api/articles/${slug}/comments`).set(headers).expect(404);
+      await request(app).get(`/api/articles/${slug}/comments`).set(token ? as(token) : {}).expect(404);
     }
     await request(app).post(`/api/articles/${hidden}/comments`).set(as(reader)).send({ comment: { body: "hi" } }).expect(404);
+    await request(app).post(`/api/articles/${review}/comments`).set(as(reader)).send({ comment: { body: "hi" } }).expect(404);
+  });
+
+  it("favoriting it 404s for anyone who can't see it", async () => {
     await request(app).post(`/api/articles/${hidden}/favorite`).set(as(reader)).expect(404);
+    await request(app).post(`/api/articles/${review}/favorite`).set(as(reader)).expect(404);
+    await request(app).delete(`/api/articles/${hidden}/favorite`).set(as(reader)).expect(404);
+  });
+
+  it("editing or deleting it 404s for anyone who can't see it, as for an article that doesn't exist", async () => {
+    await request(app).put(`/api/articles/${hidden}`).set(as(reader)).send({ article: { body: "hijack" } }).expect(404);
+    await request(app).delete(`/api/articles/${hidden}`).set(as(reader)).expect(404);
+    await request(app).delete(`/api/articles/${review}`).set(as(reader)).expect(404);
+    expect((await request(app).get(`/api/articles/${hidden}`).set(as(author)).expect(200)).body.article.body).toBe("b");
+  });
+
+  it("its author sees it, and editors see what's in review", async () => {
     await request(app).get(`/api/articles/${review}`).set(as(editor)).expect(200);
     await request(app).get(`/api/articles/${hidden}`).set(as(author)).expect(200);
+    await request(app).get(`/api/articles/${hidden}/comments`).set(as(author)).expect(200);
   });
 });
 
@@ -147,6 +216,21 @@ describe("rules: found in the brief, not the contract", () => {
     await request(app).post(`/api/articles/${slug}/submit`).set(as(editor)).expect(200);
     await request(app).post(`/api/articles/${slug}/approve`).set(as(editor)).expect(403);
     await request(app).post(`/api/articles/${slug}/approve`).set(as(editor2)).expect(200);
+  });
+
+  it("no one rejects their own work either", async () => {
+    const slug = await draft(editor, "Editor's second piece");
+    await request(app).post(`/api/articles/${slug}/submit`).set(as(editor)).expect(200);
+    await request(app).post(`/api/articles/${slug}/reject`).set(as(editor)).send({ review: { comment: "Fine by me" } }).expect(403);
+    await request(app).post(`/api/articles/${slug}/reject`).set(as(editor2)).send({ review: { comment: "Tighten it" } }).expect(200);
+  });
+
+  it("authors see why each article was sent back in their own list", async () => {
+    const slug = await draft(author, "Sent back once");
+    await request(app).post(`/api/articles/${slug}/submit`).set(as(author)).expect(200);
+    await request(app).post(`/api/articles/${slug}/reject`).set(as(editor)).send({ review: { comment: "Needs a source" } }).expect(200);
+    const mine = await request(app).get("/api/user/articles").set(as(author)).expect(200);
+    expect(mine.body.articles).toEqual([expect.objectContaining({ slug, status: "draft", reviewComment: "Needs a source" })]);
   });
 
   it("feedback never reaches the public, even after publishing", async () => {

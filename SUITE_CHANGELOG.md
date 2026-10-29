@@ -22,6 +22,16 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
   answer now scores 0 (it scored 4.0 and 2.0: an empty list had no repeated names and no undescribed
   ones). Only gemma-4-26b-a4b-qat's timed-out runs change.
 
+- **editorial-review-workflow (formerly CODE-11): rubric 3 → 4, still provisional.** The hidden tests
+  now run in a fresh copy of the seeded repo that takes only the model's source folders, and every
+  test weighs the same (25 hidden tests, up from 13: privacy split into one test per way a draft could
+  leak, plus own-articles ordering, who may submit, editing a hidden draft, no self-rejection, and
+  authors seeing feedback in their list), plus one for the model's own tests catching the bug.
+  Passing the seeded tests and leaving the contract suite untouched are now caps (5 and 4), not
+  points, so a run that changes nothing scores 0 instead of 2. Stored runs are rescored from their
+  workspaces: gpt-oss-20b and gemma-4-e4b 2.0 → 0, qwen3.5-9b 2.43 → 0.77, qwen3.6-35b-a3b
+  4.96 → 4.62, deepseek-v4.1-flash (task version 2) 9.33 → 9.23.
+
 ## Suite v1 (2026-10-28)
 
 The active tasks as scored on the dashboard on 2026-10-28: 24 tasks (21 chat, 3 agentic), at the

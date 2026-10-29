@@ -12,7 +12,11 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
-## Unreleased
+## 3.1.0 (2026-10-29)
+
+Scoring fixes and the first converted tasks for Suite v2: empty answers score 0, answer blocks
+can score detection tasks, and isolated graders handle workspaces monorepos with caps instead of free
+points.
 
 ### Added
 
@@ -21,6 +25,18 @@ here ([docs/versioning.md](docs/versioning.md)).
   value must be an expected one, so "18 June 1815" is 1815 and "1812 or 1815" fails). A value written as
   `wrong → right` (or `->`, `=>`) is scored on what follows the arrow, and block lines may be labelled
   `Line 4`, `Claim 4` or `Sentence 4` as well as `4`.
+- **Isolated graders for npm workspaces monorepos.** A `grader.yaml` can now declare `lockfile` (a
+  lockfile kept with the grader, for a seeded repo that has none), `test_roots` (which folder each
+  hidden test file runs in, e.g. `apps/api`), `existing_tests` (folders whose seeded tests must
+  still pass on the model's source), `unchanged` (files the model must leave as seeded) and
+  `regression_tests` (the model's own new tests must pass on its fix and catch the bug on the
+  seeded code, scored as one more test in the pool). The
+  install is cached per workspace manifest, and the workspace's own package links resolve to the
+  model's source in the grading copy, not to the cache.
+- **Caps under per-test scoring.** With `scoring: per_test`, the `existing` and `contract_unchanged`
+  criteria are caps (`cap_if_failed`), never points: they pass on the seeded repo, so a run that
+  changes nothing no longer earns them, and the score record lists them under `capped_at`, not as
+  criteria.
 
 ### Fixed
 
