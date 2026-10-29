@@ -12,7 +12,7 @@ Order (decision D10: all scoring fixes land here, on the 3.0.0 task track):
    - answer-block rewrites: WRIT-1a, WRIT-1b, WRIT-1c (B4), WRIT-2b, MATH-4, HIST-1, KNOW-4
    - graders: CODE-12, CODE-13, CODE-14, CODE-15 (B3)
    - agentic answers: TASK-1, TASK-2, TASK-4, TASK-5, TASK-6
-   - leak fixes from A2's report (B5 first)
+   - leak fixes from [A2's report](reports/A2-leak-scan.md): each conversion session fixes its own task's leaks; the CODE-13 and CODE-14 repos need the most work
    - retirements: CODE-1, CODE-2, CODE-4b, CODE-6, RSCH-1, RSCH-2, WRIT-2
 4. A Sonnet reviewer checks each branch: reference answer 10, empty answer 0, real wrong
    answers land where expected, lock updated, SUITE_CHANGELOG entry, only the task's files touched.
