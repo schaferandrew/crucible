@@ -1,0 +1,632 @@
+# Validation cases for proofread-customer-email (WRIT-1a, version 2, rubric 4), checked with validate.py.
+# Wrong answers are adapted from real runs of the earlier version where they exist, keeping their mistakes.
+- name: reference
+  expect: 10.0
+  answer: 'ERRORS:
+
+    - havent → haven''t
+
+    - crush → crushed
+
+    - one of the two items were damaged → one of the two items was damaged
+
+
+    CORRECTED:
+
+    Subject: Refund for order 84721
+
+
+    Hi Support,
+
+    I am writing because my order arrived three days late, and one of the two items
+    was damaged. I contacted support last week but I haven''t heard anything back.
+    The box was clearly crushed on one side, and the mug inside has a crack through
+    the handle. I would like a refund for the mug, but please let me know if you need
+    pictures of it. Also, your website says refunds are processed in 5-7 business
+    days, which seem to have passed already for my earlier request. Can you tell me
+    what the status is? Thanks for your help.
+
+
+    STYLE:
+
+    - Add a comma before "but".'
+- name: reference, prose before (quotes 'sorry' and fixes)
+  expect: 10.0
+  answer: 'The customer never says sorry, so I added no apology. I changed havent
+    to haven''t.
+
+
+    ERRORS:
+
+    - havent → haven''t
+
+    - crush → crushed
+
+    - one of the two items were damaged → one of the two items was damaged
+
+
+    CORRECTED:
+
+    Subject: Refund for order 84721
+
+
+    Hi Support,
+
+    I am writing because my order arrived three days late, and one of the two items
+    was damaged. I contacted support last week but I haven''t heard anything back.
+    The box was clearly crushed on one side, and the mug inside has a crack through
+    the handle. I would like a refund for the mug, but please let me know if you need
+    pictures of it. Also, your website says refunds are processed in 5-7 business
+    days, which seem to have passed already for my earlier request. Can you tell me
+    what the status is? Thanks for your help.
+
+
+    STYLE:
+
+    - Add a comma before "but".'
+- name: empty
+  expect: 0.0
+  answer: ''
+- name: whitespace only
+  expect: 0.0
+  answer: "  \n\n "
+- name: old format, no blocks
+  expect: 0.0
+  answer: '### Objective problems
+
+    havent -> haven''t, crush -> crushed.
+
+
+    ### Fixed version
+
+
+    Subject: Refund for order 84721
+
+
+    Hi Support,
+
+    I am writing because my order arrived three days late, and one of the two items
+    was damaged. I contacted support last week but I haven''t heard anything back.
+    The box was clearly crushed on one side, and the mug inside has a crack through
+    the handle. I would like a refund for the mug, but please let me know if you need
+    pictures of it. Also, your website says refunds are processed in 5-7 business
+    days, which seem to have passed already for my earlier request. Can you tell me
+    what the status is? Thanks for your help.'
+- name: bold headers
+  expect: 10.0
+  answer: '**ERRORS:**
+
+    - havent → haven''t
+
+    - crush → crushed
+
+    - one of the two items were damaged → one of the two items was damaged
+
+
+    **CORRECTED:**
+
+    Subject: Refund for order 84721
+
+
+    Hi Support,
+
+    I am writing because my order arrived three days late, and one of the two items
+    was damaged. I contacted support last week but I haven''t heard anything back.
+    The box was clearly crushed on one side, and the mug inside has a crack through
+    the handle. I would like a refund for the mug, but please let me know if you need
+    pictures of it. Also, your website says refunds are processed in 5-7 business
+    days, which seem to have passed already for my earlier request. Can you tell me
+    what the status is? Thanks for your help.
+
+
+    **STYLE:**
+
+    none'
+- name: '## headings, no colon'
+  expect: 10.0
+  answer: '## Errors
+
+
+    - havent → haven''t
+
+    - crush → crushed
+
+    - one of the two items were damaged → one of the two items was damaged
+
+
+    ## Corrected
+
+
+    Subject: Refund for order 84721
+
+
+    Hi Support,
+
+    I am writing because my order arrived three days late, and one of the two items
+    was damaged. I contacted support last week but I haven''t heard anything back.
+    The box was clearly crushed on one side, and the mug inside has a crack through
+    the handle. I would like a refund for the mug, but please let me know if you need
+    pictures of it. Also, your website says refunds are processed in 5-7 business
+    days, which seem to have passed already for my earlier request. Can you tell me
+    what the status is? Thanks for your help.
+
+
+    ## Style
+
+    none'
+- name: code fence around all
+  expect: 10.0
+  answer: '```
+
+    ERRORS:
+
+    - havent → haven''t
+
+    - crush → crushed
+
+    - one of the two items were damaged → one of the two items was damaged
+
+
+    CORRECTED:
+
+    Subject: Refund for order 84721
+
+
+    Hi Support,
+
+    I am writing because my order arrived three days late, and one of the two items
+    was damaged. I contacted support last week but I haven''t heard anything back.
+    The box was clearly crushed on one side, and the mug inside has a crack through
+    the handle. I would like a refund for the mug, but please let me know if you need
+    pictures of it. Also, your website says refunds are processed in 5-7 business
+    days, which seem to have passed already for my earlier request. Can you tell me
+    what the status is? Thanks for your help.
+
+    ```'
+- name: draft blocks then final
+  expect: 10.0
+  answer: 'ERRORS:
+
+    - havent → have
+
+
+    CORRECTED:
+
+    sorry draft
+
+
+    Wait, redo.
+
+
+    ERRORS:
+
+    - havent → haven''t
+
+    - crush → crushed
+
+    - one of the two items were damaged → one of the two items was damaged
+
+
+    CORRECTED:
+
+    Subject: Refund for order 84721
+
+
+    Hi Support,
+
+    I am writing because my order arrived three days late, and one of the two items
+    was damaged. I contacted support last week but I haven''t heard anything back.
+    The box was clearly crushed on one side, and the mug inside has a crack through
+    the handle. I would like a refund for the mug, but please let me know if you need
+    pictures of it. Also, your website says refunds are processed in 5-7 business
+    days, which seem to have passed already for my earlier request. Can you tell me
+    what the status is? Thanks for your help.
+
+
+    STYLE:
+
+    - Add a comma before "but".'
+- name: numbered, -> arrows, no STYLE
+  expect: 10.0
+  answer: 'ERRORS:
+
+    1. havent -> haven''t
+
+    2. crush -> crushed
+
+    3. items were damaged -> was damaged
+
+
+    CORRECTED:
+
+    Subject: Refund for order 84721
+
+
+    Hi Support,
+
+    I am writing because my order arrived three days late, and one of the two items
+    was damaged. I contacted support last week but I haven''t heard anything back.
+    The box was clearly crushed on one side, and the mug inside has a crack through
+    the handle. I would like a refund for the mug, but please let me know if you need
+    pictures of it. Also, your website says refunds are processed in 5-7 business
+    days, which seem to have passed already for my earlier request. Can you tell me
+    what the status is? Thanks for your help.'
+- name: singular header, first line on header line
+  expect: 10.0
+  answer: 'ERROR: havent → haven''t
+
+    crush → crushed
+
+    items were damaged → was damaged
+
+
+    CORRECTED:
+
+    Subject: Refund for order 84721
+
+
+    Hi Support,
+
+    I am writing because my order arrived three days late, and one of the two items
+    was damaged. I contacted support last week but I haven''t heard anything back.
+    The box was clearly crushed on one side, and the mug inside has a crack through
+    the handle. I would like a refund for the mug, but please let me know if you need
+    pictures of it. Also, your website says refunds are processed in 5-7 business
+    days, which seem to have passed already for my earlier request. Can you tell me
+    what the status is? Thanks for your help.
+
+
+    STYLE: none'
+- name: CORRECTED as last block, email on the header line
+  expect: 10.0
+  answer: 'ERRORS:
+
+    - havent → haven''t
+
+    - crush → crushed
+
+    - one of the two items were damaged → one of the two items was damaged
+
+
+    CORRECTED: Subject: Refund for order 84721
+
+
+    Hi Support,
+
+    I am writing because my order arrived three days late, and one of the two items
+    was damaged. I contacted support last week but I haven''t heard anything back.
+    The box was clearly crushed on one side, and the mug inside has a crack through
+    the handle. I would like a refund for the mug, but please let me know if you need
+    pictures of it. Also, your website says refunds are processed in 5-7 business
+    days, which seem to have passed already for my earlier request. Can you tell me
+    what the status is? Thanks for your help.'
+- name: curly apostrophe, non-breaking hyphen
+  expect: 10.0
+  answer: 'ERRORS:
+
+    - havent → haven’t
+
+    - crush → crushed
+
+    - one of the two items were damaged → one of the two items was damaged
+
+
+    CORRECTED:
+
+    Subject: Refund for order 84721
+
+
+    Hi Support,
+
+    I am writing because my order arrived three days late, and one of the two items
+    was damaged. I contacted support last week but I haven’t heard anything back.
+    The box was clearly crushed on one side, and the mug inside has a crack through
+    the handle. I would like a refund for the mug, but please let me know if you need
+    pictures of it. Also, your website says refunds are processed in 5‑7 business
+    days, which seem to have passed already for my earlier request. Can you tell me
+    what the status is? Thanks for your help.
+
+
+    STYLE:
+
+    - Add a comma before "but".'
+- name: bold fixes in lines
+  expect: 10.0
+  answer: 'ERRORS:
+
+    - **havent** → **haven''t**
+
+    - crush → crushed
+
+    - one of the two items were damaged → one of the two items was damaged
+
+
+    CORRECTED:
+
+    Subject: Refund for order 84721
+
+
+    Hi Support,
+
+    I am writing because my order arrived three days late, and one of the two items
+    was damaged. I contacted support last week but I haven''t heard anything back.
+    The box was clearly crushed on one side, and the mug inside has a crack through
+    the handle. I would like a refund for the mug, but please let me know if you need
+    pictures of it. Also, your website says refunds are processed in 5-7 business
+    days, which seem to have passed already for my earlier request. Can you tell me
+    what the status is? Thanks for your help.
+
+
+    STYLE:
+
+    - Add a comma before "but".'
+- name: ERRORS block only, no email
+  expect: 3.08
+  answer: 'ERRORS:
+
+    - havent → haven''t
+
+    - crush → crushed
+
+    - one of the two items were damaged → one of the two items was damaged'
+- name: extra style line in ERRORS
+  expect: 9.23
+  answer: 'ERRORS:
+
+    - havent → haven''t
+
+    - crush → crushed
+
+    - one of the two items were damaged → one of the two items was damaged
+
+    - last week but → last week, but
+
+
+    CORRECTED:
+
+    Subject: Refund for order 84721
+
+
+    Hi Support,
+
+    I am writing because my order arrived three days late, and one of the two items
+    was damaged. I contacted support last week but I haven''t heard anything back.
+    The box was clearly crushed on one side, and the mug inside has a crack through
+    the handle. I would like a refund for the mug, but please let me know if you need
+    pictures of it. Also, your website says refunds are processed in 5-7 business
+    days, which seem to have passed already for my earlier request. Can you tell me
+    what the status is? Thanks for your help.'
+- name: apology added in CORRECTED
+  expect: 9.23
+  answer: 'ERRORS:
+
+    - havent → haven''t
+
+    - crush → crushed
+
+    - one of the two items were damaged → one of the two items was damaged
+
+
+    CORRECTED:
+
+    Subject: Refund for order 84721
+
+
+    Hi Support,
+
+    I am writing because my order arrived three days late, and one of the two items
+    was damaged. I contacted support last week but I haven''t heard anything back.
+    The box was clearly crushed on one side, and the mug inside has a crack through
+    the handle. I would like a refund for the mug, but please let me know if you need
+    pictures of it. Also, your website says refunds are processed in 5-7 business
+    days, which seem to have passed already for my earlier request. Can you tell me
+    what the status is? Sorry for the trouble. Thanks for your help.'
+- name: fixes quoted in prose only
+  expect: 0.77
+  answer: 'I would fix havent → haven''t, crush → crushed and items were damaged →
+    was damaged.
+
+
+    CORRECTED:
+
+    Subject: hi'
+- name: agreement missed everywhere
+  expect: 8.46
+  answer: 'ERRORS:
+
+    - havent → haven''t
+
+    - crush → crushed
+
+
+    CORRECTED:
+
+    Subject: Refund for order 84721
+
+
+    Hi Support,
+
+    I am writing because my order arrived three days late, and one of the two items
+    were damaged. I contacted support last week but I haven''t heard anything back.
+    The box was clearly crushed on one side, and the mug inside has a crack through
+    the handle. I would like a refund for the mug, but please let me know if you need
+    pictures of it. Also, your website says refunds are processed in 5-7 business
+    days, which seem to have passed already for my earlier request. Can you tell me
+    what the status is? Thanks for your help.'
+- name: facts dropped (no mug/handle/order)
+  expect: 7.69
+  answer: 'ERRORS:
+
+    - havent → haven''t
+
+    - crush → crushed
+
+    - one of the two items were damaged → one of the two items was damaged
+
+
+    CORRECTED:
+
+    Hi Support, my order arrived three days late and one of the two items was damaged.
+    I haven''t heard back and the box was crushed. Refunds take 5-7 business days.'
+- name: real gpt-6-luna adapted (comma line in ERRORS)
+  expect: 9.23
+  answer: '### Objective errors
+
+    ERRORS:
+
+    - “one of the two items were damaged” → “one of the two items was damaged”
+
+    - “havent” → “haven’t”
+
+    - “was clearly crush” → “was clearly crushed”
+
+    - “last week but” → “last week, but”
+
+
+    CORRECTED:
+
+    Subject: Refund for order 84721
+
+
+    Hi Support,
+
+    I am writing because my order arrived three days late, and one of the two items
+    was damaged. I contacted support last week but I haven’t heard anything back.
+    The box was clearly crushed on one side, and the mug inside has a crack through
+    the handle. I would like a refund for the mug, but please let me know if you need
+    pictures of it. Also, your website says refunds are processed in 5–7 business
+    days, and that timeframe seems to have passed since my earlier request. Can you
+    tell me what the status is? Thanks for your help.
+
+
+    STYLE:
+
+    - Use an en dash in 5–7 business days.'
+- name: real gpt-oss-20b adapted (seem→seems in ERRORS)
+  expect: 9.23
+  answer: '**Identified Objective Errors**
+
+
+    ERRORS:
+
+    1. “one of the two items were damaged.” → “one of the two items was damaged.”
+
+    2. “I contacted support last week but I havent heard anything back.” → “I contacted
+    support last week, but I haven’t heard anything back.”
+
+    3. “The box was clearly crush on one side,” → “The box was clearly crushed on
+    one side,”
+
+    4. “which seem to have passed” → “which seems to have passed”
+
+
+    CORRECTED:
+
+
+    **Subject:** Refund for order 84721
+
+
+    Hi Support,
+
+
+    I am writing because my order arrived three days late, and one of the two items
+    was damaged. I contacted support last week, but I haven’t heard anything back.
+    The box was clearly crushed on one side, and the mug inside has a crack through
+    the handle. I would like a refund for the mug; please let me know if you need
+    pictures of it.
+
+
+    Also, your website says refunds are processed in 5‑7 business days, which seems
+    to have passed already for my earlier request. Can you tell me what the status
+    is?
+
+
+    Thanks for your help.
+
+
+    STYLE:
+
+    - Add a comma after “Hi Support,”'
+- name: real gemma-4-e4b adapted (seems, 'states', en dash)
+  expect: 9.23
+  answer: 'ERRORS:
+
+    1. "one of the two items were damaged." → "was damaged."
+
+    2. "I havent heard" → "I haven''t heard"
+
+    3. "clearly crush on one side" → "clearly crushed on one side"
+
+    4. "which seem to have passed" → "which seems to have passed"
+
+
+    CORRECTED:
+
+    **Subject: Refund Request – Order 84721**
+
+
+    Hi Support,
+
+
+    I am writing because my order arrived three days late, and one of the two items
+    was damaged. I contacted support last week but I haven''t heard anything back
+    regarding this issue.
+
+
+    The box was clearly crushed on one side, and the mug inside has a crack through
+    the handle. I would like a refund for the mug, but please let me know if you require
+    pictures of it.
+
+
+    Also, your website states that refunds are processed within 5–7 business days,
+    which seems to have passed already since my initial request. Could you please
+    provide an update on the status of this return?
+
+
+    Thank you for your help.
+
+
+    STYLE:
+
+    1. Conciseness.
+
+    2. Tone.'
+- name: real qwen3.5-9b adapted (comma line, rewritten opening)
+  expect: 9.23
+  answer: 'ERRORS:
+
+    - one of the two items were damaged → one of the two items was damaged
+
+    - havent → haven''t
+
+    - box was clearly crush → box was clearly crushed
+
+    - last week but I → last week, but I
+
+
+    CORRECTED:
+
+    **Subject:** Refund for order 84721
+
+
+    Hello Support Team,
+
+
+    I am writing regarding my order, which arrived three days late. One of the two
+    items was damaged. I contacted support last week, but I haven''t heard anything
+    back yet. The box was clearly crushed on one side, and the mug inside has a crack
+    through the handle.
+
+
+    I would like a refund for the mug; please let me know if you need pictures of
+    it. Also, your website says refunds are processed in 5-7 business days, which
+    seems to have passed already for my earlier request. Can you tell me what the
+    status is?
+
+
+    Thank you for your help.
+
+
+    STYLE:
+
+    - "Hello Support Team," is more standard.'

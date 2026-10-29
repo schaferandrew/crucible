@@ -1,0 +1,13 @@
+# Validation cases for household-money-math (MATH-2, version 1, rubric 2), checked with validate.py.
+# Wrong answers are adapted from real runs of the earlier version where they exist, keeping their mistakes.
+- {name: reference, expect: 10.0, answer: "Working.\n\nANSWERS\n1. $5,636.36\n2. 87 boxes\n3. $47.14\n4. $54.34"}
+- {name: reference bold header colon, expect: 10.0, answer: "**ANSWERS:**\n1. $5,636.36\n2. 87\n3. $47.14\n4. $54.34"}
+- {name: reference heading + fenced + LaTeX dollars, expect: 10.0, answer: "# ANSWERS\n```\n1) \\$5,636.36\n2) 87 boxes\n3) \\$47.14\n4) \\$54.34\n```"}
+- {name: reference Q labels no cents sep, expect: 10.0, answer: "Answers:\nQ1: 5636.36\nQ2: 87.0\nQ3: 47.14\nQ4: 54.34 each"}
+- {name: draft then final block, expect: 10.0, answer: "ANSWERS\n1. 1\n2. 1\n3. 1\n4. 1\n\nrecheck\n\nANSWERS\n1. $5,636.36\n2. 87\n3. $47.14\n4. $54.34"}
+- {name: empty, expect: 0.0, answer: ""}
+- {name: whitespace, expect: 0.0, answer: "  \n\n "}
+- {name: no block (answers only in prose), expect: 0.0, answer: "1. $5,636.36 2. 87 3. $47.14 4. $54.34 but no header"}
+- {name: gemma-4-e4b real (only 87 right), expect: 2.5, answer: "ANSWERS\n1. $\\$5,665.49$\n2. 87 boxes\n3. $\\$47.13$\n4. $\\$50.74$"}
+- {name: qwen reasoning-off real (3 of 4), expect: 7.5, answer: "ANSWERS\n1. $5,636.36\n2. 87 boxes\n3. $47.14\n4. $50.74"}
+- {name: gpt-oss real (87 and 47.14), expect: 5.0, answer: "**ANSWERS**\n\n1. **$5 637.50**\n2. **87 boxes**\n3. **$47.14**\n4. **$46.60**"}

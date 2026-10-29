@@ -1,0 +1,16 @@
+# Validation cases for letter-from-1863 (HIST-3, version 1, rubric 2), checked with validate.py.
+# Wrong answers are adapted from real runs of the earlier version where they exist, keeping their mistakes.
+- {name: reference, expect: 10.0, answer: "ANACHRONISMS: c, f, g, j, k"}
+- {name: reference prose first, expect: 10.0, answer: "a) fine\nb) fine\nc) impossible\n\nANACHRONISMS: c, f, g, j, k"}
+- {name: reference bold no spaces uppercase, expect: 10.0, answer: "**ANACHRONISMS:** C,F,G,J,K"}
+- {name: reference heading + fence, expect: 10.0, answer: "## Anachronisms\n```\nc, f, g, j, k\n```"}
+- {name: reference header alone then line, expect: 10.0, answer: "ANACHRONISMS:\nc, f, g, j, k"}
+- {name: draft then final, expect: 10.0, answer: "ANACHRONISMS: a, b\n\nOn reflection:\n\nANACHRONISMS: c, f, g, j, k"}
+- {name: empty, expect: 0.0, answer: ""}
+- {name: whitespace, expect: 0.0, answer: " \n\n"}
+- {name: no line, expect: 0.0, answer: "c, f, g, j and k are impossible."}
+- {name: flag everything, expect: 4.55, answer: "ANACHRONISMS: a, b, c, d, e, f, g, h, i, j, k"}
+- {name: flag nothing, expect: 5.45, answer: "ANACHRONISMS: none"}
+- {name: gemma-4-12b ro real (f g h k), expect: 7.27, answer: "ANACHRONISMS: f, g, h, k"}
+- {name: gemma-4-e4b real (c g i), expect: 6.36, answer: "ANACHRONISMS: c, g, i"}
+- {name: gemma-4-e4b ro real (c g), expect: 7.27, answer: "ANACHRONISMS: c, g"}

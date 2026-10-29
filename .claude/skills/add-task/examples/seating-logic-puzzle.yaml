@@ -1,0 +1,17 @@
+# Validation cases for seating-logic-puzzle (MATH-4, version 3, rubric 3), checked with validate.py.
+# Wrong answers are adapted from real runs of the earlier version where they exist, keeping their mistakes.
+- {name: reference, expect: 10.0, answer: "Chair 1: Alice, green\nChair 2: Bob, blue\nChair 3: Dave, red\nChair 4: Carol, yellow\nANSWER: Dave"}
+- {name: reference prose first, expect: 10.0, answer: "Dave is red so Carol is right of him.\n\nChair 1: Alice, green\nChair 2: Bob, blue\nChair 3: Dave, red\nChair 4: Carol, yellow\n\nANSWER: Dave"}
+- {name: reference bold + bullets + capitalised colours, expect: 10.0, answer: "*   **Chair 1: Alice, Green**\n*   Chair 2: Bob, Blue\n*   Chair 3: Dave (Red)\n*   Chair 4: Carol - Yellow\n**ANSWER: Dave**"}
+- {name: reference fenced, expect: 10.0, answer: "```\nChair 1: Alice, green\nChair 2: Bob, blue\nChair 3: Dave, red\nChair 4: Carol, yellow\nANSWER: Dave\n```"}
+- {name: draft seating then corrected, expect: 10.0, answer: "Chair 3: Carol, red\nANSWER: Carol\n\nWrong. Final:\nChair 1: Alice, green\nChair 2: Bob, blue\nChair 3: Dave, red\nChair 4: Carol, yellow\nANSWER: Dave."}
+- {name: no assumptions stated (still 10), expect: 10.0, answer: "Chair 1: Alice, green\nChair 2: Bob, blue\nChair 3: Dave, red\nChair 4: Carol, yellow\nANSWER: Dave"}
+- {name: empty, expect: 0.0, answer: ""}
+- {name: whitespace, expect: 0.0, answer: "\n \n"}
+- {name: prose only, expect: 0.0, answer: "Dave sits in chair 3."}
+- {name: table only and bold answer sentence (deepseek run), expect: 0.0, answer: "| Chair | Person | Color |\n|---|---|---|\n| 3 | Dave | red |\n\n**Dave sits in chair 3.**"}
+- {name: answer only, expect: 2.0, answer: "ANSWER: Dave"}
+- {name: seating right answer wrong, expect: 8.0, answer: "Chair 1: Alice, green\nChair 2: Bob, blue\nChair 3: Dave, red\nChair 4: Carol, yellow\nANSWER: Carol"}
+- {name: chairs 3 and 4 swapped, expect: 4.0, answer: "Chair 1: Alice, green\nChair 2: Bob, blue\nChair 3: Carol, yellow\nChair 4: Dave, red\nANSWER: Carol"}
+- {name: colours missing, expect: 2.0, answer: "Chair 1: Alice\nChair 2: Bob\nChair 3: Dave\nChair 4: Carol\nANSWER: Dave"}
+- {name: qwen real (Answer Dave only and no Chair lines), expect: 2.0, answer: "1.  Alice (Green)\n2.  Bob (Blue)\n3.  **Dave** (Red)\n4.  Carol (Yellow)\n\nThe person who sits in chair 3 is Dave.\n\n**Answer:** Dave"}

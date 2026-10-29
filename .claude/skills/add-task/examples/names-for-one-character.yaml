@@ -1,0 +1,968 @@
+# Validation cases for names-for-one-character (WRIT-2b, version 2, rubric 4), checked with validate.py.
+# Wrong answers are adapted from real runs of the earlier version where they exist, keeping their mistakes.
+- name: reference
+  expect: 10.0
+  answer: 'NAMES:
+
+    1. Wanda Kowalczyk — a plain, dry name that suits her guarded ambition
+
+    2. Teresa Nowicki — a plain, dry name that suits her guarded ambition
+
+    3. Jolene Wisniewski — a plain, dry name that suits her guarded ambition
+
+    4. Marta Lewandowski — a plain, dry name that suits her guarded ambition
+
+    5. Ingrid Zielinski — a plain, dry name that suits her guarded ambition
+
+    6. Dorothy Mazur — a plain, dry name that suits her guarded ambition
+
+    7. Gwen Pawlak — a plain, dry name that suits her guarded ambition
+
+    8. Lorraine Kaminski — a plain, dry name that suits her guarded ambition
+
+    9. Renata Sobczak — a plain, dry name that suits her guarded ambition
+
+    10. Nadine Wojcik — a plain, dry name that suits her guarded ambition
+
+    11. Colleen Dudek — a plain, dry name that suits her guarded ambition
+
+    12. Helen Krol — a plain, dry name that suits her guarded ambition
+
+    13. Joanna Przybylski — a plain, dry name that suits her guarded ambition
+
+    14. Beth Adamczyk — a plain, dry name that suits her guarded ambition
+
+    15. Susan Majewski — a plain, dry name that suits her guarded ambition
+
+    16. Tamara Gorski — a plain, dry name that suits her guarded ambition
+
+    17. Ellen Sadowski — a plain, dry name that suits her guarded ambition
+
+    18. Patricia Kubiak — a plain, dry name that suits her guarded ambition
+
+    19. Rosalind Stasiak — a plain, dry name that suits her guarded ambition
+
+    20. Vera Jablonski — a plain, dry name that suits her guarded ambition
+
+
+    TOP FIVE:
+
+    1. Wanda Kowalczyk
+
+    2. Teresa Nowicki
+
+    3. Jolene Wisniewski
+
+    4. Marta Lewandowski
+
+    5. Ingrid Zielinski'
+- name: reference, prose before
+  expect: 10.0
+  answer: 'Working through the brief, I avoided pierogi-style names.
+
+
+    NAMES:
+
+    1. Wanda Kowalczyk — a plain, dry name that suits her guarded ambition
+
+    2. Teresa Nowicki — a plain, dry name that suits her guarded ambition
+
+    3. Jolene Wisniewski — a plain, dry name that suits her guarded ambition
+
+    4. Marta Lewandowski — a plain, dry name that suits her guarded ambition
+
+    5. Ingrid Zielinski — a plain, dry name that suits her guarded ambition
+
+    6. Dorothy Mazur — a plain, dry name that suits her guarded ambition
+
+    7. Gwen Pawlak — a plain, dry name that suits her guarded ambition
+
+    8. Lorraine Kaminski — a plain, dry name that suits her guarded ambition
+
+    9. Renata Sobczak — a plain, dry name that suits her guarded ambition
+
+    10. Nadine Wojcik — a plain, dry name that suits her guarded ambition
+
+    11. Colleen Dudek — a plain, dry name that suits her guarded ambition
+
+    12. Helen Krol — a plain, dry name that suits her guarded ambition
+
+    13. Joanna Przybylski — a plain, dry name that suits her guarded ambition
+
+    14. Beth Adamczyk — a plain, dry name that suits her guarded ambition
+
+    15. Susan Majewski — a plain, dry name that suits her guarded ambition
+
+    16. Tamara Gorski — a plain, dry name that suits her guarded ambition
+
+    17. Ellen Sadowski — a plain, dry name that suits her guarded ambition
+
+    18. Patricia Kubiak — a plain, dry name that suits her guarded ambition
+
+    19. Rosalind Stasiak — a plain, dry name that suits her guarded ambition
+
+    20. Vera Jablonski — a plain, dry name that suits her guarded ambition
+
+
+    TOP FIVE:
+
+    1. Wanda Kowalczyk
+
+    2. Teresa Nowicki
+
+    3. Jolene Wisniewski
+
+    4. Marta Lewandowski
+
+    5. Ingrid Zielinski'
+- name: empty
+  expect: 0.0
+  answer: ''
+- name: whitespace only
+  expect: 0.0
+  answer: " \n"
+- name: old format, list only
+  expect: 0.0
+  answer: '1. Wanda Kowalczyk
+
+    2. Teresa Nowicki
+
+    3. Jolene Wisniewski
+
+    4. Marta Lewandowski
+
+    5. Ingrid Zielinski
+
+    6. Dorothy Mazur
+
+    7. Gwen Pawlak
+
+    8. Lorraine Kaminski
+
+    9. Renata Sobczak
+
+    10. Nadine Wojcik
+
+    11. Colleen Dudek
+
+    12. Helen Krol
+
+    13. Joanna Przybylski
+
+    14. Beth Adamczyk
+
+    15. Susan Majewski
+
+    16. Tamara Gorski
+
+    17. Ellen Sadowski
+
+    18. Patricia Kubiak
+
+    19. Rosalind Stasiak
+
+    20. Vera Jablonski'
+- name: bold headers, bold names
+  expect: 10.0
+  answer: '**NAMES:**
+
+    1. **Wanda Kowalczyk** — a plain, dry name that suits her guarded ambition
+
+    2. Teresa Nowicki — a plain, dry name that suits her guarded ambition
+
+    3. Jolene Wisniewski — a plain, dry name that suits her guarded ambition
+
+    4. Marta Lewandowski — a plain, dry name that suits her guarded ambition
+
+    5. Ingrid Zielinski — a plain, dry name that suits her guarded ambition
+
+    6. Dorothy Mazur — a plain, dry name that suits her guarded ambition
+
+    7. Gwen Pawlak — a plain, dry name that suits her guarded ambition
+
+    8. Lorraine Kaminski — a plain, dry name that suits her guarded ambition
+
+    9. Renata Sobczak — a plain, dry name that suits her guarded ambition
+
+    10. Nadine Wojcik — a plain, dry name that suits her guarded ambition
+
+    11. Colleen Dudek — a plain, dry name that suits her guarded ambition
+
+    12. Helen Krol — a plain, dry name that suits her guarded ambition
+
+    13. Joanna Przybylski — a plain, dry name that suits her guarded ambition
+
+    14. Beth Adamczyk — a plain, dry name that suits her guarded ambition
+
+    15. Susan Majewski — a plain, dry name that suits her guarded ambition
+
+    16. Tamara Gorski — a plain, dry name that suits her guarded ambition
+
+    17. Ellen Sadowski — a plain, dry name that suits her guarded ambition
+
+    18. Patricia Kubiak — a plain, dry name that suits her guarded ambition
+
+    19. Rosalind Stasiak — a plain, dry name that suits her guarded ambition
+
+    20. Vera Jablonski — a plain, dry name that suits her guarded ambition
+
+
+    **TOP FIVE:**
+
+    1. **Wanda Kowalczyk**
+
+    2. Teresa Nowicki
+
+    3. Jolene Wisniewski
+
+    4. Marta Lewandowski
+
+    5. Ingrid Zielinski'
+- name: '## headings'
+  expect: 10.0
+  answer: '## Names
+
+
+    1. Wanda Kowalczyk — a plain, dry name that suits her guarded ambition
+
+    2. Teresa Nowicki — a plain, dry name that suits her guarded ambition
+
+    3. Jolene Wisniewski — a plain, dry name that suits her guarded ambition
+
+    4. Marta Lewandowski — a plain, dry name that suits her guarded ambition
+
+    5. Ingrid Zielinski — a plain, dry name that suits her guarded ambition
+
+    6. Dorothy Mazur — a plain, dry name that suits her guarded ambition
+
+    7. Gwen Pawlak — a plain, dry name that suits her guarded ambition
+
+    8. Lorraine Kaminski — a plain, dry name that suits her guarded ambition
+
+    9. Renata Sobczak — a plain, dry name that suits her guarded ambition
+
+    10. Nadine Wojcik — a plain, dry name that suits her guarded ambition
+
+    11. Colleen Dudek — a plain, dry name that suits her guarded ambition
+
+    12. Helen Krol — a plain, dry name that suits her guarded ambition
+
+    13. Joanna Przybylski — a plain, dry name that suits her guarded ambition
+
+    14. Beth Adamczyk — a plain, dry name that suits her guarded ambition
+
+    15. Susan Majewski — a plain, dry name that suits her guarded ambition
+
+    16. Tamara Gorski — a plain, dry name that suits her guarded ambition
+
+    17. Ellen Sadowski — a plain, dry name that suits her guarded ambition
+
+    18. Patricia Kubiak — a plain, dry name that suits her guarded ambition
+
+    19. Rosalind Stasiak — a plain, dry name that suits her guarded ambition
+
+    20. Vera Jablonski — a plain, dry name that suits her guarded ambition
+
+
+    ## Top five
+
+
+    1. Wanda Kowalczyk
+
+    2. Teresa Nowicki
+
+    3. Jolene Wisniewski
+
+    4. Marta Lewandowski
+
+    5. Ingrid Zielinski'
+- name: fenced
+  expect: 10.0
+  answer: '```
+
+    NAMES:
+
+    1. Wanda Kowalczyk — a plain, dry name that suits her guarded ambition
+
+    2. Teresa Nowicki — a plain, dry name that suits her guarded ambition
+
+    3. Jolene Wisniewski — a plain, dry name that suits her guarded ambition
+
+    4. Marta Lewandowski — a plain, dry name that suits her guarded ambition
+
+    5. Ingrid Zielinski — a plain, dry name that suits her guarded ambition
+
+    6. Dorothy Mazur — a plain, dry name that suits her guarded ambition
+
+    7. Gwen Pawlak — a plain, dry name that suits her guarded ambition
+
+    8. Lorraine Kaminski — a plain, dry name that suits her guarded ambition
+
+    9. Renata Sobczak — a plain, dry name that suits her guarded ambition
+
+    10. Nadine Wojcik — a plain, dry name that suits her guarded ambition
+
+    11. Colleen Dudek — a plain, dry name that suits her guarded ambition
+
+    12. Helen Krol — a plain, dry name that suits her guarded ambition
+
+    13. Joanna Przybylski — a plain, dry name that suits her guarded ambition
+
+    14. Beth Adamczyk — a plain, dry name that suits her guarded ambition
+
+    15. Susan Majewski — a plain, dry name that suits her guarded ambition
+
+    16. Tamara Gorski — a plain, dry name that suits her guarded ambition
+
+    17. Ellen Sadowski — a plain, dry name that suits her guarded ambition
+
+    18. Patricia Kubiak — a plain, dry name that suits her guarded ambition
+
+    19. Rosalind Stasiak — a plain, dry name that suits her guarded ambition
+
+    20. Vera Jablonski — a plain, dry name that suits her guarded ambition
+
+
+    TOP FIVE:
+
+    1. Wanda Kowalczyk
+
+    2. Teresa Nowicki
+
+    3. Jolene Wisniewski
+
+    4. Marta Lewandowski
+
+    5. Ingrid Zielinski
+
+    ```'
+- name: bullets, hyphen separators
+  expect: 10.0
+  answer: 'NAMES:
+
+    - Wanda Kowalczyk - a plain, dry name that suits her guarded ambition
+
+    - Teresa Nowicki - a plain, dry name that suits her guarded ambition
+
+    3. Jolene Wisniewski - a plain, dry name that suits her guarded ambition
+
+    4. Marta Lewandowski - a plain, dry name that suits her guarded ambition
+
+    5. Ingrid Zielinski - a plain, dry name that suits her guarded ambition
+
+    6. Dorothy Mazur - a plain, dry name that suits her guarded ambition
+
+    7. Gwen Pawlak - a plain, dry name that suits her guarded ambition
+
+    8. Lorraine Kaminski - a plain, dry name that suits her guarded ambition
+
+    9. Renata Sobczak - a plain, dry name that suits her guarded ambition
+
+    10. Nadine Wojcik - a plain, dry name that suits her guarded ambition
+
+    11. Colleen Dudek - a plain, dry name that suits her guarded ambition
+
+    12. Helen Krol - a plain, dry name that suits her guarded ambition
+
+    13. Joanna Przybylski - a plain, dry name that suits her guarded ambition
+
+    14. Beth Adamczyk - a plain, dry name that suits her guarded ambition
+
+    15. Susan Majewski - a plain, dry name that suits her guarded ambition
+
+    16. Tamara Gorski - a plain, dry name that suits her guarded ambition
+
+    17. Ellen Sadowski - a plain, dry name that suits her guarded ambition
+
+    18. Patricia Kubiak - a plain, dry name that suits her guarded ambition
+
+    19. Rosalind Stasiak - a plain, dry name that suits her guarded ambition
+
+    20. Vera Jablonski - a plain, dry name that suits her guarded ambition
+
+
+    TOP FIVE:
+
+    - Wanda Kowalczyk
+
+    - Teresa Nowicki
+
+    3. Jolene Wisniewski
+
+    4. Marta Lewandowski
+
+    5. Ingrid Zielinski'
+- name: draft then final
+  expect: 10.0
+  answer: 'NAMES:
+
+    1. Bad
+
+
+    TOP FIVE:
+
+    1. Bad
+
+
+    Redo.
+
+
+    NAMES:
+
+    1. Wanda Kowalczyk — a plain, dry name that suits her guarded ambition
+
+    2. Teresa Nowicki — a plain, dry name that suits her guarded ambition
+
+    3. Jolene Wisniewski — a plain, dry name that suits her guarded ambition
+
+    4. Marta Lewandowski — a plain, dry name that suits her guarded ambition
+
+    5. Ingrid Zielinski — a plain, dry name that suits her guarded ambition
+
+    6. Dorothy Mazur — a plain, dry name that suits her guarded ambition
+
+    7. Gwen Pawlak — a plain, dry name that suits her guarded ambition
+
+    8. Lorraine Kaminski — a plain, dry name that suits her guarded ambition
+
+    9. Renata Sobczak — a plain, dry name that suits her guarded ambition
+
+    10. Nadine Wojcik — a plain, dry name that suits her guarded ambition
+
+    11. Colleen Dudek — a plain, dry name that suits her guarded ambition
+
+    12. Helen Krol — a plain, dry name that suits her guarded ambition
+
+    13. Joanna Przybylski — a plain, dry name that suits her guarded ambition
+
+    14. Beth Adamczyk — a plain, dry name that suits her guarded ambition
+
+    15. Susan Majewski — a plain, dry name that suits her guarded ambition
+
+    16. Tamara Gorski — a plain, dry name that suits her guarded ambition
+
+    17. Ellen Sadowski — a plain, dry name that suits her guarded ambition
+
+    18. Patricia Kubiak — a plain, dry name that suits her guarded ambition
+
+    19. Rosalind Stasiak — a plain, dry name that suits her guarded ambition
+
+    20. Vera Jablonski — a plain, dry name that suits her guarded ambition
+
+
+    TOP FIVE:
+
+    1. Wanda Kowalczyk
+
+    2. Teresa Nowicki
+
+    3. Jolene Wisniewski
+
+    4. Marta Lewandowski
+
+    5. Ingrid Zielinski'
+- name: only 19 names
+  expect: 8.33
+  answer: 'NAMES:
+
+    1. Wanda Kowalczyk — a plain, dry name that suits her guarded ambition
+
+    2. Teresa Nowicki — a plain, dry name that suits her guarded ambition
+
+    3. Jolene Wisniewski — a plain, dry name that suits her guarded ambition
+
+    4. Marta Lewandowski — a plain, dry name that suits her guarded ambition
+
+    5. Ingrid Zielinski — a plain, dry name that suits her guarded ambition
+
+    6. Dorothy Mazur — a plain, dry name that suits her guarded ambition
+
+    7. Gwen Pawlak — a plain, dry name that suits her guarded ambition
+
+    8. Lorraine Kaminski — a plain, dry name that suits her guarded ambition
+
+    9. Renata Sobczak — a plain, dry name that suits her guarded ambition
+
+    10. Nadine Wojcik — a plain, dry name that suits her guarded ambition
+
+    11. Colleen Dudek — a plain, dry name that suits her guarded ambition
+
+    12. Helen Krol — a plain, dry name that suits her guarded ambition
+
+    13. Joanna Przybylski — a plain, dry name that suits her guarded ambition
+
+    14. Beth Adamczyk — a plain, dry name that suits her guarded ambition
+
+    15. Susan Majewski — a plain, dry name that suits her guarded ambition
+
+    16. Tamara Gorski — a plain, dry name that suits her guarded ambition
+
+    17. Ellen Sadowski — a plain, dry name that suits her guarded ambition
+
+    18. Patricia Kubiak — a plain, dry name that suits her guarded ambition
+
+    19. Rosalind Stasiak — a plain, dry name that suits her guarded ambition
+
+
+    TOP FIVE:
+
+    1. Wanda Kowalczyk
+
+    2. Teresa Nowicki
+
+    3. Jolene Wisniewski
+
+    4. Marta Lewandowski
+
+    5. Ingrid Zielinski'
+- name: duplicate name
+  expect: 8.33
+  answer: 'NAMES:
+
+    1. Wanda Kowalczyk — a plain, dry name that suits her guarded ambition
+
+    2. Teresa Nowicki — a plain, dry name that suits her guarded ambition
+
+    3. Jolene Wisniewski — a plain, dry name that suits her guarded ambition
+
+    4. Marta Lewandowski — a plain, dry name that suits her guarded ambition
+
+    5. Ingrid Zielinski — a plain, dry name that suits her guarded ambition
+
+    6. Dorothy Mazur — a plain, dry name that suits her guarded ambition
+
+    7. Gwen Pawlak — a plain, dry name that suits her guarded ambition
+
+    8. Lorraine Kaminski — a plain, dry name that suits her guarded ambition
+
+    9. Renata Sobczak — a plain, dry name that suits her guarded ambition
+
+    10. Nadine Wojcik — a plain, dry name that suits her guarded ambition
+
+    11. Colleen Dudek — a plain, dry name that suits her guarded ambition
+
+    12. Helen Krol — a plain, dry name that suits her guarded ambition
+
+    13. Joanna Przybylski — a plain, dry name that suits her guarded ambition
+
+    14. Beth Adamczyk — a plain, dry name that suits her guarded ambition
+
+    15. Susan Majewski — a plain, dry name that suits her guarded ambition
+
+    16. Tamara Gorski — a plain, dry name that suits her guarded ambition
+
+    17. Ellen Sadowski — a plain, dry name that suits her guarded ambition
+
+    18. Patricia Kubiak — a plain, dry name that suits her guarded ambition
+
+    19. Rosalind Stasiak — a plain, dry name that suits her guarded ambition
+
+    20. Wanda Kowalczyk — a plain, dry name that suits her guarded ambition
+
+
+    TOP FIVE:
+
+    1. Wanda Kowalczyk
+
+    2. Teresa Nowicki
+
+    3. Jolene Wisniewski
+
+    4. Marta Lewandowski
+
+    5. Ingrid Zielinski'
+- name: line without reason
+  expect: 8.33
+  answer: 'NAMES:
+
+    1. Wanda Kowalczyk — a plain, dry name that suits her guarded ambition
+
+    2. Teresa Nowicki — a plain, dry name that suits her guarded ambition
+
+    3. Jolene Wisniewski — a plain, dry name that suits her guarded ambition
+
+    4. Marta Lewandowski — a plain, dry name that suits her guarded ambition
+
+    5. Ingrid Zielinski — a plain, dry name that suits her guarded ambition
+
+    6. Dorothy Mazur — a plain, dry name that suits her guarded ambition
+
+    7. Gwen Pawlak — a plain, dry name that suits her guarded ambition
+
+    8. Lorraine Kaminski — a plain, dry name that suits her guarded ambition
+
+    9. Renata Sobczak — a plain, dry name that suits her guarded ambition
+
+    10. Nadine Wojcik — a plain, dry name that suits her guarded ambition
+
+    11. Colleen Dudek — a plain, dry name that suits her guarded ambition
+
+    12. Helen Krol — a plain, dry name that suits her guarded ambition
+
+    13. Joanna Przybylski — a plain, dry name that suits her guarded ambition
+
+    14. Beth Adamczyk — a plain, dry name that suits her guarded ambition
+
+    15. Susan Majewski — a plain, dry name that suits her guarded ambition
+
+    16. Tamara Gorski — a plain, dry name that suits her guarded ambition
+
+    17. Ellen Sadowski — a plain, dry name that suits her guarded ambition
+
+    18. Patricia Kubiak
+
+    19. Rosalind Stasiak — a plain, dry name that suits her guarded ambition
+
+    20. Vera Jablonski — a plain, dry name that suits her guarded ambition
+
+
+    TOP FIVE:
+
+    1. Wanda Kowalczyk
+
+    2. Teresa Nowicki
+
+    3. Jolene Wisniewski
+
+    4. Marta Lewandowski
+
+    5. Ingrid Zielinski'
+- name: blocklisted name
+  expect: 8.33
+  answer: 'NAMES:
+
+    1. Wanda Kowalczyk — a plain, dry name that suits her guarded ambition
+
+    2. Teresa Nowicki — a plain, dry name that suits her guarded ambition
+
+    3. Jolene Wisniewski — a plain, dry name that suits her guarded ambition
+
+    4. Marta Lewandowski — a plain, dry name that suits her guarded ambition
+
+    5. Ingrid Zielinski — a plain, dry name that suits her guarded ambition
+
+    6. Dorothy Mazur — a plain, dry name that suits her guarded ambition
+
+    7. Gwen Pawlak — a plain, dry name that suits her guarded ambition
+
+    8. Lorraine Kaminski — a plain, dry name that suits her guarded ambition
+
+    9. Renata Sobczak — a plain, dry name that suits her guarded ambition
+
+    10. Nadine Wojcik — a plain, dry name that suits her guarded ambition
+
+    11. Colleen Dudek — a plain, dry name that suits her guarded ambition
+
+    12. Helen Krol — a plain, dry name that suits her guarded ambition
+
+    13. Joanna Przybylski — a plain, dry name that suits her guarded ambition
+
+    14. Beth Adamczyk — a plain, dry name that suits her guarded ambition
+
+    15. Susan Majewski — a plain, dry name that suits her guarded ambition
+
+    16. Tamara Gorski — a plain, dry name that suits her guarded ambition
+
+    17. Ellen Sadowski — a plain, dry name that suits her guarded ambition
+
+    18. Patricia Kubiak — a plain, dry name that suits her guarded ambition
+
+    19. Rosalind Stasiak — a plain, dry name that suits her guarded ambition
+
+    20. Hermione Granger — a plain, dry name that suits her guarded ambition
+
+
+    TOP FIVE:
+
+    1. Wanda Kowalczyk
+
+    2. Teresa Nowicki
+
+    3. Jolene Wisniewski
+
+    4. Marta Lewandowski
+
+    5. Ingrid Zielinski'
+- name: six top names
+  expect: 8.33
+  answer: 'NAMES:
+
+    1. Wanda Kowalczyk — a plain, dry name that suits her guarded ambition
+
+    2. Teresa Nowicki — a plain, dry name that suits her guarded ambition
+
+    3. Jolene Wisniewski — a plain, dry name that suits her guarded ambition
+
+    4. Marta Lewandowski — a plain, dry name that suits her guarded ambition
+
+    5. Ingrid Zielinski — a plain, dry name that suits her guarded ambition
+
+    6. Dorothy Mazur — a plain, dry name that suits her guarded ambition
+
+    7. Gwen Pawlak — a plain, dry name that suits her guarded ambition
+
+    8. Lorraine Kaminski — a plain, dry name that suits her guarded ambition
+
+    9. Renata Sobczak — a plain, dry name that suits her guarded ambition
+
+    10. Nadine Wojcik — a plain, dry name that suits her guarded ambition
+
+    11. Colleen Dudek — a plain, dry name that suits her guarded ambition
+
+    12. Helen Krol — a plain, dry name that suits her guarded ambition
+
+    13. Joanna Przybylski — a plain, dry name that suits her guarded ambition
+
+    14. Beth Adamczyk — a plain, dry name that suits her guarded ambition
+
+    15. Susan Majewski — a plain, dry name that suits her guarded ambition
+
+    16. Tamara Gorski — a plain, dry name that suits her guarded ambition
+
+    17. Ellen Sadowski — a plain, dry name that suits her guarded ambition
+
+    18. Patricia Kubiak — a plain, dry name that suits her guarded ambition
+
+    19. Rosalind Stasiak — a plain, dry name that suits her guarded ambition
+
+    20. Vera Jablonski — a plain, dry name that suits her guarded ambition
+
+
+    TOP FIVE:
+
+    1. Wanda Kowalczyk
+
+    2. Teresa Nowicki
+
+    3. Jolene Wisniewski
+
+    4. Marta Lewandowski
+
+    5. Ingrid Zielinski
+
+    6. Gwen Pawlak'
+- name: top name not on the list
+  expect: 8.33
+  answer: 'NAMES:
+
+    1. Wanda Kowalczyk — a plain, dry name that suits her guarded ambition
+
+    2. Teresa Nowicki — a plain, dry name that suits her guarded ambition
+
+    3. Jolene Wisniewski — a plain, dry name that suits her guarded ambition
+
+    4. Marta Lewandowski — a plain, dry name that suits her guarded ambition
+
+    5. Ingrid Zielinski — a plain, dry name that suits her guarded ambition
+
+    6. Dorothy Mazur — a plain, dry name that suits her guarded ambition
+
+    7. Gwen Pawlak — a plain, dry name that suits her guarded ambition
+
+    8. Lorraine Kaminski — a plain, dry name that suits her guarded ambition
+
+    9. Renata Sobczak — a plain, dry name that suits her guarded ambition
+
+    10. Nadine Wojcik — a plain, dry name that suits her guarded ambition
+
+    11. Colleen Dudek — a plain, dry name that suits her guarded ambition
+
+    12. Helen Krol — a plain, dry name that suits her guarded ambition
+
+    13. Joanna Przybylski — a plain, dry name that suits her guarded ambition
+
+    14. Beth Adamczyk — a plain, dry name that suits her guarded ambition
+
+    15. Susan Majewski — a plain, dry name that suits her guarded ambition
+
+    16. Tamara Gorski — a plain, dry name that suits her guarded ambition
+
+    17. Ellen Sadowski — a plain, dry name that suits her guarded ambition
+
+    18. Patricia Kubiak — a plain, dry name that suits her guarded ambition
+
+    19. Rosalind Stasiak — a plain, dry name that suits her guarded ambition
+
+    20. Vera Jablonski — a plain, dry name that suits her guarded ambition
+
+
+    TOP FIVE:
+
+    1. Wanda Kowalczyk
+
+    2. Teresa Nowicki
+
+    3. Jolene Wisniewski
+
+    4. Marta Lewandowski
+
+    5. Magdalena Rutkowska'
+- name: NAMES only, no TOP FIVE
+  expect: 6.67
+  answer: 'NAMES:
+
+    1. Wanda Kowalczyk — a plain, dry name that suits her guarded ambition
+
+    2. Teresa Nowicki — a plain, dry name that suits her guarded ambition
+
+    3. Jolene Wisniewski — a plain, dry name that suits her guarded ambition
+
+    4. Marta Lewandowski — a plain, dry name that suits her guarded ambition
+
+    5. Ingrid Zielinski — a plain, dry name that suits her guarded ambition
+
+    6. Dorothy Mazur — a plain, dry name that suits her guarded ambition
+
+    7. Gwen Pawlak — a plain, dry name that suits her guarded ambition
+
+    8. Lorraine Kaminski — a plain, dry name that suits her guarded ambition
+
+    9. Renata Sobczak — a plain, dry name that suits her guarded ambition
+
+    10. Nadine Wojcik — a plain, dry name that suits her guarded ambition
+
+    11. Colleen Dudek — a plain, dry name that suits her guarded ambition
+
+    12. Helen Krol — a plain, dry name that suits her guarded ambition
+
+    13. Joanna Przybylski — a plain, dry name that suits her guarded ambition
+
+    14. Beth Adamczyk — a plain, dry name that suits her guarded ambition
+
+    15. Susan Majewski — a plain, dry name that suits her guarded ambition
+
+    16. Tamara Gorski — a plain, dry name that suits her guarded ambition
+
+    17. Ellen Sadowski — a plain, dry name that suits her guarded ambition
+
+    18. Patricia Kubiak — a plain, dry name that suits her guarded ambition
+
+    19. Rosalind Stasiak — a plain, dry name that suits her guarded ambition
+
+    20. Vera Jablonski — a plain, dry name that suits her guarded ambition'
+- name: TOP FIVE only (count passes, list missing)
+  expect: 1.67
+  answer: 'TOP FIVE:
+
+    1. Wanda Kowalczyk
+
+    2. Teresa Nowicki
+
+    3. Jolene Wisniewski
+
+    4. Marta Lewandowski
+
+    5. Ingrid Zielinski'
+- name: real gpt-6-luna adapted (single names, no reasons, 20 distinct)
+  expect: 8.33
+  answer: 'NAMES:
+
+    1. Erin
+
+    2. Claire
+
+    3. Monica
+
+    4. Dana
+
+    5. Rachel
+
+    6. Lauren
+
+    7. Megan
+
+    8. Kate
+
+    9. Julia
+
+    10. Anna
+
+    11. Christine
+
+    12. Jill
+
+    13. Rebecca
+
+    14. Natalie
+
+    15. Laura
+
+    16. Emily
+
+    17. Sarah
+
+    18. Amy
+
+    19. Mara
+
+    20. Lisa
+
+
+    TOP FIVE:
+
+    1. Erin — Familiar for her generation and region; brisk and unshowy.
+
+    2. Claire
+
+    3. Monica
+
+    4. Dana
+
+    5. Rachel'
+- name: real gpt-oss-20b adapted (top five repeat list names, reasons only in top
+    five)
+  expect: 8.33
+  answer: 'NAMES:
+
+    1. Mara Kline
+
+    2. Elena Hartman
+
+    3. Ruth Novak
+
+    4. Jade O’Connor
+
+    5. Lydia Shaw
+
+    6. Tessa Quinn
+
+    7. Nina Ellis
+
+    8. Kira Morgan
+
+    9. Maya Brooks
+
+    10. Sofia Reed
+
+    11. Ivy Calder
+
+    12. Leah Vance
+
+    13. Ava Sinclair
+
+    14. June Porter
+
+    15. Claire Devereaux
+
+    16. Rhea Keller
+
+    17. Megan Hale
+
+    18. Dara Whitaker
+
+    19. Kelsey Grant
+
+    20. Nora Ellis
+
+
+    TOP FIVE:
+
+    1. Mara Kline — strong, unpretentious
+
+    2. Elena Hartman
+
+    3. Ruth Novak
+
+    4. Jade O’Connor
+
+    5. Lydia Shaw'
