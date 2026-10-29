@@ -12,6 +12,19 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## Unreleased
+
+### Fixed
+
+- **An empty answer scores 0.** Every check type now fails an empty or whitespace-only answer (or an
+  empty `file:`), with the detail "no answer to check". Before, `list_items` checks with `distinct` or
+  `each_matches` passed on a list of 0 items, so a run that timed out with no output earned points:
+  4.0 on novel-character-names, 2.0 on names-for-one-character. Those two tasks get a rubric bump so
+  their stored runs are rescored; no other stored score changes.
+- An `items` check with no answer block (or no answer) now reports every item it would have scored,
+  each letter of a `letter_set` and each pair of an `ordering` included, so the item total is the same
+  whether or not the block was found.
+
 ## 3.0.0 (2026-10-29)
 
 Tests become tasks with permanent slugs, runs get a permanent identity and a new layout, and results

@@ -220,7 +220,7 @@
     "version": 1,
     "content_hash": "1910aa6ceae57f5f",
     "prompt_hash": "03a109aefa2ef4b3",
-    "rubric_version": 2,
+    "rubric_version": 3,
     "rubric_hash": "70e05ca5984d3fd8"
   },
   "navbar-hamburger-menu": {
@@ -255,7 +255,7 @@
     "version": 1,
     "content_hash": "b4472099e92507a3",
     "prompt_hash": "40627576d7598f33",
-    "rubric_version": 2,
+    "rubric_version": 3,
     "rubric_hash": "307cd16e5d9b4cbf"
   },
   "order-historical-events": {

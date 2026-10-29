@@ -126,10 +126,19 @@ def test_items_take_lines_in_order_without_a_key():
 
 def test_missing_block_or_empty_answer_scores_zero():
     items = [{"id": "q1", "key": "1", "expect": 42}]
-    for text in ("The answer is 42.", ""):
+    for text, detail in (("The answer is 42.", "no ANSWERS: block"), ("", "no answer to check")):
         result = _score(items, text, normalize="number")
         assert not result["passed"] and result["share"] == 0.0
-        assert result["detail"] == "no ANSWERS: block"
+        assert result["detail"] == detail
+
+
+def test_missing_block_fails_every_expanded_item():
+    """letter_set leaves letters out, so a missing block must fail them explicitly, not pass them."""
+    items = [{"id": "q", "expect": ["B"], "of": ["A", "B", "C"], "normalize": "letter_set"},
+             {"id": "o", "expect": ["x", "y", "z"], "normalize": "ordering"}]
+    result = _score(items, "No block here.")
+    assert result["share"] == 0.0 and len(result["items"]) == 6
+    assert {i["detail"] for i in result["items"]} == {"no answer block"}
 
 
 def test_items_check_scores_its_criterion_by_share(tmp_path):

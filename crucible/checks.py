@@ -51,12 +51,16 @@ def plain(text: str) -> str:
     return re.sub(r"\*\*|__|(?<!\w)[*_](?=\S)|(?<=\S)[*_](?!\w)|`", "", text)
 
 
+# Every check fails an empty or whitespace-only answer (run_checks applies it to every type)
+NO_ANSWER = "no answer to check"
+
+
 def _forbidden_patterns(check: dict, text: str) -> tuple[bool, str]:
     hits = []
     for pattern in check.get("patterns", []):
         hits += [m.group(0) for m in re.finditer(pattern, text, re.IGNORECASE)]
     if not text.strip():
-        return False, "no answer to check"
+        return False, NO_ANSWER
     return (not hits), ("none found" if not hits else "found: " + ", ".join(sorted(set(h.lower() for h in hits))))
 
 
@@ -141,7 +145,7 @@ def _grounded_numbers(check: dict, text: str) -> tuple[bool, str]:
     """Every figure in the answer appears in the source material (the prompt), so none were invented.
     Small whole numbers (up to `ignore_below`, default 11) are left out: list numbering, "five stories"."""
     if not text.strip():
-        return False, "no answer to check"
+        return False, NO_ANSWER
     allowed = _numbers(check["_source"]) | {str(n) for n in check.get("allow", [])}
     small = check.get("ignore_below", 11)
     invented = sorted(n for n in _numbers(text) - allowed if not (n.isdigit() and int(n) < small))
@@ -393,15 +397,21 @@ ITEM_NORMALIZERS = {
 ITEM_KINDS = ("number", "money", "name", "letter_set", "line_number", "datetime", "ordering")
 
 
+def _all_failed(check: dict, detail: str) -> list[dict]:
+    """Every item failed, expanded as a block would be (each letter, each pair), so the total stays the same."""
+    return [{**r, "passed": False, "detail": detail}
+            for n, item in enumerate(check["items"]) for r in _score_item(item, [], n, check)]
+
+
 def _items_check(check: dict, text: str) -> tuple[bool, str, float, list[dict]]:
     """Each expected item in the answer block scored on its own; share = items passed / all items."""
     header = check.get("header", "ANSWERS")
-    lines = answer_block(text, header) if text.strip() else None
+    if not text.strip():
+        return False, NO_ANSWER, 0.0, _all_failed(check, NO_ANSWER)
+    lines = answer_block(text, header)
     if lines is None:
-        items = [{"id": i["id"], "label": i.get("label", i["id"]), "passed": False, "detail": "no answer block"}
-                 for i in check["items"]]
         name = header if isinstance(header, str) else header[0]
-        return False, f"no {name.rstrip(':')}: block", 0.0, items
+        return False, f"no {name.rstrip(':')}: block", 0.0, _all_failed(check, "no answer block")
     results = [r for n, item in enumerate(check["items"]) for r in _score_item(item, lines, n, check)]
     passed = sum(r["passed"] for r in results)
     share = round(passed / len(results), 4) if results else 0.0
@@ -440,6 +450,13 @@ def run_checks(prompt_def: dict, text: str, run_dir: Path | None = None) -> list
                                 "detail": f"{check['file']} wasn't written", "rule": check.get("rule")})
                 continue
             subject = plain(path.read_text(encoding="utf-8", errors="replace"))
+        if not subject.strip():
+            # An empty answer fails every check, whatever its type: a list of 0 items has no
+            # duplicates and no undescribed items, but there is nothing to score (B2)
+            results.append({"id": check["id"], "type": check["type"], "passed": False, "detail": NO_ANSWER,
+                            "rule": check.get("rule"),
+                            **({"share": 0.0, "items": _all_failed(check, NO_ANSWER)} if check["type"] == "items" else {})})
+            continue
         passed, detail, *extra = CHECKS[check["type"]]({**check, "_source": prompt_def.get("prompt", "")}, subject)
         results.append({"id": check["id"], "type": check["type"], "passed": passed, "detail": detail,
                         "rule": check.get("rule"), **({"share": extra[0]} if extra else {}),

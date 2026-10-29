@@ -10,6 +10,10 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
 
 ## Unreleased
 
+- novel-character-names (formerly WRIT-2) and names-for-one-character (WRIT-2b): rubric 3. An empty
+  answer now scores 0 (it scored 4.0 and 2.0: an empty list had no repeated names and no undescribed
+  ones). Only gemma-4-26b-a4b-qat's timed-out runs change.
+
 ## Suite v1 (2026-10-28)
 
 The active tasks as scored on the dashboard on 2026-10-28: 24 tasks (21 chat, 3 agentic), at the
