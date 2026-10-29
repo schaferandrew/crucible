@@ -119,12 +119,12 @@ def test_small_local_context_refuses_agent_runs(monkeypatch):
 
 def test_markdown_emphasis_does_not_hide_a_fix():
     prompt = workspace.load_task("WRIT-1b")
-    text = ("The station was louder **than** she remembered it, people talking *too* fast. "
+    text = ("CORRECTED:\nThe station was louder **than** she remembered it, people talking *too* fast. "
             "Not waiting for her, exactly. That would have been too kind. Still—she was back. "
             "Mara stepped off the train and into a city that smelled like rain, hot asphalt, and somebody's breakfast. "
-            "I kept the fragments; they look intentional. " + "word " * 40)
+            "And she didn't know whether to laugh, or leave.\n\nPOSSIBLY INTENTIONAL:\n- the fragments")
     by_id = {r["id"]: r for r in checks.run_checks(prompt, text)}
-    assert by_id["fixes_than"]["passed"] and by_id["fixes_too"]["passed"] and by_id["keeps_fragments"]["passed"]
+    assert by_id["errors_fixed"]["passed"] and by_id["voice_kept"]["passed"] and by_id["flags_intent"]["passed"]
 
 
 def test_required_patterns_min_matches():

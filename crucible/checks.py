@@ -189,8 +189,10 @@ def _header(names: str | list[str]) -> re.Pattern:
                       re.IGNORECASE)
 
 
-def answer_block(text: str, header: str | list[str]) -> list[str] | None:
+def answer_block(text: str, header: str | list[str], multiline: bool = False) -> list[str] | None:
     """The lines of the last block under `header`: up to a blank line or the next header; None without one.
+
+    With `multiline`, blank lines don't end the block (for a block that holds an email or a paragraph).
 
     Tolerant of case, a missing colon, **bold** and `#` heading marks, and code fences (fence lines are
     skipped). A model that writes a draft block and then a final one is scored on the final one."""
@@ -210,7 +212,7 @@ def answer_block(text: str, header: str | list[str]) -> list[str] | None:
         if not collecting:
             continue
         if not line.strip():
-            collecting = not block  # blank lines right after the header don't end it
+            collecting = collecting and (multiline or not block)  # blank lines right after the header don't end it
             continue
         if OTHER_HEADER.match(line):
             collecting = False
@@ -366,9 +368,11 @@ def _position(entries: list[str], name: str, item: dict, aliases: dict) -> int |
     return next((i for i, entry in enumerate(entries) if any(n in f" {_fold(entry)} " for n in folded)), None)
 
 
-def _score_item(item: dict, lines: list[str], index: int, check: dict) -> list[dict]:
+def _score_item(item: dict, lines: list[str], index: int, check: dict, text: str = "") -> list[dict]:
     """One result per expected item; letter_set with `of:` and ordering expand into several."""
     kind = item.get("normalize") or check.get("normalize") or "name"
+    if kind in BLOCK_KINDS:
+        return [_score_block_item(item, lines, kind, text)]
     aliases = check.get("aliases") or {}
     label = item.get("label", item.get("id"))
     if "key" in item:
@@ -422,7 +426,64 @@ ITEM_NORMALIZERS = {
     "datetime": _norm_datetime,
     "year": _norm_year,
 }
-ITEM_KINDS = ("number", "money", "name", "year", "letter_set", "line_set", "line_number", "datetime", "ordering")
+ITEM_KINDS = ("number", "money", "name", "year", "letter_set", "line_set", "line_number", "datetime", "ordering",
+              "pattern", "each", "count", "distinct", "subset")
+
+# Kinds that judge the whole block (an email, a paragraph, a list of names), one item each:
+#   {id: a, normalize: pattern, expect: 'haven.t'}           the regex is found in the block (every one, if a list)
+#   {id: b, normalize: pattern, expect: sorry, absent: true}  ...or is not found
+#   {id: c, normalize: pattern, expect: pierogi, absent: true, part: name}   searched in the entries' names only
+#   {id: d, normalize: each, expect: '\w+ \w+ [—-] .+'}           every entry matches (at least one entry)
+#   {id: e, normalize: count, expect: 20}                     exactly 20 entries (or min: / max:)
+#   {id: f, normalize: distinct}                              no two entries have the same name
+#   {id: g, normalize: subset, source: NAMES}                 every entry's name is a name in the NAMES block
+# Entries are the numbered or bulleted lines of the block (all its lines when none are); an entry's name is what
+# precedes a dash, colon or parenthesis, after the number. Matching ignores case and **bold**. An empty block
+# fails every item, so a block with nothing in it can't earn an "absent" item for free.
+BLOCK_KINDS = ("pattern", "each", "count", "distinct", "subset")
+ENTRY_NAME_END = re.compile(r"\s+[—–-]+\s+|\s*[—–:(|,]")
+ENTRY_LABEL = re.compile(r"^\s*(?:\d+\s*[.):]|[-*•])\s+")
+
+
+def _entries(lines: list[str]) -> list[str]:
+    labelled = [ENTRY_LABEL.sub("", plain(line)).strip() for line in lines if ENTRY_LABEL.match(plain(line))]
+    return labelled or [plain(line).strip() for line in lines if line.strip()]
+
+
+def _entry_name(entry: str) -> str:
+    return _fold(ENTRY_NAME_END.split(entry, maxsplit=1)[0])
+
+
+def _score_block_item(item: dict, lines: list[str], kind: str, text: str) -> dict:
+    label = item.get("label", item.get("id"))
+    entries = _entries(lines)
+
+    def result(passed: bool, detail: str) -> dict:
+        return {"id": item["id"], "label": label, "passed": bool(passed) and bool(entries), "detail": detail if entries else "empty block"}
+
+    flags = 0 if item.get("case_sensitive") else re.IGNORECASE
+    if kind == "pattern":
+        wanted = item["expect"] if isinstance(item["expect"], list) else [item["expect"]]
+        body = "\n".join(ENTRY_NAME_END.split(e, maxsplit=1)[0] for e in entries) \
+            if item.get("part") == "name" else plain("\n".join(lines))
+        found = [p for p in wanted if re.search(p, body, flags)]
+        if item.get("absent"):
+            return result(not found, "none found" if not found else "found: " + ", ".join(found[:3]))
+        return result(len(found) == len(wanted), f"{len(found)}/{len(wanted)} found")
+    if kind == "each":
+        bad = [e for e in entries if not re.search(item["expect"], e, flags)]
+        return result(not bad, f"{len(entries) - len(bad)}/{len(entries)} entries match" + (f"; not: {bad[0][:60]}" if bad else ""))
+    if kind == "count":
+        lo, hi = item.get("min", item.get("expect", 0)), item.get("max", item.get("expect"))
+        return result(len(entries) >= lo and (hi is None or len(entries) <= hi), f"{len(entries)} entries")
+    names = [_entry_name(e) for e in entries]
+    if kind == "distinct":
+        dupes = sorted({n for n in names if n and names.count(n) > 1})
+        return result(not dupes, "all distinct" if not dupes else "repeated: " + ", ".join(dupes[:5]))
+    source = answer_block(text, item["source"], multiline=True) or []  # subset
+    known = {_entry_name(e) for e in _entries(source)}
+    unknown = [n for n in names if n not in known]
+    return result(bool(known) and not unknown, "all in the list" if not unknown else "not in the list: " + ", ".join(unknown[:5]))
 
 
 def _all_failed(check: dict, detail: str) -> list[dict]:
@@ -436,11 +497,11 @@ def _items_check(check: dict, text: str) -> tuple[bool, str, float, list[dict]]:
     header = check.get("header", "ANSWERS")
     if not text.strip():
         return False, NO_ANSWER, 0.0, _all_failed(check, NO_ANSWER)
-    lines = answer_block(text, header)
+    lines = answer_block(text, header, multiline=bool(check.get("multiline")))
     if lines is None:
         name = header if isinstance(header, str) else header[0]
         return False, f"no {name.rstrip(':')}: block", 0.0, _all_failed(check, "no answer block")
-    results = [r for n, item in enumerate(check["items"]) for r in _score_item(item, lines, n, check)]
+    results = [r for n, item in enumerate(check["items"]) for r in _score_item(item, lines, n, check, text)]
     passed = sum(r["passed"] for r in results)
     share = round(passed / len(results), 4) if results else 0.0
     failed = [f"{r['id']} ({r['detail']})" for r in results if not r["passed"]]
