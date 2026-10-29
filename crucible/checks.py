@@ -215,6 +215,27 @@ def criterion_scores(prompt_def: dict, results: list[dict], grader: dict | None 
     return scores
 
 
+def per_test(prompt_def: dict) -> bool:
+    """`scoring: per_test`: every hidden test weighs the same, the score is passed / all tests x 10,
+    and a criterion is the share of the 10 points its tests carry."""
+    return prompt_def.get("scoring") == "per_test"
+
+
+def _per_test_criteria(prompt_def: dict, grader: dict | None) -> tuple[list[dict], float | None]:
+    from crucible.graders import selected_tests
+    tests = (grader or {}).get("tests") or []
+    if not tests:
+        return [{"criterion": item["criterion"], "max_score": None, "score": 0.0, "detail": "no hidden test results"}
+                for item in prompt_def["rubric"]], 0.0
+    criteria = []
+    for item in prompt_def["rubric"]:
+        mine = selected_tests(item["hidden_tests"], tests)
+        passed = sum(t["passed"] for t in mine)
+        criteria.append({"criterion": item["criterion"], "max_score": round(len(mine) / len(tests) * 10, 2),
+                         "score": round(passed / len(tests) * 10, 2), "detail": f"{passed}/{len(mine)} hidden tests pass"})
+    return criteria, round(sum(t["passed"] for t in tests) / len(tests) * 10, 2)
+
+
 def _cap(prompt_def: dict, scores: dict[str, float]) -> float | None:
     """The lowest `cap_if_failed` among criteria that earned nothing (e.g. a modified contract suite)."""
     caps = [item["cap_if_failed"] for item in prompt_def.get("rubric", [])
@@ -229,17 +250,21 @@ def save_check_score(run_dir: Path, prompt_def: dict, results: list[dict], grade
     from crucible import versioning
     from crucible.graders import criterion_result
     meta = json.loads((run_dir / "meta.json").read_text(encoding="utf-8"))
-    scores = criterion_scores(prompt_def, results, grader)
-    # Points earned over points available: a 3-point criterion weighs three times a 1-point one
-    total = sum(item["max_score"] for item in prompt_def["rubric"])
-    overall = round(sum(scores.values()) / total * 10, 2) if total else None
-    cap = _cap(prompt_def, scores)
-    if cap is not None and overall is not None:
-        overall = min(overall, cap)
-    criteria = [{"criterion": item["criterion"], "max_score": item["max_score"], "score": scores.get(item["criterion"]),
-                 "detail": (criterion_result(item["hidden_tests"], grader)[1] if item.get("hidden_tests") and grader
-                            else next((r["detail"] for r in results if r["id"] == item.get("check")), None))}
-                for item in prompt_def["rubric"]]
+    if per_test(prompt_def):
+        criteria, overall = _per_test_criteria(prompt_def, grader)
+        scores, cap = {c["criterion"]: c["score"] for c in criteria}, None
+    else:
+        scores = criterion_scores(prompt_def, results, grader)
+        # Points earned over points available: a 3-point criterion weighs three times a 1-point one
+        total = sum(item["max_score"] for item in prompt_def["rubric"])
+        overall = round(sum(scores.values()) / total * 10, 2) if total else None
+        cap = _cap(prompt_def, scores)
+        if cap is not None and overall is not None:
+            overall = min(overall, cap)
+        criteria = [{"criterion": item["criterion"], "max_score": item["max_score"], "score": scores.get(item["criterion"]),
+                     "detail": (criterion_result(item["hidden_tests"], grader)[1] if item.get("hidden_tests") and grader
+                                else next((r["detail"] for r in results if r["id"] == item.get("check")), None))}
+                    for item in prompt_def["rubric"]]
     record = {
         "run_id": meta.get("run_id"),
         "test_id": meta.get("test_id"),

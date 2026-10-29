@@ -14,10 +14,19 @@ Rubric criteria bind to these results with `hidden_tests:`
   - `existing`: the repo's own tests all pass (hidden tests left out)
   - `contract_unchanged`: apps/api/test/realworld.contract.test.ts is as seeded
   - `regression`: the model added tests that pass on its code and at least one fails on the seeded code
+
+A grader with a grader.yaml declaring `isolated: true` runs differently, closer to a verifier that
+never trusts the workspace: the hidden tests run in a fresh copy of the seeded repo that takes only
+the declared `artifacts` (source paths) from the model's workspace, so package.json, the lockfile,
+the test config and node_modules (installed from the seeded lockfile, cached by its hash) stay as
+seeded. expected.json lists every test the grader declares, recorded from the reference solution by
+`crucible grader <test> --write-expected`, so a file that fails to load counts every one as failed.
 """
 from __future__ import annotations
 
+import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -25,9 +34,16 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
+import yaml
+
 from crucible.versioning import GRADERS_DIR
+from crucible.workspace import REPOS_DIR
 
 RESULTS_FILENAME = "grader_results.json"
+CONFIG_FILENAME = "grader.yaml"
+EXPECTED_FILENAME = "expected.json"
+# Never copied from a seeded repo or a workspace into a grading copy
+NOT_SOURCE = ("node_modules", ".next", ".git", "dist", "test-results")
 CONTRACT = "apps/api/test/realworld.contract.test.ts"
 SPECIAL = ("existing", "contract_unchanged", "regression")
 TEST_NAME = re.compile(r"""^\s*it\(\s*(["'`])(.+?)\1""", re.M)
@@ -173,12 +189,114 @@ def _regression(workspace: Path, seed: str | None) -> dict:
                        else "don't pass on the fix" if not after_ok else "pass on the seeded code too, so they don't catch the bug")}
 
 
+def grader_config(grader: str) -> dict:
+    path = GRADERS_DIR / grader / CONFIG_FILENAME
+    return (yaml.safe_load(path.read_text(encoding="utf-8")) or {}) if path.exists() else {}
+
+
+def cache_root() -> Path:
+    return Path(os.environ.get("CRUCIBLE_CACHE") or Path.home() / ".crucible" / "cache")
+
+
+def _cached_node_modules(repo: Path) -> tuple[Path | None, str | None]:
+    """node_modules installed with `npm ci` from the seeded lockfile, shared by every grading of it."""
+    lock = repo / "package-lock.json"
+    if not lock.exists():
+        return None, f"{repo.name} has no package-lock.json to install from"
+    key = hashlib.sha256((repo / "package.json").read_bytes() + lock.read_bytes()).hexdigest()[:16]
+    target = cache_root() / "node_modules" / f"{repo.name}-{key}"
+    if (target / "node_modules").is_dir():
+        return target / "node_modules", None
+    target.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix=f".{target.name}-", dir=target.parent))
+    try:
+        for name in ("package.json", "package-lock.json"):
+            shutil.copy2(repo / name, staging / name)
+        result = _run(["npm", "ci", "--no-audit", "--no-fund", "--loglevel=error"], staging, 600)
+        if result.returncode != 0:
+            return None, f"npm ci failed: {result.stderr.strip()[-300:]}"
+        try:
+            staging.rename(target)
+        except OSError:  # another grading finished the same install first
+            pass
+        return target / "node_modules", None
+    finally:
+        shutil.rmtree(staging, ignore_errors=True)
+
+
+def _grading_copy(repo: Path, workspace: Path, artifacts: list[str], dest: Path) -> list[str]:
+    """The seeded repo with the model's artifacts in place of the seeded ones; returns the artifacts taken."""
+    ignore = shutil.ignore_patterns(*NOT_SOURCE)
+    shutil.copytree(repo, dest, ignore=ignore)
+    taken = []
+    for rel in artifacts:
+        src, target = workspace / rel, dest / rel
+        if target.is_dir():
+            shutil.rmtree(target)
+        elif target.exists():
+            target.unlink()
+        if src.is_dir():
+            shutil.copytree(src, target, ignore=ignore, symlinks=True)
+        elif src.is_file():
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, target)
+        else:
+            continue
+        taken.append(rel)
+    return taken
+
+
+def expected_tests(grader: str) -> list[dict] | None:
+    """Every test the grader declares, as recorded in expected.json; None before it's recorded."""
+    path = GRADERS_DIR / grader / EXPECTED_FILENAME
+    if not path.exists():
+        return None
+    return [{**t, "passed": False, "error": None} for t in json.loads(path.read_text(encoding="utf-8"))]
+
+
+def run_isolated(workspace: Path, prompt_def: dict) -> dict:
+    """Hidden tests on the model's artifacts in a fresh copy of the seeded repo (see the module docstring)."""
+    grader = prompt_def["grader"]
+    cfg = grader_config(grader)
+    files = sorted((GRADERS_DIR / grader).glob("*.grader.test.ts*"))
+    expected = expected_tests(grader)
+    record: dict = {"grader": grader, "isolated": True, "ran_at": datetime.now(timezone.utc).isoformat()}
+    repo = REPOS_DIR / prompt_def["repo"]
+    modules, error = _cached_node_modules(repo)
+    if error:
+        return {**record, "error": error, "tests": expected or [t for f in files for t in _expected_tests(f)]}
+    with tempfile.TemporaryDirectory(prefix="crucible-grade-") as tmp:
+        copy = Path(tmp) / repo.name
+        record["artifacts"] = _grading_copy(repo, workspace, cfg.get("artifacts") or [], copy)
+        (copy / "node_modules").symlink_to(modules, target_is_directory=True)
+        hidden = copy / "test" / "hidden"
+        hidden.mkdir(parents=True, exist_ok=True)
+        for f in files:
+            shutil.copy2(f, hidden / f.name)
+        tests, error = _vitest(copy, ["test/hidden"], timeout=cfg.get("timeout", 600))
+    # A test that never ran (its file didn't load, or vitest died) counts as failed. Before expected.json
+    # is recorded, only a file that reported nothing falls back to the tests it spells out.
+    ran = {(t["file"], t["group"], t["name"]) for t in tests}
+    if expected is None:
+        reported = {t["file"] for t in tests}
+        expected = [t for f in files if f.name not in reported for t in _expected_tests(f)]
+    tests += [t for t in expected if (t["file"], t["group"], t["name"]) not in ran]
+    known = {(t["file"], t["group"], t["name"]) for t in expected}
+    # A test name that changes between runs would count twice; the oracle refuses it
+    unexpected = [t["name"] for t in tests if known and (t["file"], t["group"], t["name"]) not in known]
+    return {**record, "tests": tests, "errors": [error] if error else [], "unexpected": unexpected}
+
+
 def run(run_dir: Path, prompt_def: dict) -> dict | None:
     """Run the hidden tests for a finished run and save grader_results.json; None for tests without a grader."""
     grader = prompt_def.get("grader")
     workspace = run_dir / "workspace"
     if not grader or not workspace.is_dir():
         return None
+    if grader_config(grader).get("isolated"):
+        record = run_isolated(workspace, prompt_def)
+        (run_dir / RESULTS_FILENAME).write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+        return record
     files = sorted((GRADERS_DIR / grader).glob("*.grader.test.ts*"))
     record: dict = {"grader": grader, "ran_at": datetime.now(timezone.utc).isoformat()}
     deps_error = _ensure_deps(workspace)
@@ -194,6 +312,11 @@ def run(run_dir: Path, prompt_def: dict) -> dict | None:
     return record
 
 
+def selected_tests(selector: str, tests: list[dict]) -> list[dict]:
+    """The hidden tests a `hidden_tests` selector picks: a grader file name or a describe-group prefix."""
+    return [t for t in tests if t["file"] == selector or t["group"].lower().startswith(selector.lower())]
+
+
 def criterion_result(selector: str, record: dict) -> tuple[float, str]:
     """(share 0..1, detail) for one rubric criterion's `hidden_tests` selector."""
     if selector == "existing":
@@ -205,9 +328,76 @@ def criterion_result(selector: str, record: dict) -> tuple[float, str]:
     if selector == "regression":
         reg = record.get("regression") or {}
         return float(bool(reg.get("passed"))), reg.get("detail") or ""
-    mine = [t for t in record.get("tests", [])
-            if t["file"] == selector or t["group"].lower().startswith(selector.lower())]
+    mine = selected_tests(selector, record.get("tests", []))
     if not mine:
         return 0.0, f"no hidden tests matched '{selector}'"
     passed = sum(t["passed"] for t in mine)
     return passed / len(mine), f"{passed}/{len(mine)} hidden tests pass"
+
+
+# --------------------------------------------------------------------------
+# Oracle: a grader is only trusted once it scores known code the way it should
+# --------------------------------------------------------------------------
+
+def _oracle_case(prompt_def: dict, overlay: Path | None, tmp: Path, name: str) -> dict:
+    """Grade the seeded repo with an overlay (a solution or calibration fixture) laid over it, like a run."""
+    from crucible import checks
+    run_dir = tmp / name.replace("/", "_")
+    workspace = run_dir / "workspace"
+    shutil.copytree(REPOS_DIR / prompt_def["repo"], workspace, ignore=shutil.ignore_patterns(*NOT_SOURCE))
+    if overlay:
+        shutil.copytree(overlay, workspace, dirs_exist_ok=True)
+    (run_dir / "meta.json").write_text(json.dumps({"run_id": name, "test_id": prompt_def["test_id"]}), encoding="utf-8")
+    record = run(run_dir, prompt_def)
+    score = checks.save_check_score(run_dir, prompt_def, checks.check_results(run_dir, prompt_def), record)
+    return {"record": record, "score": score["scores"]["_overall"] if score else None,
+            "criteria": score["criteria"] if score else []}
+
+
+def main() -> None:
+    """`crucible grader TEST`: grade the seeded repo, the reference solution and each calibration fixture,
+    and check each lands in the score range grader.yaml's `oracle` declares."""
+    import argparse
+    from crucible import workspace
+    parser = argparse.ArgumentParser(prog="crucible grader", description=main.__doc__)
+    parser.add_argument("test", help="Test ID, e.g. CODE-16")
+    parser.add_argument("--write-expected", action="store_true",
+                        help=f"Record every test the reference solution runs into {EXPECTED_FILENAME} (all must pass)")
+    args = parser.parse_args()
+    prompt_def = workspace.load_prompt(args.test)
+    grader = prompt_def.get("grader")
+    cfg = grader_config(grader) if grader else {}
+    if not cfg.get("isolated"):
+        raise SystemExit(f"{args.test} has no isolated grader (grader.yaml with isolated: true)")
+    oracle = cfg.get("oracle") or {}
+    root = GRADERS_DIR / grader
+    cases = [("solution", root / "solution", oracle.get("solution", [10, 10])),
+             ("seeded", None, oracle.get("seeded", [0, 0]))]
+    cases += [(f"calibration/{n}", root / "calibration" / n, rng) for n, rng in (oracle.get("calibration") or {}).items()]
+    if args.write_expected:  # re-recorded from the solution, never matched against the old list
+        (root / EXPECTED_FILENAME).unlink(missing_ok=True)
+    failed = False
+    with tempfile.TemporaryDirectory(prefix="crucible-oracle-") as tmp:
+        for name, overlay, (low, high) in cases:
+            print(f"{name}: grading...", flush=True)
+            result = _oracle_case(prompt_def, overlay, Path(tmp), name)
+            tests = result["record"].get("tests", [])
+            if name == "solution" and args.write_expected:
+                if not tests or not all(t["passed"] for t in tests):
+                    raise SystemExit("The reference solution doesn't pass every hidden test; not writing expected.json")
+                (root / EXPECTED_FILENAME).write_text(json.dumps(
+                    [{"file": t["file"], "group": t["group"], "name": t["name"]} for t in tests], indent=2) + "\n",
+                    encoding="utf-8")
+                print(f"  wrote {EXPECTED_FILENAME} ({len(tests)} tests)")
+            unexpected = result["record"].get("unexpected") or []
+            if unexpected:
+                print(f"  tests missing from {EXPECTED_FILENAME} (names must be the same every run): {unexpected[:5]}")
+            ok = result["score"] is not None and low <= result["score"] <= high and not unexpected
+            failed |= not ok
+            print(f"  {'ok  ' if ok else 'FAIL'} score {result['score']}/10 (want {low}-{high}), "
+                  f"{sum(t['passed'] for t in tests)}/{len(tests)} tests pass")
+            for c in result["criteria"]:
+                print(f"       {c['criterion']}: {c['score']}/{c['max_score']} ({c['detail']})")
+            for error in result["record"].get("errors") or []:
+                print(f"       error: {error[:300]}")
+    raise SystemExit(1 if failed else 0)

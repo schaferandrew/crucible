@@ -24,10 +24,11 @@ PROMPTS_DIR = REPO_ROOT / "prompts"
 FIXTURES_DIR = REPO_ROOT / "fixtures"
 REPOS_DIR = REPO_ROOT / "repos"
 
-# Marker file in a seeded repo -> command that installs its dependencies
+# Marker file in a seeded repo -> command that installs its dependencies. A repo with a lockfile
+# installs exactly what it pins (npm ci), so every run starts from the same dependency tree.
 DEPENDENCY_INSTALLERS = {
-    "package.json": lambda: [procs.resolve_executable("npm"), "install"],
-    "requirements.txt": lambda: [sys.executable, "-m", "pip", "install", "-r", "requirements.txt"],
+    "package.json": lambda ws: [procs.resolve_executable("npm"), "ci" if (ws / "package-lock.json").exists() else "install"],
+    "requirements.txt": lambda ws: [sys.executable, "-m", "pip", "install", "-r", "requirements.txt"],
 }
 
 
@@ -163,7 +164,7 @@ def _install_dependencies(workspace: Path) -> None:
         return
     print(f"  Installing dependencies ({marker})...")
     try:
-        subprocess.run(DEPENDENCY_INSTALLERS[marker](), cwd=workspace,
+        subprocess.run(DEPENDENCY_INSTALLERS[marker](workspace), cwd=workspace,
                        capture_output=True, text=True)
     except FileNotFoundError as exc:
         print(f"  Warning: {exc}; skipping dependency install")

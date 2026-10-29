@@ -1,0 +1,14 @@
+# Hidden tests for CODE-16 (React lead form); see crucible/graders.py.
+# Isolated: the tests run in a fresh copy of repos/react-lead-form that takes only `artifacts`
+# from the model's workspace, so package.json, the lockfile, next.config.js and the vitest
+# config stay as seeded and node_modules is installed from the seeded lockfile.
+isolated: true
+artifacts: [app, lib]
+timeout: 600
+# `crucible grader CODE-16` grades each of these and checks the score lands in its range
+oracle:
+  solution: [10, 10]
+  seeded: [0, 0]
+  calibration:
+    no-validation: [2.5, 4]   # interactive and submits, but validates nothing
+    naive-email: [6, 9]       # validates, but with the usual one-line regex and no normalizing

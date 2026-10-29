@@ -10,7 +10,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from crucible import bundle, checks, exporter, judge, reporter, runner, scorer, versioning
+from crucible import bundle, checks, exporter, graders, judge, reporter, runner, scorer, versioning
 
 
 def _get_version() -> str:
@@ -31,6 +31,7 @@ Usage:
 Commands:
   run      Run tests. With no arguments it asks what to run; scoring happens automatically
   checks   Re-run programmatic checks and hidden tests on existing runs; --doc PATH writes the rules doc
+  grader   Check an isolated grader against its oracle: seeded repo, reference solution, calibration fixtures
   versions Check test versions against the lock; --update, --release NAME, --backfill runs
   publish  Write this machine's results into the portfolio's data folder (validated)
   export   Flatten runs into one JSON file
@@ -64,6 +65,7 @@ Run 'crucible <command> -h' for command-specific options.
 COMMANDS = {
     "run": runner.main, "score": scorer.main, "report": reporter.main,
     "judge": judge.main, "versions": versioning.main, "export": exporter.main, "publish": bundle.main, "checks": checks.main,
+    "grader": graders.main,
 }
 
 

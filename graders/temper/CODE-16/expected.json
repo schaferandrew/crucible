@@ -1,0 +1,217 @@
+[
+  {
+    "file": "build.grader.test.ts",
+    "group": "level 1: renders",
+    "name": "the production build succeeds"
+  },
+  {
+    "file": "build.grader.test.ts",
+    "group": "level 1: renders",
+    "name": "/contact serves the form, rendered on the server"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 2: typing",
+    "name": "every field shows what is typed into it"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 2: typing",
+    "name": "tab moves through the fields in order, and typing lands where focus is"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 3: submit",
+    "name": "posts the lead as JSON to /api/leads and shows the success message"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 3: submit",
+    "name": "pressing Enter in a field submits the form"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 3: submit",
+    "name": "doesn't show success when the server refuses the lead"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 3: submit",
+    "name": "the API saves a valid lead with every field trimmed"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 3: submit",
+    "name": "the company field is optional, and saved as an empty string when left out"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 4: required fields",
+    "name": "a missing name shows its error, keeps what was typed and sends nothing"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 4: required fields",
+    "name": "a missing email shows its error, keeps what was typed and sends nothing"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 4: required fields",
+    "name": "a missing message shows its error, keeps what was typed and sends nothing"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 4: required fields",
+    "name": "whitespace alone doesn't count as filled in"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 4: required fields",
+    "name": "focus jumps to the first field with an error"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 4: required fields",
+    "name": "fixing the field and resubmitting clears the error and sends"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 4: required fields",
+    "name": "the API refuses a lead missing a required field with 422 and saves nothing"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 5: badly formed email",
+    "name": "the form refuses \"jordan\" with an email error"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 5: badly formed email",
+    "name": "the form refuses \"jordan@\" with an email error"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 5: badly formed email",
+    "name": "the form refuses \"@example.com\" with an email error"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 5: badly formed email",
+    "name": "the form refuses \"jordan example.com\" with an email error"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 5: badly formed email",
+    "name": "the API refuses a badly formed email with 422 and saves nothing"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 6: email accepted as typed",
+    "name": "the form accepts \"  jordan.<random>@example.com  \""
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 6: email accepted as typed",
+    "name": "the form accepts \"Jordan.Reyes@Example.COM\""
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 6: email accepted as typed",
+    "name": "the form accepts \"jordan+quotes@example.com\""
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 6: email accepted as typed",
+    "name": "the form accepts \"j.o.r.d.a.n@mail.example.co.uk\""
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 6: email accepted as typed",
+    "name": "the form accepts \"o'neil_<random>@reyes-builders.com\""
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 6: email accepted as typed",
+    "name": "the form accepts \"jordan@studio.photography\""
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 6: email accepted as typed",
+    "name": "the form accepts \"2024@example.io\""
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 6: email saved strictly",
+    "name": "the API saves each accepted address trimmed and lowercased"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 6: email saved strictly",
+    "name": "the API refuses \"jordan@example\" and saves nothing"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 6: email saved strictly",
+    "name": "the API refuses \"jordan@@example.com\" and saves nothing"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 6: email saved strictly",
+    "name": "the API refuses \"jordan@exa mple.com\" and saves nothing"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 6: email saved strictly",
+    "name": "the API refuses \"jordan..reyes@example.com\" and saves nothing"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 6: email saved strictly",
+    "name": "the API refuses \".jordan@example.com\" and saves nothing"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 6: email saved strictly",
+    "name": "the API refuses \"jordan.@example.com\" and saves nothing"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 6: email saved strictly",
+    "name": "the API refuses \"jordan@example..com\" and saves nothing"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 6: email saved strictly",
+    "name": "the API refuses \"jordan@-example.com\" and saves nothing"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 6: email saved strictly",
+    "name": "the API refuses \"jordan@example.c\" and saves nothing"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 6: email saved strictly",
+    "name": "the API refuses \"jordan@example.com.\" and saves nothing"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 6: email saved strictly",
+    "name": "the API refuses \"jordan@exam_ple.com\" and saves nothing"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 6: email saved strictly",
+    "name": "the API refuses \"jordan@example.123\" and saves nothing"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 6: email saved strictly",
+    "name": "a lead typed into the form is saved in canonical form"
+  },
+  {
+    "file": "form.grader.test.tsx",
+    "group": "level 6: email saved strictly",
+    "name": "the API refuses fields that aren't strings"
+  }
+]

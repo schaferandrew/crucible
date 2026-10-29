@@ -48,7 +48,7 @@ def export_tests() -> list[dict]:
         if p.get("status") == "retired":
             continue  # never run or scored; leaving it out also leaves out its runs
         tests.append({
-            "id": test_id, "mode": mode_for(p), "area": p.get("area"), "category": p.get("category"),
+            "id": test_id, "name": p.get("name"), "mode": mode_for(p), "area": p.get("area"), "category": p.get("category"),
             "tier": p.get("tier"), "status": p.get("status"), "version": p.get("version"),
             "rubric_version": p.get("rubric_version"), "needs_tools": bool(p.get("needs_tools", True)),
             "summary": _first_sentence(p.get("prompt", "")),

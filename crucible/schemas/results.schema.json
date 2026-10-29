@@ -120,6 +120,13 @@
           "id": {
             "type": "string"
           },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Human-readable name of the test, when it has one"
+          },
           "mode": {
             "type": "string",
             "enum": [
