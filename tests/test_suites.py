@@ -113,6 +113,13 @@ def test_a_version_bump_is_allowed_after_a_suite(sandbox):
 
 
 def test_patch_pins_rubric_fixes_only(sandbox):
+    # Tasks pinned in v1 may have a pending content bump in the repo (a patch refuses those): treat them as already re-cut
+    path = sandbox / "suites" / "v1.yaml"
+    suite = yaml.safe_load(path.read_text())
+    for pin in suite["tasks"]:
+        now = versioning.read_lock()[pin["id"]]
+        pin["version"], pin["content_hash"] = now["version"], now.get("content_hash", pin.get("content_hash"))
+    path.write_text(yaml.safe_dump(suite, sort_keys=False, allow_unicode=True))
     p = workspace.load_task("fire-truck-color")
     rubric = [{**item, "description": item["description"] + " (clarified)"} for item in p["rubric"]]
     _edit(sandbox, "fire-truck-color", rubric=rubric, rubric_version=p["rubric_version"] + 1)

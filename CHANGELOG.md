@@ -22,6 +22,13 @@ here ([docs/versioning.md](docs/versioning.md)).
   forbidden in the paragraphs citing given sources; patterns forbidden anywhere. One item per entry,
   equal weight, like `items`.
 
+- **`items` check, whole-block kinds:** `pattern` (a regex is found in the block, or with `absent: true`
+  is not; `part: name` searches only the entries' names), `each` (every entry matches), `count`
+  (exactly `expect`, or `min`/`max` entries), `distinct` (no name twice) and `subset` (every entry's name
+  is in another block, `source:`), for answers that are an email, a paragraph or a list rather than short
+  values. A check can set `multiline: true` so blank lines don't end its block. An empty block fails
+  every such item.
+
 ## 3.1.0 (2026-10-29)
 
 Scoring fixes and the first converted tasks for Suite v2: empty answers score 0, answer blocks
