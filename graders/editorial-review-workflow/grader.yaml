@@ -12,6 +12,8 @@ test_roots:
 # Caps, not points (see the task's rubric): they pass on the seeded repo
 existing_tests: [apps/api, apps/web]
 unchanged: [apps/api/test/realworld.contract.test.ts]
+# The model's own new tests: pass on its fix, fail on the seeded code. One test in the pool, like the rest
+regression_tests: [apps/api, apps/web]
 timeout: 600
 # `crucible grader editorial-review-workflow` grades each of these and checks the score lands in its range
 oracle:

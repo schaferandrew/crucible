@@ -52,6 +52,10 @@ rubric:
 - criterion: Rules found, not given
   hidden_tests: 'rules: found in the brief'
   description: 'Hidden tests: no one reviews their own work, feedback stays private, authors see why, renames stay in review.'
+- criterion: Regression tests
+  hidden_tests: regression
+  description: 'One test in the pool: the model''s new or changed tests pass on its fix, and at least one fails on
+    the seeded code.'
 - criterion: Existing tests still pass
   hidden_tests: existing
   cap_if_failed: 5

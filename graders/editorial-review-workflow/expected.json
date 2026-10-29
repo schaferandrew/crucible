@@ -123,5 +123,10 @@
     "file": "editorial.grader.test.ts",
     "group": "rules: found in the brief, not the contract",
     "name": "renaming an article under review keeps it in review and in the queue"
+  },
+  {
+    "file": "regression",
+    "group": "regression",
+    "name": "your new tests fail on the seeded code and pass on your fix"
   }
 ]
