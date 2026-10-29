@@ -6,10 +6,11 @@ needs_tools: true
 category: coding_debug
 area: coding
 tier: forge
-version: 1
-rubric_version: 2
+version: 2
+rubric_version: 3
 status: provisional
 auto_grade: true
+scoring: per_test
 repo: conduit-invites
 grader: invite-signup-loop
 prompt: |
@@ -20,31 +21,33 @@ prompt: |
   Find out what's going on and fix it properly:
   - Invited contributors should be able to get to the editor, and regular sign-ups should keep working exactly as they do today.
   - Accounts that are already affected must work after the fix, without anyone editing data by hand.
-  - Where the design doc, Legal's requirements and the current behavior disagree, decide what the right behavior is, implement it, and explain your reasoning.
+  - Where the design doc, Legal's requirements and the current behavior disagree, Legal's requirements are the authority: implement the behavior they require, and explain your reasoning.
   - Reproduce the problem in a test before you fix it, and add tests that would have caught it. Keep every existing test passing, including apps/api/test/realworld.contract.test.ts, unmodified.
 
   Finish with a short write-up: the root cause, the decisions you made and why, and anything you'd flag in code review.
 rubric:
 - criterion: No one gets stuck
-  max_score: 4
   hidden_tests: loop.web.grader.test.tsx
-  description: 'Hidden web tests: every kind of user lands in the right place with no loop, including accounts already stuck.'
+  description: 'Hidden web tests: every kind of user lands in the right place with no loop. Accounts already stuck work
+    as they are, invited contributors reach the editor only once they have accepted the terms, and regular sign-ups
+    are unchanged.'
 - criterion: Invited sign-ups
-  max_score: 3
   hidden_tests: invites.grader.test.ts
-  description: 'Hidden API tests: accepting an invite records the terms; invited emails claim their account once.'
+  description: 'Hidden API tests: an invited address claims its account once, the terms are recorded only when accepted,
+    and regular sign-ups and real duplicates are unchanged.'
 - criterion: Regression tests
-  max_score: 1
   hidden_tests: regression
-  description: The model's new or changed tests pass on its fix and at least one fails on the seeded code.
+  description: 'One test in the pool: the model''s new or changed tests pass on its fix, and at least one fails on
+    the seeded code.'
 - criterion: Existing tests still pass
-  max_score: 1
   hidden_tests: existing
-  description: The repo's own test suites pass with the model's changes.
+  cap_if_failed: 5
+  description: The repo's seeded API and web tests, the contract suite among them, pass on the model's source; if not,
+    the score is capped at 5. A cap, not points.
 - criterion: Contract suite untouched
-  max_score: 1
   hidden_tests: contract_unchanged
   cap_if_failed: 4
-  description: apps/api/test/realworld.contract.test.ts is exactly as seeded; modifying it caps the score at 4.
-critical_failure: Modifying the contract suite caps the score at 4. Every criterion is scored by hidden tests or checks; write-ups
-  aren't scored yet.
+  description: apps/api/test/realworld.contract.test.ts is exactly as seeded; modifying it caps the score at 4. A cap,
+    not points.
+critical_failure: Every hidden test weighs the same; the score is tests passed / all tests x 10. Failing the seeded
+  tests caps it at 5, and modifying the contract suite caps it at 4. Write-ups aren't scored.

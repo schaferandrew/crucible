@@ -1,0 +1,26 @@
+# Hidden tests for invite-signup-loop (formerly CODE-14); see crucible/graders.py.
+# Isolated: the tests run in a fresh copy of repos/conduit-invites that takes only the source
+# folders below from the model's workspace, so the package.json files, the test setup and the
+# seeded tests (the RealWorld contract suite among them) stay as seeded.
+isolated: true
+artifacts: [apps/api/src, apps/web/src, packages/shared/src]
+# The seeded repo has no lockfile; this one is conduit-monorepo's (its package.json files are identical)
+lockfile: package-lock.json
+# The API tests run from apps/api, the web tests from apps/web
+test_roots:
+  "*.web.grader.test.tsx": apps/web
+  "*.grader.test.ts": apps/api
+# Caps, not points (see the task's rubric): they pass on the seeded repo
+existing_tests: [apps/api, apps/web]
+unchanged: [apps/api/test/realworld.contract.test.ts]
+# The model's own new tests: pass on its fix, fail on the seeded code. One test in the pool, like the rest
+regression_tests: [apps/api, apps/web]
+timeout: 600
+# `crucible grader invite-signup-loop` grades each of these and checks the score lands in its range
+oracle:
+  solution: [10, 10]
+  seeded: [0, 0]
+  calibration:
+    fixes-loop-skips-terms: [3.5, 4.7]                # no loop, but invited accounts without the terms reach the editor; no claim
+    terms-enforced-affected-accounts-stuck: [5.3, 6.5] # terms enforced and claims work, but accounts that already accepted still land on the welcome screen
+    breaks-existing-clients: [5, 5]                    # everything, but a duplicate email claims any account: the seeded tests fail, capped at 5

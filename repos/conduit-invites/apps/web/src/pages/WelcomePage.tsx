@@ -10,8 +10,7 @@ export function WelcomePage() {
   const [bio, setBio] = useState("");
   const [accepted, setAccepted] = useState(false);
 
-  // Invited contributors were set up by their editor (CONTRIB-88), so they skip onboarding
-  // and go straight to writing.
+  // Invited accounts don't use this screen; send them to the editor.
   useEffect(() => {
     if (user?.accountState === "invited") navigate("/editor", { replace: true });
   }, [user, navigate]);
