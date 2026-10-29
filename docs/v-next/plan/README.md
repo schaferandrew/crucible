@@ -10,7 +10,7 @@ author has reported back to the orchestrating session.
 | [A1 Crucible 2.4.0 groundwork](A1-crucible-2.4.0.md) | A | crucible | Opus | — | done: `claude/a1-crucible-2-4-0-5b0e27` (313efaf), 353 tests pass, no score changed; awaiting merge |
 | [A2 Leak scan](A2-leak-scan.md) | A | crucible (read-only) | Haiku | — | done: [report](reports/A2-leak-scan.md) |
 | [A3 Data-driven dashboard](A3-portfolio-data-driven.md) | A | portfolio | Sonnet | — | done: portfolio `claude/a3-crucible-data-driven-862318` (e76cd73); awaiting review and merge |
-| [C Crucible 3.0.0](C-crucible-3.0.0.md) | C | crucible | Opus | A1 merged | outline |
+| [C Crucible 3.0.0](C-crucible-3.0.0.md) | C | crucible | Opus | A1 | started, on top of the A1 branch |
 | [D Task conversions](D-task-conversions.md) | D | crucible | Opus first two, then Sonnet per task | C merged | outline |
 | [E Calibration runs](E-calibration.md) | E | crucible | Sonnet | D tasks as they land | outline |
 | F Suite v2 cut and site switch | F | both | orchestrator, with Andrew | D, E | — |
