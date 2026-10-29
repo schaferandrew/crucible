@@ -41,6 +41,6 @@ checks:
   - {id: events, tool: list_events, label: 'Called list_events'}
   rule: 'The run called get_current_time and list_events (read from the session, not the reply).'
 rubric:
-- {criterion: Correct answer, max_score: 1, check: answer, description: 'The ANSWER line says free.'}
+- {criterion: Correct answer, max_score: 1, cap_if_failed: 2.5, check: answer, description: 'The ANSWER line says free.'}
 - {criterion: States its assumption, max_score: 1, check: states_time, description: 'Says PM, this afternoon or today.'}
 - {criterion: Grounded in the calendar, max_score: 2, check: grounded, description: 'Called get_current_time and list_events.'}

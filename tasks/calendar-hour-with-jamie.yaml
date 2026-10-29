@@ -32,8 +32,13 @@ checks:
   minutes: 60
   items:
   - {id: valid, kind: in_set, label: 'Every option is a time both are free, in business hours'}
+  rule: 'Every OPTIONS line is a 60-minute start that is free for both people inside weekday 9-5 and after now (computed from the dataset), with no repeats. Any other option caps the score at 4.'
+- id: options_count
+  type: time_options
+  header: OPTIONS
+  items:
   - {id: count, kind: count, min: 2, max: 3, label: 'Two or three options'}
-  rule: 'Every OPTIONS line is a 60-minute start that is free for both people inside weekday 9-5 (computed from the dataset), with no repeats, and there are two or three lines.'
+  rule: 'The OPTIONS block has two or three lines.'
 - id: options_handling
   type: time_options
   header: OPTIONS
@@ -49,5 +54,6 @@ checks:
   - {id: not_past, kind: not_before_now, label: 'No option before now'}
   rule: 'At least one valid option is Thursday 13:00 or on Friday (it needs Alex''s declined and transparent events read as not blocking), and no option is before Monday 8:30 AM.'
 rubric:
-- {criterion: Valid, concrete options, max_score: 2, check: options_valid, description: 'Each option is a ground-truth start, and two or three are given.'}
+- {criterion: Valid options, max_score: 1, cap_if_failed: 4, check: options_valid, description: 'Every option is a ground-truth start; recommending a time that is busy, outside hours or in the past caps the score at 4.'}
+- {criterion: Two or three options, max_score: 1, check: options_count, description: 'The block has two or three options.'}
 - {criterion: Reads event status and time, max_score: 2, check: options_handling, description: 'Uses a time that needs declined/transparent events read correctly, and nothing in the past.'}

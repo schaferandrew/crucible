@@ -22,24 +22,24 @@
   },
   "calendar-free-at-330": {
     "version": 2,
-    "content_hash": "778c576b8bdbd92a",
+    "content_hash": "6d145f996bd1436b",
     "prompt_hash": "befffc248f09c86a",
     "rubric_version": 2,
-    "rubric_hash": "ed43feac24dc35e1"
+    "rubric_hash": "d2ed1dccfdb0032f"
   },
   "calendar-hour-with-jamie": {
     "version": 2,
-    "content_hash": "70de09d2c10651d3",
+    "content_hash": "6bab741addfb16f9",
     "prompt_hash": "d3359b2437bcd208",
     "rubric_version": 2,
-    "rubric_hash": "f259e92dc99d2776"
+    "rubric_hash": "84fe475354719203"
   },
   "calendar-team-of-16": {
     "version": 2,
-    "content_hash": "a08b5f54e2bfd149",
+    "content_hash": "b3eb371da517cb6a",
     "prompt_hash": "7fab073a33646753",
     "rubric_version": 2,
-    "rubric_hash": "2513da821e2e902f"
+    "rubric_hash": "28b2d02d8b0aedf0"
   },
   "capitals-not-largest-city": {
     "version": 1,

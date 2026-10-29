@@ -290,3 +290,20 @@ def test_opencode_session_tool_calls(tmp_path):
         {"type": "tool", "name": "mock-calendar_list_events", "state": {"input": {"calendarId": "primary"}}},
         {"type": "text", "text": "done"}]}]}))
     assert checks.session_tool_calls(tmp_path) == [{"name": "mock-calendar_list_events", "args": {"calendarId": "primary"}}]
+
+
+def _capped(task_id, text, tool_calls=()):
+    from crucible import workspace
+    task = workspace.load_task(task_id)
+    scores = checks.criterion_scores(task, checks.run_checks(task, text, tool_calls=list(tool_calls)))
+    return checks._cap(task, scores)
+
+
+def test_calendar_tasks_cap_a_wrong_core_answer():
+    tools = [{"name": "get_current_time", "args": {}}, {"name": "list_events", "args": {}}]
+    assert _capped("calendar-free-at-330", "3:30 PM\n\nANSWER: free", tools) is None
+    assert _capped("calendar-free-at-330", "3:30 PM\n\nANSWER: busy", tools) == 2.5
+    assert _capped("calendar-free-at-330", "3:30 PM, free", tools) == 2.5
+    assert _capped("calendar-hour-with-jamie", "OPTIONS:\n2026-09-04 10:30 CDT\n2026-09-03 13:00 CDT") is None
+    assert _capped("calendar-hour-with-jamie", "OPTIONS:\n2026-09-04 10:30 CDT\n2026-09-01 10:00 CDT") == 4
+    assert _capped("calendar-team-of-16", "OPTIONS:\n2026-09-01 13:00 CDT\n2026-09-02 09:00 CDT\n2026-09-07 10:00 CDT") == 4

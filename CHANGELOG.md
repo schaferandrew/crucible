@@ -26,6 +26,12 @@ here ([docs/versioning.md](docs/versioning.md)).
   calendar of a dataset's team was named. `checks.session_tool_calls()` and a `tool_calls=` argument to
   `run_checks()` expose the calls.
 
+### Changed
+
+- **Mock calendar data is part of a task's content hash.** `mock-calendar:<dataset>` hashes the dataset
+  JSON and the server (`calendar_server.py`), so editing either shows up as drift in `crucible versions`
+  (it was not hashed before). Only the three calendar tasks are affected.
+
 ## 3.1.0 (2026-10-29)
 
 Scoring fixes and the first converted tasks for Suite v2: empty answers score 0, answer blocks

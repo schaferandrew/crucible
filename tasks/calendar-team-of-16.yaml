@@ -32,8 +32,13 @@ checks:
   minutes: 60
   items:
   - {id: valid, kind: in_set, label: 'Every option is a time all 16 are free, in their business hours'}
+  rule: 'Every OPTIONS line is a 60-minute start free for all 16 Platform calendars inside each person''s 9-5 weekday (computed from the dataset), with no repeats. Any other option caps the score at 4.'
+- id: options_count
+  type: time_options
+  header: OPTIONS
+  items:
   - {id: count, kind: count, min: 3, max: 3, label: 'Exactly three options'}
-  rule: 'Every OPTIONS line is a 60-minute start free for all 16 Platform calendars inside each person''s 9-5 weekday (computed from the dataset), with no repeats, and there are exactly three lines.'
+  rule: 'The OPTIONS block has exactly three lines.'
 - id: constraints
   type: time_options
   header: OPTIONS
@@ -56,6 +61,7 @@ checks:
     label: 'get_freebusy covered the 15 other Platform calendars'
   rule: 'The run''s get_freebusy calls (read from the session) named all 15 Platform calendars other than the user''s own.'
 rubric:
-- {criterion: Valid options, max_score: 2, check: options_valid, description: 'Each option is a ground-truth start, and exactly three are given.'}
+- {criterion: Valid options, max_score: 1, cap_if_failed: 4, check: options_valid, description: 'Every option is a ground-truth start; a busy time, Labor Day, Priya out, or a time past 4 PM Central caps the score at 4.'}
+- {criterion: Exactly three options, max_score: 1, check: options_count, description: 'The block has three options.'}
 - {criterion: Handles the constraints, max_score: 2, check: constraints, description: 'Nothing on Labor Day or 9/10-9/11, nothing ending after 4 PM Central.'}
 - {criterion: Identifies the team, max_score: 1, check: team, description: 'get_freebusy covered the 15 Platform calendars.'}

@@ -34,6 +34,8 @@ GRADERS_DIR = workspace.REPO_ROOT / "graders"
 # Files behind a declared MCP server whose data the model reads
 MCP_SERVER_DATA = {
     "mock-data": [workspace.FIXTURES_DIR / "mock-mcp-server", workspace.FIXTURES_DIR / "mock-data"],
+    # "mock-calendar:<dataset>": the server, plus the dataset it serves (added in content_hash)
+    "mock-calendar": [workspace.REPO_ROOT / "crucible" / "mcp_servers" / "calendar_server.py"],
 }
 
 # Never part of a seeded repo's content (installed or generated on the fly)
@@ -75,7 +77,11 @@ def content_hash(prompt_def: dict) -> str:
     for name in workspace.fixture_names(prompt_def):
         parts += _tree_bytes(workspace.FIXTURES_DIR / name)
     for server in prompt_def.get("mcp_servers") or []:
-        for path in MCP_SERVER_DATA.get(server, []):
+        name, _, dataset = server.partition(":")
+        paths = list(MCP_SERVER_DATA.get(server) or MCP_SERVER_DATA.get(name, []))
+        if name == "mock-calendar" and dataset:
+            paths.append(workspace.FIXTURES_DIR / "mock-calendar" / f"{dataset}.json")
+        for path in paths:
             parts += _tree_bytes(path)
     return _sha(*parts)
 

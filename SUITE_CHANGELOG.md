@@ -12,19 +12,19 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
 
 - calendar-free-at-330 (formerly TASK-4): version 2, rubric 2, still provisional. The reply now ends with
   `ANSWER: free|busy`, scored as 4 equal items: the answer is free, it says PM / this afternoon / today,
-  and the run called `get_current_time` and `list_events` (read from the session). Was judge-scored.
+  and the run called `get_current_time` and `list_events` (read from the session). Was judge-scored. A wrong or missing ANSWER caps the score at 2.5.
   Runs of version 1 no longer count; rerun it.
 
 - calendar-hour-with-jamie (formerly TASK-5): version 2, rubric 2, still provisional. The reply now ends
   with an `OPTIONS:` block of `YYYY-MM-DD HH:MM <time zone>` lines, scored as 4 equal items: every option
   is in the ground-truth set (computed from the dataset), two or three options, at least one is Thursday
-  13:00 or on a Friday (declined and transparent events read correctly), none before now. The dataset's
+  13:00 or on a Friday (declined and transparent events read correctly), none before now. An option outside the ground-truth set caps the score at 4. The dataset's
   event titles no longer say "(declined)". Runs of version 1 no longer count; rerun it.
 
 - calendar-team-of-16 (formerly TASK-6): version 2, rubric 2, still provisional. The reply now ends with
   an `OPTIONS:` block, scored as 5 equal items: every option in the ground-truth set, exactly three, none
   on Labor Day or 9/10-9/11, none ending after 4 PM Central, and `get_freebusy` covered the 15 other
-  Platform calendars (session). Event titles no longer say "(declined)" or "(optional)". Runs of version 1
+  Platform calendars (session). An option outside the ground-truth set (busy, Labor Day, Priya out, past 4 PM Central) caps the score at 4. Event titles no longer say "(declined)" or "(optional)". Runs of version 1
   no longer count; rerun it.
 
 - fact-check-history (formerly HIST-2), now "Fact-check twelve history claims": version 2, rubric 2,
