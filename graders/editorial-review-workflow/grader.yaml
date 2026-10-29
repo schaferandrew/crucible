@@ -1,0 +1,23 @@
+# Hidden tests for editorial-review-workflow (formerly CODE-11); see crucible/graders.py.
+# Isolated: the tests run in a fresh copy of repos/conduit-monorepo that takes only the source
+# folders below from the model's workspace, so the package.json files, the test setup and the
+# seeded tests (the RealWorld contract suite among them) stay as seeded.
+isolated: true
+artifacts: [apps/api/src, apps/web/src, packages/shared/src]
+# The seeded repo has no lockfile (cursor-pagination shares it), so the grader pins its own
+lockfile: package-lock.json
+# The hidden tests are API tests: they run from apps/api, like the repo's own API tests
+test_roots:
+  "*.grader.test.ts": apps/api
+# Caps, not points (see the task's rubric): they pass on the seeded repo
+existing_tests: [apps/api, apps/web]
+unchanged: [apps/api/test/realworld.contract.test.ts]
+timeout: 600
+# `crucible grader editorial-review-workflow` grades each of these and checks the score lands in its range
+oracle:
+  solution: [10, 10]
+  seeded: [0, 0]
+  calibration:
+    contract-only: [3, 5.5]         # the workflow as the contract spells it; nothing kept private
+    direct-access-only: [4.5, 6.5]  # drafts 404 when opened, but leak through lists, tags, comments and edits
+    breaks-existing-clients: [5, 5] # everything, but new articles default to drafts: the seeded tests fail, capped at 5

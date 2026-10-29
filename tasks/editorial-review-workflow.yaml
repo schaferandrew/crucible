@@ -7,11 +7,16 @@ category: coding_repo
 area: coding
 tier: forge
 version: 3
-rubric_version: 3
+rubric_version: 4
 status: provisional
 auto_grade: true
 repo: conduit-monorepo
 grader: editorial-review-workflow
+# Every hidden test weighs the same: the score is tests passed / all tests x 10, graded in a fresh
+# copy of the seeded repo with only the model's source folders (graders/editorial-review-workflow/
+# grader.yaml). The existing tests and the untouched contract suite are caps, not points: the seeded
+# repo passes both, so doing nothing scores 0.
+scoring: per_test
 prompt: |
   This is Conduit, a RealWorld (realworld.how) monorepo: an Express API in apps/api, a React app in apps/web, and shared types and validation in packages/shared. Read README.md first.
 
@@ -38,29 +43,24 @@ prompt: |
   Some of this brief may conflict with how the app behaves today. Where it does, choose the option that keeps existing clients working and keeps unapproved work private, and explain each call you made. Add tests for the rules, keep every existing test passing, and finish with a summary of what you changed and what you'd flag in code review.
 rubric:
 - criterion: Client contract
-  max_score: 3
   hidden_tests: contract
-  description: 'Hidden tests: the review workflow the web client relies on.'
+  description: 'Hidden tests: the review workflow the mobile and web clients rely on, as the brief spells it out.'
 - criterion: Unapproved work stays private
-  max_score: 2
   hidden_tests: 'rules: unapproved work stays private'
-  description: 'Hidden tests: drafts and reviews never leak through lists, feeds, tags, comments or favorites.'
+  description: 'Hidden tests: drafts and articles in review never show through lists, filters, feeds, tags, comments,
+    favorites or edits, and 404 like an article that does not exist.'
 - criterion: Rules found, not given
-  max_score: 2
   hidden_tests: 'rules: found in the brief'
-  description: 'Hidden tests: no self-approval, private feedback, renames stay in review.'
-- criterion: Regression tests
-  max_score: 1
-  hidden_tests: regression
-  description: The model's new or changed tests pass on its fix and at least one fails on the seeded code.
+  description: 'Hidden tests: no one reviews their own work, feedback stays private, authors see why, renames stay in review.'
 - criterion: Existing tests still pass
-  max_score: 1
   hidden_tests: existing
-  description: The repo's own test suites pass with the model's changes.
+  cap_if_failed: 5
+  description: The repo's seeded API and web tests, the contract suite among them, pass on the model's source; if not,
+    the score is capped at 5. A cap, not points.
 - criterion: Contract suite untouched
-  max_score: 1
   hidden_tests: contract_unchanged
   cap_if_failed: 4
-  description: apps/api/test/realworld.contract.test.ts is exactly as seeded; modifying it caps the score at 4.
-critical_failure: Modifying the contract suite caps the score at 4. Every criterion is scored by hidden tests or checks; write-ups
-  aren't scored yet.
+  description: apps/api/test/realworld.contract.test.ts is exactly as seeded; modifying it caps the score at 4. A cap,
+    not points.
+critical_failure: Every hidden test weighs the same; the score is tests passed / all tests x 10. Failing the seeded
+  tests caps it at 5, and modifying the contract suite caps it at 4. Write-ups aren't scored.

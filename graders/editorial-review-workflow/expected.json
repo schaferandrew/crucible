@@ -1,0 +1,127 @@
+[
+  {
+    "file": "editorial.grader.test.ts",
+    "group": "contract",
+    "name": "publishes immediately without a status"
+  },
+  {
+    "file": "editorial.grader.test.ts",
+    "group": "contract",
+    "name": "draft -> in_review -> published"
+  },
+  {
+    "file": "editorial.grader.test.ts",
+    "group": "contract",
+    "name": "reject returns to draft with feedback the author sees"
+  },
+  {
+    "file": "editorial.grader.test.ts",
+    "group": "contract",
+    "name": "rejects transitions that don't apply with 422"
+  },
+  {
+    "file": "editorial.grader.test.ts",
+    "group": "contract",
+    "name": "only editors approve or reject"
+  },
+  {
+    "file": "editorial.grader.test.ts",
+    "group": "contract",
+    "name": "review queue: in_review oldest first, editors only"
+  },
+  {
+    "file": "editorial.grader.test.ts",
+    "group": "contract",
+    "name": "own articles of every status"
+  },
+  {
+    "file": "editorial.grader.test.ts",
+    "group": "contract",
+    "name": "own articles: newest first, filtered by status, nobody else's"
+  },
+  {
+    "file": "editorial.grader.test.ts",
+    "group": "contract",
+    "name": "only the author submits a draft"
+  },
+  {
+    "file": "editorial.grader.test.ts",
+    "group": "rules: unapproved work stays private",
+    "name": "the article list doesn't show it, signed in or out"
+  },
+  {
+    "file": "editorial.grader.test.ts",
+    "group": "rules: unapproved work stays private",
+    "name": "filtering by its author doesn't show it"
+  },
+  {
+    "file": "editorial.grader.test.ts",
+    "group": "rules: unapproved work stays private",
+    "name": "filtering by its tag doesn't show it"
+  },
+  {
+    "file": "editorial.grader.test.ts",
+    "group": "rules: unapproved work stays private",
+    "name": "filtering by who favorited it doesn't show it"
+  },
+  {
+    "file": "editorial.grader.test.ts",
+    "group": "rules: unapproved work stays private",
+    "name": "a follower's feed doesn't show it"
+  },
+  {
+    "file": "editorial.grader.test.ts",
+    "group": "rules: unapproved work stays private",
+    "name": "tag counts don't reveal it"
+  },
+  {
+    "file": "editorial.grader.test.ts",
+    "group": "rules: unapproved work stays private",
+    "name": "direct access 404s for anyone who can't see it"
+  },
+  {
+    "file": "editorial.grader.test.ts",
+    "group": "rules: unapproved work stays private",
+    "name": "its comments 404 for anyone who can't see it"
+  },
+  {
+    "file": "editorial.grader.test.ts",
+    "group": "rules: unapproved work stays private",
+    "name": "favoriting it 404s for anyone who can't see it"
+  },
+  {
+    "file": "editorial.grader.test.ts",
+    "group": "rules: unapproved work stays private",
+    "name": "editing or deleting it 404s for anyone who can't see it, as for an article that doesn't exist"
+  },
+  {
+    "file": "editorial.grader.test.ts",
+    "group": "rules: unapproved work stays private",
+    "name": "its author sees it, and editors see what's in review"
+  },
+  {
+    "file": "editorial.grader.test.ts",
+    "group": "rules: found in the brief, not the contract",
+    "name": "no one approves their own work, even an editor"
+  },
+  {
+    "file": "editorial.grader.test.ts",
+    "group": "rules: found in the brief, not the contract",
+    "name": "no one rejects their own work either"
+  },
+  {
+    "file": "editorial.grader.test.ts",
+    "group": "rules: found in the brief, not the contract",
+    "name": "authors see why each article was sent back in their own list"
+  },
+  {
+    "file": "editorial.grader.test.ts",
+    "group": "rules: found in the brief, not the contract",
+    "name": "feedback never reaches the public, even after publishing"
+  },
+  {
+    "file": "editorial.grader.test.ts",
+    "group": "rules: found in the brief, not the contract",
+    "name": "renaming an article under review keeps it in review and in the queue"
+  }
+]
