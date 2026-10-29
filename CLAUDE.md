@@ -6,6 +6,8 @@
 
 Skills in `.claude/skills/`, by job:
 - `publish-results`: publish results to the dashboard.
+- `add-task`: write a new chat task, or convert one to a scored answer block.
+- `convert-grader`: convert a coding task to an isolated, per-test grader.
 - `calibrate-task`: run a task on the calibration models and report whether it separates them.
 - `cut-suite`: cut or patch a suite. Only when the user asks for it.
 

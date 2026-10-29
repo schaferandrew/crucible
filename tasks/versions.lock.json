@@ -73,8 +73,8 @@
     "version": 3,
     "content_hash": "02dc7545b79f29a4",
     "prompt_hash": "c8ef51b07f0eb930",
-    "rubric_version": 3,
-    "rubric_hash": "f0bb23c14680a69e"
+    "rubric_version": 4,
+    "rubric_hash": "045074375d3af88a"
   },
   "explain-enshittification": {
     "version": 1,
@@ -91,11 +91,11 @@
     "rubric_hash": "c043a55be28cc70b"
   },
   "fact-check-history": {
-    "version": 1,
-    "content_hash": "d2211f643f7da6e2",
-    "prompt_hash": "67ef42cbe1c6b559",
-    "rubric_version": 1,
-    "rubric_hash": "2d7d0af0e447aabb"
+    "version": 2,
+    "content_hash": "33f30be6930d812b",
+    "prompt_hash": "3da80eceaa8c1782",
+    "rubric_version": 2,
+    "rubric_hash": "0fdc5051fcd23767"
   },
   "fire-truck-color": {
     "version": 1,
@@ -220,7 +220,7 @@
     "version": 1,
     "content_hash": "1910aa6ceae57f5f",
     "prompt_hash": "03a109aefa2ef4b3",
-    "rubric_version": 2,
+    "rubric_version": 3,
     "rubric_hash": "70e05ca5984d3fd8"
   },
   "navbar-hamburger-menu": {
@@ -255,7 +255,7 @@
     "version": 1,
     "content_hash": "b4472099e92507a3",
     "prompt_hash": "40627576d7598f33",
-    "rubric_version": 2,
+    "rubric_version": 3,
     "rubric_hash": "307cd16e5d9b4cbf"
   },
   "order-historical-events": {

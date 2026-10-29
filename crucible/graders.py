@@ -21,9 +21,21 @@ the declared `artifacts` (source paths) from the model's workspace, so package.j
 the test config and node_modules (installed from the seeded lockfile, cached by its hash) stay as
 seeded. expected.json lists every test the grader declares, recorded from the reference solution by
 `crucible grader <test> --write-expected`, so a file that fails to load counts every one as failed.
+An isolated grader.yaml can also declare:
+  - `lockfile`: a lockfile in the grader folder to install from, for a seeded repo that has none
+  - `test_roots`: {file glob: folder}, where each hidden test file runs (the first glob that matches;
+    default "."), for a monorepo whose apps each have their own vitest setup
+  - `existing_tests`: folders whose seeded tests must still pass on the model's artifacts (`existing`)
+  - `unchanged`: files the model must leave as seeded (`contract_unchanged`)
+  - `regression_tests`: folders where the model's own tests go. Its new or changed test files must pass
+    on its fix and at least one must fail on the seeded code; that counts as one more test in the pool
+    (group `regression`), so it weighs one test and fails on an unchanged repo
+Under `scoring: per_test` these two are caps (`cap_if_failed`), never points: they pass on the seeded
+repo, so paying for them would pay for doing nothing.
 """
 from __future__ import annotations
 
+import fnmatch
 import hashlib
 import json
 import os
@@ -46,6 +58,11 @@ EXPECTED_FILENAME = "expected.json"
 NOT_SOURCE = ("node_modules", ".next", ".git", "dist", "test-results")
 CONTRACT = "apps/api/test/realworld.contract.test.ts"
 SPECIAL = ("existing", "contract_unchanged", "regression")
+# Pass on the seeded repo, so under per-test scoring they only cap
+GATES = ("existing", "contract_unchanged")
+TEST_FILE = re.compile(r"\.test\.tsx?$")
+REGRESSION_TEST = {"file": "regression", "group": "regression",
+                   "name": "your new tests fail on the seeded code and pass on your fix"}
 TEST_NAME = re.compile(r"""^\s*it\(\s*(["'`])(.+?)\1""", re.M)
 GROUP_NAME = re.compile(r"""^\s*describe\(\s*(["'`])(.+?)\1""", re.M)
 
@@ -198,20 +215,33 @@ def cache_root() -> Path:
     return Path(os.environ.get("CRUCIBLE_CACHE") or Path.home() / ".crucible" / "cache")
 
 
-def _cached_node_modules(repo: Path) -> tuple[Path | None, str | None]:
-    """node_modules installed with `npm ci` from the seeded lockfile, shared by every grading of it."""
-    lock = repo / "package-lock.json"
+def _manifests(repo: Path) -> list[str]:
+    """package.json and, for an npm workspaces monorepo, every workspace's package.json."""
+    root = json.loads((repo / "package.json").read_text(encoding="utf-8"))
+    found = ["package.json"]
+    for pattern in root.get("workspaces") or []:
+        found += sorted(p.relative_to(repo).as_posix() for p in repo.glob(f"{pattern}/package.json"))
+    return found
+
+
+def _cached_node_modules(repo: Path, lockfile: Path | None = None) -> tuple[Path | None, str | None]:
+    """node_modules installed with `npm ci` from the seeded lockfile (or the grader's `lockfile`),
+    shared by every grading of it."""
+    lock = lockfile or repo / "package-lock.json"
     if not lock.exists():
         return None, f"{repo.name} has no package-lock.json to install from"
-    key = hashlib.sha256((repo / "package.json").read_bytes() + lock.read_bytes()).hexdigest()[:16]
+    manifests = _manifests(repo)
+    key = hashlib.sha256(b"".join((repo / m).read_bytes() for m in manifests) + lock.read_bytes()).hexdigest()[:16]
     target = cache_root() / "node_modules" / f"{repo.name}-{key}"
     if (target / "node_modules").is_dir():
         return target / "node_modules", None
     target.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{target.name}-", dir=target.parent))
     try:
-        for name in ("package.json", "package-lock.json"):
+        for name in manifests:
+            (staging / name).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(repo / name, staging / name)
+        shutil.copy2(lock, staging / "package-lock.json")
         result = _run(["npm", "ci", "--no-audit", "--no-fund", "--loglevel=error"], staging, 600)
         if result.returncode != 0:
             return None, f"npm ci failed: {result.stderr.strip()[-300:]}"
@@ -246,6 +276,91 @@ def _grading_copy(repo: Path, workspace: Path, artifacts: list[str], dest: Path)
     return taken
 
 
+def _link_node_modules(modules: Path, copy: Path) -> None:
+    """Point the grading copy at the cached install. A workspaces install links its own packages
+    (node_modules/@scope/pkg -> ../../packages/pkg); those links are recreated in the copy so they
+    resolve to the copy's sources, the model's artifacts, never to the cache's bare manifests."""
+    links = [p for p in modules.glob("*") if p.is_symlink()] + [p for p in modules.glob("@*/*") if p.is_symlink()]
+    if not links:
+        (copy / "node_modules").symlink_to(modules, target_is_directory=True)
+    else:
+        (copy / "node_modules").mkdir()
+        for entry in modules.iterdir():
+            target = copy / "node_modules" / entry.name
+            if entry.is_symlink():
+                target.symlink_to(os.readlink(entry))
+            elif entry.name.startswith("@") and any(p.is_symlink() for p in entry.iterdir()):
+                target.mkdir()
+                for pkg in entry.iterdir():
+                    (target / pkg.name).symlink_to(os.readlink(pkg) if pkg.is_symlink() else pkg)
+            else:
+                target.symlink_to(entry, target_is_directory=entry.is_dir())
+    # A workspace whose dependencies didn't hoist has its own node_modules in the install
+    for nested in modules.parent.glob("*/*/node_modules"):
+        rel = nested.relative_to(modules.parent)
+        if (copy / rel.parent).is_dir() and not (copy / rel).exists():
+            (copy / rel).symlink_to(nested, target_is_directory=True)
+
+
+def _test_root(cfg: dict, name: str) -> str:
+    """Where a hidden test file runs: its folder's test/hidden, with vitest started in that folder."""
+    for pattern, root in (cfg.get("test_roots") or {}).items():
+        if fnmatch.fnmatch(name, pattern):
+            return root
+    return "."
+
+
+def _unchanged(repo: Path, workspace: Path, paths: list[str]) -> bool:
+    """Every listed file is in the workspace exactly as seeded (CRLF aside)."""
+    def read(p: Path) -> bytes | None:
+        return p.read_bytes().replace(b"\r\n", b"\n") if p.is_file() else None
+    return all(read(workspace / rel) == read(repo / rel) for rel in paths)
+
+
+def _changed_files(repo: Path, workspace: Path, roots: list[str], skip: set[str]) -> list[str]:
+    """Files under the roots that the model added or changed (hidden tests and installs aside)."""
+    found = []
+    for root in roots:
+        for path in sorted((workspace / root).rglob("*")) if (workspace / root).is_dir() else []:
+            rel = path.relative_to(workspace)
+            if not path.is_file() or set(rel.parts) & {*NOT_SOURCE, "hidden"} or rel.as_posix() in skip:
+                continue
+            seeded = repo / rel
+            if not seeded.is_file() or seeded.read_bytes() != path.read_bytes():
+                found.append(rel.as_posix())
+    return found
+
+
+def _isolated_regression(repo: Path, workspace: Path, copy: Path, modules: Path, cfg: dict) -> dict:
+    """The model's new or changed tests, with any helpers it changed: they must pass in the grading copy
+    (its fix) and at least one must fail in a copy with the seeded source."""
+    artifacts = cfg.get("artifacts") or []
+    changed = _changed_files(repo, workspace, cfg["regression_tests"], set(cfg.get("unchanged") or []))
+    tests = [p for p in changed if TEST_FILE.search(p)]
+    if not tests:
+        return {"passed": False, "files": [], "detail": "no new or changed test files"}
+    support = [p for p in changed if not any(p == a or p.startswith(a.rstrip("/") + "/") for a in artifacts)]
+    seeded = copy.parent / "seeded"
+    _grading_copy(repo, workspace, [], seeded)
+    _link_node_modules(modules, seeded)
+    for rel in sorted(set(support + tests)):
+        for dest in ((copy, seeded) if rel in support else (seeded,)):
+            (dest / rel).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(workspace / rel, dest / rel)
+    after_ok, before_failed = True, False
+    for root in cfg["regression_tests"]:
+        mine = [Path(p).relative_to(root).as_posix() for p in tests if p.startswith(root.rstrip("/") + "/")]
+        if not mine:
+            continue
+        after, error = _vitest(copy / root, mine, timeout=cfg.get("timeout", 600))
+        after_ok &= bool(after) and not error and all(t["passed"] for t in after)
+        before, error = _vitest(seeded / root, mine, timeout=cfg.get("timeout", 600))
+        before_failed |= bool(error) or any(not t["passed"] for t in before)
+    return {"passed": after_ok and before_failed, "files": tests,
+            "detail": ("pass on the fix and catch the bug on the seeded code" if after_ok and before_failed
+                       else "don't pass on the fix" if not after_ok else "pass on the seeded code too, so they don't catch the bug")}
+
+
 def expected_tests(grader: str) -> list[dict] | None:
     """Every test the grader declares, as recorded in expected.json; None before it's recorded."""
     path = GRADERS_DIR / grader / EXPECTED_FILENAME
@@ -262,18 +377,42 @@ def run_isolated(workspace: Path, prompt_def: dict) -> dict:
     expected = expected_tests(grader)
     record: dict = {"grader": grader, "isolated": True, "ran_at": datetime.now(timezone.utc).isoformat()}
     repo = REPOS_DIR / prompt_def["repo"]
-    modules, error = _cached_node_modules(repo)
+    if cfg.get("unchanged"):
+        record["contract_unchanged"] = _unchanged(repo, workspace, cfg["unchanged"])
+    lockfile = GRADERS_DIR / grader / cfg["lockfile"] if cfg.get("lockfile") else None
+    modules, error = _cached_node_modules(repo, lockfile)
     if error:
-        return {**record, "error": error, "tests": expected or [t for f in files for t in _expected_tests(f)]}
+        return {**record, "error": error, "tests": expected or [t for f in files for t in _expected_tests(f)],
+                **({"existing": {"passed": False}} if cfg.get("existing_tests") else {})}
+    tests, errors = [], []
     with tempfile.TemporaryDirectory(prefix="crucible-grade-") as tmp:
         copy = Path(tmp) / repo.name
         record["artifacts"] = _grading_copy(repo, workspace, cfg.get("artifacts") or [], copy)
-        (copy / "node_modules").symlink_to(modules, target_is_directory=True)
-        hidden = copy / "test" / "hidden"
-        hidden.mkdir(parents=True, exist_ok=True)
+        _link_node_modules(modules, copy)
+        if cfg.get("existing_tests"):  # the seeded tests, before any hidden test is in place
+            apps = {}
+            for root in cfg["existing_tests"]:
+                found, error = _vitest(copy / root, [], timeout=cfg.get("timeout", 600))
+                apps[root] = {"passed": sum(t["passed"] for t in found), "failed": sum(not t["passed"] for t in found),
+                              "error": error}
+            record["existing"] = {"passed": all(a["passed"] and not a["failed"] and not a["error"] for a in apps.values()),
+                                  "apps": apps}
+        by_root: dict[str, list[Path]] = {}
         for f in files:
-            shutil.copy2(f, hidden / f.name)
-        tests, error = _vitest(copy, ["test/hidden"], timeout=cfg.get("timeout", 600))
+            by_root.setdefault(_test_root(cfg, f.name), []).append(f)
+        for root, mine in by_root.items():
+            hidden = copy / root / "test" / "hidden"
+            hidden.mkdir(parents=True, exist_ok=True)
+            for f in mine:
+                shutil.copy2(f, hidden / f.name)
+            found, error = _vitest(copy / root, ["test/hidden"], timeout=cfg.get("timeout", 600))
+            tests += found
+            if error:
+                errors.append(error if root == "." else f"{root}: {error}")
+        if cfg.get("regression_tests"):  # last: the model's changed test helpers go into the copy
+            record["regression"] = _isolated_regression(repo, workspace, copy, modules, cfg)
+            tests.append({**REGRESSION_TEST, "passed": record["regression"]["passed"],
+                          "error": None if record["regression"]["passed"] else record["regression"]["detail"]})
     # A test that never ran (its file didn't load, or vitest died) counts as failed. Before expected.json
     # is recorded, only a file that reported nothing falls back to the tests it spells out.
     ran = {(t["file"], t["group"], t["name"]) for t in tests}
@@ -284,7 +423,7 @@ def run_isolated(workspace: Path, prompt_def: dict) -> dict:
     known = {(t["file"], t["group"], t["name"]) for t in expected}
     # A test name that changes between runs would count twice; the oracle refuses it
     unexpected = [t["name"] for t in tests if known and (t["file"], t["group"], t["name"]) not in known]
-    return {**record, "tests": tests, "errors": [error] if error else [], "unexpected": unexpected}
+    return {**record, "tests": tests, "errors": errors, "unexpected": unexpected}
 
 
 def run(run_dir: Path, prompt_def: dict) -> dict | None:
@@ -315,6 +454,15 @@ def run(run_dir: Path, prompt_def: dict) -> dict | None:
 def selected_tests(selector: str, tests: list[dict]) -> list[dict]:
     """The hidden tests a `hidden_tests` selector picks: a grader file name or a describe-group prefix."""
     return [t for t in tests if t["file"] == selector or t["group"].lower().startswith(selector.lower())]
+
+
+def per_test_cap(prompt_def: dict, record: dict | None) -> float | None:
+    """Under per-test scoring, the lowest `cap_if_failed` among the gate criteria (`existing`,
+    `contract_unchanged`) that failed. Gates earn no points; they only cap."""
+    caps = [item["cap_if_failed"] for item in prompt_def.get("rubric", [])
+            if item.get("hidden_tests") in GATES and "cap_if_failed" in item
+            and not criterion_result(item["hidden_tests"], record or {})[0]]
+    return min(caps) if caps else None
 
 
 def criterion_result(selector: str, record: dict) -> tuple[float, str]:

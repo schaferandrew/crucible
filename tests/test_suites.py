@@ -118,8 +118,11 @@ def test_patch_pins_rubric_fixes_only(sandbox):
     _edit(sandbox, "fire-truck-color", rubric=rubric, rubric_version=p["rubric_version"] + 1)
     versioning.write_lock()
     assert suites.verify() == []
+    lock = versioning.read_lock()
+    # The repo's own rubric fixes since Suite v1 (if any) are pinned too
+    fixed = sorted(t for t, pin in suites.pins(suites.latest()).items() if lock[t]["rubric_version"] > pin["rubric_version"])
     path, bumped = suites.patch(date="2026-11-20")
-    assert path.name == "v1.1.yaml" and bumped == ["fire-truck-color"]
+    assert path.name == "v1.1.yaml" and "fire-truck-color" in bumped and sorted(bumped) == fixed
     v11 = yaml.safe_load(path.read_text())
     assert v11["version"] == "1.1" and "from_release" not in v11
     pin = suites.pins(v11)["fire-truck-color"]

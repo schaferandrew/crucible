@@ -1,4 +1,4 @@
-"""The answer-block parser and the `items` check (Suite v2 groundwork; no prompt uses them yet)."""
+"""The answer-block parser and the `items` check (fact-check-history is the first task to use them)."""
 import pytest
 
 from crucible import checks
@@ -126,10 +126,19 @@ def test_items_take_lines_in_order_without_a_key():
 
 def test_missing_block_or_empty_answer_scores_zero():
     items = [{"id": "q1", "key": "1", "expect": 42}]
-    for text in ("The answer is 42.", ""):
+    for text, detail in (("The answer is 42.", "no ANSWERS: block"), ("", "no answer to check")):
         result = _score(items, text, normalize="number")
         assert not result["passed"] and result["share"] == 0.0
-        assert result["detail"] == "no ANSWERS: block"
+        assert result["detail"] == detail
+
+
+def test_missing_block_fails_every_expanded_item():
+    """letter_set leaves letters out, so a missing block must fail them explicitly, not pass them."""
+    items = [{"id": "q", "expect": ["B"], "of": ["A", "B", "C"], "normalize": "letter_set"},
+             {"id": "o", "expect": ["x", "y", "z"], "normalize": "ordering"}]
+    result = _score(items, "No block here.")
+    assert result["share"] == 0.0 and len(result["items"]) == 6
+    assert {i["detail"] for i in result["items"]} == {"no answer block"}
 
 
 def test_items_check_scores_its_criterion_by_share(tmp_path):
@@ -147,3 +156,48 @@ def test_items_check_scores_its_criterion_by_share(tmp_path):
 def test_other_checks_report_no_items():
     prompt = {"checks": [{"id": "three", "type": "line_count", "lines": 3}]}
     assert "items" not in checks.run_checks(prompt, "a\nb\nc")[0]
+
+
+def test_line_set_scores_each_line_in_or_out():
+    items = [{"id": "flagged", "expect": [1, 4], "of": [1, 2, 3, 4], "normalize": "line_set"}]
+    result = _score(items, "ANSWERS:\n- Line 1: 1492\n(4) 1815\n3. 1776\nnot a numbered line")
+    assert _passed(result) == {"flagged:1": True, "flagged:2": True, "flagged:3": False, "flagged:4": True}
+    assert [i["label"] for i in result["items"]] == ["Line 1 listed", "Line 2 left out", "Line 3 left out", "Line 4 listed"]
+    none = _score(items, "ANSWERS: none")
+    assert _passed(none) == {"flagged:1": False, "flagged:2": True, "flagged:3": True, "flagged:4": False}
+
+
+@pytest.mark.parametrize("value, passed", [
+    ("1815", True), ("18 June 1815", True), ("June 18, 1815", True), ("**1815**", True),
+    ("1812 → 1815", True), ("1812 -> 1815", True), ("1812 $\\rightarrow$ 1815", True),
+    ("1812", False), ("1812 or 1815", False), ("1815 → 1812", False), ("the 19th century", False), ("", False),
+])
+def test_year(value, passed):
+    items = [{"id": "y", "key": "4", "expect": 1815, "normalize": "year"}]
+    assert _score(items, f"ANSWERS:\n4: {value}")["passed"] is passed
+
+
+def test_a_value_after_an_arrow_is_the_answer():
+    items = [{"id": "king", "key": "2", "expect": "John", "aliases": ["King John"]}]
+    assert _score(items, "ANSWERS:\n2: King Richard → King John")["passed"]
+    assert not _score(items, "ANSWERS:\n2: King John → King Richard")["passed"]
+
+
+def test_fact_check_history_oracle():
+    """The converted HIST-2: a reference answer 10, an empty one 0, flagging everything well below 10."""
+    from crucible import workspace
+    p = workspace.load_task("fact-check-history")
+
+    def score(text):
+        results = checks.run_checks(p, text)
+        assert sum(len(r["items"]) for r in results) == 17
+        return round(sum(checks.criterion_scores(p, results).values()) / 17 * 10, 2)
+
+    reference = "Reasoning...\n\nERRORS:\n2: King John\n3: 1492\n6: 1815\n7: 1912\n10: 1989"
+    assert score(reference) == 10.0
+    assert score("") == 0.0 and score("1493 → 1492") == 0.0
+    assert score("ERRORS:\n" + "\n".join(f"{n}: wrong" for n in range(1, 13))) == 2.94
+    everything = {1: 1066, 2: "John", 3: 1492, 4: 1776, 5: 1789, 6: 1815, 7: 1912, 8: 1947, 9: 1969, 10: 1989,
+                  11: 1990, 12: 1994}
+    assert score("ERRORS:\n" + "\n".join(f"{n}: {v}" for n, v in everything.items())) == 5.88
+    assert score("ERRORS: none") == 4.12

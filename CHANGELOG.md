@@ -12,6 +12,43 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## 3.1.0 (2026-10-29)
+
+Scoring fixes and the first converted tasks for Suite v2: empty answers score 0, answer blocks
+can score detection tasks, and isolated graders handle workspaces monorepos with caps instead of free
+points.
+
+### Added
+
+- **`items` check:** a `line_set` kind (each numbered line in `of` listed in the block or left out, one
+  item per line, for detection tasks with accurate controls) and a `year` normalizer (every year in the
+  value must be an expected one, so "18 June 1815" is 1815 and "1812 or 1815" fails). A value written as
+  `wrong → right` (or `->`, `=>`) is scored on what follows the arrow, and block lines may be labelled
+  `Line 4`, `Claim 4` or `Sentence 4` as well as `4`.
+- **Isolated graders for npm workspaces monorepos.** A `grader.yaml` can now declare `lockfile` (a
+  lockfile kept with the grader, for a seeded repo that has none), `test_roots` (which folder each
+  hidden test file runs in, e.g. `apps/api`), `existing_tests` (folders whose seeded tests must
+  still pass on the model's source), `unchanged` (files the model must leave as seeded) and
+  `regression_tests` (the model's own new tests must pass on its fix and catch the bug on the
+  seeded code, scored as one more test in the pool). The
+  install is cached per workspace manifest, and the workspace's own package links resolve to the
+  model's source in the grading copy, not to the cache.
+- **Caps under per-test scoring.** With `scoring: per_test`, the `existing` and `contract_unchanged`
+  criteria are caps (`cap_if_failed`), never points: they pass on the seeded repo, so a run that
+  changes nothing no longer earns them, and the score record lists them under `capped_at`, not as
+  criteria.
+
+### Fixed
+
+- **An empty answer scores 0.** Every check type now fails an empty or whitespace-only answer (or an
+  empty `file:`), with the detail "no answer to check". Before, `list_items` checks with `distinct` or
+  `each_matches` passed on a list of 0 items, so a run that timed out with no output earned points:
+  4.0 on novel-character-names, 2.0 on names-for-one-character. Those two tasks get a rubric bump so
+  their stored runs are rescored; no other stored score changes.
+- An `items` check with no answer block (or no answer) now reports every item it would have scored,
+  each letter of a `letter_set` and each pair of an `ordering` included, so the item total is the same
+  whether or not the block was found.
+
 ## 3.0.0 (2026-10-29)
 
 Tests become tasks with permanent slugs, runs get a permanent identity and a new layout, and results

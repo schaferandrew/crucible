@@ -147,6 +147,50 @@ def test_list_items_counts_and_distinct_within():
     assert not checks.run_checks(prompt, dup)[1]["passed"]
 
 
+EVERY_TYPE = [
+    {"id": "forbidden", "type": "forbidden_patterns", "patterns": ["water"]},
+    {"id": "lines", "type": "line_count", "lines": 0},
+    {"id": "words", "type": "non_empty", "min_words": 0},
+    {"id": "required", "type": "required_patterns", "patterns": ["x"], "min_matches": 0},
+    {"id": "count", "type": "list_items", "min": 0},
+    {"id": "distinct", "type": "list_items", "distinct": True},
+    {"id": "described", "type": "list_items", "each_matches": r"\S+\s*(—|-|:)\s*\S+"},
+    {"id": "grounded", "type": "grounded_numbers"},
+    {"id": "grade", "type": "grade_closeness", "actual_score": 5, "width": 100},
+    {"id": "block", "type": "items", "normalize": "letter_set",
+     "items": [{"id": "q", "expect": ["B"], "of": ["A", "B", "C"]}, {"id": "n", "key": "2", "expect": 2}]},
+]
+
+
+@pytest.mark.parametrize("text", ["", "   \n\t\n", "** **\n``"])
+def test_an_empty_answer_fails_every_check_type(text):
+    """B2: a timed-out run with no output used to pass `distinct` and `each_matches` on 0 items."""
+    assert {c["type"] for c in EVERY_TYPE} == set(checks.CHECKS)
+    results = checks.run_checks({"checks": EVERY_TYPE, "prompt": "Source: 1,234"}, text)
+    assert [r["passed"] for r in results] == [False] * len(EVERY_TYPE)
+    assert {r["detail"] for r in results} == {"no answer to check"}
+    block = results[-1]
+    # Every item fails, expanded as a real block would be (3 letters + 1 line), so the total doesn't change
+    assert block["share"] == 0.0 and len(block["items"]) == 4 and not any(i["passed"] for i in block["items"])
+
+
+def test_an_empty_file_fails_its_checks(tmp_path):
+    (tmp_path / "workspace").mkdir()
+    (tmp_path / "workspace" / "NOTES.md").write_text("\n")
+    prompt = {"checks": [{"id": "count", "type": "list_items", "min": 0, "file": "NOTES.md"}]}
+    assert checks.run_checks(prompt, "a reply", tmp_path)[0] == {
+        "id": "count", "type": "list_items", "passed": False, "detail": "no answer to check", "rule": None}
+
+
+def test_an_empty_answer_scores_zero(tmp_path):
+    p = workspace.load_task("WRIT-2")
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "meta.json").write_text(json.dumps(run_meta(p["id"], p["version"])))
+    record = checks.save_check_score(run_dir, p, checks.check_results(run_dir, p))
+    assert record["scores"]["_overall"] == 0.0
+
+
 def test_fully_checked_tests_score_without_a_judge(tmp_path):
     w3 = workspace.load_task("WRIT-3")
     run_dir = tmp_path / "run"

@@ -51,12 +51,16 @@ def plain(text: str) -> str:
     return re.sub(r"\*\*|__|(?<!\w)[*_](?=\S)|(?<=\S)[*_](?!\w)|`", "", text)
 
 
+# Every check fails an empty or whitespace-only answer (run_checks applies it to every type)
+NO_ANSWER = "no answer to check"
+
+
 def _forbidden_patterns(check: dict, text: str) -> tuple[bool, str]:
     hits = []
     for pattern in check.get("patterns", []):
         hits += [m.group(0) for m in re.finditer(pattern, text, re.IGNORECASE)]
     if not text.strip():
-        return False, "no answer to check"
+        return False, NO_ANSWER
     return (not hits), ("none found" if not hits else "found: " + ", ".join(sorted(set(h.lower() for h in hits))))
 
 
@@ -141,7 +145,7 @@ def _grounded_numbers(check: dict, text: str) -> tuple[bool, str]:
     """Every figure in the answer appears in the source material (the prompt), so none were invented.
     Small whole numbers (up to `ignore_below`, default 11) are left out: list numbering, "five stories"."""
     if not text.strip():
-        return False, "no answer to check"
+        return False, NO_ANSWER
     allowed = _numbers(check["_source"]) | {str(n) for n in check.get("allow", [])}
     small = check.get("ignore_below", 11)
     invented = sorted(n for n in _numbers(text) - allowed if not (n.isdigit() and int(n) < small))
@@ -163,10 +167,13 @@ def _grounded_numbers(check: dict, text: str) -> tuple[bool, str]:
 #           - {id: q3, key: France, expect: Paris, normalize: name, aliases: ["Paris, France"]}
 #           - {id: q4, expect: [B, D], of: [A, B, C, D, E], normalize: letter_set}   # 5 items: each letter in or out
 #           - {id: q5, expect: [Gutenberg, Columbus, Luther], normalize: ordering}  # 3 items: each pair in order
+#           - {id: flagged, expect: [1, 4], of: [1, 2, 3, 4], normalize: line_set}  # 4 items: each line listed or not
+#           - {id: fix1, key: "1", expect: 1492, normalize: year}  # every year in the value is 1492
 #
 # An item with a `key` reads the block line with that label; without one, items take the block's
-# lines in order (ordering and letter_set without a key read the whole block). The score is
-# items passed / all items, each item weighing the same; a missing block scores 0.
+# lines in order (ordering, letter_set and line_set read the whole block). A value written as
+# `wrong → right` is scored on what follows the arrow. The score is items passed / all items, each
+# item weighing the same; a missing block scores 0.
 
 HEADER_MARKS = r"(?:#{1,6}\s*)?(?:[*_]{1,2}\s*)?"
 # Any other block's header ("TOP FIVE:") or a Markdown heading ends a block
@@ -215,7 +222,9 @@ def answer_block(text: str, header: str | list[str]) -> list[str] | None:
 # A block line's label and value: "1. 42", "Q1: 42", "France: Paris", "2) $7", "- Gutenberg — 1450"
 BULLET = re.compile(r"^\s*[-*•]\s+")
 LABELLED = re.compile(r"^(?P<label>[^:=—–]{1,40}?)\s*(?:[:=]|\s[—–-]\s|\)|\.(?=\s))\s*(?P<value>.*)$")
-NUMERIC_LABEL = re.compile(r"^(?:q|question|no|item|#)?\s*(\d+)$")
+NUMERIC_LABEL = re.compile(r"^(?:q|question|no|item|line|claim|sentence|#)?\s*(\d+)$")
+# "1493 → 1492": the corrected value is what follows the last arrow
+ARROW = re.compile(r"\s*(?:→|⇒|->|=>|\$\\rightarrow\$)\s*")
 
 
 def _split(line: str) -> tuple[str | None, str]:
@@ -276,6 +285,22 @@ def _norm_name(item: dict, value: str, aliases: dict | None = None) -> tuple[boo
         names += (aliases or {}).get(name) or []
     passed = _fold(value) in {_fold(n) for n in names}
     return passed, f"got {value or 'nothing'}"
+
+
+YEAR = re.compile(r"(?<![\d.,])\d{3,4}(?![\d,]|\.\d)")
+
+
+def _norm_year(item: dict, value: str) -> tuple[bool, str]:
+    """Every year (3 or 4 digits) in the value is an expected one: "18 June 1815" is 1815, "1812 or 1815" isn't."""
+    years = {int(y) for y in YEAR.findall(value)}
+    passed = bool(years) and years <= {int(e) for e in _accepted(item)}
+    return passed, f"got {value or 'nothing'}"
+
+
+def _line_numbers(lines: list[str]) -> set[int]:
+    """The numbers the block's lines are labelled with: "1: 1492", "Line 4 — 1815", "5. April 1912"."""
+    labels = [_fold(label) for label, _ in map(_split, lines) if label is not None]
+    return {int(found.group(1)) for found in map(NUMERIC_LABEL.match, labels) if found}
 
 
 def _norm_line_number(item: dict, value: str) -> tuple[bool, str]:
@@ -349,7 +374,7 @@ def _score_item(item: dict, lines: list[str], index: int, check: dict) -> list[d
     if "key" in item:
         values = [value for line_label, value in map(_split, lines) if _same_label(line_label, item["key"])]
         value = values[-1] if values else None
-    elif kind in ("ordering", "letter_set"):
+    elif kind in ("ordering", "letter_set", "line_set"):
         value = "\n".join(lines)
     else:
         value = _split(lines[index])[1] if index < len(lines) else None
@@ -375,8 +400,14 @@ def _score_item(item: dict, lines: list[str], index: int, check: dict) -> list[d
                     for letter in (str(x).upper() for x in item["of"])]
         return [{"id": item["id"], "label": label, "passed": got == want,
                  "detail": f"got {', '.join(sorted(got)) or 'none'}"}]
+    if kind == "line_set":
+        got, want = _line_numbers(lines), {int(e) for e in _accepted(item)}
+        return [{"id": f"{item['id']}:{n}", "label": f"Line {n} {'listed' if n in want else 'left out'}",
+                 "passed": (n in got) == (n in want), "detail": "listed" if n in got else "not listed"}
+                for n in (int(x) for x in item["of"])]
     if value is None:
         return [{"id": item["id"], "label": label, "passed": False, "detail": "not in the block"}]
+    value = ARROW.split(value)[-1]
     if kind == "name":
         passed, detail = _norm_name(item, value, aliases)
     else:
@@ -389,19 +420,26 @@ ITEM_NORMALIZERS = {
     "money": _norm_money,
     "line_number": _norm_line_number,
     "datetime": _norm_datetime,
+    "year": _norm_year,
 }
-ITEM_KINDS = ("number", "money", "name", "letter_set", "line_number", "datetime", "ordering")
+ITEM_KINDS = ("number", "money", "name", "year", "letter_set", "line_set", "line_number", "datetime", "ordering")
+
+
+def _all_failed(check: dict, detail: str) -> list[dict]:
+    """Every item failed, expanded as a block would be (each letter, each pair), so the total stays the same."""
+    return [{**r, "passed": False, "detail": detail}
+            for n, item in enumerate(check["items"]) for r in _score_item(item, [], n, check)]
 
 
 def _items_check(check: dict, text: str) -> tuple[bool, str, float, list[dict]]:
     """Each expected item in the answer block scored on its own; share = items passed / all items."""
     header = check.get("header", "ANSWERS")
-    lines = answer_block(text, header) if text.strip() else None
+    if not text.strip():
+        return False, NO_ANSWER, 0.0, _all_failed(check, NO_ANSWER)
+    lines = answer_block(text, header)
     if lines is None:
-        items = [{"id": i["id"], "label": i.get("label", i["id"]), "passed": False, "detail": "no answer block"}
-                 for i in check["items"]]
         name = header if isinstance(header, str) else header[0]
-        return False, f"no {name.rstrip(':')}: block", 0.0, items
+        return False, f"no {name.rstrip(':')}: block", 0.0, _all_failed(check, "no answer block")
     results = [r for n, item in enumerate(check["items"]) for r in _score_item(item, lines, n, check)]
     passed = sum(r["passed"] for r in results)
     share = round(passed / len(results), 4) if results else 0.0
@@ -440,6 +478,13 @@ def run_checks(prompt_def: dict, text: str, run_dir: Path | None = None) -> list
                                 "detail": f"{check['file']} wasn't written", "rule": check.get("rule")})
                 continue
             subject = plain(path.read_text(encoding="utf-8", errors="replace"))
+        if not subject.strip():
+            # An empty answer fails every check, whatever its type: a list of 0 items has no
+            # duplicates and no undescribed items, but there is nothing to score (B2)
+            results.append({"id": check["id"], "type": check["type"], "passed": False, "detail": NO_ANSWER,
+                            "rule": check.get("rule"),
+                            **({"share": 0.0, "items": _all_failed(check, NO_ANSWER)} if check["type"] == "items" else {})})
+            continue
         passed, detail, *extra = CHECKS[check["type"]]({**check, "_source": prompt_def.get("prompt", "")}, subject)
         results.append({"id": check["id"], "type": check["type"], "passed": passed, "detail": detail,
                         "rule": check.get("rule"), **({"share": extra[0]} if extra else {}),
@@ -489,13 +534,15 @@ def per_test(prompt_def: dict) -> bool:
 
 
 def _per_test_criteria(prompt_def: dict, grader: dict | None) -> tuple[list[dict], float | None]:
-    from crucible.graders import selected_tests
+    from crucible.graders import GATES, selected_tests
     tests = (grader or {}).get("tests") or []
+    # Gates (existing tests, an untouched contract) earn no points under per-test scoring; they only cap
+    rubric = [item for item in prompt_def["rubric"] if item["hidden_tests"] not in GATES]
     if not tests:
         return [{"criterion": item["criterion"], "max_score": None, "score": 0.0, "detail": "no hidden test results"}
-                for item in prompt_def["rubric"]], 0.0
+                for item in rubric], 0.0
     criteria = []
-    for item in prompt_def["rubric"]:
+    for item in rubric:
         mine = selected_tests(item["hidden_tests"], tests)
         passed = sum(t["passed"] for t in mine)
         criteria.append({"criterion": item["criterion"], "max_score": round(len(mine) / len(tests) * 10, 2),
@@ -517,12 +564,14 @@ def save_check_score(run_dir: Path, prompt_def: dict, results: list[dict], grade
     """
     if not fully_checked(prompt_def):
         return None
-    from crucible import provenance, runrecord, versioning
+    from crucible import graders, provenance, runrecord, versioning
     from crucible.graders import criterion_result
     meta = json.loads((run_dir / "meta.json").read_text(encoding="utf-8"))
     if per_test(prompt_def):
         criteria, overall = _per_test_criteria(prompt_def, grader)
-        scores, cap = {c["criterion"]: c["score"] for c in criteria}, None
+        scores, cap = {c["criterion"]: c["score"] for c in criteria}, graders.per_test_cap(prompt_def, grader)
+        if cap is not None and overall is not None:
+            overall = min(overall, cap)
     else:
         scores = criterion_scores(prompt_def, results, grader)
         # Points earned over points available: a 3-point criterion weighs three times a 1-point one
