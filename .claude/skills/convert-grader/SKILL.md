@@ -57,6 +57,9 @@ test_roots:
   "*.grader.test.ts": apps/api
 existing_tests: [apps/api, apps/web]                   # seeded tests that must still pass: the `existing` gate
 unchanged: [apps/api/test/realworld.contract.test.ts]  # must be byte-for-byte as seeded: `contract_unchanged`
+# The model's own new or changed tests (and the helpers it changed) must pass on its fix, and at least one
+# must fail on the seeded source: one synthetic test in the pool, group `regression`
+regression_tests: [apps/api, apps/web]
 timeout: 600
 oracle:
   solution: [10, 10]
@@ -84,6 +87,8 @@ rubric:
   hidden_tests: 'rules: unapproved work stays private'
 - criterion: Rules found, not given
   hidden_tests: 'rules: found in the brief'
+- criterion: Regression tests
+  hidden_tests: regression                        # one synthetic test: weighs 1/N, fails on an unchanged repo
 - criterion: Existing tests still pass
   hidden_tests: existing
   cap_if_failed: 5                                # a cap, not points
@@ -97,9 +102,11 @@ rubric:
 - **Gates are caps.** `existing` and `contract_unchanged` pass on the seeded repo, so as points they pay
   for doing nothing. Under `per_test` they earn nothing; when they fail they cap the score. Give them
   `cap_if_failed` and no `max_score`.
-- **Drop criteria that aren't hidden tests.** CODE-11's 1-point "Regression tests" criterion (the model's
-  own tests catch the bug) can't be a test-count share, so it was removed. Say so in the SUITE_CHANGELOG
-  entry. Under `per_test`, `max_score` is ignored, so leave it out.
+- **"Regression tests" is one test in the pool**, not points and not a cap: with `regression_tests` in
+  grader.yaml the grader adds one synthetic result, "your new tests fail on the seeded code and pass on
+  your fix". It weighs exactly one test, and an unchanged repo fails it (no new tests). A cap would punish
+  too hard for one missing test. Any other criterion that isn't a hidden test has no place under
+  `per_test`: drop it and say so in the SUITE_CHANGELOG entry. `max_score` is ignored, so leave it out.
 - Remove `max_score` from the other criteria too. A criterion's weight is now its share of the tests,
   so **check the weights**: CODE-11's privacy criterion had 3 big tests out of 13. Splitting them into
   11 (one per way a draft can leak) gave it the weight it had in points.
@@ -130,15 +137,16 @@ a conversion but not after). Then look for what the old tests never checked:
   paths. Build it in a scratch copy of the repo (`npm install`, write the fix, run the seeded tests and the
   hidden tests from the test root, `npx tsc -p <app>`), then copy the changed files in. It should
   implement the whole brief, the parts no hidden test checks included (CODE-11's web screens): it is the
-  answer key a reviewer reads.
+  answer key a reviewer reads. With `regression_tests`, it needs its own test file that fails on the
+  seeded code (CODE-11's `solution/apps/api/test/editorial.test.ts`), or it can't score 10.
 - `calibration/<name>/` are **partial solutions with declared ranges**, at least two, each a realistic
   way to get it half right. Derive them from the solution with small, readable edits so the difference
   is the mistake and nothing else:
-  - `contract-only`: the endpoints work, nothing is private (4.4)
+  - `contract-only`: the endpoints work, nothing is private (4.23)
   - `direct-access-only`: `GET /articles/:slug` 404s, but lists, tags, comments, favorites and edits
-    still leak (5.6)
+    still leak (5.38)
   - `breaks-existing-clients`: the full solution, except an article without a status becomes a draft.
-    9.2 by tests alone, capped at 5 because the seeded contract suite fails. **Include one fixture like
+    8.85 by tests alone, capped at 5 because the seeded contract suite fails. **Include one fixture like
     this: it proves the cap works.**
 - Set each range around the score you get, wide enough to survive a small test change (±1) and narrow
   enough that fixtures don't overlap.
@@ -170,6 +178,7 @@ A run at an older task version is skipped: grade it directly (`graders.run(run_d
 - For each run that gained or lost, read which tests flipped (`grader_results.json`) and check they're
   earned. CODE-11: qwen3.5-9b's 2 passing tests come from its real partial implementation, and deepseek
   loses only the two self-review tests.
+- `grader_results.json` → `regression` lists the model's test files and why they passed or failed.
 - `grader_results.json` lists the artifacts taken, `existing`, `contract_unchanged` and errors. An error
   on every run usually means the install or a test root is wrong, not the models.
 
@@ -177,11 +186,13 @@ CODE-11, old (rubric 3) vs new (rubric 4):
 
 | Run | Old | New | Tests |
 |---|---|---|---|
-| gemma-4-e4b (no-op) | 2.0 | 0.0 | 0/25 |
-| gpt-oss-20b (no-op) | 2.0 | 0.0 | 0/25 |
-| qwen3.5-9b | 2.43 | 0.8 | 2/25 |
-| qwen3.6-35b-a3b | 4.96 | 4.4 | 11/25 |
-| deepseek-v4.1-flash (task v2) | 9.33 | 9.2 | 23/25 |
+| gemma-4-e4b (no-op) | 2.0 | 0.0 | 0/26 |
+| gpt-oss-20b (no-op) | 2.0 | 0.0 | 0/26 |
+| qwen3.5-9b | 2.43 | 0.77 | 2/26 |
+| qwen3.6-35b-a3b | 4.96 | 4.62 | 12/26 |
+| deepseek-v4.1-flash (task v2) | 9.33 | 9.23 | 24/26 |
+
+The regression result agrees with the old grader on every run (qwen3.6 and deepseek pass it).
 
 ## 7. Check the seeded repo for answer leaks
 
