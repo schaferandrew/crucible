@@ -36,6 +36,12 @@ that a pull request touching the code or tests bumps the version and adds its en
 - Seeded repos with a `package-lock.json` install with `npm ci`, so every run starts from the same
   dependency tree.
 
+### Fixed
+
+- pi runs no longer fail with "No API key found for lmstudio" when the user's `~/.pi/agent/auth.json`
+  holds an empty stored key for that provider. Each run gets its own pi config directory, so only
+  Crucible's provider settings apply.
+
 ## 2.2.0 (2026-10-26)
 
 ### Changed

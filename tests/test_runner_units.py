@@ -92,6 +92,16 @@ class TestPiLaunch:
         assert provider["baseUrl"] == pi_agent.OLLAMA_BASE_URL
         assert provider["models"] == [{"id": "qwen3:30b-a3b"}]
 
+    def test_lmstudio_run_ignores_user_agent_dir(self, tmp_path):
+        # the user's ~/.pi/agent may hold an empty stored lmstudio credential,
+        # which would override the apiKey registered here
+        launch = AGENTS["pi"].launch(_ctx(tmp_path, model="lmstudio/qwen/qwen3.5-9b"))
+        assert launch.env["PI_CODING_AGENT_DIR"] == str(tmp_path / pi_agent.AGENT_DIRNAME)
+        provider = json.loads(launch.env["CRUCIBLE_PI_CONFIG"])["providers"]["lmstudio"]
+        assert provider["apiKey"] == "lmstudio"
+        assert provider["api"] == "openai-completions"
+        assert provider["models"][0]["id"] == "qwen/qwen3.5-9b"
+
     def test_openrouter_passes_through(self, tmp_path):
         launch = AGENTS["pi"].launch(_ctx(tmp_path, model="openrouter/moonshotai/kimi-k2.6"))
         assert launch.cmd[launch.cmd.index("--model") + 1] == "openrouter/moonshotai/kimi-k2.6"
