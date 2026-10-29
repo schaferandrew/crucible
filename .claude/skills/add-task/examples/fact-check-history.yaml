@@ -1,0 +1,223 @@
+# Validation cases for fact-check-history (HIST-2, version 2): 13 items, so each is worth 10/13.
+# Wrong answers are adapted from real runs of version 1, keeping their mistakes.
+- name: reference
+  expect: 10.0
+  answer: |-
+    ERRORS:
+    1: 1492
+    2: King John
+    4: 1815
+    5: 1912
+    7: 1989
+- name: reference, prose first
+  expect: 10.0
+  answer: |-
+    Columbus landed in 1492; John, not Richard, sealed Magna Carta. The rest checks out except Waterloo, the Titanic and the Wall.
+
+    ERRORS:
+    1: 1492
+    2: King John
+    4: 1815
+    5: 1912
+    7: 1989
+- name: empty
+  expect: 0.0
+  answer: ''
+- name: whitespace only
+  expect: 0.0
+  answer: "  \n\n "
+- name: prose only, no block (old-format answer)
+  expect: 0.0
+  answer: |-
+    Christopher Columbus first reached the Americas in 1493 → 1492
+    King Richard → King John
+- name: flags all 8, all corrections right
+  expect: 7.69
+  answer: |-
+    ERRORS:
+    1: 1492
+    2: John
+    3: 1776
+    4: 1815
+    5: 1912
+    6: 1969
+    7: 1989
+    8: 1990
+- name: flags all 8 with junk values
+  expect: 3.85
+  answer: |-
+    ERRORS:
+    1: wrong
+    2: wrong
+    3: wrong
+    4: wrong
+    5: wrong
+    6: wrong
+    7: wrong
+    8: wrong
+- name: 'ERRORS: none'
+  expect: 2.31
+  answer: |-
+    Everything looks right.
+
+    ERRORS: none
+- name: 'gemma-4-12b-qat@reasoning-off: finds 3 (1, 4, 7)'
+  expect: 6.92
+  answer: |-
+    ERRORS:
+    1: 1492
+    4: 1815
+    7: 1989
+- name: 'qwen3.5-9b@reasoning-off: 1, 4, 7 plus flags 8'
+  expect: 6.15
+  answer: |-
+    ERRORS:
+    1: 1492
+    4: 1815
+    7: 1989
+    8: October 1990
+- name: 'gemma-4-e4b@reasoning-off: 4, 7 plus flags 8'
+  expect: 4.62
+  answer: |-
+    ERRORS:
+    4: 1815
+    7: 1989
+    8: 1990
+- name: 'gemma-4-26b: wrong → right values'
+  expect: 10.0
+  answer: |-
+    ERRORS:
+    1: 1493 → 1492
+    2: King Richard → King John
+    4: 1812 → 1815
+    5: April 1913 → April 1912
+    7: November 1991 → November 1989
+- name: 'gpt-oss-20b: full dates, bold'
+  expect: 10.0
+  answer: |-
+    **ERRORS:**
+    1: **1492**
+    2: **King John**
+    4: 18 June **1815**
+    5: 15 April 1912
+    7: November 9, 1989
+- name: 'qwen3.5-9b: whole corrected sentences'
+  expect: 9.23
+  answer: |-
+    ERRORS:
+    1: Christopher Columbus first reached the Americas in 1492.
+    2: In 1215, King John sealed Magna Carta at Runnymede.
+    4: Napoleon was finally defeated at the Battle of Waterloo in 1815.
+    5: The Titanic sank in April 1912.
+    7: The Berlin Wall fell in November 1989.
+- name: wrong corrections (1491, Henry, 1814)
+  expect: 7.69
+  answer: |-
+    ERRORS:
+    1: 1491
+    2: King Henry
+    4: 1814
+    5: 1912
+    7: 1989
+- name: hedged values (1812 or 1815)
+  expect: 9.23
+  answer: |-
+    ERRORS:
+    1: 1492
+    2: John
+    4: 1812 or 1815
+    5: 1912
+    7: 1989
+- name: bold header
+  expect: 10.0
+  answer: |-
+    **ERRORS**
+    1: 1492
+    2: King John
+    4: 1815
+    5: 1912
+    7: 1989
+- name: Markdown heading
+  expect: 10.0
+  answer: |-
+    ## Errors
+    1: 1492
+    2: King John
+    4: 1815
+    5: 1912
+    7: 1989
+- name: code fence
+  expect: 10.0
+  answer: |-
+    ```
+    ERRORS:
+    1: 1492
+    2: King John
+    4: 1815
+    5: 1912
+    7: 1989
+    ```
+- name: fenced after header
+  expect: 10.0
+  answer: |-
+    ERRORS:
+    ```text
+    1: 1492
+    2: King John
+    4: 1815
+    5: 1912
+    7: 1989
+    ```
+- name: draft block then final
+  expect: 10.0
+  answer: |-
+    ERRORS:
+    1: 1492
+    3: 1776
+
+    Wait, 3 is right and I missed some.
+
+    ERRORS:
+    1: 1492
+    2: King John
+    4: 1815
+    5: 1912
+    7: 1989
+- name: bulleted, 'Line n' labels
+  expect: 10.0
+  answer: |-
+    Errors:
+    - Line 1: 1492
+    - Line 2: John
+    - Line 4: 1815
+    - Line 5: 1912
+    - Line 7: 1989
+- name: '''1.'' labels and blank line after header'
+  expect: 10.0
+  answer: |-
+    ERRORS:
+
+    1. 1492
+    2. King John
+    4. 1815
+    5. 1912
+    7. 1989
+
+    Hope this helps!
+- name: singular header
+  expect: 10.0
+  answer: |-
+    Error:
+    1: 1492
+    2: King John
+    4: 1815
+    5: 1912
+    7: 1989
+- name: first line on the header line
+  expect: 10.0
+  answer: |-
+    ERRORS: 1: 1492
+    2: King John
+    4: 1815
+    5: 1912
+    7: 1989
