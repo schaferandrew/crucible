@@ -7,7 +7,7 @@ category: geography
 area: geography
 tier: spark
 version: 1
-rubric_version: 1
+rubric_version: 2
 status: provisional
 auto_grade: false
 repo: null
@@ -17,34 +17,27 @@ prompt: 'What is the capital of each of these countries? Answer with one line pe
   Australia, Canada, Brazil, Nigeria, Türkiye, Switzerland
 
   '
+# Header-less: the six `Country: Capital` lines the prompt asks for are the block (the last line for a
+# country wins). A capital named in prose, or a big city in its place, scores nothing; that makes the old
+# big-city trap check redundant, so it is gone.
 checks:
 - id: capitals
-  type: required_patterns
-  patterns:
-  - \bcanberra\b
-  - \bottawa\b
-  - \bbras[ií]lia\b
-  - \babuja\b
-  - \bankara\b
-  - \bbern\b
-  rule: 'Names all six capitals: Canberra, Ottawa, Brasília, Abuja, Ankara, Bern.'
-- id: no_big_city_traps
-  type: forbidden_patterns
-  patterns:
-  - (?im)^\W*australia\W*[:–—-]\W*sydney
-  - (?im)^\W*canada\W*[:–—-]\W*toronto
-  - (?im)^\W*brazil\W*[:–—-]\W*(rio|s[aã]o paulo)
-  - (?im)^\W*nigeria\W*[:–—-]\W*lagos
-  - (?im)^\W*t[uü]rk(iye|ey)\W*[:–—-]\W*istanbul
-  - (?im)^\W*switzerland\W*[:–—-]\W*(zurich|z[uü]rich|geneva)
-  rule: Never gives the largest city as the capital (Sydney, Toronto, Rio/São Paulo, Lagos, Istanbul, Zürich/Geneva).
+  type: items
+  header: null
+  normalize: name
+  items:
+  - {id: australia, key: Australia, expect: Canberra, label: 'Australia is Canberra'}
+  - {id: canada, key: Canada, expect: Ottawa, label: 'Canada is Ottawa'}
+  - {id: brazil, key: Brazil, expect: Brasília, aliases: [Brasilia], label: 'Brazil is Brasília'}
+  - {id: nigeria, key: Nigeria, expect: Abuja, label: 'Nigeria is Abuja'}
+  - {id: turkiye, key: [Türkiye, Turkey], expect: Ankara, label: 'Türkiye is Ankara'}
+  - {id: switzerland, key: Switzerland, expect: Bern, aliases: [Berne], label: 'Switzerland is Bern'}
+  rule: 'Each country line names its capital and nothing else: Australia: Canberra, Canada: Ottawa, Brazil: Brasília,
+    Nigeria: Abuja, Türkiye: Ankara, Switzerland: Bern; one item per country.'
 rubric:
 - criterion: Capitals
   max_score: 6
   check: capitals
-  description: 'Names all six capitals: Canberra, Ottawa, Brasília, Abuja, Ankara, Bern.'
-- criterion: No big-city traps
-  max_score: 4
-  check: no_big_city_traps
-  description: Never gives the largest city as the capital (Sydney, Toronto, Rio/São Paulo, Lagos, Istanbul, Zürich/Geneva).
+  description: 'Each of the six `Country: Capital` lines names the right capital (one point each); the largest city instead
+    (Sydney, Toronto, Rio/São Paulo, Lagos, Istanbul, Zürich/Geneva) scores nothing.'
 critical_failure: null

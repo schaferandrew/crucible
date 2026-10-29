@@ -10,6 +10,30 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
 
 ## Unreleased
 
+- household-money-math (formerly MATH-2): rubric 2, still provisional. The four answers weigh the same
+  (they were 3/2/2/3) and are read from the ANSWERS block only. Stored runs are rescored.
+
+- capitals-not-largest-city (formerly GEOG-1): rubric 2, still provisional. Each of the six
+  `Country: Capital` lines is its own item (a capital named anywhere in the reply no longer counts), and
+  the redundant big-city trap check is gone. Stored runs are rescored.
+
+- landlocked-countries (formerly GEOG-2): rubric 2, still provisional. 16 equal items instead of a
+  4-point all-or-nothing criterion: each of the 15 countries on the right line (and not the other),
+  plus the doubly landlocked one. Stored runs are rescored.
+
+- letter-from-1863 (formerly HIST-3): rubric 2, still provisional. 11 equal items, one per letter,
+  each correctly in or out of the `ANACHRONISMS:` line, instead of two all-or-nothing halves. Stored
+  runs are rescored.
+
+- seating-logic-puzzle (formerly MATH-4): version 3, rubric 3, still active. The prompt
+  no longer asks for stated assumptions; the `Chair n:` lines and `ANSWER:` are scored as 5 equal items
+  (four chairs, the answer). The `assumptions` and duplicate `no_wrong_answer` criteria are gone. Runs of
+  version 2 no longer count; rerun it.
+
+- order-historical-events (formerly HIST-1): version 2, rubric 2, still provisional. The answer is an
+  `ORDER:` block of six numbered `event — year` lines, scored as 21 equal items: the 15 event pairs in
+  the right order and the 6 years (Gutenberg 1450-1456). Runs of version 1 no longer count; rerun it.
+
 - fact-check-history (formerly HIST-2), now "Fact-check twelve history claims": version 2, rubric 2,
   still provisional. The paragraph became twelve numbered claims with one fact each (five wrong, seven
   true), and the answer is an `ERRORS:` block of `<number>: <corrected value>` lines, scored as 17 equal

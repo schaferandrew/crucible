@@ -12,6 +12,16 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## Unreleased
+
+### Added
+
+- **`items` check, for per-item rescoring of chat tasks:** `header: null` (no header line; the reply's own
+  labelled lines are the block), `key` as a list of accepted labels (`[Türkiye, Turkey]`), a `name_set`
+  kind (one item per name that must be on a labelled line and not on the lines in `not_in`), and `find`
+  (read the line that names an event, with aliases, instead of a numbered label; for scoring a year per
+  event whatever order the lines are in).
+
 ## 3.1.0 (2026-10-29)
 
 Scoring fixes and the first converted tasks for Suite v2: empty answers score 0, answer blocks

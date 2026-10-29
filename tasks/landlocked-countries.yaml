@@ -7,7 +7,7 @@ category: geography
 area: geography
 tier: temper
 version: 1
-rubric_version: 1
+rubric_version: 2
 status: provisional
 auto_grade: false
 repo: null
@@ -30,45 +30,51 @@ prompt: 'Which of these countries are landlocked (no coastline on the open ocean
   Doubly landlocked: <country>
 
   '
+# Header-less: the three labelled lines of the reply are the block (the last line with a label wins).
+# 16 equal items: each of the 11 landlocked countries on the Landlocked line (and not on the other), each
+# of the 4 coastal ones on the Not landlocked line (and not on the other), and the doubly landlocked one.
 checks:
 - id: landlocked_found
-  type: required_patterns
-  patterns:
-  - (?im)^\W*landlocked:.*\bbolivia\b
-  - (?im)^\W*landlocked:.*\bkazakhstan\b
-  - (?im)^\W*landlocked:.*\baustria\b
-  - (?im)^\W*landlocked:.*\blaos\b
-  - (?im)^\W*landlocked:.*\bparaguay\b
-  - (?im)^\W*landlocked:.*\bserbia\b
-  - (?im)^\W*landlocked:.*\bethiopia\b
-  - (?im)^\W*landlocked:.*\buzbekistan\b
-  - (?im)^\W*landlocked:.*\bzambia\b
-  - (?im)^\W*landlocked:.*\bhungary\b
-  - (?im)^\W*landlocked:.*\bmongolia\b
-  rule: 'The Landlocked line lists all 11: Bolivia, Kazakhstan, Austria, Laos, Paraguay, Serbia, Ethiopia, Uzbekistan, Zambia,
-    Hungary, Mongolia.'
+  type: items
+  header: null
+  items:
+  - id: landlocked
+    key: Landlocked
+    not_in: [Not landlocked]
+    normalize: name_set
+    expect: [Bolivia, Kazakhstan, Austria, Laos, Paraguay, Serbia, Ethiopia, Uzbekistan, Zambia, Hungary, Mongolia]
+    aliases: {Laos: [Lao PDR]}
+  rule: 'Lists each of the 11 landlocked countries on the Landlocked line, and not on the Not landlocked line: Bolivia,
+    Kazakhstan, Austria, Laos, Paraguay, Serbia, Ethiopia, Uzbekistan, Zambia, Hungary, Mongolia; one item per country.'
 - id: coastal_not_listed
-  type: forbidden_patterns
-  patterns:
-  - (?im)^\W*landlocked:.*\b(croatia|eritrea|mozambique|vietnam)\b
-  rule: The Landlocked line includes none of Croatia, Eritrea, Mozambique, Vietnam.
+  type: items
+  header: null
+  items:
+  - id: coastal
+    key: Not landlocked
+    not_in: [Landlocked]
+    normalize: name_set
+    expect: [Croatia, Eritrea, Mozambique, Vietnam]
+  rule: 'Lists each coastal country on the Not landlocked line, and not on the Landlocked line: Croatia, Eritrea,
+    Mozambique, Vietnam; one item per country.'
 - id: doubly
-  type: required_patterns
-  patterns:
-  - (?im)^\W*doubly landlocked:\W*uzbekistan\b
+  type: items
+  header: null
+  items:
+  - {id: doubly, key: Doubly landlocked, expect: Uzbekistan, normalize: name, label: 'Doubly landlocked is Uzbekistan'}
   rule: The doubly landlocked country is Uzbekistan.
 rubric:
 - criterion: All landlocked found
-  max_score: 4
+  max_score: 11
   check: landlocked_found
-  description: 'The Landlocked line lists all 11: Bolivia, Kazakhstan, Austria, Laos, Paraguay, Serbia, Ethiopia, Uzbekistan,
-    Zambia, Hungary, Mongolia.'
-- criterion: No coastal country listed
-  max_score: 3
+  description: Each of the 11 landlocked countries is on the Landlocked line and not on the other (one point each).
+- criterion: Coastal countries on the right line
+  max_score: 4
   check: coastal_not_listed
-  description: The Landlocked line includes none of Croatia, Eritrea, Mozambique, Vietnam.
+  description: Each of Croatia, Eritrea, Mozambique and Vietnam is on the Not landlocked line and not on the other
+    (one point each).
 - criterion: Doubly landlocked
-  max_score: 3
+  max_score: 1
   check: doubly
   description: The doubly landlocked country is Uzbekistan.
 critical_failure: null

@@ -119,6 +119,15 @@ def test_patch_pins_rubric_fixes_only(sandbox):
     versioning.write_lock()
     assert suites.verify() == []
     lock = versioning.read_lock()
+    # Repo tasks rewritten since Suite v1 wait for the next cut (a patch refuses content changes): pin them
+    # as they are in the sandbox, so this test only sees rubric fixes
+    v1 = sandbox / "suites" / "v1.yaml"
+    data = yaml.safe_load(v1.read_text())
+    for entry in data["tasks"]:
+        now = lock[entry["id"]]
+        if now["version"] != entry["version"]:
+            entry.update({k: now[k] for k in ("version", "content_hash", "prompt_hash") if k in entry or k in now})
+    v1.write_text(yaml.safe_dump(data, sort_keys=False, allow_unicode=True))
     # The repo's own rubric fixes since Suite v1 (if any) are pinned too
     fixed = sorted(t for t, pin in suites.pins(suites.latest()).items() if lock[t]["rubric_version"] > pin["rubric_version"])
     path, bumped = suites.patch(date="2026-11-20")

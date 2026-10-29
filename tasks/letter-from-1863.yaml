@@ -7,7 +7,7 @@ category: history
 area: history
 tier: forge
 version: 1
-rubric_version: 1
+rubric_version: 2
 status: provisional
 auto_grade: false
 repo: null
@@ -43,30 +43,29 @@ prompt: 'A letter has turned up, dated June 10, 1863, written by a farmer in Ohi
   ANACHRONISMS: <letters, comma-separated>
 
   '
+# Only the last ANACHRONISMS: line is scored, as 11 equal items: each letter correctly in or out.
 checks:
 - id: all_found
-  type: required_patterns
-  patterns:
-  - (?im)^\W*anachronisms:.*\bc\b
-  - (?im)^\W*anachronisms:.*\bf\b
-  - (?im)^\W*anachronisms:.*\bg\b
-  - (?im)^\W*anachronisms:.*\bj\b
-  - (?im)^\W*anachronisms:.*\bk\b
-  rule: The final line includes c (Gettysburg, July), f (telephone, 1876), g (barbed wire, 1874), j (West Virginia, June 20)
-    and k (draft riots, July).
+  type: items
+  header: ANACHRONISMS
+  items:
+  - {id: found, expect: [c, f, g, j, k], of: [c, f, g, j, k], normalize: letter_set}
+  rule: The ANACHRONISMS line includes c (Gettysburg, July), f (telephone, 1876), g (barbed wire, 1874), j (West Virginia,
+    June 20) and k (draft riots, July); one item per letter.
 - id: no_false_flags
-  type: forbidden_patterns
-  patterns:
-  - (?im)^\W*anachronisms:.*\b[abdehi]\b
-  rule: The final line includes none of a, b, d, e, h, i (all possible by June 10, 1863).
+  type: items
+  header: ANACHRONISMS
+  items:
+  - {id: left_out, expect: [], of: [a, b, d, e, h, i], normalize: letter_set}
+  rule: The ANACHRONISMS line leaves out a, b, d, e, h, i (all possible by June 10, 1863); one item per letter.
 rubric:
 - criterion: All anachronisms found
   max_score: 5
   check: all_found
-  description: The final line includes c (Gettysburg, July), f (telephone, 1876), g (barbed wire, 1874), j (West Virginia,
-    June 20) and k (draft riots, July).
+  description: The ANACHRONISMS line includes c (Gettysburg, July), f (telephone, 1876), g (barbed wire, 1874), j (West
+    Virginia, June 20) and k (draft riots, July), one point each.
 - criterion: Nothing period-correct flagged
-  max_score: 5
+  max_score: 6
   check: no_false_flags
-  description: The final line includes none of a, b, d, e, h, i (all possible by June 10, 1863).
+  description: The ANACHRONISMS line leaves out a, b, d, e, h, i (all possible by June 10, 1863), one point each.
 critical_failure: null

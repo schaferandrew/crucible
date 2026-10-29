@@ -169,7 +169,12 @@ def _grounded_numbers(check: dict, text: str) -> tuple[bool, str]:
 #           - {id: q5, expect: [Gutenberg, Columbus, Luther], normalize: ordering}  # 3 items: each pair in order
 #           - {id: flagged, expect: [1, 4], of: [1, 2, 3, 4], normalize: line_set}  # 4 items: each line listed or not
 #           - {id: fix1, key: "1", expect: 1492, normalize: year}  # every year in the value is 1492
+#           - {id: bolivia, key: Landlocked, expect: [Bolivia, Laos], not_in: [Not landlocked], normalize: name_set}
+#                                                      # 2 items: each name is on that line, and not on the others
+#           - {id: moon, find: Moon landing, expect: 1969, normalize: year}   # the year on the line naming the event
 #
+# `key` can be a list of accepted labels ([Türkiye, Turkey]). `header: null` means the answer has no
+# header line: the labelled lines of the whole reply are the block (the last line with a label wins).
 # An item with a `key` reads the block line with that label; without one, items take the block's
 # lines in order (ordering, letter_set and line_set read the whole block). A value written as
 # `wrong → right` is scored on what follows the arrow. The score is items passed / all items, each
@@ -244,6 +249,8 @@ def _fold(text: str) -> str:
 def _same_label(label: str | None, key) -> bool:
     if label is None:
         return False
+    if isinstance(key, (list, tuple)):
+        return any(_same_label(label, k) for k in key)
     key = str(key)
     if key.isdigit():
         found = NUMERIC_LABEL.match(_fold(label))
@@ -352,11 +359,30 @@ def _letters(value: str) -> set[str]:
 SEPARATORS = re.compile(r"\s*(?:,|;|>|→|->)\s*")
 
 
+def _line_entries(lines: list[str]) -> list[str]:
+    """Each line as one entry: "1. Magna Carta — 1215" and "Magna Carta — 1215" both read "Magna Carta 1215"."""
+    return [value if label is None or NUMERIC_LABEL.match(_fold(label)) else f"{label} {value}"
+            for label, value in map(_split, lines)]
+
+
 def _ordering_entries(lines: list[str]) -> list[str]:
     if len(lines) == 1:
         return SEPARATORS.split(lines[0])
-    return [value if label is None or NUMERIC_LABEL.match(_fold(label)) else f"{label} {value}"
-            for label, value in map(_split, lines)]
+    return _line_entries(lines)
+
+
+NAME_LIST_SPLIT = re.compile(r"\s*(?:,|;|/|&|\band\b)\s*", re.IGNORECASE)
+
+
+def _name_list(value: str) -> set[str]:
+    """The names a line lists, folded: "Bolivia, Laos (Asia) and Chad" is bolivia, laos, chad."""
+    value = re.sub(r"\([^)]*\)", " ", value)
+    return {n for n in (_fold(part) for part in NAME_LIST_SPLIT.split(value)) if n and n != "none"}
+
+
+def _line_value(lines: list[str], key) -> str | None:
+    values = [value for label, value in map(_split, lines) if _same_label(label, key)]
+    return values[-1] if values else None
 
 
 def _position(entries: list[str], name: str, item: dict, aliases: dict) -> int | None:
@@ -372,9 +398,12 @@ def _score_item(item: dict, lines: list[str], index: int, check: dict) -> list[d
     aliases = check.get("aliases") or {}
     label = item.get("label", item.get("id"))
     if "key" in item:
-        values = [value for line_label, value in map(_split, lines) if _same_label(line_label, item["key"])]
-        value = values[-1] if values else None
-    elif kind in ("ordering", "letter_set", "line_set"):
+        value = _line_value(lines, item["key"])
+    elif "find" in item:
+        entries = _line_entries(lines)
+        at = _position(entries, item["find"], item, aliases)
+        value = entries[at] if at is not None else None
+    elif kind in ("ordering", "letter_set", "line_set", "name_set"):
         value = "\n".join(lines)
     else:
         value = _split(lines[index])[1] if index < len(lines) else None
@@ -405,6 +434,19 @@ def _score_item(item: dict, lines: list[str], index: int, check: dict) -> list[d
         return [{"id": f"{item['id']}:{n}", "label": f"Line {n} {'listed' if n in want else 'left out'}",
                  "passed": (n in got) == (n in want), "detail": "listed" if n in got else "not listed"}
                 for n in (int(x) for x in item["of"])]
+    if kind == "name_set":
+        listed = _name_list(value or "")
+        elsewhere = set().union(*(_name_list(_line_value(lines, k) or "") for k in item.get("not_in") or []))
+        where = item.get("key", "the block")
+        results = []
+        for name in _accepted(item):
+            names = {_fold(n) for n in [name, *((item.get("aliases") or {}).get(name) or []),
+                                        *(aliases.get(name) or [])]}
+            here, there = bool(names & listed), bool(names & elsewhere)
+            results.append({"id": f"{item['id']}:{name}", "label": f"{name} on the {where} line",
+                            "passed": here and not there,
+                            "detail": "on both lines" if here and there else ("listed" if here else "not listed")})
+        return results
     if value is None:
         return [{"id": item["id"], "label": label, "passed": False, "detail": "not in the block"}]
     value = ARROW.split(value)[-1]
@@ -422,7 +464,8 @@ ITEM_NORMALIZERS = {
     "datetime": _norm_datetime,
     "year": _norm_year,
 }
-ITEM_KINDS = ("number", "money", "name", "year", "letter_set", "line_set", "line_number", "datetime", "ordering")
+ITEM_KINDS = ("number", "money", "name", "year", "letter_set", "line_set", "name_set", "line_number", "datetime",
+              "ordering")
 
 
 def _all_failed(check: dict, detail: str) -> list[dict]:
@@ -436,7 +479,9 @@ def _items_check(check: dict, text: str) -> tuple[bool, str, float, list[dict]]:
     header = check.get("header", "ANSWERS")
     if not text.strip():
         return False, NO_ANSWER, 0.0, _all_failed(check, NO_ANSWER)
-    lines = answer_block(text, header)
+    # `header: null`: no header line, the reply's own lines are the block
+    lines = answer_block(text, header) if header else [l.strip() for l in text.splitlines()
+                                                      if l.strip() and not FENCE.match(l)]
     if lines is None:
         name = header if isinstance(header, str) else header[0]
         return False, f"no {name.rstrip(':')}: block", 0.0, _all_failed(check, "no answer block")
