@@ -12,7 +12,11 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
-## Unreleased
+## 3.2.0 (2026-10-29)
+
+The engine pieces for Suite v2's first wave of converted tasks: more ways for the `items` check to read
+an answer block, checks for cited prose, calendar answers and the agent's tool calls, and caps on a
+per-test grader's core requirement.
 
 ### Added
 
@@ -21,20 +25,17 @@ here ([docs/versioning.md](docs/versioning.md)).
   with named others and no strangers), cited as opinion, or not cited at all; patterns required or
   forbidden in the paragraphs citing given sources; patterns forbidden anywhere. One item per entry,
   equal weight, like `items`.
-
 - **`items` check, whole-block kinds:** `pattern` (a regex is found in the block, or with `absent: true`
   is not; `part: name` searches only the entries' names), `each` (every entry matches), `count`
   (exactly `expect`, or `min`/`max` entries), `distinct` (no name twice) and `subset` (every entry's name
   is in another block, `source:`), for answers that are an email, a paragraph or a list rather than short
   values. A check can set `multiline: true` so blank lines don't end its block. An empty block fails
   every such item.
-
 - **`items` check, for per-item rescoring of chat tasks:** `header: null` (no header line; the reply's own
   labelled lines are the block), `key` as a list of accepted labels (`[Türkiye, Turkey]`), a `name_set`
   kind (one item per name that must be on a labelled line and not on the lines in `not_in`), and `find`
   (read the line that names an event, with aliases, instead of a numbered label; for scoring a year per
   event whatever order the lines are in).
-
 - **`time_options` check:** scores an `OPTIONS:` block of `YYYY-MM-DD HH:MM <time zone>` lines against a
   mock-calendar dataset. The ground-truth start times are computed from the dataset (`free_starts()`),
   not listed in the task. Item kinds: `in_set` (every option a distinct valid start), `count`,
@@ -44,12 +45,17 @@ here ([docs/versioning.md](docs/versioning.md)).
   formats) rather than its reply: a tool was called, and for `get_freebusy` with `covers`, every
   calendar of a dataset's team was named. `checks.session_tool_calls()` and a `tool_calls=` argument to
   `run_checks()` expose the calls.
+- **`cap_if_failed` on a per-test criterion:** under `scoring: per_test`, a test criterion (not only the
+  `existing` and `contract_unchanged` gates) can carry `cap_if_failed`. Its tests keep their points, and
+  when any one of them fails the score is capped. cursor-pagination caps cursor correctness at 6.
 
 ### Changed
 
 - **Mock calendar data is part of a task's content hash.** `mock-calendar:<dataset>` hashes the dataset
   JSON and the server (`calendar_server.py`), so editing either shows up as drift in `crucible versions`
   (it was not hashed before). Only the three calendar tasks are affected.
+- An empty answer fails every item of every item-scoring check (`items`, `cited_paragraphs`,
+  `time_options`, `tool_calls`) through one code path, so each keeps its item count in the score record.
 
 ## 3.1.0 (2026-10-29)
 
