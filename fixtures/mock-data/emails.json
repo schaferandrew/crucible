@@ -11,6 +11,18 @@
       "subject": "Meeting notes from yesterday",
       "body": "Notes from yesterday's 1-on-1: discussed career goals, next quarter priorities, and team building activities.",
       "timestamp": "2026-09-01T09:00:00Z"
+    },
+    {
+      "from": "finance@example.com",
+      "subject": "Reminder: Q3 expense report due Wednesday 5 PM",
+      "body": "Your Q3 expense report must be submitted by 5:00 PM on Wednesday, September 2. Reports that miss the cutoff are paid with next month's payroll.",
+      "timestamp": "2026-09-01T14:15:00Z"
+    },
+    {
+      "from": "client@example.com",
+      "subject": "Question about the proposal timeline",
+      "body": "Hi, can you confirm whether the revised proposal can be delivered by Friday? I need an answer before I brief my team. Please reply when you can.",
+      "timestamp": "2026-09-01T16:45:00Z"
     }
   ]
 }

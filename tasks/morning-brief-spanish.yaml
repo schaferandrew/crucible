@@ -8,16 +8,66 @@ mcp_servers:
 category: everyday
 area: everyday
 tier: spark
-version: 1
-rubric_version: 1
+version: 2
+rubric_version: 2
 status: active
-auto_grade: false
+auto_grade: true
 repo: null
 prompt: |
-  Create a morning brief. Pull together important emails from yesterday, upcoming calendar events, and important news for me where I live. End with a paragraph in spanish that is relevant to the content of the day to help me keep practicing.
-rubric:
-  - criterion: "Proper Language Switching"
-    max_score: 2
-    description: "Only the last paragraph is in spanish, the briefing is in english"
+  Today is Wednesday, September 2, 2026. Create my morning brief from the supplied sources: the important emails I received yesterday, today's calendar events, and the important news where I live.
 
+  Write the brief as Markdown with exactly these `##` sections, in this order:
+
+  ## Emails
+  ## Calendar
+  ## News
+  ## Spanish practice
+
+  The first three sections are in English. The last section is a single paragraph in Spanish, relevant to the content of the day, to help me keep practicing. Put nothing after it.
+checks:
+- id: sections
+  type: items
+  header: null
+  items:
+  - {id: order, normalize: sections, expect: [Emails, Calendar, News, [Spanish practice, Spanish, Práctica de español, Español]]}
+  rule: 'The reply has a ## heading for Emails, Calendar, News and Spanish practice, in that order; one item per section.'
+- id: spanish_last
+  type: items
+  header: null
+  items:
+  - {id: spanish, normalize: language, expect: es, section: [Spanish practice, Spanish, Práctica de español, Español], label: 'The last section is in Spanish'}
+  rule: 'The Spanish practice section is Spanish: Spanish function words (de, la, que, el, en...) are at least 15% of its words and more than twice the share of English ones. If it is not, the score is capped at 5.'
+- id: english_rest
+  type: items
+  header: null
+  items:
+  - {id: emails, normalize: language, expect: en, section: Emails, label: 'Emails section is not Spanish'}
+  - {id: calendar, normalize: language, expect: en, section: Calendar, label: 'Calendar section is not Spanish'}
+  - {id: news, normalize: language, expect: en, section: News, label: 'News section is not Spanish'}
+  rule: 'The Emails, Calendar and News sections are English (not Spanish by the same function-word test).'
+- id: emails
+  type: items
+  header: null
+  items:
+  - {id: email, normalize: mention, source: emails}
+  rule: 'Each of yesterday''s four email subjects in fixtures/mock-data is mentioned (the title, or most of its distinctive words together), one item per email.'
+- id: events
+  type: items
+  header: null
+  items:
+  - {id: event, normalize: mention, source: events, today: '2026-09-02'}
+  rule: 'Each of the three calendar events on 2026-09-02 (Planning, Vendor demo, Budget meeting) is mentioned, one item per event.'
+- id: news
+  type: items
+  header: null
+  items:
+  - {id: news, normalize: mention, source: news, min: 1, label: 'Mentions at least one news item'}
+  rule: 'At least one of the three headlines in fixtures/mock-data is mentioned.'
+rubric:
+- {criterion: Sections in order, max_score: 4, check: sections, description: 'Emails, Calendar, News and Spanish practice headings, in order.'}
+- {criterion: Last section is Spanish, max_score: 1, cap_if_failed: 5, check: spanish_last, description: 'The final section is written in Spanish; if not, the score is capped at 5.'}
+- {criterion: The rest is English, max_score: 3, check: english_rest, description: 'The first three sections are not Spanish.'}
+- {criterion: Yesterday's emails, max_score: 4, check: emails, description: 'Each of the four email subjects is mentioned.'}
+- {criterion: Today's events, max_score: 3, check: events, description: 'Each of the three events on September 2 is mentioned.'}
+- {criterion: News, max_score: 1, check: news, description: 'At least one news item is mentioned.'}
 critical_failure: null

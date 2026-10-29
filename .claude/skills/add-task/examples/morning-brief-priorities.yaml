@@ -1,0 +1,889 @@
+# Validation cases for morning-brief-priorities (TASK-3, version 3, rubric 2): 11 items (6 sections, Top 3 count, 3 must-act, grounded numbers), each worth 10/11.
+# Today is 2026-09-02; the sources are fixtures/mock-data. Wrong answers adapt mistakes in real runs of version 2 (missing sections, a generic summary, derived figures).
+- name: reference
+  expect: 10
+  answer: '## Weather
+
+    **Facts:** 68°F and partly cloudy now, with a high of 68 and a low of 55 today, a 10% chance of rain
+    and 8 mph wind. **Recommendation:** no rain gear needed; Friday has showers (30%), so plan outdoor
+    errands before then.
+
+
+    ## Outstanding work
+
+    - **Q3 expense report** is due by 5:00 PM today (Finance reminder); late reports slip to next month''s
+    payroll.
+
+    - **Proposal timeline:** the client asked if the revised proposal can ship by Friday and still has
+    no reply.
+
+    - Alex''s Q3 review is complete, so results can go on the planning agenda.
+
+
+    ## Emails
+
+    - **Question about the proposal timeline** (client, unanswered): needs a reply before they brief their
+    team.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): deadline today.
+
+    - Project update, Q3 review completed (Alex) and meeting notes from Jamie are informational; no action
+    needed.
+
+
+    ## Calendar
+
+    - **Conflict:** Planning (9:30-10:30 AM, Room B) overlaps the Vendor demo (10:00-11:00 AM, Zoom).
+    Recommendation: ask to move one of them.
+
+    - Budget meeting, 1:00-2:00 PM, Conference Room A.
+
+
+    ## News
+
+    - Twin Cities Tech Conference Returns: registration opens Friday (relevant if you want to attend).
+
+    - Maplewood Park renovation is complete; reopening is Saturday.
+
+
+    ## Top 3 things to do today
+
+    1. Submit the Q3 expense report before 5 PM.
+
+    2. Reply to the client about the proposal timeline and Friday delivery.
+
+    3. Resolve the Planning / Vendor demo conflict at 10:00 AM.'
+- name: reference, prose and a title first
+  expect: 10
+  answer: 'Gathered all four sources.
+
+
+    # Morning brief
+
+
+    ## Weather
+
+    **Facts:** 68°F and partly cloudy now, with a high of 68 and a low of 55 today, a 10% chance of rain
+    and 8 mph wind. **Recommendation:** no rain gear needed; Friday has showers (30%), so plan outdoor
+    errands before then.
+
+
+    ## Outstanding work
+
+    - **Q3 expense report** is due by 5:00 PM today (Finance reminder); late reports slip to next month''s
+    payroll.
+
+    - **Proposal timeline:** the client asked if the revised proposal can ship by Friday and still has
+    no reply.
+
+    - Alex''s Q3 review is complete, so results can go on the planning agenda.
+
+
+    ## Emails
+
+    - **Question about the proposal timeline** (client, unanswered): needs a reply before they brief their
+    team.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): deadline today.
+
+    - Project update, Q3 review completed (Alex) and meeting notes from Jamie are informational; no action
+    needed.
+
+
+    ## Calendar
+
+    - **Conflict:** Planning (9:30-10:30 AM, Room B) overlaps the Vendor demo (10:00-11:00 AM, Zoom).
+    Recommendation: ask to move one of them.
+
+    - Budget meeting, 1:00-2:00 PM, Conference Room A.
+
+
+    ## News
+
+    - Twin Cities Tech Conference Returns: registration opens Friday (relevant if you want to attend).
+
+    - Maplewood Park renovation is complete; reopening is Saturday.
+
+
+    ## Top 3 things to do today
+
+    1. Submit the Q3 expense report before 5 PM.
+
+    2. Reply to the client about the proposal timeline and Friday delivery.
+
+    3. Resolve the Planning / Vendor demo conflict at 10:00 AM.'
+- name: 'reference, ### headings'
+  expect: 10
+  answer: '### Weather
+
+    **Facts:** 68°F and partly cloudy now, with a high of 68 and a low of 55 today, a 10% chance of rain
+    and 8 mph wind. **Recommendation:** no rain gear needed; Friday has showers (30%), so plan outdoor
+    errands before then.
+
+
+    ### Outstanding work
+
+    - **Q3 expense report** is due by 5:00 PM today (Finance reminder); late reports slip to next month''s
+    payroll.
+
+    - **Proposal timeline:** the client asked if the revised proposal can ship by Friday and still has
+    no reply.
+
+    - Alex''s Q3 review is complete, so results can go on the planning agenda.
+
+
+    ### Emails
+
+    - **Question about the proposal timeline** (client, unanswered): needs a reply before they brief their
+    team.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): deadline today.
+
+    - Project update, Q3 review completed (Alex) and meeting notes from Jamie are informational; no action
+    needed.
+
+
+    ### Calendar
+
+    - **Conflict:** Planning (9:30-10:30 AM, Room B) overlaps the Vendor demo (10:00-11:00 AM, Zoom).
+    Recommendation: ask to move one of them.
+
+    - Budget meeting, 1:00-2:00 PM, Conference Room A.
+
+
+    ### News
+
+    - Twin Cities Tech Conference Returns: registration opens Friday (relevant if you want to attend).
+
+    - Maplewood Park renovation is complete; reopening is Saturday.
+
+
+    ### Top 3 things to do today
+
+    1. Submit the Q3 expense report before 5 PM.
+
+    2. Reply to the client about the proposal timeline and Friday delivery.
+
+    3. Resolve the Planning / Vendor demo conflict at 10:00 AM.'
+- name: reference, numbered headings
+  expect: 10
+  answer: '## 1. Weather
+
+    **Facts:** 68°F and partly cloudy now, with a high of 68 and a low of 55 today, a 10% chance of rain
+    and 8 mph wind. **Recommendation:** no rain gear needed; Friday has showers (30%), so plan outdoor
+    errands before then.
+
+
+    ## 2. Outstanding work
+
+    - **Q3 expense report** is due by 5:00 PM today (Finance reminder); late reports slip to next month''s
+    payroll.
+
+    - **Proposal timeline:** the client asked if the revised proposal can ship by Friday and still has
+    no reply.
+
+    - Alex''s Q3 review is complete, so results can go on the planning agenda.
+
+
+    ## 3. Emails
+
+    - **Question about the proposal timeline** (client, unanswered): needs a reply before they brief their
+    team.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): deadline today.
+
+    - Project update, Q3 review completed (Alex) and meeting notes from Jamie are informational; no action
+    needed.
+
+
+    ## 4. Calendar
+
+    - **Conflict:** Planning (9:30-10:30 AM, Room B) overlaps the Vendor demo (10:00-11:00 AM, Zoom).
+    Recommendation: ask to move one of them.
+
+    - Budget meeting, 1:00-2:00 PM, Conference Room A.
+
+
+    ## 5. News
+
+    - Twin Cities Tech Conference Returns: registration opens Friday (relevant if you want to attend).
+
+    - Maplewood Park renovation is complete; reopening is Saturday.
+
+
+    ## 6. Top 3 things to do today
+
+    1. Submit the Q3 expense report before 5 PM.
+
+    2. Reply to the client about the proposal timeline and Friday delivery.
+
+    3. Resolve the Planning / Vendor demo conflict at 10:00 AM.'
+- name: reference, short Top 3 heading
+  expect: 10
+  answer: '## Weather
+
+    **Facts:** 68°F and partly cloudy now, with a high of 68 and a low of 55 today, a 10% chance of rain
+    and 8 mph wind. **Recommendation:** no rain gear needed; Friday has showers (30%), so plan outdoor
+    errands before then.
+
+
+    ## Outstanding work
+
+    - **Q3 expense report** is due by 5:00 PM today (Finance reminder); late reports slip to next month''s
+    payroll.
+
+    - **Proposal timeline:** the client asked if the revised proposal can ship by Friday and still has
+    no reply.
+
+    - Alex''s Q3 review is complete, so results can go on the planning agenda.
+
+
+    ## Emails
+
+    - **Question about the proposal timeline** (client, unanswered): needs a reply before they brief their
+    team.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): deadline today.
+
+    - Project update, Q3 review completed (Alex) and meeting notes from Jamie are informational; no action
+    needed.
+
+
+    ## Calendar
+
+    - **Conflict:** Planning (9:30-10:30 AM, Room B) overlaps the Vendor demo (10:00-11:00 AM, Zoom).
+    Recommendation: ask to move one of them.
+
+    - Budget meeting, 1:00-2:00 PM, Conference Room A.
+
+
+    ## News
+
+    - Twin Cities Tech Conference Returns: registration opens Friday (relevant if you want to attend).
+
+    - Maplewood Park renovation is complete; reopening is Saturday.
+
+
+    ## Top 3
+
+    1. Submit the Q3 expense report before 5 PM.
+
+    2. Reply to the client about the proposal timeline and Friday delivery.
+
+    3. Resolve the Planning / Vendor demo conflict at 10:00 AM.'
+- name: reference, 24-hour times (17:00, 13:00)
+  expect: 10
+  answer: '## Weather
+
+    **Facts:** 68°F and partly cloudy now, with a high of 68 and a low of 55 today, a 10% chance of rain
+    and 8 mph wind. **Recommendation:** no rain gear needed; Friday has showers (30%), so plan outdoor
+    errands before then.
+
+
+    ## Outstanding work
+
+    - **Q3 expense report** is due by 17:00 today (Finance reminder); late reports slip to next month''s
+    payroll.
+
+    - **Proposal timeline:** the client asked if the revised proposal can ship by Friday and still has
+    no reply.
+
+    - Alex''s Q3 review is complete, so results can go on the planning agenda.
+
+
+    ## Emails
+
+    - **Question about the proposal timeline** (client, unanswered): needs a reply before they brief their
+    team.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): deadline today.
+
+    - Project update, Q3 review completed (Alex) and meeting notes from Jamie are informational; no action
+    needed.
+
+
+    ## Calendar
+
+    - **Conflict:** Planning (9:30-10:30 AM, Room B) overlaps the Vendor demo (10:00-11:00 AM, Zoom).
+    Recommendation: ask to move one of them.
+
+    - Budget meeting, 13:00-14:00, Conference Room A.
+
+
+    ## News
+
+    - Twin Cities Tech Conference Returns: registration opens Friday (relevant if you want to attend).
+
+    - Maplewood Park renovation is complete; reopening is Saturday.
+
+
+    ## Top 3 things to do today
+
+    1. Submit the Q3 expense report before 5 PM.
+
+    2. Reply to the client about the proposal timeline and Friday delivery.
+
+    3. Resolve the Planning / Vendor demo conflict at 10:00 AM.'
+- name: Top 3 items with nested sub-bullets
+  expect: 10
+  answer: "## Weather\n**Facts:** 68°F and partly cloudy now, with a high of 68 and a low of 55 today,\
+    \ a 10% chance of rain and 8 mph wind. **Recommendation:** no rain gear needed; Friday has showers\
+    \ (30%), so plan outdoor errands before then.\n\n## Outstanding work\n- **Q3 expense report** is due\
+    \ by 5:00 PM today (Finance reminder); late reports slip to next month's payroll.\n- **Proposal timeline:**\
+    \ the client asked if the revised proposal can ship by Friday and still has no reply.\n- Alex's Q3\
+    \ review is complete, so results can go on the planning agenda.\n\n## Emails\n- **Question about the\
+    \ proposal timeline** (client, unanswered): needs a reply before they brief their team.\n- **Reminder:\
+    \ Q3 expense report due Wednesday 5 PM** (Finance): deadline today.\n- Project update, Q3 review completed\
+    \ (Alex) and meeting notes from Jamie are informational; no action needed.\n\n## Calendar\n- **Conflict:**\
+    \ Planning (9:30-10:30 AM, Room B) overlaps the Vendor demo (10:00-11:00 AM, Zoom). Recommendation:\
+    \ ask to move one of them.\n- Budget meeting, 1:00-2:00 PM, Conference Room A.\n\n## News\n- Twin\
+    \ Cities Tech Conference Returns: registration opens Friday (relevant if you want to attend).\n- Maplewood\
+    \ Park renovation is complete; reopening is Saturday.\n\n## Top 3 things to do today\n1. Submit the\
+    \ Q3 expense report before 5 PM.\n   - Finance cuts it off at the deadline.\n   - Takes ten minutes.\n\
+    2. Reply to the client about the proposal timeline and Friday delivery.\n   - They are waiting on\
+    \ it.\n3. Resolve the Planning / Vendor demo conflict at 10:00 AM."
+- name: empty
+  expect: 0
+  answer: ''
+- name: whitespace only
+  expect: 0
+  answer: "  \n\n "
+- name: Top 3 has four items
+  expect: 9.09
+  answer: '## Weather
+
+    **Facts:** 68°F and partly cloudy now, with a high of 68 and a low of 55 today, a 10% chance of rain
+    and 8 mph wind. **Recommendation:** no rain gear needed; Friday has showers (30%), so plan outdoor
+    errands before then.
+
+
+    ## Outstanding work
+
+    - **Q3 expense report** is due by 5:00 PM today (Finance reminder); late reports slip to next month''s
+    payroll.
+
+    - **Proposal timeline:** the client asked if the revised proposal can ship by Friday and still has
+    no reply.
+
+    - Alex''s Q3 review is complete, so results can go on the planning agenda.
+
+
+    ## Emails
+
+    - **Question about the proposal timeline** (client, unanswered): needs a reply before they brief their
+    team.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): deadline today.
+
+    - Project update, Q3 review completed (Alex) and meeting notes from Jamie are informational; no action
+    needed.
+
+
+    ## Calendar
+
+    - **Conflict:** Planning (9:30-10:30 AM, Room B) overlaps the Vendor demo (10:00-11:00 AM, Zoom).
+    Recommendation: ask to move one of them.
+
+    - Budget meeting, 1:00-2:00 PM, Conference Room A.
+
+
+    ## News
+
+    - Twin Cities Tech Conference Returns: registration opens Friday (relevant if you want to attend).
+
+    - Maplewood Park renovation is complete; reopening is Saturday.
+
+
+    ## Top 3 things to do today
+
+    1. Submit the Q3 expense report before 5 PM.
+
+    2. Reply to the client about the proposal timeline and Friday delivery.
+
+    3. Resolve the Planning / Vendor demo conflict at 10:00 AM.
+
+    4. Read the tech conference story.'
+- name: Top 3 has two items
+  expect: 9.09
+  answer: '## Weather
+
+    **Facts:** 68°F and partly cloudy now, with a high of 68 and a low of 55 today, a 10% chance of rain
+    and 8 mph wind. **Recommendation:** no rain gear needed; Friday has showers (30%), so plan outdoor
+    errands before then.
+
+
+    ## Outstanding work
+
+    - **Q3 expense report** is due by 5:00 PM today (Finance reminder); late reports slip to next month''s
+    payroll.
+
+    - **Proposal timeline:** the client asked if the revised proposal can ship by Friday and still has
+    no reply.
+
+    - Alex''s Q3 review is complete, so results can go on the planning agenda.
+
+
+    ## Emails
+
+    - **Question about the proposal timeline** (client, unanswered): needs a reply before they brief their
+    team.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): deadline today.
+
+    - Project update, Q3 review completed (Alex) and meeting notes from Jamie are informational; no action
+    needed.
+
+
+    ## Calendar
+
+    - **Conflict:** Planning (9:30-10:30 AM, Room B) overlaps the Vendor demo (10:00-11:00 AM, Zoom).
+    Recommendation: ask to move one of them.
+
+    - Budget meeting, 1:00-2:00 PM, Conference Room A.
+
+
+    ## News
+
+    - Twin Cities Tech Conference Returns: registration opens Friday (relevant if you want to attend).
+
+    - Maplewood Park renovation is complete; reopening is Saturday.
+
+
+    ## Top 3 things to do today
+
+    1. Submit the Q3 expense report before 5 PM.
+
+    2. Reply to the client about the proposal timeline and Friday delivery.'
+- name: Top 3 as a paragraph, not a list
+  expect: 9.09
+  answer: '## Weather
+
+    **Facts:** 68°F and partly cloudy now, with a high of 68 and a low of 55 today, a 10% chance of rain
+    and 8 mph wind. **Recommendation:** no rain gear needed; Friday has showers (30%), so plan outdoor
+    errands before then.
+
+
+    ## Outstanding work
+
+    - **Q3 expense report** is due by 5:00 PM today (Finance reminder); late reports slip to next month''s
+    payroll.
+
+    - **Proposal timeline:** the client asked if the revised proposal can ship by Friday and still has
+    no reply.
+
+    - Alex''s Q3 review is complete, so results can go on the planning agenda.
+
+
+    ## Emails
+
+    - **Question about the proposal timeline** (client, unanswered): needs a reply before they brief their
+    team.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): deadline today.
+
+    - Project update, Q3 review completed (Alex) and meeting notes from Jamie are informational; no action
+    needed.
+
+
+    ## Calendar
+
+    - **Conflict:** Planning (9:30-10:30 AM, Room B) overlaps the Vendor demo (10:00-11:00 AM, Zoom).
+    Recommendation: ask to move one of them.
+
+    - Budget meeting, 1:00-2:00 PM, Conference Room A.
+
+
+    ## News
+
+    - Twin Cities Tech Conference Returns: registration opens Friday (relevant if you want to attend).
+
+    - Maplewood Park renovation is complete; reopening is Saturday.
+
+
+    ## Top 3 things to do today
+
+    Submit the expense report, reply to the client, and fix the conflict.'
+- name: no Outstanding work section
+  expect: 9.09
+  answer: '## Weather
+
+    **Facts:** 68°F and partly cloudy now, with a high of 68 and a low of 55 today, a 10% chance of rain
+    and 8 mph wind. **Recommendation:** no rain gear needed; Friday has showers (30%), so plan outdoor
+    errands before then.
+
+
+    ## Emails
+
+    - **Question about the proposal timeline** (client, unanswered): needs a reply before they brief their
+    team.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): deadline today.
+
+    - Project update, Q3 review completed (Alex) and meeting notes from Jamie are informational; no action
+    needed.
+
+
+    ## Calendar
+
+    - **Conflict:** Planning (9:30-10:30 AM, Room B) overlaps the Vendor demo (10:00-11:00 AM, Zoom).
+    Recommendation: ask to move one of them.
+
+    - Budget meeting, 1:00-2:00 PM, Conference Room A.
+
+
+    ## News
+
+    - Twin Cities Tech Conference Returns: registration opens Friday (relevant if you want to attend).
+
+    - Maplewood Park renovation is complete; reopening is Saturday.
+
+
+    ## Top 3 things to do today
+
+    1. Submit the Q3 expense report before 5 PM.
+
+    2. Reply to the client about the proposal timeline and Friday delivery.
+
+    3. Resolve the Planning / Vendor demo conflict at 10:00 AM.'
+- name: Calendar before Emails
+  expect: 9.09
+  answer: '## Weather
+
+    **Facts:** 68°F and partly cloudy now, with a high of 68 and a low of 55 today, a 10% chance of rain
+    and 8 mph wind. **Recommendation:** no rain gear needed; Friday has showers (30%), so plan outdoor
+    errands before then.
+
+
+    ## Outstanding work
+
+    - **Q3 expense report** is due by 5:00 PM today (Finance reminder); late reports slip to next month''s
+    payroll.
+
+    - **Proposal timeline:** the client asked if the revised proposal can ship by Friday and still has
+    no reply.
+
+    - Alex''s Q3 review is complete, so results can go on the planning agenda.
+
+
+    ## Calendar
+
+    - **Conflict:** Planning (9:30-10:30 AM, Room B) overlaps the Vendor demo (10:00-11:00 AM, Zoom).
+    Recommendation: ask to move one of them.
+
+    - Budget meeting, 1:00-2:00 PM, Conference Room A.
+
+
+    ## Emails
+
+    - **Question about the proposal timeline** (client, unanswered): needs a reply before they brief their
+    team.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): deadline today.
+
+    - Project update, Q3 review completed (Alex) and meeting notes from Jamie are informational; no action
+    needed.
+
+
+    ## News
+
+    - Twin Cities Tech Conference Returns: registration opens Friday (relevant if you want to attend).
+
+    - Maplewood Park renovation is complete; reopening is Saturday.
+
+
+    ## Top 3 things to do today
+
+    1. Submit the Q3 expense report before 5 PM.
+
+    2. Reply to the client about the proposal timeline and Friday delivery.
+
+    3. Resolve the Planning / Vendor demo conflict at 10:00 AM.'
+- name: no must-act items (generic summary of the old data, none of the seeded items)
+  expect: 5.0
+  answer: '## Weather
+
+    Partly cloudy, 68°F, high 68, low 55.
+
+
+    ## Outstanding work
+
+    Alex''s Q3 review is complete.
+
+
+    ## Emails
+
+    Project update from Alex; meeting notes from Jamie.
+
+
+    ## Calendar
+
+    Standup, design review and a customer call this week.
+
+
+    ## News
+
+    Twin Cities Tech Conference Returns; Maplewood Park renovation complete.
+
+
+    ## Top 3 things to do today
+
+    1. Read the Q3 update.
+
+    2. Check the weather.
+
+    3. Read the news.'
+- name: conflict listed but not called a conflict
+  expect: 9.09
+  answer: '## Weather
+
+    **Facts:** 68°F and partly cloudy now, with a high of 68 and a low of 55 today, a 10% chance of rain
+    and 8 mph wind. **Recommendation:** no rain gear needed; Friday has showers (30%), so plan outdoor
+    errands before then.
+
+
+    ## Outstanding work
+
+    - **Q3 expense report** is due by 5:00 PM today (Finance reminder); late reports slip to next month''s
+    payroll.
+
+    - **Proposal timeline:** the client asked if the revised proposal can ship by Friday and still has
+    no reply.
+
+    - Alex''s Q3 review is complete, so results can go on the planning agenda.
+
+
+    ## Emails
+
+    - **Question about the proposal timeline** (client, unanswered): needs a reply before they brief their
+    team.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): deadline today.
+
+    - Project update, Q3 review completed (Alex) and meeting notes from Jamie are informational; no action
+    needed.
+
+
+    ## Calendar
+
+    - Planning (9:30-10:30 AM, Room B) and the Vendor demo (10:00-11:00 AM, Zoom). Both are on today.
+
+    - Budget meeting, 1:00-2:00 PM, Conference Room A.
+
+
+    ## News
+
+    - Twin Cities Tech Conference Returns: registration opens Friday (relevant if you want to attend).
+
+    - Maplewood Park renovation is complete; reopening is Saturday.
+
+
+    ## Top 3 things to do today
+
+    1. Submit the Q3 expense report before 5 PM.
+
+    2. Reply to the client about the proposal timeline and Friday delivery.
+
+    3. Handle the Planning and Vendor demo pile-up at 10:00 AM.'
+- name: only the deadline surfaced
+  expect: 8.18
+  answer: '## Weather
+
+    **Facts:** 68°F and partly cloudy now, with a high of 68 and a low of 55 today, a 10% chance of rain
+    and 8 mph wind. **Recommendation:** no rain gear needed; Friday has showers (30%), so plan outdoor
+    errands before then.
+
+
+    ## Outstanding work
+
+    - **Q3 expense report** is due by 5:00 PM today (Finance reminder); late reports slip to next month''s
+    payroll.
+
+    - Alex''s Q3 review is complete, so results can go on the planning agenda.
+
+
+    ## Emails
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): deadline today.
+
+    - Project update, Q3 review completed (Alex) and meeting notes from Jamie are informational; no action
+    needed.
+
+
+    ## Calendar
+
+    - Planning, 9:30-10:30 AM; Budget meeting 1:00-2:00 PM.
+
+
+    ## News
+
+    - Twin Cities Tech Conference Returns: registration opens Friday (relevant if you want to attend).
+
+    - Maplewood Park renovation is complete; reopening is Saturday.
+
+
+    ## Top 3 things to do today
+
+    1. Submit the Q3 expense report before 5 PM.
+
+    2. Prep for the Budget meeting.
+
+    3. Read the news.'
+- name: invented temperature (85°F)
+  expect: 9.09
+  answer: '## Weather
+
+    **Facts:** 85°F and partly cloudy now, with a high of 68 and a low of 55 today, a 10% chance of rain
+    and 8 mph wind. **Recommendation:** no rain gear needed; Friday has showers (30%), so plan outdoor
+    errands before then.
+
+
+    ## Outstanding work
+
+    - **Q3 expense report** is due by 5:00 PM today (Finance reminder); late reports slip to next month''s
+    payroll.
+
+    - **Proposal timeline:** the client asked if the revised proposal can ship by Friday and still has
+    no reply.
+
+    - Alex''s Q3 review is complete, so results can go on the planning agenda.
+
+
+    ## Emails
+
+    - **Question about the proposal timeline** (client, unanswered): needs a reply before they brief their
+    team.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): deadline today.
+
+    - Project update, Q3 review completed (Alex) and meeting notes from Jamie are informational; no action
+    needed.
+
+
+    ## Calendar
+
+    - **Conflict:** Planning (9:30-10:30 AM, Room B) overlaps the Vendor demo (10:00-11:00 AM, Zoom).
+    Recommendation: ask to move one of them.
+
+    - Budget meeting, 1:00-2:00 PM, Conference Room A.
+
+
+    ## News
+
+    - Twin Cities Tech Conference Returns: registration opens Friday (relevant if you want to attend).
+
+    - Maplewood Park renovation is complete; reopening is Saturday.
+
+
+    ## Top 3 things to do today
+
+    1. Submit the Q3 expense report before 5 PM.
+
+    2. Reply to the client about the proposal timeline and Friday delivery.
+
+    3. Resolve the Planning / Vendor demo conflict at 10:00 AM.'
+- name: derived minutes (215 minutes of meetings)
+  expect: 9.09
+  answer: '## Weather
+
+    **Facts:** 68°F and partly cloudy now, with a high of 68 and a low of 55 today, a 10% chance of rain
+    and 8 mph wind. **Recommendation:** no rain gear needed; Friday has showers (30%), so plan outdoor
+    errands before then.
+
+
+    ## Outstanding work
+
+    - **Q3 expense report** is due by 5:00 PM today (Finance reminder); late reports slip to next month''s
+    payroll.
+
+    - **Proposal timeline:** the client asked if the revised proposal can ship by Friday and still has
+    no reply.
+
+    - Alex''s Q3 review is complete, so results can go on the planning agenda.
+
+
+    ## Emails
+
+    - **Question about the proposal timeline** (client, unanswered): needs a reply before they brief their
+    team.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): deadline today.
+
+    - Project update, Q3 review completed (Alex) and meeting notes from Jamie are informational; no action
+    needed.
+
+
+    ## Calendar
+
+    - **Conflict:** Planning (9:30-10:30 AM, Room B) overlaps the Vendor demo (10:00-11:00 AM, Zoom).
+    Recommendation: ask to move one of them.
+
+    - Budget meeting, 1:00-2:00 PM, Conference Room A. That is 215 minutes of meetings in all.
+
+
+    ## News
+
+    - Twin Cities Tech Conference Returns: registration opens Friday (relevant if you want to attend).
+
+    - Maplewood Park renovation is complete; reopening is Saturday.
+
+
+    ## Top 3 things to do today
+
+    1. Submit the Q3 expense report before 5 PM.
+
+    2. Reply to the client about the proposal timeline and Friday delivery.
+
+    3. Resolve the Planning / Vendor demo conflict at 10:00 AM.'
+- name: conflict worded as a clash
+  expect: 10
+  answer: '## Weather
+
+    **Facts:** 68°F and partly cloudy now, with a high of 68 and a low of 55 today, a 10% chance of rain
+    and 8 mph wind. **Recommendation:** no rain gear needed; Friday has showers (30%), so plan outdoor
+    errands before then.
+
+
+    ## Outstanding work
+
+    - **Q3 expense report** is due by 5:00 PM today (Finance reminder); late reports slip to next month''s
+    payroll.
+
+    - **Proposal timeline:** the client asked if the revised proposal can ship by Friday and still has
+    no reply.
+
+    - Alex''s Q3 review is complete, so results can go on the planning agenda.
+
+
+    ## Emails
+
+    - **Question about the proposal timeline** (client, unanswered): needs a reply before they brief their
+    team.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): deadline today.
+
+    - Project update, Q3 review completed (Alex) and meeting notes from Jamie are informational; no action
+    needed.
+
+
+    ## Calendar
+
+    - **Conflict:** Planning (9:30-10:30 AM, Room B) clashes with the Vendor demo (10:00-11:00 AM, Zoom).
+    Recommendation: ask to move one of them.
+
+    - Budget meeting, 1:00-2:00 PM, Conference Room A.
+
+
+    ## News
+
+    - Twin Cities Tech Conference Returns: registration opens Friday (relevant if you want to attend).
+
+    - Maplewood Park renovation is complete; reopening is Saturday.
+
+
+    ## Top 3 things to do today
+
+    1. Submit the Q3 expense report before 5 PM.
+
+    2. Reply to the client about the proposal timeline and Friday delivery.
+
+    3. Resolve the Planning / Vendor demo conflict at 10:00 AM.'

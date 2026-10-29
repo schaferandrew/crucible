@@ -10,6 +10,10 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
 
 ## Unreleased
 
+- **two-calendar-slots-json (formerly TASK-1): version 2 → 3, rubric 1 → 2, still active in Suite v1.** The model now writes `slots.json` (`valid_slots` and `top3` with explanations) for the fixed window (Aug 31 09:00 to Sep 7 17:00, America/Chicago, weekends included, half-hour starts). Scored by 91 equal items computed from the fixture: each of the 85 true slots listed, no slot outside the window, valid JSON, exactly three valid top-3 entries, each explained; ranking order is not scored. Any listed slot that overlaps an event caps the score at 5. No judge. Runs must be redone.
+- **morning-brief-spanish (formerly TASK-2): version 1 → 2, rubric 1 → 2.** Fixed `##` sections (Emails, Calendar, News, Spanish practice), today stated as 2026-09-02. 16 equal items: sections in order, last section Spanish and the others not (function-word share; capped at 5 if not Spanish), each of the four yesterday-email subjects, each of the three events on Sep 2, one news item. The mock data gained two emails and one event. Runs must be redone.
+- **morning-brief-priorities (formerly TASK-3): version 2 → 3, rubric 1 → 2.** No live sources: weather and news come from the mock server. Sections Weather, Outstanding work, Emails, Calendar, News, Top 3 (exactly 3 items). 11 equal items incl. the seeded must-act items (Planning/Vendor demo conflict, expense report due 5 PM, unanswered proposal question; none mentioned caps at 5) and `grounded_numbers` against the mock data. New mock data: "Vendor demo" event (10:00, overlaps Planning) and two emails (expense report deadline, client question). Runs must be redone.
+
 - **accessibility-audit-fixes (formerly CODE-15): rubric 2 → 3, still provisional.** Now an isolated,
   per-test grader (`artifacts`: apps/web/src). 38 hidden tests cover all six audit findings (dialog 9,
   read more 6, tag filter 7, button names 6, form errors 6, status messages 4) plus the model's own

@@ -12,6 +12,20 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## Unreleased
+
+### Added
+
+- **`items` check, whole-document kinds** (use with `header: null`): `sections` (one item per `#` heading, present and
+  in order), `language` (Spanish or not, by function-word share), `mention` (titles from `fixtures/mock-data`
+  mentioned in the reply) and `json` (ops on a JSON file: `parses`, `listed`, `count`, `all_valid`, `each_nonempty`,
+  `no_conflict`, `no_outside`; the right slots are computed from a fixture calendar). Block kinds (`pattern`,
+  `each`, `count`, `distinct`, `language`) take `section:` to read one heading's lines, and `top_level: true` to
+  count only outermost list items.
+- **`grounded_numbers` `sources:`:** fixture files whose numbers the answer may quote (timestamps count; whole hours
+  also as 24-hour times).
+- `add-task/validate.py` takes `files:` per case for tasks whose checks read a written file.
+
 ## 3.2.0 (2026-10-29)
 
 The engine pieces for Suite v2's first wave of converted tasks: more ways for the `items` check to read

@@ -141,6 +141,19 @@ def _numbers(text: str) -> set[str]:
     return {n.replace(",", "").rstrip(".") for n in NUMBER.findall(text)}
 
 
+def _source_numbers(names: list[str]) -> set[str]:
+    """Every number in the named fixture files (paths under fixtures/), leading zeros dropped. Timestamps
+    count: "T13:00:00" holds 13 and 0. A whole hour from 1 to 11 also stands for its 24-hour form (5 PM is 17)."""
+    from crucible import workspace
+    found: set[str] = set()
+    for name in names:
+        root = workspace.FIXTURES_DIR / name
+        for path in sorted(p for p in root.rglob("*") if p.is_file()) if root.is_dir() else [root]:
+            found |= {(n.lstrip("0") or "0") if n.isdigit() else n
+                      for n in re.findall(r"\d+(?:\.\d+)?", path.read_text(encoding="utf-8"))}
+    return found | {str(int(n) + 12) for n in found if n.isdigit() and 1 <= int(n) <= 11}
+
+
 def _grounded_numbers(check: dict, text: str) -> tuple[bool, str]:
     """Every figure in the answer appears in the source material (the prompt), so none were invented.
     Small whole numbers (up to `ignore_below`, default 11) are left out: list numbering, "five stories"."""
@@ -148,7 +161,11 @@ def _grounded_numbers(check: dict, text: str) -> tuple[bool, str]:
         return False, NO_ANSWER
     allowed = _numbers(check["_source"]) | {str(n) for n in check.get("allow", [])}
     small = check.get("ignore_below", 11)
-    invented = sorted(n for n in _numbers(text) - allowed if not (n.isdigit() and int(n) < small))
+    got = _numbers(text)
+    if check.get("sources"):  # fixture files the answer may quote: every digit run in them, hours also as 24-hour times
+        allowed |= _source_numbers(check["sources"])
+        got = {(n.lstrip("0") or "0") if n.isdigit() else n for n in got}
+    invented = sorted(n for n in got - allowed if not (n.isdigit() and int(n) < small))
     return (not invented), ("every figure is in the sources" if not invented else "not in the sources: " + ", ".join(invented[:8]))
 
 
@@ -404,7 +421,11 @@ def _position(entries: list[str], name: str, item: dict, aliases: dict) -> int |
 def _score_item(item: dict, lines: list[str], index: int, check: dict, text: str = "") -> list[dict]:
     """One result per expected item; letter_set with `of:` and ordering expand into several."""
     kind = item.get("normalize") or check.get("normalize") or "name"
+    if kind in DOCUMENT_KINDS:
+        return DOCUMENT_KINDS[kind](item, text)
     if kind in BLOCK_KINDS:
+        if item.get("section"):  # the lines of one `##` section of the whole reply, not the check's block
+            lines = _section_lines(text, item["section"], top_level=bool(item.get("top_level")))
         return [_score_block_item(item, lines, kind, text)]
     aliases = check.get("aliases") or {}
     label = item.get("label", item.get("id"))
@@ -476,7 +497,7 @@ ITEM_NORMALIZERS = {
     "year": _norm_year,
 }
 ITEM_KINDS = ("number", "money", "name", "year", "letter_set", "line_set", "name_set", "line_number", "datetime",
-              "ordering", "pattern", "each", "count", "distinct", "subset")
+              "ordering", "pattern", "each", "count", "distinct", "subset", "language", "json", "sections", "mention")
 
 # Kinds that judge the whole block (an email, a paragraph, a list of names), one item each:
 #   {id: a, normalize: pattern, expect: 'haven.t'}           the regex is found in the block (every one, if a list)
@@ -489,7 +510,7 @@ ITEM_KINDS = ("number", "money", "name", "year", "letter_set", "line_set", "name
 # Entries are the numbered or bulleted lines of the block (all its lines when none are); an entry's name is what
 # precedes a dash, colon or parenthesis, after the number. Matching ignores case and **bold**. An empty block
 # fails every item, so a block with nothing in it can't earn an "absent" item for free.
-BLOCK_KINDS = ("pattern", "each", "count", "distinct", "subset")
+BLOCK_KINDS = ("pattern", "each", "count", "distinct", "subset", "language")
 ENTRY_NAME_END = re.compile(r"\s+[—–-]+\s+|\s*[—–:(|,]")
 ENTRY_LABEL = re.compile(r"^\s*(?:\d+\s*[.):]|[-*•])\s+")
 
@@ -525,6 +546,9 @@ def _score_block_item(item: dict, lines: list[str], kind: str, text: str) -> dic
     if kind == "count":
         lo, hi = item.get("min", item.get("expect", 0)), item.get("max", item.get("expect"))
         return result(len(entries) >= lo and (hi is None or len(entries) <= hi), f"{len(entries)} entries")
+    if kind == "language":
+        found, detail = _language(plain("\n".join(lines)))
+        return result(found == "es" if item["expect"] == "es" else found != "es", detail)
     names = [_entry_name(e) for e in entries]
     if kind == "distinct":
         dupes = sorted({n for n in names if n and names.count(n) > 1})
@@ -533,6 +557,297 @@ def _score_block_item(item: dict, lines: list[str], kind: str, text: str) -> dic
     known = {_entry_name(e) for e in _entries(source)}
     unknown = [n for n in names if n not in known]
     return result(bool(known) and not unknown, "all in the list" if not unknown else "not in the list: " + ", ".join(unknown[:5]))
+
+
+# --------------------------------------------------------------------------
+# Whole-document kinds of the items check: sections, languages, mentions of fixture data, JSON files
+# --------------------------------------------------------------------------
+#
+# These read the whole reply (or the file a check names with `file:`), not one answer block. Use them with
+# `header: null`. Each returns one result per item, or several where the doc says so.
+#
+#   sections: one item per heading, each present and after the one before it ("## Emails", "### 1. Emails"):
+#     {id: order, normalize: sections, expect: [Weather, [Outstanding work, Open work], Emails]}   # a list = aliases
+#     Headings are Markdown `#` lines; a name matches as whole words anywhere in the heading's text.
+#   section: on a pattern, each, count, distinct or language item, the lines under that heading (up to the next
+#     heading of the same or a higher level) are the block. `top_level: true` counts only the outermost list items.
+#     {id: top3, normalize: count, expect: 3, section: [Top 3, Top three], top_level: true}
+#   language: the section's (or, without `section`, the whole reply's) share of Spanish and of English function
+#     words (a short list of each; accents ignored). `expect: es` passes for Spanish prose, `expect: en` for
+#     anything that is not Spanish.
+#     {id: closing, normalize: language, expect: es, section: Spanish practice}
+#   mention: the titles in fixtures/mock-data are in the reply. An entry is mentioned when its title is a
+#     substring, or when 60% of its distinctive words (the first five letters of each, generic words like
+#     "meeting" and "report" set aside) are in one paragraph or list item.
+#     {id: email, normalize: mention, source: emails}             # one item per yesterday's email subject
+#     {id: today, normalize: mention, source: events, today: "2026-09-02"}   # ...per event starting that day
+#     {id: news, normalize: mention, source: news, min: 1}        # one item: at least one headline
+#     {id: tax, normalize: mention, source: emails, only: ["Reminder: Q3 expense report due Wednesday 5 PM"]}
+#     {id: clash, normalize: mention, source: events, only: [Planning, Vendor demo], also: 'conflict|overlap'}
+#     `also` is a regex that must be found too (one combined item). An `only` title missing from the data raises.
+#   json: a JSON file (the check's `file:`). `op` picks the rule; the right slots come from a fixture calendar:
+#     slots: {fixture: calendar-fixture.json, minutes: 60, step: 30}   # every start with both people free, 9 to 5
+#     {id: parses, normalize: json, op: parses}                              # strict JSON object
+#     {id: listed, normalize: json, op: listed, path: valid_slots, slots: ...} # one item per true slot
+#     {id: free, normalize: json, op: no_conflict, paths: [valid_slots, top3.start], slots: ...}
+#     {id: hours, normalize: json, op: no_outside, paths: [valid_slots, top3.start], slots: ...}
+#     {id: three, normalize: json, op: count, path: top3, min: 3, max: 3}
+#     {id: valid, normalize: json, op: all_valid, path: top3.start, slots: ...}  # distinct and all true slots
+#     {id: why, normalize: json, op: each_nonempty, path: top3.explanation}
+#     `a.b` reads field b of each entry of list a. A slot is `YYYY-MM-DDTHH:MM` (a space, seconds or an offset are
+#     fine) in the fixture's time zone. no_conflict and no_outside fail on a file that lists nothing.
+
+HEADING = re.compile(r"^\s{0,3}(#{1,6})\s+(.*?)\s*#*\s*$")
+
+
+def _headings(lines: list[str]) -> list[tuple[int, int, str]]:
+    """(line number, level, folded title) of every Markdown heading outside code fences."""
+    out, fenced = [], False
+    for n, line in enumerate(lines):
+        if FENCE.match(line):
+            fenced = not fenced
+        found = None if fenced else HEADING.match(line)
+        if found:
+            out.append((n, len(found.group(1)), _fold(found.group(2))))
+    return out
+
+
+def _names(spec) -> list[str]:
+    return [spec] if isinstance(spec, str) else list(spec)
+
+
+def _named(title: str, spec) -> bool:
+    return any(re.search(r"\b" + re.escape(_fold(n)) + r"\b", title) for n in _names(spec))
+
+
+def _section_lines(text: str, names, top_level: bool = False) -> list[str]:
+    """The raw lines under the first heading that names `names`, up to the next heading of the same or a higher level."""
+    lines = text.splitlines()
+    heads = _headings(lines)
+    start = next((i for i, (_, _, title) in enumerate(heads) if _named(title, names)), None)
+    if start is None:
+        return []
+    first, level, _ = heads[start]
+    end = next((n for n, lv, _ in heads[start + 1:] if lv <= level), len(lines))
+    body = lines[first + 1:end]
+    if top_level:
+        indents = [len(l) - len(l.lstrip()) for l in body if ENTRY_LABEL.match(plain(l))]
+        body = [l for l in body if not ENTRY_LABEL.match(plain(l)) or len(l) - len(l.lstrip()) <= min(indents)]
+    return body
+
+
+def _sections_item(item: dict, text: str) -> list[dict]:
+    """One result per expected heading: present, and after the last expected heading found before it."""
+    heads = _headings(text.splitlines())
+    results, previous = [], -1
+    for spec in item["expect"]:
+        at = next((n for n, _, title in heads if _named(title, spec)), None)
+        name = _names(spec)[0]
+        if at is None:
+            passed, detail = False, "no such heading"
+        elif at < previous:
+            passed, detail = False, "out of order"
+        else:
+            passed, detail, previous = True, f"line {at + 1}", at
+        results.append({"id": f"{item['id']}:{_fold(name).replace(' ', '-')}", "label": f"{name} section in order",
+                        "passed": passed, "detail": detail})
+    return results
+
+
+# Function words that are one language's and not the other's (a, me, he, no, es... are left out)
+STOPWORDS = {
+    "en": set("the of and to in is you that it for on with as are was at be this have from or an by not but your will "
+              "we can they their what which there been has had were would about into than them then when who how "
+              "its our also more all any these those only over some such here very just".split()),
+    "es": set("de la el en y que los las del un una por con para es se su al lo como mas pero sus le ya o este si "
+              "porque esta entre cuando muy sin sobre tambien hay hoy manana tu te tienes tiene son fue ser estan "
+              "estoy nos otros todo todos cada donde tus mis mi unos unas ese eso esa".split()),
+}
+
+
+def _language(text: str) -> tuple[str, str]:
+    """("es" | "en" | "mixed" | "none", detail): which language's function words dominate the text."""
+    import unicodedata
+    folded = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode().lower()
+    words = re.findall(r"[a-z]+", folded)
+    if len(words) < 5:
+        return "none", f"{len(words)} words"
+    es, en = (sum(w in STOPWORDS[k] for w in words) / len(words) for k in ("es", "en"))
+    kind = "es" if es >= 0.15 and es > 2 * en else "en" if en >= 0.15 and en > 2 * es else "mixed"
+    return kind, f"{kind}: Spanish words {es:.0%}, English {en:.0%}"
+
+
+# Words that name a kind of thing and not the thing; they match only when a title has nothing else
+GENERIC = set("meeting call review update notes team report reminder question".split())
+FILLER = set(STOPWORDS["en"]) | set("yesterday today tomorrow pm am new".split())
+MOCK_DATA = "mock-data"
+
+
+def _stems(phrase: str) -> list[str]:
+    words = [w for w in _fold(re.sub(r"\([^)]*\)", " ", phrase)).split() if w not in FILLER and (len(w) > 2 or len(w) == 2 and any(c.isdigit() for c in w))]
+    return sorted({w[:5] for w in ([x for x in words if x not in GENERIC] or words)})
+
+
+def _mentioned(text: str, phrase: str) -> bool:
+    folded = f" {_fold(text)} "
+    if f" {_fold(phrase)} " in folded:
+        return True
+    stems = _stems(phrase)
+    need = max(1, -(-len(stems) * 6 // 10))
+    return any(sum(any(w.startswith(s) for w in unit) for s in stems) >= need
+               for unit in (_fold(p).split() for p in paragraphs(text))) if stems else False
+
+
+def _mock_titles(source: str, today: str | None) -> list[str]:
+    from crucible import workspace
+    root = workspace.FIXTURES_DIR / MOCK_DATA
+    load = lambda name: json.loads((root / name).read_text(encoding="utf-8"))   # noqa: E731
+    if source == "emails":
+        return [e["subject"] for e in load("emails.json")["yesterday"]]
+    if source == "news":
+        return [a["title"] for a in load("news.json")["articles"]]
+    if source == "events":
+        return [e["title"] for e in load("calendar.json")["events"] if not today or e["start"].startswith(str(today))]
+    raise ValueError(f"unknown mention source: {source}")
+
+
+def _mention_item(item: dict, text: str) -> list[dict]:
+    titles = _mock_titles(item["source"], item.get("today"))
+    if item.get("only"):
+        unknown = [t for t in item["only"] if t not in titles]
+        if unknown:
+            raise ValueError(f"mention item {item['id']}: not in the {item['source']} data: {unknown}")
+        titles = list(item["only"])
+    body = "\n".join(_section_lines(text, item["section"])) if item.get("section") else text
+    hits = {t: _mentioned(body, t) for t in titles}
+    if item.get("min") or item.get("also"):
+        enough = sum(hits.values()) >= item.get("min", len(titles))
+        extra = [p for p in _names(item.get("also") or []) if not re.search(p, body, re.IGNORECASE)]
+        label = item.get("label", item["id"])
+        missed = [t for t, hit in hits.items() if not hit]
+        detail = f"{sum(hits.values())}/{len(titles)} mentioned" + (f"; not: {missed[0]}" if missed and not enough else "") \
+            + (f"; no match for {extra[0]}" if extra else "")
+        return [{"id": item["id"], "label": label, "passed": enough and not extra, "detail": detail}]
+    return [{"id": f"{item['id']}:{_fold(t).replace(' ', '-')[:40]}", "label": f"Mentions {t}", "passed": hit,
+             "detail": "mentioned" if hit else "not mentioned"} for t, hit in hits.items()]
+
+
+SLOT_TIME = re.compile(r"(\d{4})-(\d{2})-(\d{2})[T ]+(\d{1,2}):(\d{2})(?::\d{2}(?:\.\d+)?)?\s*(Z|[+-]\d{2}:?\d{2})?")
+_SLOTS: dict = {}
+
+
+def _slot_truth(spec: dict) -> dict:
+    """{tz, truth, conflicts, grid}: the free starts, the starts that overlap an event, and every start on the grid
+    (strings `YYYY-MM-DDTHH:MM` in the fixture's zone), for a fixture calendar's people over its whole window."""
+    from datetime import timedelta
+    from crucible import workspace
+    key = json.dumps(spec, sort_keys=True)
+    if key not in _SLOTS:
+        data = json.loads((workspace.FIXTURES_DIR / spec["fixture"]).read_text(encoding="utf-8"))
+        parse = lambda v: datetime.fromisoformat(v.replace("Z", "+00:00"))   # noqa: E731
+        window = [parse(data["window"][k]) for k in ("start", "end")]
+        events = [(parse(e["start"]), parse(e["end"])) for p in data["people"].values() for e in p["events"]]
+        tz, length, step = window[0].tzinfo, timedelta(minutes=spec["minutes"]), timedelta(minutes=spec.get("step", 30))
+        truth, conflicts = [], []
+        for d in range((window[1].date() - window[0].date()).days + 1):
+            midnight_ = (window[0] + timedelta(days=d)).replace(hour=0, minute=0)
+            slot, close = midnight_ + timedelta(hours=9), midnight_ + timedelta(hours=17)
+            while slot + length <= close:
+                if slot >= window[0] and slot + length <= window[1]:
+                    busy = any(slot < end and start < slot + length for start, end in events)
+                    (conflicts if busy else truth).append(slot.strftime("%Y-%m-%dT%H:%M"))
+                slot += step
+        _SLOTS[key] = {"tz": tz, "truth": truth, "conflicts": set(conflicts), "grid": set(truth) | set(conflicts)}
+    return _SLOTS[key]
+
+
+def _slot_key(value, tz) -> str | None:
+    found = SLOT_TIME.search(value) if isinstance(value, str) else None
+    if not found:
+        return None
+    y, mo, d, h, mi, off = found.groups()
+    try:
+        moment = datetime(int(y), int(mo), int(d), int(h), int(mi))
+    except ValueError:
+        return None
+    if off:
+        sign = -1 if off.startswith("-") else 1
+        digits = off.lstrip("+-").replace(":", "") if off != "Z" else "0000"
+        from datetime import timedelta
+        zone = timezone(sign * timedelta(hours=int(digits[:2]), minutes=int(digits[2:])))
+        moment = moment.replace(tzinfo=zone).astimezone(tz).replace(tzinfo=None)
+    return moment.strftime("%Y-%m-%dT%H:%M")
+
+
+def _json_load(text: str) -> tuple[dict | None, bool]:
+    """(the file's JSON object, whether it was strictly valid). Code fence lines are ignored; with prose around
+    it, the outermost braces are read but the file doesn't count as valid JSON."""
+    # (run_checks has already removed backticks, so a "```json" fence line is left as a line reading "json")
+    body = "\n".join(l for l in text.splitlines() if not FENCE.match(l) and l.strip().lower() != "json")
+    for candidate, strict in ((body, True), (body[body.find("{"):body.rfind("}") + 1], False)):
+        try:
+            data = json.loads(candidate)
+        except ValueError:
+            continue
+        if isinstance(data, dict):
+            return data, strict
+    return None, False
+
+
+def _json_list(data: dict, path: str):
+    """The entries at `a` (a list) or `a.b` (field b of each entry of list a); None when it isn't a list."""
+    head, _, field = path.partition(".")
+    entries = data.get(head)
+    if not isinstance(entries, list):
+        return None
+    return [e.get(field) if isinstance(e, dict) else None for e in entries] if field else entries
+
+
+def _json_item(item: dict, text: str) -> list[dict]:
+    op, label = item["op"], item.get("label", item["id"])
+    data, strict = _json_load(text)
+    spec = item.get("slots")
+    truth = _slot_truth(spec) if spec else None
+
+    def one(passed: bool, detail: str) -> list[dict]:
+        return [{"id": item["id"], "label": label, "passed": bool(passed) and data is not None, "detail": detail if data is not None else "not a JSON object"}]
+
+    if op == "listed":
+        listed = {_slot_key(v, truth["tz"]) for v in (_json_list(data, item["path"]) if data else None) or []}
+        return [{"id": f"{item['id']}:{s}", "label": f"{s} listed", "passed": s in listed,
+                 "detail": "listed" if s in listed else ("not listed" if data else "not a JSON object")} for s in truth["truth"]]
+    if op == "parses":
+        return [{"id": item["id"], "label": label, "passed": strict, "detail": "valid JSON" if strict else "not valid JSON"}]
+    if data is None:
+        return one(False, "")
+    paths = item.get("paths") or [item["path"]]
+    lists = [_json_list(data, p) for p in paths]
+    if op == "count":
+        n = len(lists[0]) if lists[0] is not None else -1
+        return one(n >= item.get("min", 1) and (item.get("max") is None or n <= item["max"]), f"{max(n, 0)} entries")
+    if op == "each_nonempty":
+        values = lists[0] or []
+        bad = [v for v in values if not (isinstance(v, str) and v.strip())]
+        return one(bool(values) and not bad, f"{len(values) - len(bad)}/{len(values)} non-empty")
+    entries = [v for entries in lists for v in (entries or [])]
+    keys = [_slot_key(v, truth["tz"]) for v in entries]
+    if op == "all_valid":
+        bad = [repr(v) for v, k in zip(entries, keys) if k not in truth["truth"]]
+        dupes = len(set(keys)) < len(keys)
+        return one(bool(entries) and not bad and not dupes, "all free" if entries and not bad and not dupes else
+                   ("nothing listed" if not entries else "repeated" if not bad else "not free: " + "; ".join(bad[:3])))
+    if op == "no_conflict":
+        bad = sorted({k for k in keys if k in truth["conflicts"]})
+        return one(bool(entries) and not bad, "none overlap an event" if entries and not bad else
+                   ("nothing listed" if not entries else "overlaps an event: " + ", ".join(bad[:3])))
+    if op == "no_outside":
+        bad = [repr(v) for v, k in zip(entries, keys) if k not in truth["grid"]]
+        return one(bool(entries) and not bad, "all inside" if entries and not bad else
+                   ("nothing listed" if not entries else "outside the window or grid: " + "; ".join(bad[:3])))
+    raise ValueError(f"unknown json op: {op}")
+
+
+DOCUMENT_KINDS = {"sections": _sections_item, "mention": _mention_item, "json": _json_item}
 
 
 # Check types that score items, one result per item, each weighing the same
