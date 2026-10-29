@@ -217,11 +217,11 @@
     "rubric_hash": "aa1c9b0a9e16d06c"
   },
   "names-for-one-character": {
-    "version": 1,
-    "content_hash": "1910aa6ceae57f5f",
-    "prompt_hash": "03a109aefa2ef4b3",
-    "rubric_version": 3,
-    "rubric_hash": "70e05ca5984d3fd8"
+    "version": 2,
+    "content_hash": "56a5c060f36cc57f",
+    "prompt_hash": "19739b204389f446",
+    "rubric_version": 4,
+    "rubric_hash": "a5437ba617323fd5"
   },
   "navbar-hamburger-menu": {
     "version": 1,
@@ -266,11 +266,11 @@
     "rubric_hash": "9ce7eb8389398c5b"
   },
   "proofread-customer-email": {
-    "version": 1,
-    "content_hash": "a872d4387f1ee1a5",
-    "prompt_hash": "1e527ac8fa45766e",
-    "rubric_version": 3,
-    "rubric_hash": "7d57227f67a0b9e9"
+    "version": 2,
+    "content_hash": "c41a36c4fafcbd9f",
+    "prompt_hash": "bffb7b00d65ed319",
+    "rubric_version": 4,
+    "rubric_hash": "67a904e04c47efea"
   },
   "proofread-economics-essay": {
     "version": 1,
@@ -280,11 +280,11 @@
     "rubric_hash": "0fefa4c8e6e7b983"
   },
   "proofread-literary-paragraph": {
-    "version": 1,
-    "content_hash": "dcee0a8daeeef330",
-    "prompt_hash": "d216bb305dd627f2",
-    "rubric_version": 2,
-    "rubric_hash": "e3b3571f5658103d"
+    "version": 2,
+    "content_hash": "9d22ee63b2c772a5",
+    "prompt_hash": "506ff0a54b79022b",
+    "rubric_version": 3,
+    "rubric_hash": "056064e7a4ede298"
   },
   "react-lead-form": {
     "version": 1,

@@ -10,6 +10,12 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
 
 ## Unreleased
 
+- proofread-customer-email (formerly WRIT-1a): version 2, rubric 4. The answer is three blocks, `ERRORS:` (`<original> → <fix>`), `CORRECTED:` (the full email) and `STYLE:`, and each check reads only its block, so a fix quoted in an explanation no longer passes and a quoted apology no longer fails. 13 equal items: the 3 planted errors listed, the 3 fixed in `CORRECTED`, the 5 facts kept, no apology added, and no style suggestion listed as an error. Runs of version 1 no longer count; rerun it.
+
+- proofread-literary-paragraph (formerly WRIT-1b): version 2, rubric 3. The answer is `CORRECTED:` and `POSSIBLY INTENTIONAL:` blocks, scored as 8 equal items: `than` and `too` fixed, three fragments (including "laugh, or leave" with its comma), the dash and the opening imagery kept verbatim, and at least one choice listed as possibly intentional. Quoting a fix or a fragment in commentary no longer counts. Runs of version 1 no longer count; rerun it.
+
+- names-for-one-character (formerly WRIT-2b): version 2, rubric 4. The answer is a `NAMES:` block of 20 numbered `First Last — reason` lines and a `TOP FIVE:` block, scored as 6 equal items: 20 lines, all distinct, every line with a reason, no blocklisted name, five top names, all from the list. No new constraints (decision D11: kept as a saturated task). Runs of version 1 no longer count; rerun it.
+
 - fact-check-history (formerly HIST-2), now "Fact-check twelve history claims": version 2, rubric 2,
   still provisional. The paragraph became twelve numbered claims with one fact each (five wrong, seven
   true), and the answer is an `ERRORS:` block of `<number>: <corrected value>` lines, scored as 17 equal

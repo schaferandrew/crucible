@@ -6,8 +6,8 @@ needs_tools: false
 category: writing
 area: writing
 tier: temper
-version: 1
-rubric_version: 2
+version: 2
+rubric_version: 3
 status: active
 auto_grade: false
 repo: null
@@ -15,54 +15,49 @@ prompt: |
   Proofread the paragraph below for grammar, spelling, punctuation, and obvious usage problems. Preserve the author's voice, rhythm, imagery, and intentional fragments. Flag anything that may be intentional rather than silently changing it.
 
   Mara stepped off the train and into a city that smelled like rain, hot asphalt, and somebody's breakfast. The station was louder then she remembered it, all brakes shrieking and people talking to fast. She could feel the old neighborhood somewhere beyond the buildings, waiting. Not waiting for her, exactly. That would have been too kind. Still—she was back. And she didn't know whether to laugh, or leave.
+
+  Explain your reasoning first if it helps. Then end your reply with these two blocks, in this order, and nothing after them:
+
+  CORRECTED:
+  <the full paragraph>
+
+  POSSIBLY INTENTIONAL:
+  <quoted words>: <why you left them as written>
+
+  CORRECTED holds the whole paragraph with only the clear errors fixed. POSSIBLY INTENTIONAL has one line per choice you left as written because it may be deliberate, or `POSSIBLY INTENTIONAL: none`.
 checks:
-  - id: answered
-    type: non_empty
-    min_words: 40
-    rule: "Produces a substantive answer (at least 40 words)."
-  - id: fixes_than
-    type: required_patterns
-    patterns: ['louder than']
-    rule: "Fixes 'louder then' to 'louder than'."
-  - id: fixes_too
-    type: required_patterns
-    patterns: ['talking too fast']
-    rule: "Fixes 'talking to fast' to 'talking too fast'."
-  - id: keeps_fragments
-    type: required_patterns
-    patterns: ['Not waiting for her, exactly\.', 'That would have been too kind\.', 'Still\s*(—|--|-)\s*she was back']
-    rule: "Keeps the intentional fragments and the dash ('Not waiting for her, exactly.', 'That would have been too kind.', 'Still—she was back')."
-  - id: keeps_imagery
-    type: required_patterns
-    patterns: ['smelled like rain, hot asphalt, and somebody''s breakfast']
-    rule: "Keeps the opening imagery word for word."
-  - id: flags_intent
-    type: required_patterns
-    patterns: ['\b(intentional|intentionally|deliberate|stylistic|voice)\b']
-    rule: "Flags at least one choice as possibly intentional rather than silently changing it."
+- id: errors_fixed
+  type: items
+  header: [CORRECTED, CORRECT]
+  multiline: true
+  items:
+  - {id: than, normalize: pattern, expect: '\blouder than she remembered\b', label: "then fixed to than"}
+  - {id: too, normalize: pattern, expect: '\btalking too fast\b', label: "to fixed to too"}
+  rule: "Fixes 'louder then' to 'louder than' and 'talking to fast' to 'talking too fast' in the CORRECTED: paragraph; one item each."
+- id: voice_kept
+  type: items
+  header: [CORRECTED, CORRECT]
+  multiline: true
+  items:
+  - {id: fragment_1, normalize: pattern, expect: 'Not waiting for her, exactly\.', case_sensitive: true, label: "Fragment 'Not waiting for her, exactly.' kept"}
+  - {id: fragment_2, normalize: pattern, expect: 'That would have been too kind\.', case_sensitive: true, label: "Fragment 'That would have been too kind.' kept"}
+  - {id: fragment_3, normalize: pattern, expect: 'And she didn''t know whether to laugh, or leave\.', case_sensitive: true, label: "Ending 'laugh, or leave' kept with its comma"}
+  - {id: dash, normalize: pattern, expect: 'Still\s*(?:—|--|–)\s*she was back', case_sensitive: true, label: "The dash in 'Still—she was back' kept"}
+  - {id: imagery, normalize: pattern, expect: 'smelled like rain, hot asphalt, and somebody''s breakfast', label: "Opening imagery kept word for word"}
+  rule: "Keeps these verbatim in the CORRECTED: paragraph: 'Not waiting for her, exactly.', 'That would have been too kind.', 'And she didn't know whether to laugh, or leave.' (comma included), the dash in 'Still—she was back' and 'smelled like rain, hot asphalt, and somebody's breakfast'; one item each."
+- id: flags_intent
+  type: items
+  header: [POSSIBLY INTENTIONAL, INTENTIONAL]
+  multiline: true
+  items:
+  - id: listed
+    normalize: pattern
+    expect: 'Not waiting|That would|Still|laugh|fragment|dash|comma|smelled like|And she'
+    label: "At least one intentional choice listed"
+  rule: "Lists at least one intentional choice (a fragment, the dash, the comma in 'laugh, or leave' or the opening imagery) in the POSSIBLY INTENTIONAL: block, not changed silently."
 rubric:
-  - criterion: "Answered"
-    max_score: 1
-    check: answered
-    description: "A substantive answer."
-  - criterion: "Fixes than"
-    max_score: 2
-    check: fixes_than
-    description: "then -> than."
-  - criterion: "Fixes too"
-    max_score: 2
-    check: fixes_too
-    description: "to -> too."
-  - criterion: "Keeps the fragments"
-    max_score: 2
-    check: keeps_fragments
-    description: "Intentional fragments preserved."
-  - criterion: "Keeps the imagery"
-    max_score: 1
-    check: keeps_imagery
-    description: "Imagery preserved."
-  - criterion: "Flags intent"
-    max_score: 2
-    check: flags_intent
-    description: "Possible intentional choices flagged, not changed."
+- {criterion: Fixes the errors, max_score: 2, check: errors_fixed, description: "then -> than and to -> too, in the CORRECTED paragraph."}
+- {criterion: Keeps the author's voice, max_score: 5, check: voice_kept, description: "Three fragments, the dash and the opening imagery kept verbatim in the CORRECTED paragraph."}
+- {criterion: Flags intent, max_score: 1, check: flags_intent, description: "At least one intentional choice listed under POSSIBLY INTENTIONAL."}
 critical_failure: null
+# Each check reads one block, so a fix or fragment quoted in commentary earns nothing. 8 equal items.
