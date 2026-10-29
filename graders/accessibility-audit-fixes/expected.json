@@ -1,0 +1,197 @@
+[
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 1: the delete confirmation",
+    "name": "is announced as a named dialog and takes focus"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 1: the delete confirmation",
+    "name": "keeps Tab and Shift+Tab inside the dialog"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 1: the delete confirmation",
+    "name": "can reach both buttons by Tab"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 1: the delete confirmation",
+    "name": "deletes from the keyboard"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 1: the delete confirmation",
+    "name": "cancels from the keyboard"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 1: the delete confirmation",
+    "name": "closes on Escape without deleting, and returns focus to what opened it"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 1: the delete confirmation",
+    "name": "returns focus after Cancel too"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 1: the delete confirmation",
+    "name": "can be opened again after it closed"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 1: the delete confirmation",
+    "name": "has no axe violations while open"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 2: Read more",
+    "name": "is a keyboard-reachable control that reports its state"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 2: Read more",
+    "name": "opens with Space too"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 2: Read more",
+    "name": "puts the revealed text where a screen reader user will hear it"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 2: Read more",
+    "name": "reports the collapsed state again when closed"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 2: Read more",
+    "name": "keeps keyboard focus after revealing"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 2: Read more",
+    "name": "has no axe violations, collapsed and expanded"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 3: the tag filter",
+    "name": "can be used entirely from the keyboard"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 3: the tag filter",
+    "name": "closes on Escape with focus back on the trigger, and marks the selection"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 3: the tag filter",
+    "name": "is named, so a screen reader says what it filters"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 3: the tag filter",
+    "name": "lists every tag and a way back to all of them"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 3: the tag filter",
+    "name": "clears the filter when All tags is chosen"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 3: the tag filter",
+    "name": "shows the current tag on the control itself"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 3: the tag filter",
+    "name": "has no axe violations, closed and open"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 4: buttons have names",
+    "name": "the favorite button says what it does"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 4: buttons have names",
+    "name": "reports that it's off"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 4: buttons have names",
+    "name": "reports that it's on"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 4: buttons have names",
+    "name": "still tells a screen reader user the count"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 4: buttons have names",
+    "name": "changes its state when toggled, and keeps its name"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 4: buttons have names",
+    "name": "has no axe violations"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 5: form errors are tied to their fields",
+    "name": "marks the title invalid and reads the error with it"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 5: form errors are tied to their fields",
+    "name": "does the same for the description"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 5: form errors are tied to their fields",
+    "name": "does the same for the body"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 5: form errors are tied to their fields",
+    "name": "leaves the fields without an error alone"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 5: form errors are tied to their fields",
+    "name": "reads every message when a field has several"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 5: form errors are tied to their fields",
+    "name": "has no axe violations with errors showing"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 6: status messages",
+    "name": "announces the confirmation through a live region that exists before the message"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 6: status messages",
+    "name": "announces a later message in the same region"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 6: status messages",
+    "name": "keeps the live region when the message fades"
+  },
+  {
+    "file": "a11y.web.grader.test.tsx",
+    "group": "finding 6: status messages",
+    "name": "puts the editor's 'Article published' into a region that was already there"
+  },
+  {
+    "file": "regression",
+    "group": "regression",
+    "name": "your new tests fail on the seeded code and pass on your fix"
+  }
+]
