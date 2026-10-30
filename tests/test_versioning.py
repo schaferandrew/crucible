@@ -115,8 +115,15 @@ def _legacy_rubric_hash(p: dict, grader_path: str) -> str:
     return versioning._sha(*parts)
 
 
+def _has_legacy_entry(p: dict) -> bool:
+    """False for a task added after 3.0.0: it has no old ID and no 2.4.0 hashes to compare."""
+    return bool(p.get("aliases")) and p["aliases"][0] in LEGACY_LOCK
+
+
 def _skip_if_bumped_since_3_0_0(p: dict) -> None:
     """A task changed after the rename carries a version bump, which `crucible versions` checks instead."""
+    if not _has_legacy_entry(p):
+        pytest.skip(f"{p['id']} was added after 3.0.0")
     old, now = LEGACY_LOCK[p["aliases"][0]], versioning.read_lock()[p["id"]]
     if (now["version"], now["rubric_version"]) > (old["version"], old["rubric_version"]):
         pytest.skip(f"{p['id']} changed after 3.0.0")
@@ -153,7 +160,8 @@ class TestRenameKeepsHashes:
         lock = versioning.read_lock()
         # Tasks re-scored since 3.0.0 have a new rubric on purpose: two tasks that shared a rubric hash
         # (CODE-1 and CODE-1b, login-recovery and its repeat) may now differ
-        unchanged = [t for t in lock if lock[t]["rubric_version"] == LEGACY_LOCK[workspace.load_task(t)["aliases"][0]]["rubric_version"]]
+        legacy = [t for t in lock if _has_legacy_entry(workspace.load_task(t))]
+        unchanged = [t for t in legacy if lock[t]["rubric_version"] == LEGACY_LOCK[workspace.load_task(t)["aliases"][0]]["rubric_version"]]
         pairs = {(LEGACY_LOCK[workspace.load_task(t)["aliases"][0]]["rubric_hash"], lock[t]["rubric_hash"]) for t in unchanged}
         # Each old hash became exactly one new hash, and no two old hashes became the same one
         assert len(pairs) == len({old for old, _ in pairs}) == len({new for _, new in pairs})
@@ -179,8 +187,10 @@ class TestTaskIdMap:
 
     def test_every_task_is_in_the_map_under_its_alias(self):
         for task_id in workspace.all_task_ids():
-            alias = workspace.load_task(task_id)["aliases"][0]
-            assert self.MAP[alias]["id"] == task_id
+            aliases = workspace.load_task(task_id).get("aliases") or []
+            if not aliases:  # added after 3.0.0, so nothing was renamed
+                continue
+            assert self.MAP[aliases[0]]["id"] == task_id
 
     @pytest.mark.parametrize("bad", ["CODE-16", "react_lead_form", "-lead", "lead--form", "x" * 41,
                                      "react-lead-form-hard", "spark-capitals"])

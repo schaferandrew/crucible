@@ -142,6 +142,12 @@ def session_events(session_file: Path) -> tuple[list[dict], tuple[int, int] | No
     return events, ((tokens_in, tokens_out) if seen_usage else None)
 
 
+def response_output_tokens(session_file: Path) -> list[int | None]:
+    """Output tokens of each assistant response, in order (None where pi reported no usage)."""
+    return [(msg.get("usage") or {}).get("output") if msg.get("usage") else None
+            for msg in _messages(session_file) if msg.get("role") == "assistant"]
+
+
 def find_session_file(run_dir: Path) -> Path | None:
     """Newest session JSONL pi wrote for this run."""
     sessions = sorted((run_dir / SESSION_DIRNAME).glob("*.jsonl"),
@@ -207,6 +213,8 @@ class PiAgent(Agent):
             lines = (run_dir / TIMING_FILENAME).read_text(encoding="utf-8").splitlines()
         except OSError:
             return []
+        session_file = find_session_file(run_dir)
+        tokens = response_output_tokens(session_file) if session_file else []
         for line in lines:
             try:
                 r = json.loads(line)
@@ -219,4 +227,8 @@ class PiAgent(Agent):
                 "ttft_s": (first - start) / 1000 if first is not None else None,
                 "duration_s": (end - start) / 1000 if end is not None else None,
             })
+        # One timing line per assistant message: pair them by position, but only when the counts agree
+        if len(tokens) == len(timings):
+            for timing, out in zip(timings, tokens):
+                timing["tokens_out"] = out
         return timings

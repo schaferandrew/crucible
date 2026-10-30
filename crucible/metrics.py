@@ -13,20 +13,29 @@ def timing_summary(responses: list[dict]) -> dict:
     """Run-level latency metrics from per-model-response timings.
 
     responses: in call order, each {"ttft_s": float | None, "duration_s":
-    float | None} where ttft_s is request sent -> first streamed token and
-    duration_s is request sent -> response complete. Unknowns stay None so
-    agents only report what they actually measured.
+    float | None, "tokens_out": int | None} where ttft_s is request sent ->
+    first streamed token and duration_s is request sent -> response complete.
+    Unknowns stay None so agents only report what they actually measured.
+
+    output_tokens_per_s is decode speed: output tokens over generation time
+    (duration minus time to first token, so prompt processing is left out),
+    summed across the responses that have all three numbers.
     """
     def avg(values):
         values = [v for v in values if v is not None]
         return round(sum(values) / len(values), 3) if values else None
 
     first = responses[0].get("ttft_s") if responses else None
+    decoded = [(r["tokens_out"], r["duration_s"] - r["ttft_s"]) for r in responses
+               if r.get("tokens_out") and r.get("ttft_s") is not None and r.get("duration_s") is not None
+               and r["duration_s"] > r["ttft_s"]]
+    decode_s = sum(seconds for _, seconds in decoded)
     return {
         "model_responses": len(responses) or None,
         "ttft_s": round(first, 3) if first is not None else None,
         "ttft_avg_s": avg(r.get("ttft_s") for r in responses),
         "response_time_avg_s": avg(r.get("duration_s") for r in responses),
+        "output_tokens_per_s": round(sum(t for t, _ in decoded) / decode_s, 1) if decode_s > 0 else None,
     }
 
 

@@ -151,3 +151,35 @@ def test_publish_refuses_runs_from_before_3(tmp_path):
     (legacy / "meta.json").write_text(json.dumps({"run_id": "m/everyday/KNOW-1/20260101_000000"}))
     with pytest.raises(SystemExit, match="crucible migrate"):
         bundle.publish(tmp_path / "runs", tmp_path / "to", tmp_path / "out")
+
+
+def test_publish_derives_decode_speed_for_a_run_made_before_it_was_recorded(tmp_path):
+    import json
+    from crucible import runrecord
+    from crucible.agents import pi as pi_agent
+    from tests.records import run_meta, write_run
+    runs = tmp_path / "runs"
+    meta = run_meta("capitals-not-largest-city", 1, 1, harness="pi", run_path="lmstudio_m/capitals-not-largest-city/20260101_000000")
+    run_dir = write_run(runs / meta["run_path"], meta, "Australia: Canberra")
+    (run_dir / pi_agent.TIMING_FILENAME).write_text(
+        json.dumps({"request_start": 0, "first_token": 500, "end": 2500}) + "\n", encoding="utf-8")
+    sessions = run_dir / pi_agent.SESSION_DIRNAME
+    sessions.mkdir()
+    (sessions / "s.jsonl").write_text(json.dumps(
+        {"type": "message", "message": {"role": "assistant", "usage": {"output": 40}, "content": []}}) + "\n", encoding="utf-8")
+    before = (run_dir / "meta.json").read_bytes()
+    to, outputs = tmp_path / "site" / "_data" / "crucible", tmp_path / "site" / "crucible-data" / "outputs"
+    pub = bundle.publish(runs, to, outputs)
+    published = json.loads(next((to / "runs").glob("*/*.json")).read_text(encoding="utf-8"))
+    assert pub.errors == [] and published["metrics"]["output_tokens_per_s"] == 20.0  # 40 tokens over 2.0 s
+    assert (run_dir / "meta.json").read_bytes() == before                           # the run record is untouched
+    assert bundle.check_folder(to, outputs) == []
+
+
+def test_publish_adds_no_decode_speed_when_nothing_was_timed(tmp_path):
+    import json
+    runs = _runs(tmp_path, 1)
+    to, outputs = tmp_path / "site" / "_data" / "crucible", tmp_path / "site" / "crucible-data" / "outputs"
+    bundle.publish(runs, to, outputs)
+    published = json.loads(next((to / "runs").glob("*/*.json")).read_text(encoding="utf-8"))
+    assert "output_tokens_per_s" not in published["metrics"]

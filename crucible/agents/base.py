@@ -198,7 +198,7 @@ class Agent:
         return None
 
     def response_timings(self, run_dir: Path) -> list[dict]:
-        """Per model response, in order: {"ttft_s", "duration_s"} (None if unknown).
+        """Per model response, in order: {"ttft_s", "duration_s", "tokens_out"} (None if unknown).
 
         See crucible.session.timing_summary. Return [] when the agent records
         no timing at all.
