@@ -23,6 +23,7 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
   restricted lattice paths), each answer verified by brute force and a second method. Added because
   competition-math proved too easy for forge: it uses well-known puzzles and gemma-4-e4b scored 10 on it. Not
   calibrated yet.
+- **two-calendar-slots-json: display name now says it is the JSON-file variant** ("Meeting slots from two calendars (JSON file, no MCP)"). It is the scheduling-logic control for the calendar MCP tasks. No prompt, check or version change; runs still count.
 
 ## Suite v3 (2026-10-30)
 

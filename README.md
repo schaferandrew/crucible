@@ -418,6 +418,8 @@ A dataset fixes "now" (so tests never depend on the real date), the calendars an
 
 The tasks end with an `ANSWER:` or `OPTIONS:` block and are scored by checks. The right answers are not written down anywhere in a task: the `time_options` check computes them from the dataset with `free_starts()` in the server. The datasets are regenerated with `python graders/mock-calendar/build.py` (kept under `graders/`, never in `fixtures/`, because it holds the ground truth), which re-checks them against that oracle.
 
+**The file-based sibling.** `two-calendar-slots-json` (TASK-1) is the one calendar task that does *not* use the MCP server, on purpose. It hands the model `calendar-fixture.json` and asks for `slots.json`, so it measures the scheduling logic alone: interval arithmetic, the 9-5 and half-hour grid, window and weekend edges, and an exhaustive per-day list of valid slots. The MCP tasks above measure tool use: finding and calling the tools, grounding "now", reading free/busy, and handling real-world ambiguity. Read the two together: a model that passes TASK-1 but fails TASK-5 or TASK-6 can schedule but struggles with tools; one that fails both can't schedule.
+
 Caveat: harnesses may put the real current date in the model's context, which disagrees with the dataset's "now". The tasks expect the model to ask the calendar for the time.
 
 ### Verified MCP permutations (TASK-2)
