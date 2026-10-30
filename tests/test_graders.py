@@ -1,6 +1,9 @@
 """Isolated graders and per-test scoring, without running npm (the oracle covers the real thing:
 `crucible grader <test>` grades the seeded repo, the reference solution and calibration fixtures)."""
 import json
+import os
+import sys
+import time
 
 import pytest
 
@@ -324,3 +327,42 @@ def test_oracle_seeds_a_repo_less_task_empty(tmp_path, monkeypatch):
     monkeypatch.setattr(checks, "check_results", lambda *a: [])
     graders._oracle_case(PY_PROMPT, None, tmp_path, "seeded")
     assert list((tmp_path / "seeded" / "workspace").iterdir()) == []
+
+
+def test_a_timeout_kills_the_runners_workers(tmp_path):
+    # A runner that spawns a worker and hangs, like vitest on a render loop: the worker must not outlive it
+    pidfile = tmp_path / "worker.pid"
+    script = (f"import subprocess, sys, time\n"
+              f"w = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'])\n"
+              f"open({str(pidfile)!r}, 'w').write(str(w.pid))\ntime.sleep(60)\n")
+    result = graders._run([sys.executable, "-c", script], tmp_path, 2)
+    assert result.returncode == 124 and "[timed out]" in result.stderr
+    worker = int(pidfile.read_text())
+    for _ in range(50):
+        try:
+            os.kill(worker, 0)
+        except ProcessLookupError:
+            break
+        time.sleep(0.1)
+    else:
+        pytest.fail("the worker outlived the timeout")
+
+
+def test_regression_run_on_seeded_code_gets_a_short_timeout(tmp_path, monkeypatch):
+    repo, ws, copy = tmp_path / "repo", tmp_path / "ws", tmp_path / "grade" / "copy"
+    for root in (repo, ws, copy):
+        (root / "apps" / "web" / "src").mkdir(parents=True)
+        (root / "apps" / "web" / "src" / "app.ts").write_text("seeded")
+    (ws / "apps" / "web" / "test").mkdir()
+    (ws / "apps" / "web" / "test" / "loop.test.tsx").write_text("new")
+    monkeypatch.setattr(graders, "_link_node_modules", lambda modules, dest: None)
+    timeouts = []
+
+    def vitest(app_dir, args, timeout=300):
+        timeouts.append(timeout)
+        # On the seeded code the test hangs, so vitest writes no report
+        return ([{"passed": True}], None) if len(timeouts) == 1 else ([], "[timed out]")
+    monkeypatch.setattr(graders, "_vitest", vitest)
+    cfg = {"artifacts": ["apps/web/src"], "regression_tests": ["apps/web"], "timeout": 600}
+    result = graders._isolated_regression(repo, ws, copy, tmp_path, cfg)
+    assert timeouts == [600, graders.SEEDED_TIMEOUT] and result["passed"] is True
