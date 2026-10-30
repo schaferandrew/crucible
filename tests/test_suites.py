@@ -49,6 +49,13 @@ def sandbox(tmp_path, monkeypatch):
     return tmp_path
 
 
+def _names():
+    """(latest suite, the next major, the one after): the tests cut and patch relative to the repo's suites."""
+    latest = suites.names()[-1]
+    major = int(latest[1:].split(".")[0])
+    return latest, f"v{major + 1}", f"v{major + 2}"
+
+
 def _edit(sandbox, task_id, **changes):
     path = sandbox / "tasks" / f"{task_id}.yaml"
     data = yaml.safe_load(path.read_text())
@@ -57,13 +64,14 @@ def _edit(sandbox, task_id, **changes):
 
 
 def test_cut_promotes_retires_and_closes_the_changelog(sandbox):
-    path = suites.cut("v2", promote=["WRIT-3"], retire=["nextjs-course"], date="2026-11-15", check_graders=False)
-    assert path == sandbox / "suites" / "v2.yaml"
+    _, nxt, after = _names()
+    path = suites.cut(nxt, promote=["WRIT-3"], retire=["seating-logic-puzzle"], date="2026-11-15", check_graders=False)
+    assert path == sandbox / "suites" / f"{nxt}.yaml"
     v2 = yaml.safe_load(path.read_text())
     pinned = suites.pins(v2)
-    assert "river-haiku-banned-words" in pinned and "nextjs-course" not in pinned
+    assert "river-haiku-banned-words" in pinned and "seating-logic-puzzle" not in pinned
     assert workspace.load_task("river-haiku-banned-words")["status"] == "active"
-    assert workspace.load_task("nextjs-course")["status"] == "retired"
+    assert workspace.load_task("seating-logic-puzzle")["status"] == "retired"
     lock = versioning.read_lock()
     assert pinned["river-haiku-banned-words"]["content_hash"] == lock["river-haiku-banned-words"]["content_hash"]
     by_category = {}
@@ -71,38 +79,40 @@ def test_cut_promotes_retires_and_closes_the_changelog(sandbox):
         by_category.setdefault(t["category"], []).append(t["weight"])
     assert all(abs(sum(w) - v2["category_weights"][c]) < 1e-5 for c, w in by_category.items())
     text = (sandbox / "SUITE_CHANGELOG.md").read_text()
-    assert "## Unreleased\n\n## Suite v2 (2026-11-15)\n\n- Promoted river-haiku-banned-words." in text
+    assert f"## Unreleased\n\n## Suite {nxt} (2026-11-15)\n\n- Promoted river-haiku-banned-words." in text
     assert suites.verify() == []
     # Suites are immutable and numbered in order
-    with pytest.raises(ValueError, match="next suite is v3"):
-        suites.cut("v4", date="2026-11-16", check_graders=False)
+    with pytest.raises(ValueError, match=f"next suite is {after}"):
+        suites.cut(f"v{int(after[1:]) + 1}", date="2026-11-16", check_graders=False)
 
 
 def test_cut_refuses_without_a_changelog_entry_or_with_a_dirty_lock(sandbox):
+    nxt = _names()[1]
     (sandbox / "SUITE_CHANGELOG.md").write_text("# Suite changelog\n\n## Unreleased\n\n## Suite v1 (x)\n")
     with pytest.raises(ValueError, match="Nothing under"):
-        suites.cut("v2", promote=["WRIT-3"], check_graders=False)
-    assert not (sandbox / "suites" / "v2.yaml").exists()
+        suites.cut(nxt, promote=["WRIT-3"], check_graders=False)
+    assert not (sandbox / "suites" / f"{nxt}.yaml").exists()
     (sandbox / "SUITE_CHANGELOG.md").write_text("# Suite changelog\n\n## Unreleased\n\n- x\n")
     original = workspace.load_task("river-haiku-banned-words")["prompt"]
     _edit(sandbox, "river-haiku-banned-words", prompt="A different haiku.")
     with pytest.raises(ValueError, match="lock isn't clean"):
-        suites.cut("v2", promote=["WRIT-3"], check_graders=False)
+        suites.cut(nxt, promote=["WRIT-3"], check_graders=False)
     with pytest.raises(ValueError, match="not provisional"):
         _edit(sandbox, "river-haiku-banned-words", prompt=original)
-        suites.cut("v2", promote=["fire-truck-color"], check_graders=False)
+        suites.cut(nxt, promote=["fire-truck-color"], check_graders=False)
 
 
 def test_verify_catches_unbumped_changes_and_status_edits(sandbox):
+    latest = _names()[0]
     _edit(sandbox, "fire-truck-color", prompt="What colour is a fire truck in Ireland?")
     versioning.write_lock()  # someone updated the lock but forgot the version bump
     problems = suites.verify()
-    assert any("fire-truck-color: content changed since suite v1" in p for p in problems)
+    assert any(f"fire-truck-color: content changed since suite {latest}" in p for p in problems)
     _edit(sandbox, "river-haiku-banned-words", status="active")
     _edit(sandbox, "names-for-one-character", status="retired")
     problems = suites.verify()
-    assert any("river-haiku-banned-words: active but not in suite v1" in p for p in problems)
-    assert any("names-for-one-character: pinned in suite v1 but retired" in p for p in problems)
+    assert any(f"river-haiku-banned-words: active but not in suite {latest}" in p for p in problems)
+    assert any(f"names-for-one-character: pinned in suite {latest} but retired" in p for p in problems)
 
 
 def test_a_version_bump_is_allowed_after_a_suite(sandbox):
@@ -113,9 +123,10 @@ def test_a_version_bump_is_allowed_after_a_suite(sandbox):
 
 
 def test_patch_pins_rubric_fixes_only(sandbox):
-    # Tasks converted since Suite v1 wait for the next cut with a content bump, which a patch refuses: pin them
+    # Tasks converted since the latest suite wait for the next cut with a content bump, which a patch refuses: pin them
     # in the sandbox as already re-cut, so this test only sees rubric fixes
-    v1 = sandbox / "suites" / "v1.yaml"
+    latest = _names()[0]
+    v1 = sandbox / "suites" / f"{latest}.yaml"
     suite = yaml.safe_load(v1.read_text())
     lock = versioning.read_lock()
     for pin in suite["tasks"]:
@@ -128,16 +139,16 @@ def test_patch_pins_rubric_fixes_only(sandbox):
     versioning.write_lock()
     assert suites.verify() == []
     lock = versioning.read_lock()
-    # The repo's own rubric fixes since Suite v1 (if any) are pinned too
+    # The repo's own rubric fixes since the latest suite (if any) are pinned too
     fixed = sorted(t for t, pin in suites.pins(suites.latest()).items() if lock[t]["rubric_version"] > pin["rubric_version"])
     path, bumped = suites.patch(date="2026-11-20")
-    assert path.name == "v1.1.yaml" and "fire-truck-color" in bumped and sorted(bumped) == fixed
+    assert path.name == f"{latest}.1.yaml" and "fire-truck-color" in bumped and sorted(bumped) == fixed
     v11 = yaml.safe_load(path.read_text())
-    assert v11["version"] == "1.1" and "from_release" not in v11
+    assert v11["version"] == f"{latest[1:]}.1" and "from_release" not in v11
     pin = suites.pins(v11)["fire-truck-color"]
     assert pin["rubric_version"] == p["rubric_version"] + 1 and pin["version"] == p["version"]
-    assert suites.names(sandbox / "suites")[-1] == "v1.1"
-    assert "## Suite v1.1 (2026-11-20)" in (sandbox / "SUITE_CHANGELOG.md").read_text()
+    assert suites.names(sandbox / "suites")[-1] == f"{latest}.1"
+    assert f"## Suite {latest}.1 (2026-11-20)" in (sandbox / "SUITE_CHANGELOG.md").read_text()
     with pytest.raises(ValueError, match="Nothing under"):
         suites.patch()  # the changelog section was used up by v1.1
 

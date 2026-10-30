@@ -42,14 +42,15 @@ class TestSelection:
         prompts = planner.all_prompts()
         tests = planner.select(["chat"], tier="spark")
         assert tests and all(mode_for(prompts[t]) == "chat" and prompts[t]["tier"] == "spark" for t in tests)
-        assert set(planner.select(["writing"])) == {t for t, p in prompts.items() if p.get("area") == "writing"}
+        assert set(planner.select(["writing"])) == {t for t, p in prompts.items()
+                                                    if p.get("area") == "writing" and p.get("status") != "retired"}
 
     def test_slugs_and_old_ids_select_the_same_task(self, capsys):
-        assert planner.select(["novel-character-names"]) == ["novel-character-names"]
+        assert planner.select(["names-for-one-character"]) == ["names-for-one-character"]
         assert capsys.readouterr().out == ""
         # Earlier IDs, in any case and from any generation, resolve with a one-line notice
-        assert planner.select(["writ-2"]) == ["novel-character-names"]
-        assert "writ-2 is now novel-character-names" in capsys.readouterr().out
+        assert planner.select(["writ-2b"]) == ["names-for-one-character"]
+        assert "writ-2b is now names-for-one-character" in capsys.readouterr().out
         assert planner.select(["C11"]) == ["editorial-review-workflow"]  # C11 -> CODE-11 -> slug
         with pytest.raises(ValueError):
             planner.select(["nope"])
