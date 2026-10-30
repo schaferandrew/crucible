@@ -91,6 +91,22 @@ def month(record: dict) -> str:
     return (record.get("started_at") or "unknown")[:7] or "unknown"
 
 
+def derived_metrics(run_dir: Path, meta: dict) -> dict:
+    """Metrics 3.5.0 records at run time, worked out from a run's stored artifacts for an older run.
+
+    meta.json is never edited, so a run made before the metric existed gets it here, in the record being
+    published. Nothing is added when the harness's timing files are gone or report no token counts.
+    """
+    from crucible.agents import AGENTS
+    from crucible.metrics import timing_summary
+    metrics = meta.get("metrics") or {}
+    agent = AGENTS.get((meta.get("harness") or {}).get("id"))
+    if agent is None or "output_tokens_per_s" in metrics:
+        return {}
+    speed = timing_summary(agent.response_timings(run_dir))["output_tokens_per_s"]
+    return {"output_tokens_per_s": speed} if speed is not None else {}
+
+
 def published_run(meta: dict, output: str | None) -> dict:
     """The run record as it's published: no local fields, an output reference and its content hash."""
     record = runrecord.published(meta)
@@ -250,6 +266,7 @@ def publish(runs_dir: Path, to: Path, outputs: Path, dry_run: bool = False) -> P
             pub.errors.append(f"{run_dir}: no run_uuid (run `crucible migrate`)")
             continue
         output = checks.final_answer(run_dir) or None
+        meta = {**meta, "metrics": {**(meta.get("metrics") or {}), **derived_metrics(run_dir, meta)}}
         pub.add(published_run(meta, output), output, runrecord.scores(run_dir), runrecord.statuses(run_dir))
     pub.add_catalogs()
     return pub
