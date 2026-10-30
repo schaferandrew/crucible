@@ -5,7 +5,7 @@ aliases:
 needs_tools: false
 category: math
 area: math
-tier: forge
+tier: temper
 version: 1
 rubric_version: 1
 status: provisional

@@ -1,0 +1,140 @@
+id: logic-and-game-puzzles
+name: Logic and game puzzles
+aliases: []
+needs_tools: false
+category: reasoning
+area: math
+tier: forge
+version: 1
+rubric_version: 1
+status: provisional
+auto_grade: false
+repo: null
+prompt: |
+  Six logic and game problems, each with a single exact answer that is a positive integer. None of them is a published puzzle, so work each one out from the rules as stated. In every game, both players play perfectly.
+
+  1. A pile starts with n tokens. Two players take turns, and on each turn the player to move removes 2, 3, 5 or 7 tokens from the pile (never more than the pile holds). A player may not remove the same number of tokens that the opponent removed on the immediately preceding turn; the first move of the game has no such restriction. A player who cannot make a legal move loses, even if tokens remain. For how many starting values n with 1 ≤ n ≤ 100 can the second player (the one who does not move first) force a win?
+
+  2. Twenty-three pins stand in a row in positions 1 to 23. Two players take turns. On each turn the player to move knocks down either two standing pins in positions i and i+1, or three standing pins in positions i, i+1 and i+2. Fallen pins stay down, and the gap a fallen pin leaves is never closed up, so pins on either side of a gap are not next to each other. A player who cannot make a legal move loses. A first move is identified by the set of positions it knocks down, so a move and its mirror image are different moves. Of all the possible first moves, how many let the first player force a win?
+
+  3. An undirected graph has vertices 1 to 11 and these 15 edges: 1–2, 1–7, 1–8, 1–11, 2–3, 2–4, 3–4, 3–9, 4–9, 4–11, 5–10, 5–11, 6–10, 7–11, 8–10. A token is placed on a starting vertex, which counts as visited. Two players take turns, the first player moving first. On each turn the player to move slides the token along an edge to a vertex that has not been visited yet, and that vertex becomes visited. A player who cannot move loses. Find every starting vertex from which the first player can force a win. What is the sum of those vertices' numbers?
+
+  4. Eight islanders, A to H, are each either a knight, whose statements are all true, or a knave, whose statements are all false. Each makes one statement. "The same type" means both knights or both knaves. A speaker who names himself in a group is counted in that group. "If X is a knight, then Y is a knave" is false only when X and Y are both knights.
+    - A says: "B and D are different types."
+    - B says: "F is a knave."
+    - C says: "E and G are the same type."
+    - D says: "A and F are the same type."
+    - E says: "Exactly 2 of A, D and F are knights."
+    - F says: "Exactly 2 of E, F and G are knights."
+    - G says: "If C is a knight, then D is a knave."
+    - H says: "A and E are different types."
+    An assignment of knight or knave to each of the eight is consistent when every knight's statement is true and every knave's statement is false. Find every consistent assignment, then add up the number of knights over all of them. (For example, if there were exactly two consistent assignments, one with 3 knights and one with 4, the answer would be 7.) What is that total?
+
+  5. Six houses stand in a row, numbered 1 to 6 from left to right. One person lives in each: Odile, Bram, Tamsin, Kofi, Lior and Wren. Each house is painted a different color (teal, ochre, maroon, ivory, slate and lilac), and each person owns a different pet (ferret, gecko, heron, axolotl, tortoise and hamster), drinks a different drink (kefir, cider, mate, lassi, cocoa and kvass) and has a different job (glazier, cartographer, luthier, beekeeper, archivist and farrier). "Next to" means in adjacent houses, and "to the left" means in a lower-numbered house. These clues have exactly one solution:
+    (a) Kofi lives in an even-numbered house.
+    (b) The archivist and the person in the ivory house are different people.
+    (c) The archivist lives immediately to the left of the person who drinks cider.
+    (d) Exactly one house separates the heron owner and the person in the maroon house.
+    (e) The person in the teal house and the person in the ivory house are different people who do not live next to each other.
+    (f) Exactly one house separates Wren and the person who drinks cocoa.
+    (g) Lior lives somewhere to the left of the ferret owner.
+    (h) Exactly one house separates the cartographer and the archivist.
+    (i) Exactly one house separates the person in the teal house and Odile.
+    (j) The tortoise owner lives somewhere to the left of the archivist.
+    (k) The axolotl owner lives somewhere to the left of Lior.
+    (l) The person in the ochre house lives somewhere to the left of the person in the slate house.
+    (m) The person who drinks mate lives immediately to the left of the gecko owner.
+    (n) The person who drinks kefir does not live in house 1.
+    (o) Exactly one house separates the person who drinks lassi and the luthier.
+    (p) The person who drinks lassi lives next to Wren.
+    (q) The tortoise owner and the glazier are the same person.
+    (r) The tortoise owner lives next to the ferret owner.
+    (s) The axolotl owner lives next to the person in the maroon house.
+    (t) The person who drinks kvass lives in house 4.
+    (u) The farrier lives somewhere to the left of Tamsin.
+    (v) Tamsin does not live in house 4.
+    (w) Odile lives in house 5.
+    (x) The person in the maroon house lives next to the person in the lilac house.
+    Write the house numbers of Odile, Bram, Tamsin, Kofi, Lior and Wren, in that order, as one six-digit number (for example, 123456 would mean Odile in house 1, Bram in house 2, and so on). What is that number?
+
+  6. Seven talks, P, Q, R, S, T, U and V, are scheduled into seven consecutive slots numbered 1 to 7, one talk per slot. "Between" means strictly between, in slot order. How many different schedules satisfy all of these conditions?
+    - At least 2 other talks are scheduled between R and T.
+    - Q is not in slot 1 or slot 3.
+    - S is scheduled before P (not necessarily immediately before).
+    - P and S are not in consecutive slots.
+    - P is scheduled somewhere between R and S (in either order of those two).
+    - P is not in slot 5.
+
+  Explain your reasoning first if it helps. Then end your reply with this block, and nothing after it:
+
+  ANSWERS:
+  <number>: <answer>
+
+  One line per numbered question, in order. Give only the answer (a number, name or letter), not a sentence.
+# Only the last ANSWERS block is scored: six equal items, one per problem (each criterion is one point).
+# Every instance was generated fresh by a script and every answer checked by two independent methods
+# (dynamic programming and minimax, Sprague-Grundy and bitmask search, game search and matching theory,
+# brute force and z3). Seeds and solvers are not stored in the repo.
+checks:
+- id: pile_no_repeat
+  type: items
+  header: ANSWERS
+  items:
+  - {id: pile_no_repeat, key: '1', expect: 18, normalize: number, label: 'Answer 1 is 18'}
+  rule: 'Answer 1 is 18 (second-player starts 1, 9, 13, 17, 25, then 26, 34, 42 + 17k; 23 if the no-repeat rule is ignored).'
+- id: pin_row_moves
+  type: items
+  header: ANSWERS
+  items:
+  - {id: pin_row_moves, key: '2', expect: 9, normalize: number, label: 'Answer 2 is 9'}
+  rule: 'Answer 2 is 9 (of 43 first moves; Grundy values of rows pair up, with a 6 at 22 and 23 pins).'
+- id: token_geography
+  type: items
+  header: ANSWERS
+  items:
+  - {id: token_geography, key: '3', expect: 40, normalize: number, label: 'Answer 3 is 40'}
+  rule: 'Answer 3 is 40 (the first player wins from 1, 2, 3, 4, 9, 10 and 11: exactly the vertices every maximum matching covers).'
+- id: knights_total
+  type: items
+  header: ANSWERS
+  items:
+  - {id: knights_total, key: '4', expect: 17, normalize: number, label: 'Answer 4 is 17'}
+  rule: 'Answer 4 is 17 (five consistent assignments with 4, 5, 3, 3 and 2 knights).'
+- id: house_grid
+  type: items
+  header: ANSWERS
+  items:
+  - {id: house_grid, key: '5', expect: 516423, normalize: number, label: 'Answer 5 is 516423'}
+  rule: 'Answer 5 is 516423 (Odile 5, Bram 1, Tamsin 6, Kofi 4, Lior 2, Wren 3).'
+- id: talk_schedules
+  type: items
+  header: ANSWERS
+  items:
+  - {id: talk_schedules, key: '6', expect: 122, normalize: number, label: 'Answer 6 is 122'}
+  rule: 'Answer 6 is 122 (by brute force over all 5040 orders; 42 if ''at least 2 between'' is read as exactly 2).'
+rubric:
+- criterion: Prime pile, no repeat
+  max_score: 1
+  check: pile_no_repeat
+  description: Answer 1 is 18.
+- criterion: Pin row first moves
+  max_score: 1
+  check: pin_row_moves
+  description: Answer 2 is 9.
+- criterion: Token on a graph
+  max_score: 1
+  check: token_geography
+  description: Answer 3 is 40.
+- criterion: Knights and knaves
+  max_score: 1
+  check: knights_total
+  description: Answer 4 is 17.
+- criterion: Six-house grid
+  max_score: 1
+  check: house_grid
+  description: Answer 5 is 516423.
+- criterion: Talk schedules
+  max_score: 1
+  check: talk_schedules
+  description: Answer 6 is 122.
+critical_failure: null

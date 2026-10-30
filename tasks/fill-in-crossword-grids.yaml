@@ -1,0 +1,170 @@
+id: fill-in-crossword-grids
+name: Fill-in crossword grids
+aliases: []
+needs_tools: false
+category: reasoning
+area: math
+tier: forge
+version: 1
+rubric_version: 1
+status: provisional
+auto_grade: false
+repo: null
+prompt: |
+  Two fill-in crosswords. In each grid, # is a block and . is an empty cell. Rows are numbered 1 to 11 from the top and columns 1 to 11 from the left. Each slot is a run of empty cells, given by its label, its length and its first cell; ACROSS slots run left to right and DOWN slots top to bottom. Place every word of a puzzle's list in exactly one of its slots so that every slot holds a word of its length and crossing slots agree on their shared letter. Each puzzle has exactly one solution.
+
+  Puzzle A
+
+  . . . . . # . . . . .
+  . # # # # # . # # # .
+  . # . . . . . . . # .
+  . # . # # # . # . # .
+  . . . . . # . . . . .
+  # # . # # # # # . # #
+  . . . . . # . . . . .
+  . # . # . # # # . # .
+  . # . . . . . . . # .
+  . # # # . # # # # # .
+  . . . . . # . . . . .
+
+  Slots:
+  1-ACROSS (5): row 1, column 1
+  1-DOWN (5): row 1, column 1
+  2-ACROSS (5): row 1, column 7
+  2-DOWN (5): row 1, column 7
+  3-DOWN (5): row 1, column 11
+  4-ACROSS (7): row 3, column 3
+  4-DOWN (7): row 3, column 3
+  5-DOWN (7): row 3, column 9
+  6-ACROSS (5): row 5, column 1
+  7-ACROSS (5): row 5, column 7
+  8-ACROSS (5): row 7, column 1
+  8-DOWN (5): row 7, column 1
+  9-DOWN (5): row 7, column 5
+  10-ACROSS (5): row 7, column 7
+  11-DOWN (5): row 7, column 11
+  12-ACROSS (7): row 9, column 3
+  13-ACROSS (5): row 11, column 1
+  14-ACROSS (5): row 11, column 7
+
+  Words (18):
+  5 letters: CANDY, COUNT, CUBIC, DEALT, DRIVE, ELBOW, PROBE, SHIRT, SQUAD, SWAMP, THREW, TWIST, UNCLE, UPSET
+  7 letters: COUNCIL, COURAGE, ECONOMY, LIBRARY
+
+  Puzzle B (its slot numbers continue from Puzzle A)
+
+  . . . # # # . . . . .
+  # # . # # # . # . # #
+  . . . # . . . . . # .
+  . # # # # # . # . # .
+  . . . . . . . # . . .
+  # # . # . # . # . # #
+  . . . # . . . . . . .
+  . # . # . # # # # # .
+  . # . . . . . # . . .
+  # # . # . # # # . # #
+  . . . . . # # # . . .
+
+  Slots:
+  15-ACROSS (3): row 1, column 1
+  16-DOWN (3): row 1, column 3
+  17-ACROSS (5): row 1, column 7
+  17-DOWN (7): row 1, column 7
+  18-DOWN (7): row 1, column 9
+  19-ACROSS (3): row 3, column 1
+  19-DOWN (3): row 3, column 1
+  20-ACROSS (5): row 3, column 5
+  21-DOWN (3): row 3, column 11
+  22-ACROSS (7): row 5, column 1
+  23-DOWN (7): row 5, column 3
+  24-DOWN (7): row 5, column 5
+  25-ACROSS (3): row 5, column 9
+  26-ACROSS (3): row 7, column 1
+  26-DOWN (3): row 7, column 1
+  27-ACROSS (7): row 7, column 5
+  28-DOWN (3): row 7, column 11
+  29-ACROSS (5): row 9, column 3
+  30-ACROSS (3): row 9, column 9
+  30-DOWN (3): row 9, column 9
+  31-ACROSS (5): row 11, column 1
+  32-ACROSS (3): row 11, column 9
+
+  Words (22):
+  3 letters: ANY, APT, CAR, COG, ELF, FAN, ONE, TAR, TEN, TIE, TOP, TOY
+  5 letters: ALIKE, APPLY, AROMA, OUNCE
+  7 letters: ANOTHER, APRICOT, BARGAIN, IMAGINE, PLASTIC, PUBLISH
+
+  Explain your reasoning first if it helps. Then end your reply with this block, and nothing after it:
+
+  ANSWERS:
+  <slot>: <word>
+
+  One line per slot, in the order listed, Puzzle A then Puzzle B in the same block. Give only the answer (a word), not a sentence.
+# Only the last ANSWERS block is scored: one item per slot, 40 in all (18 + 22), each worth the same.
+# Words are matched with the name normalizer (case and punctuation ignored); a slot's line can be
+# labelled 7-ACROSS, 7 Across, 7A or 7-ACROSS (5). Both grids were generated from seeds 51152 and 50993
+# by a script and each has exactly one solution, proven by two exhaustive solvers (see SUITE_CHANGELOG.md).
+# multiline: a blank line between the two puzzles' answers doesn't end the block.
+checks:
+- id: puzzle_a
+  type: items
+  header: ANSWERS
+  multiline: true
+  items:
+  - {id: 1-across, key: [1-ACROSS, 1 ACROSS, 1A, 1 A, ACROSS 1, 1-ACROSS (5)], expect: CANDY, aliases: [CANDY (5)], normalize: name, label: 1-ACROSS is CANDY}
+  - {id: 1-down, key: [1-DOWN, 1 DOWN, 1D, 1 D, DOWN 1, 1-DOWN (5)], expect: CUBIC, aliases: [CUBIC (5)], normalize: name, label: 1-DOWN is CUBIC}
+  - {id: 2-across, key: [2-ACROSS, 2 ACROSS, 2A, 2 A, ACROSS 2, 2-ACROSS (5)], expect: UPSET, aliases: [UPSET (5)], normalize: name, label: 2-ACROSS is UPSET}
+  - {id: 2-down, key: [2-DOWN, 2 DOWN, 2D, 2 D, DOWN 2, 2-DOWN (5)], expect: UNCLE, aliases: [UNCLE (5)], normalize: name, label: 2-DOWN is UNCLE}
+  - {id: 3-down, key: [3-DOWN, 3 DOWN, 3D, 3 D, DOWN 3, 3-DOWN (5)], expect: THREW, aliases: [THREW (5)], normalize: name, label: 3-DOWN is THREW}
+  - {id: 4-across, key: [4-ACROSS, 4 ACROSS, 4A, 4 A, ACROSS 4, 4-ACROSS (7)], expect: COUNCIL, aliases: [COUNCIL (7)], normalize: name, label: 4-ACROSS is COUNCIL}
+  - {id: 4-down, key: [4-DOWN, 4 DOWN, 4D, 4 D, DOWN 4, 4-DOWN (7)], expect: COURAGE, aliases: [COURAGE (7)], normalize: name, label: 4-DOWN is COURAGE}
+  - {id: 5-down, key: [5-DOWN, 5 DOWN, 5D, 5 D, DOWN 5, 5-DOWN (7)], expect: LIBRARY, aliases: [LIBRARY (7)], normalize: name, label: 5-DOWN is LIBRARY}
+  - {id: 6-across, key: [6-ACROSS, 6 ACROSS, 6A, 6 A, ACROSS 6, 6-ACROSS (5)], expect: COUNT, aliases: [COUNT (5)], normalize: name, label: 6-ACROSS is COUNT}
+  - {id: 7-across, key: [7-ACROSS, 7 ACROSS, 7A, 7 A, ACROSS 7, 7-ACROSS (5)], expect: ELBOW, aliases: [ELBOW (5)], normalize: name, label: 7-ACROSS is ELBOW}
+  - {id: 8-across, key: [8-ACROSS, 8 ACROSS, 8A, 8 A, ACROSS 8, 8-ACROSS (5)], expect: SWAMP, aliases: [SWAMP (5)], normalize: name, label: 8-ACROSS is SWAMP}
+  - {id: 8-down, key: [8-DOWN, 8 DOWN, 8D, 8 D, DOWN 8, 8-DOWN (5)], expect: SQUAD, aliases: [SQUAD (5)], normalize: name, label: 8-DOWN is SQUAD}
+  - {id: 9-down, key: [9-DOWN, 9 DOWN, 9D, 9 D, DOWN 9, 9-DOWN (5)], expect: PROBE, aliases: [PROBE (5)], normalize: name, label: 9-DOWN is PROBE}
+  - {id: 10-across, key: [10-ACROSS, 10 ACROSS, 10A, 10 A, ACROSS 10, 10-ACROSS (5)], expect: DEALT, aliases: [DEALT (5)], normalize: name, label: 10-ACROSS is DEALT}
+  - {id: 11-down, key: [11-DOWN, 11 DOWN, 11D, 11 D, DOWN 11, 11-DOWN (5)], expect: TWIST, aliases: [TWIST (5)], normalize: name, label: 11-DOWN is TWIST}
+  - {id: 12-across, key: [12-ACROSS, 12 ACROSS, 12A, 12 A, ACROSS 12, 12-ACROSS (7)], expect: ECONOMY, aliases: [ECONOMY (7)], normalize: name, label: 12-ACROSS is ECONOMY}
+  - {id: 13-across, key: [13-ACROSS, 13 ACROSS, 13A, 13 A, ACROSS 13, 13-ACROSS (5)], expect: DRIVE, aliases: [DRIVE (5)], normalize: name, label: 13-ACROSS is DRIVE}
+  - {id: 14-across, key: [14-ACROSS, 14 ACROSS, 14A, 14 A, ACROSS 14, 14-ACROSS (5)], expect: SHIRT, aliases: [SHIRT (5)], normalize: name, label: 14-ACROSS is SHIRT}
+  rule: 'Puzzle A''s 18 slots hold: 1-ACROSS CANDY, 1-DOWN CUBIC, 2-ACROSS UPSET, 2-DOWN UNCLE, 3-DOWN THREW, 4-ACROSS COUNCIL, 4-DOWN COURAGE, 5-DOWN LIBRARY, 6-ACROSS COUNT, 7-ACROSS ELBOW, 8-ACROSS SWAMP, 8-DOWN SQUAD, 9-DOWN PROBE, 10-ACROSS DEALT, 11-DOWN TWIST, 12-ACROSS ECONOMY, 13-ACROSS DRIVE, 14-ACROSS SHIRT; one item per slot.'
+- id: puzzle_b
+  type: items
+  header: ANSWERS
+  multiline: true
+  items:
+  - {id: 15-across, key: [15-ACROSS, 15 ACROSS, 15A, 15 A, ACROSS 15, 15-ACROSS (3)], expect: ELF, aliases: [ELF (3)], normalize: name, label: 15-ACROSS is ELF}
+  - {id: 16-down, key: [16-DOWN, 16 DOWN, 16D, 16 D, DOWN 16, 16-DOWN (3)], expect: FAN, aliases: [FAN (3)], normalize: name, label: 16-DOWN is FAN}
+  - {id: 17-across, key: [17-ACROSS, 17 ACROSS, 17A, 17 A, ACROSS 17, 17-ACROSS (5)], expect: APPLY, aliases: [APPLY (5)], normalize: name, label: 17-ACROSS is APPLY}
+  - {id: 17-down, key: [17-DOWN, 17 DOWN, 17D, 17 D, DOWN 17, 17-DOWN (7)], expect: ANOTHER, aliases: [ANOTHER (7)], normalize: name, label: 17-DOWN is ANOTHER}
+  - {id: 18-down, key: [18-DOWN, 18 DOWN, 18D, 18 D, DOWN 18, 18-DOWN (7)], expect: PLASTIC, aliases: [PLASTIC (7)], normalize: name, label: 18-DOWN is PLASTIC}
+  - {id: 19-across, key: [19-ACROSS, 19 ACROSS, 19A, 19 A, ACROSS 19, 19-ACROSS (3)], expect: TEN, aliases: [TEN (3)], normalize: name, label: 19-ACROSS is TEN}
+  - {id: 19-down, key: [19-DOWN, 19 DOWN, 19D, 19 D, DOWN 19, 19-DOWN (3)], expect: TOP, aliases: [TOP (3)], normalize: name, label: 19-DOWN is TOP}
+  - {id: 20-across, key: [20-ACROSS, 20 ACROSS, 20A, 20 A, ACROSS 20, 20-ACROSS (5)], expect: AROMA, aliases: [AROMA (5)], normalize: name, label: 20-ACROSS is AROMA}
+  - {id: 21-down, key: [21-DOWN, 21 DOWN, 21D, 21 D, DOWN 21, 21-DOWN (3)], expect: ONE, aliases: [ONE (3)], normalize: name, label: 21-DOWN is ONE}
+  - {id: 22-across, key: [22-ACROSS, 22 ACROSS, 22A, 22 A, ACROSS 22, 22-ACROSS (7)], expect: PUBLISH, aliases: [PUBLISH (7)], normalize: name, label: 22-ACROSS is PUBLISH}
+  - {id: 23-down, key: [23-DOWN, 23 DOWN, 23D, 23 D, DOWN 23, 23-DOWN (7)], expect: BARGAIN, aliases: [BARGAIN (7)], normalize: name, label: 23-DOWN is BARGAIN}
+  - {id: 24-down, key: [24-DOWN, 24 DOWN, 24D, 24 D, DOWN 24, 24-DOWN (7)], expect: IMAGINE, aliases: [IMAGINE (7)], normalize: name, label: 24-DOWN is IMAGINE}
+  - {id: 25-across, key: [25-ACROSS, 25 ACROSS, 25A, 25 A, ACROSS 25, 25-ACROSS (3)], expect: TIE, aliases: [TIE (3)], normalize: name, label: 25-ACROSS is TIE}
+  - {id: 26-across, key: [26-ACROSS, 26 ACROSS, 26A, 26 A, ACROSS 26, 26-ACROSS (3)], expect: CAR, aliases: [CAR (3)], normalize: name, label: 26-ACROSS is CAR}
+  - {id: 26-down, key: [26-DOWN, 26 DOWN, 26D, 26 D, DOWN 26, 26-DOWN (3)], expect: COG, aliases: [COG (3)], normalize: name, label: 26-DOWN is COG}
+  - {id: 27-across, key: [27-ACROSS, 27 ACROSS, 27A, 27 A, ACROSS 27, 27-ACROSS (7)], expect: APRICOT, aliases: [APRICOT (7)], normalize: name, label: 27-ACROSS is APRICOT}
+  - {id: 28-down, key: [28-DOWN, 28 DOWN, 28D, 28 D, DOWN 28, 28-DOWN (3)], expect: TOY, aliases: [TOY (3)], normalize: name, label: 28-DOWN is TOY}
+  - {id: 29-across, key: [29-ACROSS, 29 ACROSS, 29A, 29 A, ACROSS 29, 29-ACROSS (5)], expect: ALIKE, aliases: [ALIKE (5)], normalize: name, label: 29-ACROSS is ALIKE}
+  - {id: 30-across, key: [30-ACROSS, 30 ACROSS, 30A, 30 A, ACROSS 30, 30-ACROSS (3)], expect: ANY, aliases: [ANY (3)], normalize: name, label: 30-ACROSS is ANY}
+  - {id: 30-down, key: [30-DOWN, 30 DOWN, 30D, 30 D, DOWN 30, 30-DOWN (3)], expect: APT, aliases: [APT (3)], normalize: name, label: 30-DOWN is APT}
+  - {id: 31-across, key: [31-ACROSS, 31 ACROSS, 31A, 31 A, ACROSS 31, 31-ACROSS (5)], expect: OUNCE, aliases: [OUNCE (5)], normalize: name, label: 31-ACROSS is OUNCE}
+  - {id: 32-across, key: [32-ACROSS, 32 ACROSS, 32A, 32 A, ACROSS 32, 32-ACROSS (3)], expect: TAR, aliases: [TAR (3)], normalize: name, label: 32-ACROSS is TAR}
+  rule: 'Puzzle B''s 22 slots hold: 15-ACROSS ELF, 16-DOWN FAN, 17-ACROSS APPLY, 17-DOWN ANOTHER, 18-DOWN PLASTIC, 19-ACROSS TEN, 19-DOWN TOP, 20-ACROSS AROMA, 21-DOWN ONE, 22-ACROSS PUBLISH, 23-DOWN BARGAIN, 24-DOWN IMAGINE, 25-ACROSS TIE, 26-ACROSS CAR, 26-DOWN COG, 27-ACROSS APRICOT, 28-DOWN TOY, 29-ACROSS ALIKE, 30-ACROSS ANY, 30-DOWN APT, 31-ACROSS OUNCE, 32-ACROSS TAR; one item per slot.'
+rubric:
+- criterion: Puzzle A
+  max_score: 18
+  check: puzzle_a
+  description: Each of Puzzle A's 18 slots holds its word (the unique solution); one point per slot.
+- criterion: Puzzle B
+  max_score: 22
+  check: puzzle_b
+  description: Each of Puzzle B's 22 slots holds its word (the unique solution); one point per slot.
+critical_failure: null
