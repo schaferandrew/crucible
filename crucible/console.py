@@ -38,6 +38,7 @@ METRIC_FORMATTERS = [
     lambda m: (f"tokens {m['tokens_in']} in / {m['tokens_out']} out"
                if _known(m, "tokens_in") else None),
     _ttft,
+    lambda m: f"{m['output_tokens_per_s']:.1f} tok/s" if _known(m, "output_tokens_per_s") else None,
     lambda m: (f"{m.get('model_responses') or 0} model responses, "
                f"avg {m['response_time_avg_s']:.2f}s"
                if _known(m, "response_time_avg_s") else None),

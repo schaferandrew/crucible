@@ -12,7 +12,14 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
-## 3.4.3 (2026-10-30)
+## 3.5.0 (2026-10-30)
+
+### Added
+- Runs record `output_tokens_per_s`, the model's decode speed: output tokens over generation time (each
+  response's duration minus its time to first token, so prompt processing isn't counted). It makes
+  responsiveness comparable across models and machines. pi, direct and opencode runs report it; the per-task
+  terminal summary prints it as "tok/s". Runs made before 3.5.0 don't have it, and it is empty when a harness
+  reports no token counts or no time to first token.
 
 ### Fixed
 - The rename tests in `tests/test_versioning.py` no longer fail on a task added after 3.0.0. They compared

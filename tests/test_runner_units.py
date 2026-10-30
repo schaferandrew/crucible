@@ -167,7 +167,7 @@ class TestOpenCodeLaunch:
         agent = AGENTS["opencode"]
         assert agent.token_usage(tmp_path) == (10, 6)
         assert agent.cost_estimate(tmp_path) == 0.01
-        assert agent.response_timings(tmp_path) == [{"ttft_s": 1.5, "duration_s": 3.0}]
+        assert agent.response_timings(tmp_path) == [{"ttft_s": 1.5, "duration_s": 3.0, "tokens_out": 6}]
         session = json.loads((tmp_path / "session.json").read_text())
         assert opencode_agent.message_texts(session) == ["done"]
         assert session_mod_count(tmp_path / "session.json") == 1
@@ -294,7 +294,32 @@ class TestTiming:
             {"ttft_s": 0.3, "duration_s": 3.0},
         ])
         assert summary == {"model_responses": 3, "ttft_s": 0.5, "ttft_avg_s": 0.4,
-                           "response_time_avg_s": 2.0}
+                           "response_time_avg_s": 2.0, "output_tokens_per_s": None}
+
+    def test_decode_speed_is_tokens_over_generation_time(self):
+        summary = metrics.timing_summary([
+            {"ttft_s": 1.0, "duration_s": 3.0, "tokens_out": 60},    # 2 s decoding
+            {"ttft_s": 2.0, "duration_s": 4.0, "tokens_out": 20},    # 2 s decoding
+            {"ttft_s": None, "duration_s": 9.0, "tokens_out": 900},  # no TTFT: left out, not guessed
+            {"ttft_s": 1.0, "duration_s": 5.0, "tokens_out": None},  # no token count: left out
+        ])
+        assert summary["output_tokens_per_s"] == 20.0
+
+    def test_decode_speed_unknown_without_generation_time(self):
+        assert metrics.timing_summary([{"ttft_s": 1.0, "duration_s": 1.0, "tokens_out": 5}])["output_tokens_per_s"] is None
+
+    def test_pi_timings_carry_each_responses_output_tokens(self, tmp_path):
+        (tmp_path / pi_agent.TIMING_FILENAME).write_text(
+            json.dumps({"request_start": 0, "first_token": 500, "end": 2500}) + "\n"
+            + json.dumps({"request_start": 3000, "first_token": 3500, "end": 4500}) + "\n", encoding="utf-8")
+        entries = [{"type": "message", "message": {"role": "user", "content": []}},
+                   {"type": "message", "message": {"role": "assistant", "usage": {"output": 40}, "content": []}},
+                   {"type": "message", "message": {"role": "toolResult", "content": []}},
+                   {"type": "message", "message": {"role": "assistant", "usage": {"output": 30}, "content": []}}]
+        _pi_session(tmp_path, entries)
+        timings = AGENTS["pi"].response_timings(tmp_path)
+        assert [t["tokens_out"] for t in timings] == [40, 30]
+        assert metrics.timing_summary(timings)["output_tokens_per_s"] == 23.3  # 70 tokens over 2.0 s + 1.0 s of decoding
 
     def test_summary_empty_is_all_unknown(self):
         assert set(metrics.timing_summary([]).values()) == {None}
@@ -314,12 +339,16 @@ class TestTiming:
             {"info": {"role": "assistant", "time": {"created": 5000}}},  # interrupted
         ]}), encoding="utf-8")
         assert AGENTS["opencode"].response_timings(tmp_path) == [
-            {"ttft_s": None, "duration_s": 3.0}, {"ttft_s": None, "duration_s": None}]
+            {"ttft_s": None, "duration_s": 3.0, "tokens_out": None},
+            {"ttft_s": None, "duration_s": None, "tokens_out": None}]
 
     def test_metrics_line_shows_ttft(self):
         line = console.metrics_summary({"ttft_s": 0.21, "ttft_avg_s": 0.3, "model_responses": 3,
                                         "response_time_avg_s": 1.5})
         assert line == "TTFT 0.21s (avg 0.30s), 3 model responses, avg 1.50s"
+
+    def test_metrics_line_shows_decode_speed(self):
+        assert "31.5 tok/s" in console.metrics_summary({"output_tokens_per_s": 31.5})
 
 
 class TestCost:

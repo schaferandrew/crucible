@@ -119,9 +119,11 @@ class OpenCodeAgent(Agent):
                 continue
             t = info.get("time") or {}
             created, streamed, completed = t.get("created"), t.get("streamed"), t.get("completed")
+            tok = info.get("tokens") or {}
             timings.append({
                 "ttft_s": (streamed - created) / 1000 if created and streamed else None,
                 "duration_s": (completed - created) / 1000 if created and completed else None,
+                "tokens_out": (tok.get("output", 0) or 0) + (tok.get("reasoning", 0) or 0) if tok else None,
             })
         return timings
 

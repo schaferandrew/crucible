@@ -366,7 +366,7 @@ This makes fresh machines work with zero manual setup: install the repo, run the
 
 ### Latency
 
-`meta.json` also records `ttft_s` (time to first token of the first model response, from request sent), `ttft_avg_s`, `response_time_avg_s` and `model_responses`, and the per-task terminal summary prints them. Each harness reports only what it actually measures:
+`meta.json` also records `ttft_s` (time to first token of the first model response, from request sent), `ttft_avg_s`, `response_time_avg_s`, `model_responses` and `output_tokens_per_s`, and the per-task terminal summary prints them. `output_tokens_per_s` is decode speed: output tokens (reasoning included) divided by generation time, which is each response's duration minus its time to first token, so slow prompt processing doesn't count against it. It sums over the responses that have a token count and both timings, and is empty when none do. Each harness reports only what it actually measures:
 - **pi**: exact, timestamped inside pi by crucible's extension (headless and `--watch`)
 - **direct**: exact, from the streamed provider response (direct runs also record token usage)
 - **opencode**: per-response duration from its session export; no token-level timestamps, so TTFT is empty
