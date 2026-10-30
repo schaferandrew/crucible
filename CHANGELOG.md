@@ -12,6 +12,16 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## Unreleased
+
+### Added
+
+- **Python graders (`runner: pytest` in grader.yaml):** an isolated grader can run hidden pytest files
+  (the grader folder's `test_*.py`, with any other `*.py` there as support code) against the model's
+  artifacts in a fresh copy, starting from an empty folder for a `repo: null` task. Each test's group is
+  its class's docstring. `own_tests: <folder>` adds one test to the pool: the model's own tests in that
+  folder (pytest, else unittest) run and pass. pytest comes from the running Python, else `uv run --with pytest`.
+
 ## 3.2.0 (2026-10-29)
 
 The engine pieces for Suite v2's first wave of converted tasks: more ways for the `items` check to read
