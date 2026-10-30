@@ -9,7 +9,7 @@ category: everyday
 area: everyday
 tier: spark
 version: 2
-rubric_version: 2
+rubric_version: 3
 status: active
 auto_grade: true
 repo: null
@@ -49,8 +49,8 @@ checks:
   type: items
   header: null
   items:
-  - {id: email, normalize: mention, source: emails}
-  rule: 'Each of yesterday''s four email subjects in fixtures/mock-data is mentioned (the title, or most of its distinctive words together), one item per email.'
+  - {id: email, normalize: mention, source: emails, accept: {'Reminder: Q3 expense report due Wednesday 5 PM': [Q3 expense report], 'Meeting notes from yesterday': [Jamie, 1-on-1], 'Question about the proposal timeline': [revised proposal, proposal Friday]}}
+  rule: 'Each of yesterday''s four email subjects in fixtures/mock-data is mentioned (the title, or most of its distinctive words together; a summary naming the Q3 expense report, Jamie''s notes or the revised proposal counts), one item per email.'
 - id: events
   type: items
   header: null

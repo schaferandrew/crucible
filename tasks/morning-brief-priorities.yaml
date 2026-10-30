@@ -7,7 +7,7 @@ category: long_agent
 area: everyday
 tier: temper
 version: 3
-rubric_version: 2
+rubric_version: 3
 status: active
 auto_grade: true
 repo: null
@@ -52,8 +52,8 @@ checks:
   header: null
   items:
   - {id: conflict, normalize: mention, source: events, only: [Planning, Vendor demo], also: 'conflict|overlap|clash|double.?book|collid|simultaneous', label: 'Flags the Planning / Vendor demo conflict'}
-  - {id: deadline, normalize: mention, source: emails, only: ['Reminder: Q3 expense report due Wednesday 5 PM'], label: 'Flags the expense report deadline'}
-  - {id: unanswered, normalize: mention, source: emails, only: [Question about the proposal timeline], label: 'Flags the unanswered proposal question'}
+  - {id: deadline, normalize: mention, source: emails, only: ['Reminder: Q3 expense report due Wednesday 5 PM'], accept: {'Reminder: Q3 expense report due Wednesday 5 PM': [Q3 expense report]}, label: 'Flags the expense report deadline'}
+  - {id: unanswered, normalize: mention, source: emails, only: [Question about the proposal timeline], accept: {'Question about the proposal timeline': [revised proposal, proposal Friday]}, label: 'Flags the unanswered proposal question'}
   rule: 'The brief mentions each must-act item: the 10:00 Vendor demo overlapping the 9:30 Planning (named together with a word like conflict or overlap), the Q3 expense report due at 5 PM, and the client''s unanswered question about the proposal timeline. If none of the three is mentioned, the score is capped at 5.'
 - id: grounded
   type: grounded_numbers

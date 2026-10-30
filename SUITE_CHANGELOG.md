@@ -10,6 +10,14 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
 
 ## Unreleased
 
+- **proofread-customer-email: rubric 4 → 5.** The agreement error was only found when the `ERRORS:` line quoted
+  "items were damaged"; all three calibration models wrote it as `were → was` or quoted the whole clause, and lost
+  2 points for a correct fix. Any `were → was` line now counts (and is not counted as a style suggestion).
+- **morning-brief-spanish: rubric 2 → 3; morning-brief-priorities: rubric 2 → 3.** An email counts as mentioned
+  when the brief summarizes it instead of quoting its subject: the Q3 expense report, Jamie's notes, or the
+  revised proposal (Friday). gpt-6-luna's accurate brief lost 2 of 4 email points before. Uses the new `accept`
+  list of `mention` items (Crucible 3.4.0).
+
 - **interest-calculator-cli (formerly CODE-1b): version 1 → 2, rubric 1 → 2, still active (pinned in Suite v1).**
   The prompt now pins the interface: Python 3 standard library, `python -m interest` from the workspace
   root with the package in `interest/`, the flags (`--principal`, `--rate`, `--years`/`--months`,
