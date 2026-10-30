@@ -190,10 +190,10 @@ class TestTaskIdMap:
             validate_id(bad)
 
 
-# A test the judge scores: active, no checks bound to its criteria, no hidden grader
+# A task the judge scores: no checks bound to its criteria, no hidden grader. Suites since v3 score none this
+# way, so it may be retired; the judge still scores any task's runs on request
 JUDGED = next(t for t in workspace.all_task_ids()
-              if (p := workspace.load_task(t)).get("status") == "active"
-              and not p.get("checks") and not p.get("grader"))
+              if not (p := workspace.load_task(t)).get("checks") and not p.get("grader"))
 
 
 class TestJudge:

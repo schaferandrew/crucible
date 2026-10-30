@@ -12,6 +12,12 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## 3.4.1 (2026-10-30)
+
+### Fixed
+- The judge's tests picked an active judge-scored task, and Suite v3 has none; they use any judge-scored task now.
+  No change to the tool.
+
 ## 3.4.0 (2026-10-30)
 
 ### Added

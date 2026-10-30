@@ -10,6 +10,14 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
 
 ## Unreleased
 
+## Suite v3 (2026-10-30)
+
+- **Retired: navbar-hamburger-menu and weather-vs-normal.** Both were active since Suite v1 and are still scored
+  only by an AI judge, which Suite v2 dropped, so in v2 they had no scores and lowered every model's tier
+  coverage. Suite v3 is Suite v2 without them: every scored task is checks or hidden tests. Both come back as
+  new provisional versions once converted (a Playwright grader and a frozen-web fixture). Their runs stay on
+  record and stop counting.
+
 ## Suite v2 (2026-10-30)
 
 **Suite v2 at a glance.** Calibrated on three models one at a time (gemma-4-e4b local, qwen3.6-35b-a3b local over
@@ -25,8 +33,10 @@ LM Link, gpt-6-luna via OpenRouter), every task scored by checks or hidden tests
 - **Retired (7):** interest-cli-open-ended, responsive-navbar-open-ended, login-recovery-repeat, nextjs-course,
   todays-local-news, live-weather-open-ended, novel-character-names. Their runs stay on record and stop counting.
 - **Still provisional:** capitals-not-largest-city, order-historical-events, recipe-and-discount,
-  river-haiku-banned-words and competition-math (all three models scored 10, so they don't separate yet), plus
-  navbar-hamburger-menu and weather-vs-normal (planned for Suite v3). They run and show, outside tier scores.
+  river-haiku-banned-words and competition-math (all three models scored 10, so they don't separate yet). They
+  run and show, outside tier scores.
+- navbar-hamburger-menu and weather-vs-normal stayed active, still judge-scored, so they have no scores in this
+  suite; Suite v3 retires them.
 
 - **proofread-customer-email: rubric 4 → 5.** The agreement error was only found when the `ERRORS:` line quoted
   "items were damaged"; all three calibration models wrote it as `were → was` or quoted the whole clause, and lost
