@@ -6,30 +6,35 @@ needs_tools: true
 category: browser_tool
 area: coding
 tier: forge
-version: 1
-rubric_version: 1
+version: 2
+rubric_version: 2
 status: provisional
-auto_grade: false
+auto_grade: true
 repo: login-service
+grader: blank-dashboard-debug
+# Every hidden test weighs the same: the score is tests passed / all tests x 10, graded in a fresh copy of
+# the seeded repo with only the model's source (graders/blank-dashboard-debug/grader.yaml). The seeded
+# tests are a cap, not points: the seeded repo passes them, so doing nothing scores 0.
+scoring: per_test
 prompt: |
-  Open the local application in a real browser and diagnose why the dashboard is intermittently showing a blank state after login. Reproduce the issue, inspect the browser console and network requests, identify the failing request or client-side error, and fix the underlying application code. Verify the fix in the browser and add an automated regression test.
+  Open the local application in a real browser and diagnose why the dashboard intermittently shows a blank state after login. Reproduce the issue, inspect the browser console and network requests, identify the failing request or client-side error, and fix the underlying application code. Verify the fix in the browser and add an automated regression test.
+
+  The app starts with `npm start` on http://localhost:3456 (the test accounts are in SKILL.md). Login sessions in this build last 30 seconds, so the blank state shows up whenever the dashboard is loaded a little after logging in. `npm test` runs the repo's tests.
 rubric:
-  - criterion: "Reproduces before changing code"
-    max_score: 1
-    description: "Reproduces the intermittent blank state in the browser first."
-  - criterion: "Uses browser effectively"
-    max_score: 2
-    description: "Navigates, refreshes, manipulates state to trigger the bug."
-  - criterion: "Inspects console/network rather than guessing"
-    max_score: 2
-    description: "Looks at actual console errors and network responses."
-  - criterion: "Correct diagnosis"
-    max_score: 2
-    description: "Identifies the exact failing request or client-side error."
-  - criterion: "Fix"
-    max_score: 2
-    description: "Fixes the underlying code correctly and minimally."
-  - criterion: "Regression verification"
-    max_score: 1
-    description: "Automated test covers the intermittent condition."
-critical_failure: null
+- criterion: Expired sessions are rejected
+  hidden_tests: 'api: expired sessions'
+  description: 'Hidden tests: the dashboard API answers 401 rather than 200 with blank data for an expired session (just expired, long expired, on every request), for the cookie of a logged-out session and for a request with no session.'
+- criterion: Login prompt, not a blank page
+  hidden_tests: 'ui: a login prompt'
+  description: 'Hidden tests: the dashboard page, run in a browser environment against the real app, sends an expired, logged-out or missing session to log in instead of rendering a blank dashboard.'
+- criterion: Normal sessions still work
+  hidden_tests: 'normal sessions'
+  description: 'Hidden tests: a fresh session still gets its dashboard until it expires, sessions expire independently, logging in again works and logging out ends the session. Each needs the fix to be set up, so they pay nothing on the seeded repo.'
+- criterion: Regression tests
+  hidden_tests: regression
+  description: 'One test in the pool: the model''s new or changed tests pass on its fix, and at least one fails on the seeded code.'
+- criterion: Existing tests still pass
+  hidden_tests: existing
+  cap_if_failed: 5
+  description: The repo's seeded tests (login, dashboard, password reset) pass on the model's source; if not, the score is capped at 5. A cap, not points.
+critical_failure: Every hidden test weighs the same; the score is tests passed / all tests x 10. Failing the seeded tests caps it at 5.

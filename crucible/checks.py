@@ -935,6 +935,126 @@ def _tool_calls_check(check: dict, text: str) -> tuple[bool, str, float, list[di
     return _summarize(results)
 
 
+# --------------------------------------------------------------------------
+# Workspace state: the app's audit log and the seeded commit
+# --------------------------------------------------------------------------
+#
+# Some tasks can be scored from what the app recorded, not from what the model says. The app appends one
+# JSON line per event to a log in the workspace (login-service: .crucible/audit.jsonl); each line carries
+# `seq` and `prev`, the sha256 of the line before it ("genesis" for the first), so a line that was edited,
+# dropped or hand-written breaks the chain and the log counts for nothing.
+#
+#     - id: session
+#       type: audit_log
+#       log: .crucible/audit.jsonl
+#       sequence:                                      # these events, in this order (others may lie between)
+#       - {event: login_success, user: testuser, session: $s}
+#       - {event: dashboard_ok, session: $s}           # $name: the same value everywhere it appears
+#       then_none: [{event: logout, session: $s}]      # and none of these after the last step
+#
+#     - id: code_untouched
+#       type: workspace_unchanged
+#       paths: [server.js, public]                     # exactly as in the seeded commit (git)
+#       log: .crucible/audit.jsonl                     # optional, with any_event: the app was really used,
+#       any_event: [login_failed, login_success]       # so doing nothing doesn't earn "unchanged"
+#
+# Like every check, both fail an empty answer.
+
+def _workspace(check: dict) -> Path | None:
+    run_dir = check.get("_run_dir")
+    return Path(run_dir) / "workspace" if run_dir else None
+
+
+def read_audit_log(workspace: Path, log: str) -> tuple[list[dict] | None, str]:
+    """(events, detail): the log's events when its hash chain holds, else None and why."""
+    import hashlib
+    path = workspace / log
+    if not path.is_file():
+        return None, f"no {log}"
+    previous, seq, events = "genesis", 0, []
+    for number, line in enumerate(path.read_text(encoding="utf-8", errors="replace").split("\n"), 1):
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            return None, f"{log} line {number} isn't JSON"
+        if not isinstance(event, dict) or event.get("seq") != seq + 1 or event.get("prev") != previous:
+            return None, f"{log} was altered (chain breaks at line {number})"
+        previous, seq = hashlib.sha256(line.encode("utf-8")).hexdigest(), seq + 1
+        events.append(event)
+    return (events, "") if events else (None, f"{log} is empty")
+
+
+def _bind(step: dict, event: dict, binds: dict) -> dict | None:
+    """The bindings after matching an event against a step, or None when it doesn't match."""
+    out = dict(binds)
+    for key, want in step.items():
+        if key not in event:
+            return None
+        if isinstance(want, str) and want.startswith("$"):
+            if out.setdefault(want, event[key]) != event[key]:
+                return None
+        elif event[key] != want:
+            return None
+    return out
+
+
+def _sequence(steps: list[dict], events: list[dict], none: list[dict], start: int = 0, binds: dict | None = None,
+              depth: list[int] | None = None, level: int = 0) -> bool:
+    binds = binds or {}
+    depth = depth if depth is not None else [0]
+    if not steps:
+        return True
+    for i in range(start, len(events)):
+        matched = _bind(steps[0], events[i], binds)
+        if matched is None:
+            continue
+        depth[0] = max(depth[0], level + 1)
+        if len(steps) == 1:
+            if any(_bind(rule, e, matched) is not None for e in events[i + 1:] for rule in none):
+                continue
+            return True
+        if _sequence(steps[1:], events, none, i + 1, matched, depth, level + 1):
+            return True
+    return False
+
+
+def _audit_log_check(check: dict, text: str) -> tuple[bool, str]:
+    workspace = _workspace(check)
+    if workspace is None or not workspace.is_dir():
+        return False, "no workspace to read the audit log from"
+    events, problem = read_audit_log(workspace, check["log"])
+    if events is None:
+        return False, problem
+    steps, depth = check["sequence"], [0]
+    if _sequence(steps, events, check.get("then_none") or [], depth=depth):
+        return True, " then ".join(s["event"] for s in steps)
+    if depth[0] >= len(steps) and check.get("then_none"):
+        return False, f"{steps[-1]['event']} was followed by {', '.join(r['event'] for r in check['then_none'])}"
+    return False, f"never got to {steps[depth[0]]['event']}" + (f" after {steps[depth[0] - 1]['event']}" if depth[0] else "")
+
+
+def _workspace_unchanged(check: dict, text: str) -> tuple[bool, str]:
+    import subprocess
+    workspace = _workspace(check)
+    if workspace is None or not (workspace / ".git").exists():
+        return False, "no seeded commit to compare against"
+    if check.get("any_event"):
+        events, problem = read_audit_log(workspace, check["log"])
+        if events is None or not any(e.get("event") in check["any_event"] for e in events):
+            return False, "the app was never used" if events else problem
+    def git(*args: str) -> subprocess.CompletedProcess:
+        return subprocess.run(["git", *args], cwd=workspace, capture_output=True, text=True, timeout=60)
+    root = git("rev-list", "--max-parents=0", "HEAD")
+    if root.returncode or not root.stdout.split():
+        return False, "no seeded commit to compare against"
+    paths = check["paths"]
+    changed = git("diff", "--name-only", root.stdout.split()[0], "--", *paths).stdout.split() + \
+        git("ls-files", "--others", "--exclude-standard", "--", *paths).stdout.split()
+    return (not changed), ("as seeded" if not changed else "changed: " + ", ".join(sorted(set(changed))[:5]))
+
+
 # A check returns (passed, detail), or (passed, detail, share) when it earns partial credit, plus the
 # per-item results when it scores items (passed, detail, share, items)
 CHECKS: dict[str, Callable[[dict, str], tuple]] = {
@@ -949,6 +1069,8 @@ CHECKS: dict[str, Callable[[dict, str], tuple]] = {
     "cited_paragraphs": _cited_paragraphs_check,
     "time_options": _time_options_check,
     "tool_calls": _tool_calls_check,
+    "audit_log": _audit_log_check,
+    "workspace_unchanged": _workspace_unchanged,
 }
 
 
@@ -979,7 +1101,7 @@ def run_checks(prompt_def: dict, text: str, run_dir: Path | None = None, tool_ca
         if check["type"] == "tool_calls" and tool_calls is None and run_dir:
             tool_calls = session_tool_calls(run_dir)
         passed, detail, *extra = CHECKS[check["type"]](
-            {**check, "_source": prompt_def.get("prompt", ""), "_tool_calls": tool_calls}, subject)
+            {**check, "_source": prompt_def.get("prompt", ""), "_tool_calls": tool_calls, "_run_dir": run_dir}, subject)
         results.append({"id": check["id"], "type": check["type"], "passed": passed, "detail": detail,
                         "rule": check.get("rule"), **({"share": extra[0]} if extra else {}),
                         # Per-item results (the items check), for the dashboard's detail view

@@ -3,7 +3,7 @@
 This document describes the login and recovery procedures for the test application.
 
 ## Application
-- URL: http://localhost:3456
+- URL: http://localhost:3456 (start it with `npm start`)
 - Pages: /login.html, /dashboard.html, /reset-request.html, /reset-password.html
 
 ## Test Accounts
@@ -29,7 +29,7 @@ This document describes the login and recovery procedures for the test applicati
 - Recovery: No user-level recovery available. Contact system administrator.
 
 ### Stale/Invalid Cookies
-- Symptom: Dashboard shows blank state or redirects to login
+- Symptom: You were signed in earlier, but the app no longer recognises your session
 - Recovery: Clear cookies and re-login. Or use /api/logout endpoint.
 
 ### Password Reset Flow
@@ -41,6 +41,5 @@ This document describes the login and recovery procedures for the test applicati
 6. Login with new password
 
 ## Rules
-- Do NOT modify server.js or any application code
 - Do NOT bypass authentication by directly accessing /dashboard.html
 - Use the provided API endpoints and pages only

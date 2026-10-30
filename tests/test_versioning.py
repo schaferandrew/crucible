@@ -151,7 +151,9 @@ class TestRenameKeepsHashes:
 
     def test_new_rubric_hashes_map_one_to_one(self):
         lock = versioning.read_lock()
-        pairs = {(LEGACY_LOCK[workspace.load_task(t)["aliases"][0]]["rubric_hash"], lock[t]["rubric_hash"]) for t in lock}
+        # Tasks re-scored since 3.0.0 have a new rubric on purpose (login-recovery shared its old hash with its repeat)
+        unchanged = [t for t in lock if lock[t]["rubric_version"] == LEGACY_LOCK[workspace.load_task(t)["aliases"][0]]["rubric_version"]]
+        pairs = {(LEGACY_LOCK[workspace.load_task(t)["aliases"][0]]["rubric_hash"], lock[t]["rubric_hash"]) for t in unchanged}
         # Each old hash became exactly one new hash, and no two old hashes became the same one
         assert len(pairs) == len({old for old, _ in pairs}) == len({new for _, new in pairs})
 

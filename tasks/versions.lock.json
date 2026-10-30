@@ -7,11 +7,11 @@
     "rubric_hash": "ba79097d3d49ec8d"
   },
   "blank-dashboard-debug": {
-    "version": 1,
-    "content_hash": "886b61994e6a3ba4",
-    "prompt_hash": "a891288ef6b407dc",
-    "rubric_version": 1,
-    "rubric_hash": "21c080734296e3ae"
+    "version": 2,
+    "content_hash": "1cd54ceb401f0947",
+    "prompt_hash": "2c417fec72d12bcf",
+    "rubric_version": 2,
+    "rubric_hash": "c99e9bf61025cb59"
   },
   "cache-leak-incident": {
     "version": 3,
@@ -189,15 +189,15 @@
     "rubric_hash": "ae34f3fe94b7fe66"
   },
   "login-recovery": {
-    "version": 1,
-    "content_hash": "e9e834e92247adcf",
-    "prompt_hash": "d500776e3561c603",
-    "rubric_version": 1,
-    "rubric_hash": "ad8018cfb54871da"
+    "version": 2,
+    "content_hash": "9e2054ec754b41ca",
+    "prompt_hash": "f4c112e3dd56347f",
+    "rubric_version": 2,
+    "rubric_hash": "13b36751db77b664"
   },
   "login-recovery-repeat": {
-    "version": 1,
-    "content_hash": "f3bb28464091c844",
+    "version": 2,
+    "content_hash": "7f4dece5aaeef608",
     "prompt_hash": "72ff8c34183a9f5e",
     "rubric_version": 1,
     "rubric_hash": "ad8018cfb54871da"

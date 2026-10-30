@@ -1,0 +1,21 @@
+# Hidden tests for blank-dashboard-debug (formerly CODE-5); see crucible/graders.py.
+# Isolated: the tests run in a fresh copy of repos/login-service that takes only the model's source
+# (server.js, public/) from its workspace, so package.json, accounts.json (the 30 second session
+# lifetime), the test config and the seeded tests stay as seeded. Time is the trigger: the tests move
+# the clock past the session's expiry instead of waiting or calling an admin endpoint.
+isolated: true
+artifacts: [server.js, public, lib, src]
+# The seeded tests (login, dashboard, password reset) must still pass: a cap, not points
+existing_tests: ["."]
+# The model's own new or changed tests: pass on its fix, fail on the seeded code. One test in the pool
+regression_tests: ["."]
+timeout: 600
+# `crucible grader blank-dashboard-debug` grades each of these and checks the score lands in its range
+oracle:
+  solution: [10, 10]
+  seeded: [0, 0]
+  calibration:
+    api-only: [5, 7.5]        # the API answers 401, but the page still renders a blank dashboard
+    page-only: [2.5, 4]       # the page redirects on a blank answer, but the API still answers 200
+    unifies-login-errors: [5, 5]  # everything fixed, but a deactivated account now gets 401: the seeded tests fail, capped at 5
+    rejects-every-session: [4, 5] # 401 for everyone, valid sessions included: the seeded dashboard test fails, capped at 5
