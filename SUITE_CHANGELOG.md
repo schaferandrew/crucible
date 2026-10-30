@@ -10,6 +10,12 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
 
 ## Unreleased
 
+- **New provisional forge task: multi-step-competition-math (v1, rubric 1).** Six original multi-step problems
+  (modular counting, restricted arrangements, an expected value, difference-free subsets, lcm/gcd triples,
+  restricted lattice paths), each answer verified by brute force and a second method. Added because
+  competition-math proved too easy for forge: it uses well-known puzzles and gemma-4-e4b scored 10 on it. Not
+  calibrated yet.
+
 ## Suite v3 (2026-10-30)
 
 - **Retired: navbar-hamburger-menu and weather-vs-normal.** Both were active since Suite v1 and are still scored

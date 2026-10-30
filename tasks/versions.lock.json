@@ -216,6 +216,13 @@
     "rubric_version": 3,
     "rubric_hash": "01912ad7b66e347c"
   },
+  "multi-step-competition-math": {
+    "version": 1,
+    "content_hash": "fa3e7d98ab144ac2",
+    "prompt_hash": "8a437463415711cc",
+    "rubric_version": 1,
+    "rubric_hash": "72028ed7b1732171"
+  },
   "names-for-one-character": {
     "version": 2,
     "content_hash": "56a5c060f36cc57f",

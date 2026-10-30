@@ -12,6 +12,12 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## 3.4.3 (2026-10-30)
+
+### Fixed
+- The rename tests in `tests/test_versioning.py` no longer fail on a task added after 3.0.0. They compared
+  every task with its 2.4.0 hashes and old ID, which a new task doesn't have; such tasks are now skipped.
+
 ## 3.4.2 (2026-10-30)
 
 ### Fixed
