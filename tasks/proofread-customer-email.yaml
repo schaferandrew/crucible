@@ -7,7 +7,7 @@ category: writing
 area: writing
 tier: spark
 version: 2
-rubric_version: 4
+rubric_version: 5
 status: active
 auto_grade: false
 repo: null
@@ -47,7 +47,7 @@ checks:
     label: "crush listed with its fix"
   - id: agreement
     normalize: pattern
-    expect: '\b(?:items )?were damaged\b.*(?:→|⇒|->|=>|\\rightarrow).*\bwas damaged\b'
+    expect: '\bwere\b.*(?:→|⇒|->|=>|\\rightarrow).*\bwas\b'
     label: "items were damaged listed with its fix"
   rule: "Lists each of the three errors in the ERRORS: block as <original> → <fix>: havent → haven't, crush → crushed, and 'items were damaged' → 'was damaged'; one item per error."
 - id: errors_fixed
@@ -93,7 +93,7 @@ checks:
   items:
   - id: no_style_items
     normalize: each
-    expect: '\bhavent\b|\bhaven[''’]t\b|\bcrush|\bwere damaged\b|\bwas damaged\b'
+    expect: '\bhavent\b|\bhaven[''’]t\b|\bcrush|\bwere\b.*\bwas\b'
     label: "Only the three errors in ERRORS"
   rule: "Lists only the three real errors (havent, crush and 'items were damaged') in the ERRORS: block; a style suggestion (a comma before 'but', 'seem' or 'seems', the greeting, the en dash) listed there fails."
 rubric:

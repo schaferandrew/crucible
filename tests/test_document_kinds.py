@@ -76,6 +76,17 @@ def test_mentions_read_the_mock_data():
         _run([{**clash, "only": ["Lunch"]}], text)
 
 
+def test_accept_counts_a_summary_that_names_the_item_differently():
+    text = "- Jamie sent notes from the 1-on-1.\n- The client wants the revised proposal by Friday."
+    item = {"id": "e", "normalize": "mention", "source": "emails"}
+    assert sum(_passed(_run([item], text)).values()) == 0
+    accept = {"Meeting notes from yesterday": ["Jamie"], "Question about the proposal timeline": ["revised proposal"]}
+    got = _passed(_run([{**item, "accept": accept}], text))
+    assert got["e:meeting-notes-from-yesterday"] and got["e:question-about-the-proposal-timeline"] and sum(got.values()) == 2
+    with pytest.raises(ValueError, match="accept names a title"):
+        _run([{**item, "accept": {"Lunch": ["sandwich"]}}], text)
+
+
 def test_a_generic_word_alone_is_not_a_mention():
     assert not checks._mentioned("We had a meeting about it.", "Budget meeting")
     assert checks._mentioned("The budget talk is at one.", "Budget meeting")

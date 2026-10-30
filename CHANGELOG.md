@@ -12,6 +12,13 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## 3.4.0 (2026-10-30)
+
+### Added
+- `mention` items take `accept: {title: [phrasings]}`: other ways a summary can name a fixture item ("Jamie's
+  notes" for *Meeting notes from yesterday*). Briefs that paraphrased an email instead of quoting its subject
+  lost the item before. A title in `accept` that the fixture data doesn't have is an error.
+
 ## 3.3.1 (2026-10-29)
 
 ### Fixed

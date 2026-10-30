@@ -720,7 +720,12 @@ def _mention_item(item: dict, text: str) -> list[dict]:
             raise ValueError(f"mention item {item['id']}: not in the {item['source']} data: {unknown}")
         titles = list(item["only"])
     body = "\n".join(_section_lines(text, item["section"])) if item.get("section") else text
-    hits = {t: _mentioned(body, t) for t in titles}
+    # accept: {title: [other phrasings]}, for a brief that summarizes an item instead of quoting its title
+    accept = item.get("accept") or {}
+    unknown = [t for t in accept if t not in titles]
+    if unknown:
+        raise ValueError(f"mention item {item['id']}: accept names a title not in the {item['source']} data: {unknown}")
+    hits = {t: _mentioned(body, t) or any(_mentioned(body, a) for a in accept.get(t, [])) for t in titles}
     if item.get("min") or item.get("also"):
         enough = sum(hits.values()) >= item.get("min", len(titles))
         extra = [p for p in _names(item.get("also") or []) if not re.search(p, body, re.IGNORECASE)]

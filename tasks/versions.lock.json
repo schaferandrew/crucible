@@ -206,15 +206,15 @@
     "version": 3,
     "content_hash": "5adc9d482d290291",
     "prompt_hash": "c26668c1183aa7e3",
-    "rubric_version": 2,
-    "rubric_hash": "c8a39c24addb5905"
+    "rubric_version": 3,
+    "rubric_hash": "6ebad5dfa2fc77b6"
   },
   "morning-brief-spanish": {
     "version": 2,
     "content_hash": "a6695597fb3c2428",
     "prompt_hash": "423e533a5496c8dc",
-    "rubric_version": 2,
-    "rubric_hash": "dc93915590f6e118"
+    "rubric_version": 3,
+    "rubric_hash": "01912ad7b66e347c"
   },
   "names-for-one-character": {
     "version": 2,
@@ -269,8 +269,8 @@
     "version": 2,
     "content_hash": "c41a36c4fafcbd9f",
     "prompt_hash": "bffb7b00d65ed319",
-    "rubric_version": 4,
-    "rubric_hash": "67a904e04c47efea"
+    "rubric_version": 5,
+    "rubric_hash": "bae4e4c306c407ff"
   },
   "proofread-economics-essay": {
     "version": 2,
