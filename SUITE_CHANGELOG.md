@@ -10,6 +10,8 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
 
 ## Unreleased
 
+- **two-calendar-slots-json: display name now says it is the JSON-file variant** ("Meeting slots from two calendars (JSON file, no MCP)"). It is the scheduling-logic control for the calendar MCP tasks. No prompt, check or version change; runs still count.
+
 ## Suite v3 (2026-10-30)
 
 - **Retired: navbar-hamburger-menu and weather-vs-normal.** Both were active since Suite v1 and are still scored

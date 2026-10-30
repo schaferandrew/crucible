@@ -1,5 +1,5 @@
 id: two-calendar-slots-json
-name: Meeting slots from two calendars
+name: Meeting slots from two calendars (JSON file, no MCP)
 aliases:
 - TASK-1
 needs_tools: true
