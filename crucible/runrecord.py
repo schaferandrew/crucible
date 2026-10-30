@@ -18,6 +18,8 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+from crucible import origin
+
 FORMAT_VERSION = 3
 # A run folder is <model_slug>/<task>/<timestamp>; before 3.0.0 it was <model_slug>/<category>/<test_id>/<timestamp>
 RUN_GLOB = "*/*/*/meta.json"
@@ -128,7 +130,7 @@ def implied_variant(model: str | None, quant: str | None) -> dict:
     key = (base_model(model) or "").lower()
     publisher = fmt = None
     org = key.split("/")[0] if "/" in key else None
-    if org in ("mlx-community", "lmstudio-community", "unsloth", "bartowski"):
+    if org in origin.PACKAGERS:
         publisher = org
     if org == "mlx-community" or re.search(r"[-:_]mlx\b", key) or re.fullmatch(r"\d+bit", str(quant or "").lower()):
         fmt = "mlx"
@@ -155,7 +157,8 @@ def model_record(model: str | None, reasoning: str, resolved: str | None, infere
         "id": model,
         "base": base,
         "publisher": publisher,
-        "artifact": None,
+        # The packaged repo the weights were downloaded from, when the source names it
+        "artifact": inference.get("artifact"),
         "format": fmt,
         "quant": quant,
         "reasoning": {"requested": reasoning or "default", "resolved": resolved},

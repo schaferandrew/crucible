@@ -158,7 +158,8 @@
           "type": [
             "string",
             "null"
-          ]
+          ],
+          "description": "The packaged repo the weights were downloaded from (lmstudio-community/Qwen3.5-9B-GGUF), when the source names it."
         },
         "format": {
           "type": [
@@ -206,6 +207,42 @@
             "string",
             "null"
           ]
+        },
+        "origin": {
+          "type": "object",
+          "description": "Optional (added in format revision 1; runs before Crucible 3.6.0 don't have it): who trained the model, read at run time from the GGUF header, MLX model card, Ollama, OpenRouter or the LM Studio model key, first source to answer wins per field. Not part of variant_key. See docs/data-model.md.",
+          "required": [
+            "source"
+          ],
+          "properties": {
+            "maker": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "base_repo": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "params": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "active_params": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "source": {
+              "type": "string"
+            }
+          }
         }
       }
     },
