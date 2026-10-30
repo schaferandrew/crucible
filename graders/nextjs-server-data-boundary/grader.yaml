@@ -1,0 +1,17 @@
+# Hidden tests for nextjs-server-data-boundary (formerly CODE-3); see crucible/graders.py.
+# Isolated: the tests run in a fresh copy of repos/nextjs-data-access that takes only `artifacts`
+# from the model's workspace, so package.json, the lockfile, next.config.js, tsconfig.json and the
+# vitest config stay as seeded and node_modules is installed from the seeded lockfile.
+isolated: true
+artifacts: [app, lib]
+# The model's own tests, in the folders it can put them in
+regression_tests: [app, lib]
+timeout: 600
+# `crucible grader nextjs-server-data-boundary` grades each of these and checks the score lands in its range
+oracle:
+  solution: [10, 10]
+  seeded: [0, 0]
+  calibration:
+    client-directive-only: [2.5, 4.5] # 'use client' on the seeded page: builds, but the HTML says Loading and the browser fetches
+    no-plan: [7, 8.5]                 # a Server Component that shows the name and drops the plan
+    client-page-leaks-data: [3, 3]    # 'use client' with the account store inline: renders, but ships every account: capped at 3

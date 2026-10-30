@@ -1,9 +1,14 @@
+// @vitest-environment node
 import { expect, test } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import AccountPage from './page';
+import { GET } from './api/account/route';
 
-test('renders account name and plan', async () => {
-  render(<AccountPage />);
-  expect(await screen.findByText('Alice')).toBeDefined();
-  expect(await screen.findByText('Pro')).toBeDefined();
+test('the account API returns acct_1', async () => {
+  const res = await GET(new Request('http://localhost/api/account?id=acct_1'));
+  expect(res.status).toBe(200);
+  expect(await res.json()).toEqual({ name: 'Alice', plan: 'Pro' });
+});
+
+test('the account API answers 404 for an unknown account', async () => {
+  const res = await GET(new Request('http://localhost/api/account?id=nobody'));
+  expect(res.status).toBe(404);
 });

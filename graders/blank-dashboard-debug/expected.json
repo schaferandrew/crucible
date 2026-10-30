@@ -1,0 +1,67 @@
+[
+  {
+    "file": "session.grader.test.ts",
+    "group": "api: expired sessions get 401",
+    "name": "a session older than its 30 second lifetime gets 401, not 200 with blank data"
+  },
+  {
+    "file": "session.grader.test.ts",
+    "group": "api: expired sessions get 401",
+    "name": "a long-expired session stays rejected on every request"
+  },
+  {
+    "file": "session.grader.test.ts",
+    "group": "api: expired sessions get 401",
+    "name": "the cookie of a logged-out session gets 401"
+  },
+  {
+    "file": "session.grader.test.ts",
+    "group": "api: expired sessions get 401",
+    "name": "a request without a session gets 401"
+  },
+  {
+    "file": "session.grader.test.ts",
+    "group": "ui: a login prompt instead of a blank dashboard",
+    "name": "an expired session is sent to log in"
+  },
+  {
+    "file": "session.grader.test.ts",
+    "group": "ui: a login prompt instead of a blank dashboard",
+    "name": "a logged-out session is sent to log in"
+  },
+  {
+    "file": "session.grader.test.ts",
+    "group": "ui: a login prompt instead of a blank dashboard",
+    "name": "a visitor without a session is sent to log in"
+  },
+  {
+    "file": "session.grader.test.ts",
+    "group": "normal sessions: still work until they expire",
+    "name": "a fresh session gets its dashboard, and is rejected only once it has expired"
+  },
+  {
+    "file": "session.grader.test.ts",
+    "group": "normal sessions: still work until they expire",
+    "name": "logging in again after expiry gives a working session"
+  },
+  {
+    "file": "session.grader.test.ts",
+    "group": "normal sessions: still work until they expire",
+    "name": "each session expires on its own clock"
+  },
+  {
+    "file": "session.grader.test.ts",
+    "group": "normal sessions: still work until they expire",
+    "name": "logging out ends the session"
+  },
+  {
+    "file": "session.grader.test.ts",
+    "group": "normal sessions: still work until they expire",
+    "name": "the dashboard page shows the user while the session lasts, then a login prompt"
+  },
+  {
+    "file": "regression",
+    "group": "regression",
+    "name": "your new tests fail on the seeded code and pass on your fix"
+  }
+]

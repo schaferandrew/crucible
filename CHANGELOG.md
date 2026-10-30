@@ -12,6 +12,35 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## 3.3.0 (2026-10-29)
+
+The engine pieces for Suite v2's second wave of converted tasks: Python graders, checks that read what an
+app recorded rather than what the model says, and `items` kinds that read a whole document or a written JSON file.
+
+### Added
+
+- **Python graders (`runner: pytest` in grader.yaml):** an isolated grader can run hidden pytest files
+  (the grader folder's `test_*.py`, with any other `*.py` there as support code) against the model's
+  artifacts in a fresh copy, starting from an empty folder for a `repo: null` task. Each test's group is
+  its class's docstring. `own_tests: <folder>` adds one test to the pool: the model's own tests in that
+  folder (pytest, else unittest) run and pass. pytest comes from the running Python, else `uv run --with pytest`.
+- New check types `audit_log` and `workspace_unchanged`, for scoring a task from what the app recorded rather
+  than what the model says. `audit_log` reads a hash-chained JSONL log in the workspace (a line that was
+  edited, dropped or hand-written voids the log) and requires events in order, with values shared across
+  steps (`$name`) and events that must not follow. `workspace_unchanged` compares paths with the seeded
+  commit (git), optionally requiring that the app was used. Both fail an empty answer like every check.
+- Isolated graders: the model's own tests may be JavaScript (`.test.js`, `.spec.mjs`, ...) and
+  `regression_tests` / `artifacts` accept `.` (the whole repo); before, a repo-root test folder never matched.
+- **`items` check, whole-document kinds** (use with `header: null`): `sections` (one item per `#` heading, present and
+  in order), `language` (Spanish or not, by function-word share), `mention` (titles from `fixtures/mock-data`
+  mentioned in the reply) and `json` (ops on a JSON file: `parses`, `listed`, `listed_by_day`, `count`, `all_valid`, `each_nonempty`,
+  `no_conflict`, `no_outside`; the right slots are computed from a fixture calendar). Block kinds (`pattern`,
+  `each`, `count`, `distinct`, `language`) take `section:` to read one heading's lines, and `top_level: true` to
+  count only outermost list items.
+- **`grounded_numbers` `sources:`:** fixture files whose numbers the answer may quote (timestamps count; whole hours
+  also as 24-hour times).
+- `add-task/validate.py` takes `files:` per case for tasks whose checks read a written file.
+
 ## 3.2.0 (2026-10-29)
 
 The engine pieces for Suite v2's first wave of converted tasks: more ways for the `items` check to read

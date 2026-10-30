@@ -10,6 +10,56 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
 
 ## Unreleased
 
+- **interest-calculator-cli (formerly CODE-1b): version 1 → 2, rubric 1 → 2, still active (pinned in Suite v1).**
+  The prompt now pins the interface: Python 3 standard library, `python -m interest` from the workspace
+  root with the package in `interest/`, the flags (`--principal`, `--rate`, `--years`/`--months`,
+  `--compound`, optional `--contribution` with `--contribution-frequency`), the `--json` shape, errors on
+  stderr with a non-zero exit, tests in `tests/` and a `README.md`. Scoring is no longer AI-judged: an
+  isolated, per-test grader runs 38 equal hidden tests (19 known-value math cases, 5 output, 12 invalid
+  inputs, each beside a valid control run), plus the model's own tests passing (1) and a README with a
+  command example (1). Any math case off by more than a cent caps the score at 4 (the old critical
+  failure). Reference solution and four calibration fixtures. Runs of version 1 used the unpinned prompt
+  and no longer count; the stored ones were not rescored into the leaderboard (each puts a script at the
+  workspace root, so none has an `interest/` package and all grade 0). Engine: Python graders (CHANGELOG
+  Unreleased).
+
+- **blank-dashboard-debug (formerly CODE-5): version 2, rubric 2, still provisional.** Now an isolated,
+  per-test grader on `repos/login-service` (`artifacts`: server.js, public). 13 equal hidden tests: the API
+  answers 401 rather than 200 with blank data (just expired, long expired and repeated, a logged-out cookie,
+  no session: 4), the dashboard page run in jsdom against the real app sends an expired, logged-out or missing
+  session to log in (3), normal sessions still work until they expire, expire independently, log in again
+  and log out (5), plus the model's own regression test as one test (1). Every one fails on the seeded repo.
+  "Existing tests still pass" (the repo's seeded login, dashboard and reset tests) is a cap of 5. The
+  trigger is deterministic: sessions last 30 seconds (stated in the prompt) and the tests move the clock; the
+  `/api/admin/expire-session` endpoint is gone. Leaks removed: the "C5" comments in server.js and
+  dashboard.html, the admin endpoint and SKILL.md's "blank state" symptom. Also fixed in the repo: the
+  server read signed cookies from `req.cookies`, so every session was blank (stored runs spent their time on
+  that); `test.js` used jest and supertest, which weren't installed, and is now `server.test.js` on vitest.
+  The repo gains a lockfile, an audit log and a vitest/supertest/jsdom dev toolchain. Reference solution and
+  four calibration fixtures. The stored runs used the leaky version 1 and don't count for version 2; their
+  workspaces rescored on copies for reference: gemma-4-e4b 2.31 (was unscored), gpt-oss-20b 2.31 (unscored),
+  qwen3.8-27b 5.38 (judge 10.0; its tests are node:test and its 30 minute lifetime isn't the new 30 seconds).
+  Runs must be redone.
+
+- **login-recovery (formerly CODE-4): version 2, rubric 2, still active.** Now fully deterministic, scored
+  from the app's own audit log (`.crucible/audit.jsonl`, hash-chained, written by server.js), the git diff
+  against the seeded commit and the answer: ended with a valid session for testuser (3, cap 3), recovered
+  through the documented reset flow (3), app code untouched and the app actually used (1, cap 3), and the
+  final `FAILURE: <mode>` line names the seeded mode, wrong password (3). The test user's password is now
+  actually rotated (fixture `login-recovery/accounts.json`, stored as a scrypt hash), so the seeded failure
+  exists; before, login always worked and "diagnose the failure" had nothing to find. Needs the repo changes
+  listed under blank-dashboard-debug (cookie fix, neutral SKILL.md) and drops the browser-use criterion,
+  which no server state can show. Stored runs (gemma-4-26b 5.0, qwen3.8-27b 9.17 by the judge, gemma-4-e4b and
+  gpt-oss-20b unscored) have no audit log and ended with no FAILURE line, so they rescore to 0.0 (capped at
+  3); they ran the leaky, cookie-broken version 1 and don't count. Runs must be redone.
+
+- login-recovery-repeat (formerly CODE-4b): version 2. Shares `repos/login-service`, which changed for the two
+  tasks above; its prompt and judge rubric are unchanged. It is slated to retire.
+
+- **two-calendar-slots-json (formerly TASK-1): version 2 → 3, rubric 1 → 2, still active in Suite v1.** The model now writes `slots.json` (`valid_slots` and `top3` with explanations) for the fixed window (Aug 31 09:00 to Sep 7 17:00, America/Chicago, weekends included, half-hour starts). Scored by 14 equal items computed from the fixture: one per day of the window (every true slot that day listed, none that overlaps an event), no slot outside the window or half-hour grid, valid JSON, exactly three valid top-3 entries, each explained (top 3 and JSON are 5 of 14); ranking order is not scored. Any listed slot that overlaps an event caps the score at 5. No judge. Runs must be redone.
+- **morning-brief-spanish (formerly TASK-2): version 1 → 2, rubric 1 → 2.** Fixed `##` sections (Emails, Calendar, News, Spanish practice), today stated as 2026-09-02. 16 equal items: sections in order, last section Spanish and the others not (function-word share; capped at 5 if not Spanish), each of the four yesterday-email subjects, each of the three events on Sep 2, one news item. The mock data gained two emails and one event. Runs must be redone.
+- **morning-brief-priorities (formerly TASK-3): version 2 → 3, rubric 1 → 2.** No live sources: weather and news come from the mock server. Sections Weather, Outstanding work, Emails, Calendar, News, Top 3 (exactly 3 items). 11 equal items incl. the seeded must-act items (Planning/Vendor demo conflict, expense report due 5 PM, unanswered proposal question; none mentioned caps at 5) and `grounded_numbers` against the mock data. New mock data: "Vendor demo" event (10:00, overlaps Planning) and two emails (expense report deadline, client question). Runs must be redone.
+
 - **accessibility-audit-fixes (formerly CODE-15): rubric 2 → 3, still provisional.** Now an isolated,
   per-test grader (`artifacts`: apps/web/src). 38 hidden tests cover all six audit findings (dialog 9,
   read more 6, tag filter 7, button names 6, form errors 6, status messages 4) plus the model's own
@@ -104,7 +154,26 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
   on Labor Day or 9/10-9/11, none ending after 4 PM Central, and `get_freebusy` covered the 15 other
   Platform calendars (session). An option outside the ground-truth set (busy, Labor Day, Priya out, past 4 PM Central) caps the score at 4. Event titles no longer say "(declined)" or "(optional)". Runs of version 1
   no longer count; rerun it.
+- **nextjs-server-data-boundary (formerly CODE-3): version 1 → 2, rubric 1 → 2, still active (Suite v1 keeps its
+  pin).** Scored by an isolated hidden-test grader instead of an AI judge: one production build, then 9 equal
+  tests: the build passes; `/` server-renders acct_1's name and plan in the HTML (no loading placeholder, the
+  page's markup kept); `app/page.tsx` stays a Server Component; the other account's record (Bob, Basic) is in no
+  client bundle and not in the page payload; the browser does not fetch `/api/account` itself; plus the model's
+  own tests (one test: they fail on the seeded code and pass on the fix). The old "server-only data made
+  client-accessible caps the score at 5" rule is now a cap of 3 if the account data reaches a client bundle or the page payload. The seeded repo changed: the
+  `// BUG:` comment that named the fix and the seeded test that asserted the fixed output are gone, and the repo
+  now ships pinned, installed test tooling (vitest, jsdom, Testing Library) and a lockfile. Runs of version 1 no
+  longer count; rerun it. Rescored for reference (they used the leaky repo): qwen3.8-27b 10.0 (judge) → 10.0,
+  gemma-4-e4b unscored → 8.89 (no tests added), gpt-oss-20b unscored → 0.0 (its fix fails `next build` on a
+  type error), gemma-4-26b-a4b-qat 0.0 (timed out) → 0.0.
 
+- invite-signup-loop (formerly CODE-14): version 2, rubric 3, still provisional. Scored by an isolated per-test
+  grader: 21 hidden tests (12 web, 9 API) plus the model's own regression tests as one test, every test weighing the
+  same, and none passing on the seeded repo. "Existing tests still pass" and "contract suite untouched" are now caps
+  (5 and 4), not points; they paid 2 of 10 for doing nothing. Skipping the Legal terms caps the score at 5. The tests assert Legal's requirements: an invited
+  address claims its account once, the terms are recorded only when accepted, accounts already stuck work as they are,
+  and regular sign-ups are unchanged. The prompt now says Legal's requirements are the authority. The repo's docs and
+  comments no longer state the bug. Stored runs: gemma-4-e4b and gpt-oss-20b (both no-ops) 5.9 -> 0.0.
 - fact-check-history (formerly HIST-2), now "Fact-check twelve history claims": version 2, rubric 2,
   still provisional. The paragraph became twelve numbered claims with one fact each (five wrong, seven
   true), and the answer is an `ERRORS:` block of `<number>: <corrected value>` lines, scored as 17 equal

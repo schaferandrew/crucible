@@ -163,6 +163,8 @@ EVERY_TYPE = [
      "items": [{"id": "q", "expect": ["B"], "of": ["A", "B", "C"]}, {"id": "n", "key": "2", "expect": 2}]},
     {"id": "times", "type": "time_options", "dataset": "spark", "items": [{"id": "c", "kind": "count", "min": 0}]},
     {"id": "tools", "type": "tool_calls", "items": [{"id": "t", "tool": "get_current_time"}]},
+    {"id": "audit", "type": "audit_log", "log": "audit.jsonl", "sequence": [{"event": "login_success"}]},
+    {"id": "unchanged", "type": "workspace_unchanged", "paths": ["server.js"]},
 ]
 
 

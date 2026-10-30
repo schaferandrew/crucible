@@ -239,8 +239,9 @@ def test_isolated_graders_are_complete(test_id):
     assert (root / "solution").is_dir(), "an isolated grader needs a reference solution"
     assert (root / graders.EXPECTED_FILENAME).exists(), "run crucible grader --write-expected"
     assert cfg.get("artifacts"), "list the paths taken from the workspace"
-    lock = root / cfg["lockfile"] if cfg.get("lockfile") else workspace.REPOS_DIR / prompt["repo"] / "package-lock.json"
-    assert lock.exists(), "pin dependencies with a lockfile"
+    if cfg.get("runner") != "pytest":
+        lock = root / cfg["lockfile"] if cfg.get("lockfile") else workspace.REPOS_DIR / prompt["repo"] / "package-lock.json"
+        assert lock.exists(), "pin dependencies with a lockfile"
     for name in (cfg.get("oracle") or {}).get("calibration") or {}:
         assert (root / "calibration" / name).is_dir()
     # Every expected test is picked by exactly one criterion, so the levels add up to the whole score
@@ -254,3 +255,72 @@ def test_per_test_rubrics_are_all_hidden_tests():
         prompt = workspace.load_task(test_id)
         if checks.per_test(prompt):
             assert all(item.get("hidden_tests") and not item.get("check") for item in prompt["rubric"]), test_id
+
+
+# --- runner: pytest (Python graders) ---------------------------------------------------------------
+
+PY_PROMPT = {"id": "py-task", "grader": "py-task", "repo": None}
+PY_CFG = {"isolated": True, "runner": "pytest", "artifacts": ["pkg", "tests"], "own_tests": "tests", "timeout": 120}
+
+
+def _py_grader(tmp_path, monkeypatch):
+    root = tmp_path / "graders"
+    (root / "py-task").mkdir(parents=True)
+    (root / "py-task" / "support.py").write_text("import sys\nPY = sys.executable\n")
+    (root / "py-task" / "test_hidden.py").write_text(
+        "import subprocess, pathlib\nfrom support import PY\n\n\nclass TestAdds:\n    \"\"\"math: adds\"\"\"\n\n"
+        "    def test_two_plus_two(self):\n        root = pathlib.Path(__file__).resolve().parent.parent\n"
+        "        out = subprocess.run([PY, '-c', 'import pkg; print(pkg.add(2, 2))'], cwd=root, capture_output=True, text=True)\n"
+        "        assert out.stdout.strip() == '4'\n\n\ndef test_loose():\n    assert True\n")
+    monkeypatch.setattr(graders, "GRADERS_DIR", root)
+    monkeypatch.setattr(graders, "grader_config", lambda g: PY_CFG)
+
+
+def _workspace(tmp_path, add="a + b", own_test="def test_ok():\n    assert True\n"):
+    ws = tmp_path / "ws"
+    (ws / "pkg").mkdir(parents=True)
+    (ws / "pkg" / "__init__.py").write_text(f"def add(a, b):\n    return {add}\n")
+    if own_test is not None:
+        (ws / "tests").mkdir()
+        (ws / "tests" / "test_own.py").write_text(own_test)
+    return ws
+
+
+def test_pytest_runner_groups_by_class_docstring(tmp_path, monkeypatch):
+    _py_grader(tmp_path, monkeypatch)
+    record = graders.run_isolated_pytest(_workspace(tmp_path), PY_PROMPT, PY_CFG)
+    got = {(t["group"], t["name"]): t["passed"] for t in record["tests"]}
+    assert got == {("math: adds", "test_two_plus_two"): True, ("hidden", "test_loose"): True,
+                   ("own tests", "your own tests run and pass"): True}
+    assert record["artifacts"] == ["pkg", "tests"] and not record["errors"]
+
+
+def test_pytest_runner_fails_wrong_code_and_missing_tests(tmp_path, monkeypatch):
+    _py_grader(tmp_path, monkeypatch)
+    record = graders.run_isolated_pytest(_workspace(tmp_path, add="a - b", own_test="def test_bad():\n    assert False\n"),
+                                         PY_PROMPT, PY_CFG)
+    got = {t["name"]: t["passed"] for t in record["tests"]}
+    assert got["test_two_plus_two"] is False and got["test_loose"] is True and got["your own tests run and pass"] is False
+    empty = graders.run_isolated_pytest(tmp_path / "nothing", PY_PROMPT, PY_CFG)  # an empty workspace, seeded empty
+    assert not any(t["passed"] for t in empty["tests"] if t["name"] != "test_loose")
+    assert "no tests/" in empty["own_tests"]["detail"]
+
+
+def test_own_tests_accept_unittest_and_need_at_least_one(tmp_path):
+    ws = _workspace(tmp_path, own_test="import unittest\n\n\nclass T(unittest.TestCase):\n    def test_x(self):\n"
+                                       "        self.assertTrue(True)\n")
+    # a unittest file named like pytest's pattern is found by pytest; one that isn't is found by the unittest fallback
+    (ws / "tests" / "test_own.py").rename(ws / "tests" / "tests_own.py")
+    assert graders._own_tests(ws, "tests", 60)["passed"]
+    (ws / "tests" / "tests_own.py").write_text("x = 1\n")
+    assert graders._own_tests(ws, "tests", 60) == {"passed": False, "detail": "no tests found"}
+
+
+def test_oracle_seeds_a_repo_less_task_empty(tmp_path, monkeypatch):
+    _py_grader(tmp_path, monkeypatch)
+    monkeypatch.setattr(graders, "run", lambda run_dir, prompt: {"tests": []})
+    from crucible import checks
+    monkeypatch.setattr(checks, "save_check_score", lambda *a: None)
+    monkeypatch.setattr(checks, "check_results", lambda *a: [])
+    graders._oracle_case(PY_PROMPT, None, tmp_path, "seeded")
+    assert list((tmp_path / "seeded" / "workspace").iterdir()) == []

@@ -7,11 +7,11 @@
     "rubric_hash": "ba79097d3d49ec8d"
   },
   "blank-dashboard-debug": {
-    "version": 1,
-    "content_hash": "886b61994e6a3ba4",
-    "prompt_hash": "a891288ef6b407dc",
-    "rubric_version": 1,
-    "rubric_hash": "21c080734296e3ae"
+    "version": 2,
+    "content_hash": "1cd54ceb401f0947",
+    "prompt_hash": "2c417fec72d12bcf",
+    "rubric_version": 2,
+    "rubric_hash": "c99e9bf61025cb59"
   },
   "cache-leak-incident": {
     "version": 3,
@@ -147,11 +147,11 @@
     "rubric_hash": "3a7f59dac961798f"
   },
   "interest-calculator-cli": {
-    "version": 1,
-    "content_hash": "0988983917902a9b",
-    "prompt_hash": "4ec863637c7bc1d9",
-    "rubric_version": 1,
-    "rubric_hash": "b4526238202a2890"
+    "version": 2,
+    "content_hash": "89de4378a797689c",
+    "prompt_hash": "1c8d65c7ead33960",
+    "rubric_version": 2,
+    "rubric_hash": "f45237ead95e5fe5"
   },
   "interest-cli-open-ended": {
     "version": 1,
@@ -161,11 +161,11 @@
     "rubric_hash": "b4526238202a2890"
   },
   "invite-signup-loop": {
-    "version": 1,
-    "content_hash": "634f3fbe8532d3f6",
-    "prompt_hash": "6f82599c6c194ee3",
-    "rubric_version": 2,
-    "rubric_hash": "fc01b9277a213309"
+    "version": 2,
+    "content_hash": "c6414d81d51c4642",
+    "prompt_hash": "a80a69248b364c86",
+    "rubric_version": 3,
+    "rubric_hash": "534a86d7de9cff6b"
   },
   "landlocked-countries": {
     "version": 2,
@@ -189,32 +189,32 @@
     "rubric_hash": "ae34f3fe94b7fe66"
   },
   "login-recovery": {
-    "version": 1,
-    "content_hash": "e9e834e92247adcf",
-    "prompt_hash": "d500776e3561c603",
-    "rubric_version": 1,
-    "rubric_hash": "ad8018cfb54871da"
+    "version": 2,
+    "content_hash": "9e2054ec754b41ca",
+    "prompt_hash": "f4c112e3dd56347f",
+    "rubric_version": 2,
+    "rubric_hash": "13b36751db77b664"
   },
   "login-recovery-repeat": {
-    "version": 1,
-    "content_hash": "f3bb28464091c844",
+    "version": 2,
+    "content_hash": "7f4dece5aaeef608",
     "prompt_hash": "72ff8c34183a9f5e",
     "rubric_version": 1,
     "rubric_hash": "ad8018cfb54871da"
   },
   "morning-brief-priorities": {
-    "version": 2,
-    "content_hash": "202c33240181c8a2",
-    "prompt_hash": "0bd229d3574c96e6",
-    "rubric_version": 1,
-    "rubric_hash": "9be26bf680b4a305"
+    "version": 3,
+    "content_hash": "5adc9d482d290291",
+    "prompt_hash": "c26668c1183aa7e3",
+    "rubric_version": 2,
+    "rubric_hash": "c8a39c24addb5905"
   },
   "morning-brief-spanish": {
-    "version": 1,
-    "content_hash": "2542cbccc8bd54d8",
-    "prompt_hash": "d14c8fde91dbcfc7",
-    "rubric_version": 1,
-    "rubric_hash": "aa1c9b0a9e16d06c"
+    "version": 2,
+    "content_hash": "a6695597fb3c2428",
+    "prompt_hash": "423e533a5496c8dc",
+    "rubric_version": 2,
+    "rubric_hash": "dc93915590f6e118"
   },
   "names-for-one-character": {
     "version": 2,
@@ -245,11 +245,11 @@
     "rubric_hash": "9f2f5e1d70daa4e2"
   },
   "nextjs-server-data-boundary": {
-    "version": 1,
-    "content_hash": "2cc412271b315917",
+    "version": 2,
+    "content_hash": "f5196c62d3613d53",
     "prompt_hash": "b17d421ec1389e3c",
-    "rubric_version": 1,
-    "rubric_hash": "86ebc893b53ed345"
+    "rubric_version": 2,
+    "rubric_hash": "071f25e0acdbacbf"
   },
   "novel-character-names": {
     "version": 1,
@@ -343,11 +343,11 @@
     "rubric_hash": "78a82e60de366899"
   },
   "two-calendar-slots-json": {
-    "version": 2,
-    "content_hash": "22fad633f8f09b64",
-    "prompt_hash": "969a003fd72a79b7",
-    "rubric_version": 1,
-    "rubric_hash": "177ecbdd7545302c"
+    "version": 3,
+    "content_hash": "f768898b61923888",
+    "prompt_hash": "bf11445c465f7659",
+    "rubric_version": 2,
+    "rubric_hash": "e6394e3e00a41fc7"
   },
   "weather-vs-normal": {
     "version": 1,

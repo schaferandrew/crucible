@@ -41,6 +41,13 @@
       "attendees": ["alex@example.com"]
     },
     {
+      "start": "2026-09-02T10:00:00-05:00",
+      "end": "2026-09-02T11:00:00-05:00",
+      "title": "Vendor demo",
+      "location": "Zoom",
+      "attendees": ["alex@example.com", "vendor@example.com"]
+    },
+    {
       "start": "2026-09-02T13:00:00-05:00",
       "end": "2026-09-02T14:00:00-05:00",
       "title": "Budget meeting",

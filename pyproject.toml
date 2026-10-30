@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "crucible"
-version = "3.2.0"
+version = "3.3.0"
 description = "Personal AI benchmark gauntlet for evaluating models on real-world tasks"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -26,3 +26,8 @@ include = ["crucible*"]
 [tool.setuptools.package-data]
 "crucible.agents" = ["*.ts"]
 "crucible" = ["schemas/*.json"]
+
+# Only Crucible's own tests: graders/ holds solutions and calibration fixtures with test files that
+# only run inside a grader's isolated copy
+[tool.pytest.ini_options]
+testpaths = ["tests"]
