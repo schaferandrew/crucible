@@ -12,6 +12,13 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## 3.4.2 (2026-10-30)
+
+### Fixed
+- Runs served over LM Link by Duskfall (Apple M5 Pro, 48 GB) record its hardware (`m5-pro-48gb`). Duskfall
+  wasn't in the machine list, so its runs had only the machine's name and showed as "Not recorded" on the
+  dashboard's hardware filter.
+
 ## 3.4.1 (2026-10-30)
 
 ### Fixed

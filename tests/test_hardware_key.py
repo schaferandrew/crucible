@@ -27,5 +27,7 @@ def test_key(cpu, gpu, ram_gb, key):
 
 def test_listed_machines_have_their_keys():
     whitehall, ironwood = hardware.specs("Whitehall"), hardware.specs("Ironwood")
+    duskfall = hardware.specs("Duskfall")
     assert hardware.key(whitehall["cpu"], whitehall["gpu"], whitehall["ram_gb"]) == "rtx-5070-ti-16gb"
     assert hardware.key(ironwood["cpu"], ironwood["gpu"], ironwood["ram_gb"]) == "m1-pro-32gb"
+    assert hardware.key(duskfall["cpu"], duskfall["gpu"], duskfall["ram_gb"]) == "m5-pro-48gb"
