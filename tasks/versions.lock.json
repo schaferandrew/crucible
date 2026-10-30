@@ -97,6 +97,13 @@
     "rubric_version": 2,
     "rubric_hash": "0fdc5051fcd23767"
   },
+  "fill-in-crossword-grids": {
+    "version": 1,
+    "content_hash": "7d3cd79b50d123cd",
+    "prompt_hash": "b5edf66bf65f3987",
+    "rubric_version": 1,
+    "rubric_hash": "879e9754aac89329"
+  },
   "fire-truck-color": {
     "version": 1,
     "content_hash": "4f544d69ec35ecb1",
@@ -187,6 +194,13 @@
     "prompt_hash": "ec96546965db8a44",
     "rubric_version": 1,
     "rubric_hash": "ae34f3fe94b7fe66"
+  },
+  "logic-and-game-puzzles": {
+    "version": 1,
+    "content_hash": "8104a48508bbe599",
+    "prompt_hash": "f6e2d6143d76e2e0",
+    "rubric_version": 1,
+    "rubric_hash": "2502acca0cb631ef"
   },
   "login-recovery": {
     "version": 2,
@@ -341,6 +355,13 @@
     "prompt_hash": "7fd3be0e4fc2387c",
     "rubric_version": 1,
     "rubric_hash": "58c3e214665a719a"
+  },
+  "sudoku-variants": {
+    "version": 1,
+    "content_hash": "400a7ce4b6918400",
+    "prompt_hash": "780f9ff7ae934e8d",
+    "rubric_version": 1,
+    "rubric_hash": "f542332fa2498e17"
   },
   "todays-local-news": {
     "version": 1,
