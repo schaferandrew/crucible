@@ -11,13 +11,13 @@ author has reported back to the orchestrating session.
 | [A2 Leak scan](A2-leak-scan.md) | A | crucible (read-only) | Haiku | — | done: [report](reports/A2-leak-scan.md) |
 | [A3 Data-driven dashboard](A3-portfolio-data-driven.md) | A | portfolio | Sonnet | — | done: portfolio `claude/a3-crucible-data-driven-862318` (e76cd73); awaiting review and merge |
 | [C Crucible 3.0.0](C-crucible-3.0.0.md) | C | crucible | Opus | A1 | started, on top of the A1 branch |
-| [D Task conversions](D-task-conversions.md) | D | crucible | Opus first two, then Sonnet per task | C merged | exemplars merged (3.1.0); wave 1 (17 tasks) done, combined as Crucible 3.2.0 on `claude/crucible-3-2-0-91cb06`, awaiting merge; CODE-2b and RSCH-2b moved to Suite v3 |
+| [D Task conversions](D-task-conversions.md) | D | crucible | Opus first two, then Sonnet per task | C merged | done: exemplars (3.1.0), wave 1 (17 tasks, 3.2.0) and wave 2 (8 tasks, combined as Crucible 3.3.0 on `claude/crucible-3.3.0`, awaiting merge); every Suite v2 conversion is complete except CODE-2b and RSCH-2b, moved to Suite v3 |
 | [E Calibration runs](E-calibration.md) | E | crucible | Sonnet | D tasks as they land | outline |
 | F Suite v2 cut and site switch | F | both | orchestrator, with Andrew | D, E | — |
 
 ## Lean plan (Andrew's decision, 2026-10-29)
 
-Suite v2 ships with what wave 1 converted, rather than waiting for every conversion:
+Suite v2 ships with what waves 1 and 2 converted, rather than waiting for every conversion:
 
 - Combine the eight wave-1 branches into one release, Crucible 3.2.0.
 - Cap CODE-12's core requirement: `cap_if_failed: 6` on cursor correctness, so cursors that skip or

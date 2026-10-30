@@ -41,8 +41,24 @@ verified by its session; validation cases are in `.claude/skills/add-task/exampl
 Tasks active in Suite v1 (WRIT-1a, 1b, 1c, 2b, MATH-4) stay active; their version bumps stop old runs
 counting. Everything else is provisional until the Suite v2 cut.
 
+**Wave 2 (done, combined as Crucible 3.3.0 on `claude/crucible-3.3.0`):** each branch was verified by
+its session and again after combining (every grader oracle and add-task example passes).
+
+| Branch | Tasks | Status |
+|---|---|---|
+| `claude/w2-code3-bb4a2f` | CODE-3 `nextjs-server-data-boundary` (grader, leaks removed) | done |
+| `claude/w2-code14-0b4983` | CODE-14 `invite-signup-loop` (grader, leaks removed; capped at 5 without the Legal terms) | done |
+| `claude/w2-code1b` | CODE-1b `interest-calculator-cli` (first Python grader: `runner: pytest`, `own_tests`, `repo: null`) | done |
+| `claude/w2-code45` | CODE-4 `login-recovery` (`audit_log`, `workspace_unchanged` checks), CODE-5 `blank-dashboard-debug` (grader); CODE-4b `login-recovery-repeat` version 2 for the shared repo | done |
+| `claude/w2-tasks123` | TASK-1 `two-calendar-slots-json`, TASK-2 `morning-brief-spanish`, TASK-3 `morning-brief-priorities` (whole-document `items` kinds) | done |
+
+Tasks active in Suite v1 (CODE-1b, CODE-3, CODE-4, CODE-4b, TASK-1, TASK-2, TASK-3) stay active; their version bumps stop old runs
+counting.
+
+**Every Suite v2 conversion is complete**, except the two moved to Suite v3.
+
 **Moved to Suite v3 (lean plan):** CODE-2b `navbar-hamburger-menu` (needs the first Playwright
 grader) and RSCH-2b `weather-vs-normal` (needs a frozen `web` fixture host). Not converted here.
 
-**Not in wave 1:** CODE-14, TASK-1 and TASK-2 conversions (later waves), and the retirements (CODE-1, CODE-2,
-CODE-4b, CODE-6, RSCH-1, RSCH-2, WRIT-2), which happen at the cut.
+**Not converted:** the retirements (CODE-1, CODE-2, CODE-4b, CODE-6, RSCH-1, RSCH-2, WRIT-2), which happen
+at the cut.
