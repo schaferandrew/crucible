@@ -1,0 +1,99 @@
+id: multi-step-competition-math
+name: Multi-step competition math
+aliases: []
+needs_tools: false
+category: math
+area: math
+tier: forge
+version: 1
+rubric_version: 1
+status: provisional
+auto_grade: false
+repo: null
+prompt: |
+  Six problems, each with a single exact answer that is a positive integer. Work carefully: every one has a step where a plausible shortcut gives a wrong number.
+
+  1. Let N = 6,604,416. How many integers x with 1 ≤ x ≤ N satisfy x^12 ≡ 1 (mod N)?
+
+  2. The eleven letters A, A, A, A, B, B, B, C, C, D, D are arranged in a row. Copies of the same letter are indistinguishable. How many distinct arrangements have no two identical letters next to each other?
+
+  3. A fair six-sided die is rolled repeatedly, and the rolling stops as soon as the last two rolls add up to a prime number. The expected total number of rolls, counting the first roll and the last, is m/n with m and n coprime positive integers. What is m + n?
+
+  4. How many subsets of {1, 2, 3, ..., 20}, counting the empty set, contain no two elements that differ by exactly 1 or by exactly 4?
+
+  5. How many triples (a, b, c) of positive integers with a < b < c satisfy lcm(a, b, c) = 10,080 and gcd(a, b, c) = 1?
+
+  6. A path from (0, 0) to (12, 8) is made of unit steps, each either right (x goes up by 1) or up (y goes up by 1). How many such paths never visit a point with y > x, and never visit the point (5, 3)?
+
+  Explain your reasoning first if it helps. Then end your reply with this block, and nothing after it:
+
+  ANSWERS:
+  <number>: <answer>
+
+  One line per numbered question, in order. Give only the answer (a number, name or letter), not a sentence.
+# Only the last ANSWERS block is scored: six equal items, one per problem (each criterion is one point).
+# Every answer is an integer (problem 3 asks for m + n), so the `number` normalizer reads each line.
+# Answers verified by brute force plus a second method for each (see SUITE_CHANGELOG.md).
+checks:
+- id: power_congruence
+  type: items
+  header: ANSWERS
+  items:
+  - {id: power_congruence, key: '1', expect: 3456, normalize: number, label: 'Answer 1 is 3456'}
+  rule: Answer 1 is 3456 (N = 2^7 x 3^4 x 7^2 x 13; 8 x 6 x 6 x 12 solutions, the units mod 128 are not cyclic).
+- id: no_adjacent_letters
+  type: items
+  header: ANSWERS
+  items:
+  - {id: no_adjacent_letters, key: '2', expect: 6516, normalize: number, label: 'Answer 2 is 6516'}
+  rule: Answer 2 is 6516 (of 69,300 arrangements).
+- id: prime_sum_rolls
+  type: items
+  header: ANSWERS
+  items:
+  - {id: prime_sum_rolls, key: '3', expect: 1645, normalize: number, label: 'Answer 3 is 1645'}
+  rule: Answer 3 is 1645 (the expected number of rolls is 1279/366).
+- id: difference_free_subsets
+  type: items
+  header: ANSWERS
+  items:
+  - {id: difference_free_subsets, key: '4', expect: 4867, normalize: number, label: 'Answer 4 is 4867'}
+  rule: Answer 4 is 4867 (including the empty set; a, a+2, a+4 is ruled out too).
+- id: lcm_gcd_triples
+  type: items
+  header: ANSWERS
+  items:
+  - {id: lcm_gcd_triples, key: '5', expect: 2152, normalize: number, label: 'Answer 5 is 2152'}
+  rule: Answer 5 is 2152 ((12,960 ordered - 48 with two equal) / 6).
+- id: restricted_paths
+  type: items
+  header: ANSWERS
+  items:
+  - {id: restricted_paths, key: '6', expect: 28122, normalize: number, label: 'Answer 6 is 28122'}
+  rule: Answer 6 is 28122 (48,450 ballot paths minus 28 x 726 through (5, 3)).
+rubric:
+- criterion: Power congruence
+  max_score: 1
+  check: power_congruence
+  description: Answer 1 is 3456.
+- criterion: Letters apart
+  max_score: 1
+  check: no_adjacent_letters
+  description: Answer 2 is 6516.
+- criterion: Dice expectation
+  max_score: 1
+  check: prime_sum_rolls
+  description: Answer 3 is 1645 (expected rolls 1279/366).
+- criterion: Difference-free subsets
+  max_score: 1
+  check: difference_free_subsets
+  description: Answer 4 is 4867.
+- criterion: LCM and GCD triples
+  max_score: 1
+  check: lcm_gcd_triples
+  description: Answer 5 is 2152.
+- criterion: Restricted lattice paths
+  max_score: 1
+  check: restricted_paths
+  description: Answer 6 is 28122.
+critical_failure: null
