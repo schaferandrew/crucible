@@ -31,7 +31,7 @@ export function register(db: Db, input: RegisterInput): User {
   return presentUser(user);
 }
 
-/** The welcome screen's submit: profile set up and contributor terms accepted. */
+/** The welcome screen's submit. */
 export function completeOnboarding(db: Db, userId: number, input: OnboardingInput): User {
   const user = findUserById(db, userId);
   if (!user) throw unauthorized();

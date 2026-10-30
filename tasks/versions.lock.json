@@ -161,11 +161,11 @@
     "rubric_hash": "b4526238202a2890"
   },
   "invite-signup-loop": {
-    "version": 1,
-    "content_hash": "634f3fbe8532d3f6",
-    "prompt_hash": "6f82599c6c194ee3",
-    "rubric_version": 2,
-    "rubric_hash": "fc01b9277a213309"
+    "version": 2,
+    "content_hash": "c6414d81d51c4642",
+    "prompt_hash": "a80a69248b364c86",
+    "rubric_version": 3,
+    "rubric_hash": "534a86d7de9cff6b"
   },
   "landlocked-countries": {
     "version": 2,

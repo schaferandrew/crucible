@@ -117,6 +117,13 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
   gemma-4-e4b unscored → 8.89 (no tests added), gpt-oss-20b unscored → 0.0 (its fix fails `next build` on a
   type error), gemma-4-26b-a4b-qat 0.0 (timed out) → 0.0.
 
+- invite-signup-loop (formerly CODE-14): version 2, rubric 3, still provisional. Scored by an isolated per-test
+  grader: 21 hidden tests (12 web, 9 API) plus the model's own regression tests as one test, every test weighing the
+  same, and none passing on the seeded repo. "Existing tests still pass" and "contract suite untouched" are now caps
+  (5 and 4), not points; they paid 2 of 10 for doing nothing. Skipping the Legal terms caps the score at 5. The tests assert Legal's requirements: an invited
+  address claims its account once, the terms are recorded only when accepted, accounts already stuck work as they are,
+  and regular sign-ups are unchanged. The prompt now says Legal's requirements are the authority. The repo's docs and
+  comments no longer state the bug. Stored runs: gemma-4-e4b and gpt-oss-20b (both no-ops) 5.9 -> 0.0.
 - fact-check-history (formerly HIST-2), now "Fact-check twelve history claims": version 2, rubric 2,
   still provisional. The paragraph became twelve numbered claims with one fact each (five wrong, seven
   true), and the answer is an `ERRORS:` block of `<number>: <corrected value>` lines, scored as 17 equal
