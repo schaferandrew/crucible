@@ -12,6 +12,16 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## 3.3.1 (2026-10-29)
+
+### Fixed
+- A hidden test that timed out left its runner's workers behind: a vitest worker stuck in a render loop kept
+  spinning at full CPU after the grader moved on. Graders now run test commands in their own process group and
+  kill the whole group on timeout or exit.
+- The regression check (do the model's own tests catch the bug?) waited the task's full timeout, 10 minutes, when
+  a model's test reproduced a hang on the seeded code. That run now has a 2-minute limit, and timing out still
+  counts as catching the bug.
+
 ## 3.3.0 (2026-10-29)
 
 The engine pieces for Suite v2's second wave of converted tasks: Python graders, checks that read what an

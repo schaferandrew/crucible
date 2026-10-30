@@ -49,6 +49,7 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -75,14 +76,42 @@ HIDDEN_DIR = "crucible_hidden"
 REGRESSION_TEST = {"file": "regression", "group": "regression",
                    "name": "your new tests fail on the seeded code and pass on your fix"}
 TEST_NAME = re.compile(r"""^\s*it\(\s*(["'`])(.+?)\1""", re.M)
+# How long the model's own tests may run on the seeded code (see _isolated_regression)
+SEEDED_TIMEOUT = 120
+
 GROUP_NAME = re.compile(r"""^\s*describe\(\s*(["'`])(.+?)\1""", re.M)
+
+
+def _run_group(cmd: list[str], cwd: Path, timeout: int, env: dict | None = None) -> subprocess.CompletedProcess:
+    """subprocess.run in its own process group, killed whole on timeout (raising TimeoutExpired), so the
+    workers a test runner spawns (vitest's, pytest-xdist's) never outlive it."""
+    with subprocess.Popen(cmd, cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                          start_new_session=True) as proc:
+        try:
+            out, err = proc.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired as exc:
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except (ProcessLookupError, PermissionError):
+                pass
+            proc.wait()
+            raise
+        finally:
+            # Workers left behind by a runner that exited on its own
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except (ProcessLookupError, PermissionError):
+                pass
+    return subprocess.CompletedProcess(cmd, proc.returncode, out, err)
 
 
 def _run(cmd: list[str], cwd: Path, timeout: int) -> subprocess.CompletedProcess:
     try:
-        return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout)
+        return _run_group(cmd, cwd, timeout)
     except subprocess.TimeoutExpired as exc:
-        return subprocess.CompletedProcess(cmd, 124, exc.stdout or "", (exc.stderr or "") + "\n[timed out]")
+        stdout = exc.stdout if isinstance(exc.stdout, str) else ""
+        stderr = exc.stderr if isinstance(exc.stderr, str) else ""
+        return subprocess.CompletedProcess(cmd, 124, stdout, stderr + "\n[timed out]")
 
 
 def _ensure_deps(workspace: Path) -> str | None:
@@ -371,7 +400,9 @@ def _isolated_regression(repo: Path, workspace: Path, copy: Path, modules: Path,
             continue
         after, error = _vitest(copy / root, mine, timeout=cfg.get("timeout", 600))
         after_ok &= bool(after) and not error and all(t["passed"] for t in after)
-        before, error = _vitest(seeded / root, mine, timeout=cfg.get("timeout", 600))
+        # The seeded code is buggy, and a test that reproduces a hang or a render loop never finishes there:
+        # a short timeout counts that as catching the bug instead of holding the run for the full one
+        before, error = _vitest(seeded / root, mine, timeout=min(SEEDED_TIMEOUT, cfg.get("timeout", 600)))
         before_failed |= bool(error) or any(not t["passed"] for t in before)
     return {"passed": after_ok and before_failed, "files": tests,
             "detail": ("pass on the fix and catch the bug on the seeded code" if after_ok and before_failed
@@ -467,7 +498,7 @@ def _pytest_hidden(copy: Path, files: list[Path], timeout: int) -> tuple[list[di
         cmd = [*_python_with_pytest(), "-m", "pytest", HIDDEN_DIR, "-p", "pytest_report", "-p", "no:cacheprovider",
                "-o", "addopts=", "-q", f"--crucible-report={report}"]
         try:
-            result = subprocess.run(cmd, cwd=copy, capture_output=True, text=True, timeout=timeout, env=env)
+            result = _run_group(cmd, copy, timeout, env)
         except subprocess.TimeoutExpired:
             return [], ["pytest timed out"]
         except FileNotFoundError as exc:
@@ -488,7 +519,7 @@ def _own_tests(copy: Path, folder: str, timeout: int) -> dict:
     detail = ""
     for cmd, none_found in attempts:
         try:
-            result = subprocess.run(cmd, cwd=copy, capture_output=True, text=True, timeout=timeout, env=env)
+            result = _run_group(cmd, copy, timeout, env)
         except subprocess.TimeoutExpired:
             return {"passed": False, "detail": "your tests timed out"}
         except FileNotFoundError as exc:
