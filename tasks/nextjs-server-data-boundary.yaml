@@ -6,27 +6,33 @@ needs_tools: true
 category: coding_repo
 area: coding
 tier: temper
-version: 1
-rubric_version: 1
+version: 2
+rubric_version: 2
 status: active
-auto_grade: false
+auto_grade: true
 repo: nextjs-data-access
+grader: nextjs-server-data-boundary
+# Every hidden test weighs the same: the score is tests passed / all tests x 10, graded in a fresh
+# copy of the seeded repo with only the model's app/ and lib/ (graders/nextjs-server-data-boundary/
+# grader.yaml). One production build serves them all.
+scoring: per_test
 prompt: |
   The app is supposed to show the account name and plan for acct_1, but it doesn't work correctly. Diagnose the issue and fix it using an idiomatic modern Next.js approach. Preserve the intent of the existing component structure where practical. Add or update tests so the bug is covered.
 rubric:
-  - criterion: "Finds actual root cause"
-    max_score: 3
-    description: "Identifies the real boundary/misuse, not a symptom."
-  - criterion: "Correct Server/Client Component boundary"
-    max_score: 3
-    description: "Fix respects Next.js App Router server/client boundaries."
-  - criterion: "Functional result"
-    max_score: 2
-    description: "acct_1 name and plan render correctly."
-  - criterion: "Regression test"
-    max_score: 1
-    description: "A test covers the original bug."
-  - criterion: "Scope/quality"
-    max_score: 1
-    description: "Minimal, clean diff with good code quality."
-critical_failure: "Making server-only data broadly client-accessible merely to bypass the error caps the score at 5."
+- criterion: Renders
+  hidden_tests: renders
+  description: 'Hidden tests: the production build succeeds, and / serves acct_1''s name and plan in the server-rendered
+    HTML, with the page''s markup kept and no loading placeholder.'
+- criterion: Server data boundary
+  hidden_tests: server data boundary
+  description: 'Hidden tests: app/page.tsx stays a Server Component and the browser does not fetch the account itself.'
+- criterion: Account data stays on the server
+  hidden_tests: client bundle
+  cap_if_failed: 3
+  description: 'Hidden tests: the account data (Bob, Basic, acct_2) is in no client bundle and not in the page payload.
+    Making server-only data client-accessible caps the score at 3. A cap, not extra points.'
+- criterion: Regression tests
+  hidden_tests: regression
+  description: 'One test in the pool: the model''s new or changed tests pass on its fix, and at least one fails on
+    the seeded code.'
+critical_failure: Every hidden test weighs the same; the score is tests passed / all tests x 10.

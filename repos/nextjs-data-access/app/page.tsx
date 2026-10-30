@@ -7,9 +7,6 @@ const accounts = {
 };
 
 export default function AccountPage() {
-  // BUG: Using useState in a Server Component is wrong in Next.js App Router
-  // The correct fix is either to fetch data directly (it's already server-side)
-  // or to convert this to a Client Component with 'use client'
   const [account, setAccount] = React.useState(null);
 
   React.useEffect(() => {
