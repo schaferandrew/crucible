@@ -10,6 +10,9 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
 
 ## Unreleased
 
+- **competition-math: forge -> temper (still provisional, no version change).** Every model from gemma-4-e4b up
+  scored 10 when it finished, so it can't be a forge test. It is kept as a temper math check; the forge slot is
+  taken by multi-step-competition-math.
 - **New provisional forge task: multi-step-competition-math (v1, rubric 1).** Six original multi-step problems
   (modular counting, restricted arrangements, an expected value, difference-free subsets, lcm/gcd triples,
   restricted lattice paths), each answer verified by brute force and a second method. Added because
