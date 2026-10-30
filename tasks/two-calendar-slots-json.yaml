@@ -6,32 +6,80 @@ needs_tools: true
 category: structured_data
 area: everyday
 tier: temper
-version: 2
-rubric_version: 1
+version: 3
+rubric_version: 2
 status: active
 auto_grade: true
 repo: null
 fixtures: calendar-fixture.json
 prompt: |
-  Find all meeting times during the next seven days that work for both people. The meeting must be 60 minutes, must occur between 9:00 AM and 5:00 PM local time, and must not overlap any busy event. Prefer weekdays. Rank the three best options by minimizing gaps between existing meetings and avoiding the first or last available hour of the day. Return valid JSON with an explanation field for each recommendation.
+  Find every time that works for a meeting between Alex and Jamie, using the supplied calendar JSON (calendar-fixture.json) as the source of truth.
 
-  Use the supplied calendar JSON as the source of truth. Do not infer availability outside the specified window.
+  The window runs from Monday 2026-08-31 09:00 to Monday 2026-09-07 17:00, America/Chicago time (-05:00), and includes the weekend. A meeting is 60 minutes, starts on the hour or half hour, runs entirely between 9:00 AM and 5:00 PM local time, and must not overlap any busy event of either person (back-to-back is fine). Do not infer availability outside the window.
 
-  The calendar fixture is provided as calendar-fixture.json.
+  Then pick the three best options: prefer weekdays, minimize gaps between existing meetings, and avoid the first or last available hour of the day.
+
+  Save your answer as slots.json in your working directory. It must be valid JSON in exactly this shape:
+
+  {"valid_slots": ["YYYY-MM-DDTHH:MM", ...], "top3": [{"start": "YYYY-MM-DDTHH:MM", "explanation": "..."}, ...]}
+
+  `valid_slots` lists the start of every valid meeting in the window (weekends included), in local time with no offset. `top3` has exactly three entries, best first, each with a start from `valid_slots` and a one- or two-sentence explanation. Only slots.json is scored.
+checks:
+- id: json_valid
+  type: items
+  file: slots.json
+  header: null
+  items:
+  - {id: parses, normalize: json, op: parses, label: 'slots.json is valid JSON'}
+  rule: 'slots.json parses as a JSON object (a code fence around it is tolerated, prose around it is not).'
+- id: true_slots
+  type: items
+  file: slots.json
+  header: null
+  items:
+  - {id: listed, normalize: json, op: listed_by_day, path: valid_slots, slots: &slots {fixture: calendar-fixture.json, minutes: 60, step: 30}}
+  rule: 'For each of the 8 days Aug 31 to Sep 7, valid_slots lists every start where a 60-minute meeting fits for Alex and Jamie (half hours inside 9-5, computed from the fixture) and none that overlaps an event; one item per day.'
+- id: no_conflicts
+  type: items
+  file: slots.json
+  header: null
+  items:
+  - {id: free, normalize: json, op: no_conflict, paths: [valid_slots, top3.start], slots: *slots, label: 'No listed slot overlaps an event'}
+  rule: 'None of the starts in valid_slots or top3 overlaps an event of either person. Any overlap caps the score at 5.'
+- id: no_false_slots
+  type: items
+  file: slots.json
+  header: null
+  items:
+  - {id: inside, normalize: json, op: no_outside, paths: [valid_slots, top3.start], slots: *slots, label: 'No listed slot outside the window or the half-hour grid'}
+  rule: 'Every start listed is on the half hour inside 9-5 within the window (nothing at 16:30, 08:30, 09:15 or after Sep 7).'
+- id: top3_count
+  type: items
+  file: slots.json
+  header: null
+  items:
+  - {id: count, normalize: json, op: count, path: top3, min: 3, max: 3, label: 'top3 has exactly three entries'}
+  rule: 'top3 is a list of exactly three entries.'
+- id: top3_valid
+  type: items
+  file: slots.json
+  header: null
+  items:
+  - {id: valid, normalize: json, op: all_valid, path: top3.start, slots: *slots, label: 'All three top3 starts are valid and distinct'}
+  rule: 'Every top3 start is one of the true slots, with no repeats. The order of the three is not scored.'
+- id: top3_why
+  type: items
+  file: slots.json
+  header: null
+  items:
+  - {id: why, normalize: json, op: each_nonempty, path: top3.explanation, label: 'Every top3 entry has an explanation'}
+  rule: 'Every top3 entry has a non-empty explanation string.'
 rubric:
-  - criterion: "Finds all valid options"
-    max_score: 3
-    description: "Enumerates every non-overlapping 60-minute slot within the window."
-  - criterion: "Rejects conflicts"
-    max_score: 2
-    description: "No recommended slot overlaps an existing event."
-  - criterion: "Ranking follows criteria"
-    max_score: 2
-    description: "Prefers weekdays; minimizes gaps; avoids first/last hour."
-  - criterion: "Correct JSON"
-    max_score: 2
-    description: "Valid JSON with explanation fields."
-  - criterion: "Explanation"
-    max_score: 1
-    description: "Each recommendation has a clear explanation."
-critical_failure: "Recommending a conflicting time caps score at 5."
+- {criterion: Valid slots listed, per day, max_score: 8, check: true_slots, description: 'For each of the 8 days, every true start is in valid_slots and no overlapping start is; one point per day.'}
+- {criterion: No slot overlaps an event, max_score: 1, cap_if_failed: 5, check: no_conflicts, description: 'No start in valid_slots or top3 overlaps an event; an overlap caps the score at 5.'}
+- {criterion: No slot outside the window, max_score: 1, check: no_false_slots, description: 'Every listed start is on the half hour inside 9-5 in the window.'}
+- {criterion: Valid JSON, max_score: 1, check: json_valid, description: 'slots.json parses as JSON.'}
+- {criterion: Exactly three recommendations, max_score: 1, check: top3_count, description: 'top3 has three entries.'}
+- {criterion: Recommendations are valid, max_score: 1, check: top3_valid, description: 'All three top3 starts are true slots, no repeats.'}
+- {criterion: Explanations, max_score: 1, check: top3_why, description: 'Every top3 entry has a non-empty explanation.'}
+critical_failure: "Listing a time that overlaps an event caps the score at 5."

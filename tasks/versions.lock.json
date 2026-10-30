@@ -203,18 +203,18 @@
     "rubric_hash": "ad8018cfb54871da"
   },
   "morning-brief-priorities": {
-    "version": 2,
-    "content_hash": "202c33240181c8a2",
-    "prompt_hash": "0bd229d3574c96e6",
-    "rubric_version": 1,
-    "rubric_hash": "9be26bf680b4a305"
+    "version": 3,
+    "content_hash": "5adc9d482d290291",
+    "prompt_hash": "c26668c1183aa7e3",
+    "rubric_version": 2,
+    "rubric_hash": "c8a39c24addb5905"
   },
   "morning-brief-spanish": {
-    "version": 1,
-    "content_hash": "2542cbccc8bd54d8",
-    "prompt_hash": "d14c8fde91dbcfc7",
-    "rubric_version": 1,
-    "rubric_hash": "aa1c9b0a9e16d06c"
+    "version": 2,
+    "content_hash": "a6695597fb3c2428",
+    "prompt_hash": "423e533a5496c8dc",
+    "rubric_version": 2,
+    "rubric_hash": "dc93915590f6e118"
   },
   "names-for-one-character": {
     "version": 2,
@@ -343,11 +343,11 @@
     "rubric_hash": "78a82e60de366899"
   },
   "two-calendar-slots-json": {
-    "version": 2,
-    "content_hash": "22fad633f8f09b64",
-    "prompt_hash": "969a003fd72a79b7",
-    "rubric_version": 1,
-    "rubric_hash": "177ecbdd7545302c"
+    "version": 3,
+    "content_hash": "f768898b61923888",
+    "prompt_hash": "bf11445c465f7659",
+    "rubric_version": 2,
+    "rubric_hash": "e6394e3e00a41fc7"
   },
   "weather-vs-normal": {
     "version": 1,

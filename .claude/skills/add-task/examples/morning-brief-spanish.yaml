@@ -1,0 +1,629 @@
+# Validation cases for morning-brief-spanish (TASK-2, version 2, rubric 2): 16 items (4 sections, 1 Spanish, 3 English, 4 emails, 3 events, 1 news), each worth 10/16.
+# Today is 2026-09-02; the sources are fixtures/mock-data. Wrong answers adapt mistakes in real runs of version 1 (no Spanish heading, Spanish leaking into a section, missing mock items).
+- name: reference
+  expect: 10
+  answer: '## Emails
+
+    - **Project update - Q3 review completed** (Alex): the Q3 review is done and ahead of schedule; discuss
+    results at planning.
+
+    - **Meeting notes from yesterday** (Jamie): notes from the 1-on-1 on career goals, next quarter priorities
+    and team building.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): submit by 5:00 PM today or it rolls
+    into next month''s payroll.
+
+    - **Question about the proposal timeline** (the client): asks whether the revised proposal can be
+    delivered by Friday and wants a reply.
+
+
+    ## Calendar
+
+    - 9:30-10:30 AM, Planning (Room B)
+
+    - 10:00-11:00 AM, Vendor demo (Zoom), which overlaps Planning
+
+    - 1:00-2:00 PM, Budget meeting (Conference Room A)
+
+
+    ## News
+
+    - **Twin Cities Tech Conference Returns**: 50+ speakers on AI and startup funding; registration opens
+    Friday.
+
+    - **Maplewood Park Renovation Complete**: new trails and a playground; grand reopening Saturday.
+
+
+    ## Spanish practice
+
+    Hoy tienes un día lleno de reuniones: la planificación y la demostración con el proveedor se solapan
+    por la mañana, y la reunión del presupuesto es a la una. No olvides enviar el informe de gastos antes
+    de las cinco de la tarde y responder al cliente sobre la propuesta. Si te queda tiempo, piensa en
+    la conferencia tecnológica que abre inscripciones este viernes.'
+- name: reference, prose and a title first
+  expect: 10
+  answer: 'Pulling the four sources together.
+
+
+    # Morning brief, Wed Sept 2
+
+
+    ## Emails
+
+    - **Project update - Q3 review completed** (Alex): the Q3 review is done and ahead of schedule; discuss
+    results at planning.
+
+    - **Meeting notes from yesterday** (Jamie): notes from the 1-on-1 on career goals, next quarter priorities
+    and team building.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): submit by 5:00 PM today or it rolls
+    into next month''s payroll.
+
+    - **Question about the proposal timeline** (the client): asks whether the revised proposal can be
+    delivered by Friday and wants a reply.
+
+
+    ## Calendar
+
+    - 9:30-10:30 AM, Planning (Room B)
+
+    - 10:00-11:00 AM, Vendor demo (Zoom), which overlaps Planning
+
+    - 1:00-2:00 PM, Budget meeting (Conference Room A)
+
+
+    ## News
+
+    - **Twin Cities Tech Conference Returns**: 50+ speakers on AI and startup funding; registration opens
+    Friday.
+
+    - **Maplewood Park Renovation Complete**: new trails and a playground; grand reopening Saturday.
+
+
+    ## Spanish practice
+
+    Hoy tienes un día lleno de reuniones: la planificación y la demostración con el proveedor se solapan
+    por la mañana, y la reunión del presupuesto es a la una. No olvides enviar el informe de gastos antes
+    de las cinco de la tarde y responder al cliente sobre la propuesta. Si te queda tiempo, piensa en
+    la conferencia tecnológica que abre inscripciones este viernes.'
+- name: 'reference, ### headings'
+  expect: 10
+  answer: '### Emails
+
+    - **Project update - Q3 review completed** (Alex): the Q3 review is done and ahead of schedule; discuss
+    results at planning.
+
+    - **Meeting notes from yesterday** (Jamie): notes from the 1-on-1 on career goals, next quarter priorities
+    and team building.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): submit by 5:00 PM today or it rolls
+    into next month''s payroll.
+
+    - **Question about the proposal timeline** (the client): asks whether the revised proposal can be
+    delivered by Friday and wants a reply.
+
+
+    ### Calendar
+
+    - 9:30-10:30 AM, Planning (Room B)
+
+    - 10:00-11:00 AM, Vendor demo (Zoom), which overlaps Planning
+
+    - 1:00-2:00 PM, Budget meeting (Conference Room A)
+
+
+    ### News
+
+    - **Twin Cities Tech Conference Returns**: 50+ speakers on AI and startup funding; registration opens
+    Friday.
+
+    - **Maplewood Park Renovation Complete**: new trails and a playground; grand reopening Saturday.
+
+
+    ### Spanish practice
+
+    Hoy tienes un día lleno de reuniones: la planificación y la demostración con el proveedor se solapan
+    por la mañana, y la reunión del presupuesto es a la una. No olvides enviar el informe de gastos antes
+    de las cinco de la tarde y responder al cliente sobre la propuesta. Si te queda tiempo, piensa en
+    la conferencia tecnológica que abre inscripciones este viernes.'
+- name: reference, numbered headings
+  expect: 10
+  answer: '## 1. Emails
+
+    - **Project update - Q3 review completed** (Alex): the Q3 review is done and ahead of schedule; discuss
+    results at planning.
+
+    - **Meeting notes from yesterday** (Jamie): notes from the 1-on-1 on career goals, next quarter priorities
+    and team building.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): submit by 5:00 PM today or it rolls
+    into next month''s payroll.
+
+    - **Question about the proposal timeline** (the client): asks whether the revised proposal can be
+    delivered by Friday and wants a reply.
+
+
+    ## 2. Calendar
+
+    - 9:30-10:30 AM, Planning (Room B)
+
+    - 10:00-11:00 AM, Vendor demo (Zoom), which overlaps Planning
+
+    - 1:00-2:00 PM, Budget meeting (Conference Room A)
+
+
+    ## 3. News
+
+    - **Twin Cities Tech Conference Returns**: 50+ speakers on AI and startup funding; registration opens
+    Friday.
+
+    - **Maplewood Park Renovation Complete**: new trails and a playground; grand reopening Saturday.
+
+
+    ## 4. Spanish practice
+
+    Hoy tienes un día lleno de reuniones: la planificación y la demostración con el proveedor se solapan
+    por la mañana, y la reunión del presupuesto es a la una. No olvides enviar el informe de gastos antes
+    de las cinco de la tarde y responder al cliente sobre la propuesta. Si te queda tiempo, piensa en
+    la conferencia tecnológica que abre inscripciones este viernes.'
+- name: reference, Spanish heading in Spanish
+  expect: 10
+  answer: '## Emails
+
+    - **Project update - Q3 review completed** (Alex): the Q3 review is done and ahead of schedule; discuss
+    results at planning.
+
+    - **Meeting notes from yesterday** (Jamie): notes from the 1-on-1 on career goals, next quarter priorities
+    and team building.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): submit by 5:00 PM today or it rolls
+    into next month''s payroll.
+
+    - **Question about the proposal timeline** (the client): asks whether the revised proposal can be
+    delivered by Friday and wants a reply.
+
+
+    ## Calendar
+
+    - 9:30-10:30 AM, Planning (Room B)
+
+    - 10:00-11:00 AM, Vendor demo (Zoom), which overlaps Planning
+
+    - 1:00-2:00 PM, Budget meeting (Conference Room A)
+
+
+    ## News
+
+    - **Twin Cities Tech Conference Returns**: 50+ speakers on AI and startup funding; registration opens
+    Friday.
+
+    - **Maplewood Park Renovation Complete**: new trails and a playground; grand reopening Saturday.
+
+
+    ## Práctica de español
+
+    Hoy tienes un día lleno de reuniones: la planificación y la demostración con el proveedor se solapan
+    por la mañana, y la reunión del presupuesto es a la una. No olvides enviar el informe de gastos antes
+    de las cinco de la tarde y responder al cliente sobre la propuesta. Si te queda tiempo, piensa en
+    la conferencia tecnológica que abre inscripciones este viernes.'
+- name: empty
+  expect: 0
+  answer: ''
+- name: whitespace only
+  expect: 0
+  answer: "  \n\n "
+- name: 'bold labels instead of ## headings (8 mention items still pass)'
+  expect: 5.0
+  answer: '**Emails**
+
+    - **Project update - Q3 review completed** (Alex): the Q3 review is done and ahead of schedule; discuss
+    results at planning.
+
+    - **Meeting notes from yesterday** (Jamie): notes from the 1-on-1 on career goals, next quarter priorities
+    and team building.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): submit by 5:00 PM today or it rolls
+    into next month''s payroll.
+
+    - **Question about the proposal timeline** (the client): asks whether the revised proposal can be
+    delivered by Friday and wants a reply.
+
+
+    **Calendar**
+
+    - 9:30-10:30 AM, Planning (Room B)
+
+    - 10:00-11:00 AM, Vendor demo (Zoom), which overlaps Planning
+
+    - 1:00-2:00 PM, Budget meeting (Conference Room A)
+
+
+    **News**
+
+    - **Twin Cities Tech Conference Returns**: 50+ speakers on AI and startup funding; registration opens
+    Friday.
+
+    - **Maplewood Park Renovation Complete**: new trails and a playground; grand reopening Saturday.
+
+
+    **Spanish practice**
+
+    Hoy tienes un día lleno de reuniones: la planificación y la demostración con el proveedor se solapan
+    por la mañana, y la reunión del presupuesto es a la una. No olvides enviar el informe de gastos antes
+    de las cinco de la tarde y responder al cliente sobre la propuesta. Si te queda tiempo, piensa en
+    la conferencia tecnológica que abre inscripciones este viernes.'
+- name: last paragraph in English (never switched)
+  expect: 5.0
+  answer: '## Emails
+
+    - **Project update - Q3 review completed** (Alex): the Q3 review is done and ahead of schedule; discuss
+    results at planning.
+
+    - **Meeting notes from yesterday** (Jamie): notes from the 1-on-1 on career goals, next quarter priorities
+    and team building.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): submit by 5:00 PM today or it rolls
+    into next month''s payroll.
+
+    - **Question about the proposal timeline** (the client): asks whether the revised proposal can be
+    delivered by Friday and wants a reply.
+
+
+    ## Calendar
+
+    - 9:30-10:30 AM, Planning (Room B)
+
+    - 10:00-11:00 AM, Vendor demo (Zoom), which overlaps Planning
+
+    - 1:00-2:00 PM, Budget meeting (Conference Room A)
+
+
+    ## News
+
+    - **Twin Cities Tech Conference Returns**: 50+ speakers on AI and startup funding; registration opens
+    Friday.
+
+    - **Maplewood Park Renovation Complete**: new trails and a playground; grand reopening Saturday.
+
+
+    ## Spanish practice
+
+    Today is a full day of meetings: planning and the vendor demo overlap in the morning, and the budget
+    meeting is at one. Don''t forget to send the expense report before five and reply to the client about
+    the proposal. If you have time, think about the tech conference that opens registration on Friday.'
+- name: no Spanish section at all
+  expect: 5.0
+  answer: '## Emails
+
+    - **Project update - Q3 review completed** (Alex): the Q3 review is done and ahead of schedule; discuss
+    results at planning.
+
+    - **Meeting notes from yesterday** (Jamie): notes from the 1-on-1 on career goals, next quarter priorities
+    and team building.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): submit by 5:00 PM today or it rolls
+    into next month''s payroll.
+
+    - **Question about the proposal timeline** (the client): asks whether the revised proposal can be
+    delivered by Friday and wants a reply.
+
+
+    ## Calendar
+
+    - 9:30-10:30 AM, Planning (Room B)
+
+    - 10:00-11:00 AM, Vendor demo (Zoom), which overlaps Planning
+
+    - 1:00-2:00 PM, Budget meeting (Conference Room A)
+
+
+    ## News
+
+    - **Twin Cities Tech Conference Returns**: 50+ speakers on AI and startup funding; registration opens
+    Friday.
+
+    - **Maplewood Park Renovation Complete**: new trails and a playground; grand reopening Saturday.'
+- name: everything in Spanish except the quoted titles
+  expect: 8.12
+  answer: '## Emails
+
+    - **Project update - Q3 review completed**: Alex dice que la revisión del tercer trimestre ya terminó
+    y que el trabajo va por delante de lo previsto.
+
+    - **Meeting notes from yesterday**: Jamie envió las notas de la reunión de ayer sobre las metas de
+    carrera y las prioridades del próximo trimestre.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM**: tienes que entregar el informe antes de las
+    cinco de la tarde de hoy.
+
+    - **Question about the proposal timeline**: el cliente pregunta si la propuesta puede estar lista
+    para el viernes y espera una respuesta.
+
+
+    ## Calendar
+
+    - Planning a las 9:30 en la sala B, y la Vendor demo a las 10:00 por Zoom, que coincide con la anterior.
+
+    - Budget meeting a la una de la tarde en la sala de conferencias A, con Jamie.
+
+
+    ## News
+
+    - **Twin Cities Tech Conference Returns**: la conferencia anual vuelve a Minneapolis con más de 50
+    oradores y las inscripciones abren el viernes.
+
+
+    ## Spanish practice
+
+    Hoy tienes un día lleno de reuniones: la planificación y la demostración con el proveedor se solapan
+    por la mañana, y la reunión del presupuesto es a la una. No olvides enviar el informe de gastos antes
+    de las cinco de la tarde y responder al cliente sobre la propuesta. Si te queda tiempo, piensa en
+    la conferencia tecnológica que abre inscripciones este viernes.'
+- name: Calendar section written in Spanish
+  expect: 9.38
+  answer: '## Emails
+
+    - **Project update - Q3 review completed** (Alex): the Q3 review is done and ahead of schedule; discuss
+    results at planning.
+
+    - **Meeting notes from yesterday** (Jamie): notes from the 1-on-1 on career goals, next quarter priorities
+    and team building.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): submit by 5:00 PM today or it rolls
+    into next month''s payroll.
+
+    - **Question about the proposal timeline** (the client): asks whether the revised proposal can be
+    delivered by Friday and wants a reply.
+
+
+    ## Calendar
+
+    - Planning de 9:30 a 10:30 en la sala B, y la Vendor demo de 10:00 a 11:00 por Zoom, que se solapa
+    con la anterior.
+
+    - Budget meeting a la una de la tarde en la sala de conferencias A, con Jamie y el equipo.
+
+
+    ## News
+
+    - **Twin Cities Tech Conference Returns**: 50+ speakers on AI and startup funding; registration opens
+    Friday.
+
+    - **Maplewood Park Renovation Complete**: new trails and a playground; grand reopening Saturday.
+
+
+    ## Spanish practice
+
+    Hoy tienes un día lleno de reuniones: la planificación y la demostración con el proveedor se solapan
+    por la mañana, y la reunión del presupuesto es a la una. No olvides enviar el informe de gastos antes
+    de las cinco de la tarde y responder al cliente sobre la propuesta. Si te queda tiempo, piensa en
+    la conferencia tecnológica que abre inscripciones este viernes.'
+- name: News and Calendar swapped
+  expect: 9.38
+  answer: '## Emails
+
+    - **Project update - Q3 review completed** (Alex): the Q3 review is done and ahead of schedule; discuss
+    results at planning.
+
+    - **Meeting notes from yesterday** (Jamie): notes from the 1-on-1 on career goals, next quarter priorities
+    and team building.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): submit by 5:00 PM today or it rolls
+    into next month''s payroll.
+
+    - **Question about the proposal timeline** (the client): asks whether the revised proposal can be
+    delivered by Friday and wants a reply.
+
+
+    ## News
+
+    - **Twin Cities Tech Conference Returns**: 50+ speakers on AI and startup funding; registration opens
+    Friday.
+
+    - **Maplewood Park Renovation Complete**: new trails and a playground; grand reopening Saturday.
+
+
+    ## Calendar
+
+    - 9:30-10:30 AM, Planning (Room B)
+
+    - 10:00-11:00 AM, Vendor demo (Zoom), which overlaps Planning
+
+    - 1:00-2:00 PM, Budget meeting (Conference Room A)
+
+
+    ## Spanish practice
+
+    Hoy tienes un día lleno de reuniones: la planificación y la demostración con el proveedor se solapan
+    por la mañana, y la reunión del presupuesto es a la una. No olvides enviar el informe de gastos antes
+    de las cinco de la tarde y responder al cliente sobre la propuesta. Si te queda tiempo, piensa en
+    la conferencia tecnológica que abre inscripciones este viernes.'
+- name: Spanish paragraph with no heading, just after News
+  expect: 5.0
+  answer: '## Emails
+
+    - **Project update - Q3 review completed** (Alex): the Q3 review is done and ahead of schedule; discuss
+    results at planning.
+
+    - **Meeting notes from yesterday** (Jamie): notes from the 1-on-1 on career goals, next quarter priorities
+    and team building.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): submit by 5:00 PM today or it rolls
+    into next month''s payroll.
+
+    - **Question about the proposal timeline** (the client): asks whether the revised proposal can be
+    delivered by Friday and wants a reply.
+
+
+    ## Calendar
+
+    - 9:30-10:30 AM, Planning (Room B)
+
+    - 10:00-11:00 AM, Vendor demo (Zoom), which overlaps Planning
+
+    - 1:00-2:00 PM, Budget meeting (Conference Room A)
+
+
+    ## News
+
+    - **Twin Cities Tech Conference Returns**: 50+ speakers on AI and startup funding; registration opens
+    Friday.
+
+    - **Maplewood Park Renovation Complete**: new trails and a playground; grand reopening Saturday.
+
+
+    ---
+
+
+    Hoy tienes un día lleno de reuniones: la planificación y la demostración con el proveedor se solapan
+    por la mañana, y la reunión del presupuesto es a la una. No olvides enviar el informe de gastos antes
+    de las cinco de la tarde y responder al cliente sobre la propuesta. Si te queda tiempo, piensa en
+    la conferencia tecnológica que abre inscripciones este viernes.'
+- name: only the two original emails
+  expect: 8.75
+  answer: '## Emails
+
+    - **Project update - Q3 review completed** (Alex): the Q3 review is done and ahead of schedule; discuss
+    results at planning.
+
+    - **Meeting notes from yesterday** (Jamie): notes from the 1-on-1 on career goals, next quarter priorities
+    and team building.
+
+
+    ## Calendar
+
+    - 9:30-10:30 AM, Planning (Room B)
+
+    - 10:00-11:00 AM, Vendor demo (Zoom), which overlaps Planning
+
+    - 1:00-2:00 PM, Budget meeting (Conference Room A)
+
+
+    ## News
+
+    - **Twin Cities Tech Conference Returns**: 50+ speakers on AI and startup funding; registration opens
+    Friday.
+
+    - **Maplewood Park Renovation Complete**: new trails and a playground; grand reopening Saturday.
+
+
+    ## Spanish practice
+
+    Hoy tienes un día lleno de reuniones: la planificación y la demostración con el proveedor se solapan
+    por la mañana, y la reunión del presupuesto es a la una. No olvides enviar el informe de gastos antes
+    de las cinco de la tarde y responder al cliente sobre la propuesta. Si te queda tiempo, piensa en
+    la conferencia tecnológica que abre inscripciones este viernes.'
+- name: Vendor demo missing
+  expect: 9.38
+  answer: '## Emails
+
+    - **Project update - Q3 review completed** (Alex): the Q3 review is done and ahead of schedule; discuss
+    results at planning.
+
+    - **Meeting notes from yesterday** (Jamie): notes from the 1-on-1 on career goals, next quarter priorities
+    and team building.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): submit by 5:00 PM today or it rolls
+    into next month''s payroll.
+
+    - **Question about the proposal timeline** (the client): asks whether the revised proposal can be
+    delivered by Friday and wants a reply.
+
+
+    ## Calendar
+
+    - 9:30-10:30 AM, Planning (Room B)
+
+    - 1:00-2:00 PM, Budget meeting (Conference Room A)
+
+
+    ## News
+
+    - **Twin Cities Tech Conference Returns**: 50+ speakers on AI and startup funding; registration opens
+    Friday.
+
+    - **Maplewood Park Renovation Complete**: new trails and a playground; grand reopening Saturday.
+
+
+    ## Spanish practice
+
+    Hoy tienes un día lleno de reuniones: la planificación y la demostración con el proveedor se solapan
+    por la mañana, y la reunión del presupuesto es a la una. No olvides enviar el informe de gastos antes
+    de las cinco de la tarde y responder al cliente sobre la propuesta. Si te queda tiempo, piensa en
+    la conferencia tecnológica que abre inscripciones este viernes.'
+- name: no news item
+  expect: 9.38
+  answer: '## Emails
+
+    - **Project update - Q3 review completed** (Alex): the Q3 review is done and ahead of schedule; discuss
+    results at planning.
+
+    - **Meeting notes from yesterday** (Jamie): notes from the 1-on-1 on career goals, next quarter priorities
+    and team building.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): submit by 5:00 PM today or it rolls
+    into next month''s payroll.
+
+    - **Question about the proposal timeline** (the client): asks whether the revised proposal can be
+    delivered by Friday and wants a reply.
+
+
+    ## Calendar
+
+    - 9:30-10:30 AM, Planning (Room B)
+
+    - 10:00-11:00 AM, Vendor demo (Zoom), which overlaps Planning
+
+    - 1:00-2:00 PM, Budget meeting (Conference Room A)
+
+
+    ## News
+
+    Nothing notable.
+
+
+    ## Spanish practice
+
+    Hoy tienes un día lleno de reuniones: la planificación y la demostración con el proveedor se solapan
+    por la mañana, y la reunión del presupuesto es a la una. No olvides enviar el informe de gastos antes
+    de las cinco de la tarde y responder al cliente sobre la propuesta. Si te queda tiempo, piensa en
+    la conferencia tecnológica que abre inscripciones este viernes.'
+- name: paraphrased subjects still count
+  expect: 10
+  answer: '## Emails
+
+    - Alex says the Q3 review is completed and ahead of schedule; discuss results at planning.
+
+    - Jamie''s meeting notes: notes from the 1-on-1 on career goals, next quarter priorities and team
+    building.
+
+    - **Reminder: Q3 expense report due Wednesday 5 PM** (Finance): submit by 5:00 PM today or it rolls
+    into next month''s payroll.
+
+    - The client''s question on the proposal timeline: asks whether the revised proposal can be delivered
+    by Friday and wants a reply.
+
+
+    ## Calendar
+
+    - 9:30-10:30 AM, Planning (Room B)
+
+    - 10:00-11:00 AM, Vendor demo (Zoom), which overlaps Planning
+
+    - 1:00-2:00 PM, Budget meeting (Conference Room A)
+
+
+    ## News
+
+    - **Twin Cities Tech Conference Returns**: 50+ speakers on AI and startup funding; registration opens
+    Friday.
+
+    - **Maplewood Park Renovation Complete**: new trails and a playground; grand reopening Saturday.
+
+
+    ## Spanish practice
+
+    Hoy tienes un día lleno de reuniones: la planificación y la demostración con el proveedor se solapan
+    por la mañana, y la reunión del presupuesto es a la una. No olvides enviar el informe de gastos antes
+    de las cinco de la tarde y responder al cliente sobre la propuesta. Si te queda tiempo, piensa en
+    la conferencia tecnológica que abre inscripciones este viernes.'
