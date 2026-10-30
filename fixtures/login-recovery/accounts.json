@@ -1,0 +1,15 @@
+{
+  "sessionTtlSeconds": 1800,
+  "users": {
+    "testuser": {
+      "salt": "tu-9b3e",
+      "hash": "530e52bf3a236035083e5cc9dca375feedf91a16526ae3766a11c257737eb5ac",
+      "active": true
+    },
+    "deactivated": {
+      "salt": "dx-77a0",
+      "hash": "e0263358e287df72731d624b83f876f48e4cdb7d5549918c650598b6f29434f0",
+      "active": false
+    }
+  }
+}

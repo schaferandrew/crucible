@@ -6,7 +6,7 @@ needs_tools: true
 category: browser_tool
 area: coding
 tier: temper
-version: 1
+version: 2
 rubric_version: 1
 status: active
 auto_grade: false

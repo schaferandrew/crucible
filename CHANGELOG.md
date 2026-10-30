@@ -22,6 +22,14 @@ here ([docs/versioning.md](docs/versioning.md)).
   its class's docstring. `own_tests: <folder>` adds one test to the pool: the model's own tests in that
   folder (pytest, else unittest) run and pass. pytest comes from the running Python, else `uv run --with pytest`.
 
+- New check types `audit_log` and `workspace_unchanged`, for scoring a task from what the app recorded rather
+  than what the model says. `audit_log` reads a hash-chained JSONL log in the workspace (a line that was
+  edited, dropped or hand-written voids the log) and requires events in order, with values shared across
+  steps (`$name`) and events that must not follow. `workspace_unchanged` compares paths with the seeded
+  commit (git), optionally requiring that the app was used. Both fail an empty answer like every check.
+- Isolated graders: the model's own tests may be JavaScript (`.test.js`, `.spec.mjs`, ...) and
+  `regression_tests` / `artifacts` accept `.` (the whole repo); before, a repo-root test folder never matched.
+
 ## 3.2.0 (2026-10-29)
 
 The engine pieces for Suite v2's first wave of converted tasks: more ways for the `items` check to read

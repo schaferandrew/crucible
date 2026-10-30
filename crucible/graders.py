@@ -69,7 +69,7 @@ CONTRACT = "apps/api/test/realworld.contract.test.ts"
 SPECIAL = ("existing", "contract_unchanged", "regression")
 # Pass on the seeded repo, so under per-test scoring they only cap
 GATES = ("existing", "contract_unchanged")
-TEST_FILE = re.compile(r"\.test\.tsx?$")
+TEST_FILE = re.compile(r"\.(test|spec)\.[cm]?[jt]sx?$")
 OWN_TESTS = {"file": "own tests", "group": "own tests", "name": "your own tests run and pass"}
 HIDDEN_DIR = "crucible_hidden"
 REGRESSION_TEST = {"file": "regression", "group": "regression",
@@ -342,6 +342,12 @@ def _changed_files(repo: Path, workspace: Path, roots: list[str], skip: set[str]
     return found
 
 
+def _within(path: str, root: str) -> bool:
+    """path is root or under it; a root of "." is the whole repo."""
+    root = root.rstrip("/")
+    return root in ("", ".") or path == root or path.startswith(root + "/")
+
+
 def _isolated_regression(repo: Path, workspace: Path, copy: Path, modules: Path, cfg: dict) -> dict:
     """The model's new or changed tests, with any helpers it changed: they must pass in the grading copy
     (its fix) and at least one must fail in a copy with the seeded source."""
@@ -350,7 +356,7 @@ def _isolated_regression(repo: Path, workspace: Path, copy: Path, modules: Path,
     tests = [p for p in changed if TEST_FILE.search(p)]
     if not tests:
         return {"passed": False, "files": [], "detail": "no new or changed test files"}
-    support = [p for p in changed if not any(p == a or p.startswith(a.rstrip("/") + "/") for a in artifacts)]
+    support = [p for p in changed if not any(_within(p, a) for a in artifacts)]
     seeded = copy.parent / "seeded"
     _grading_copy(repo, workspace, [], seeded)
     _link_node_modules(modules, seeded)
@@ -360,7 +366,7 @@ def _isolated_regression(repo: Path, workspace: Path, copy: Path, modules: Path,
             shutil.copy2(workspace / rel, dest / rel)
     after_ok, before_failed = True, False
     for root in cfg["regression_tests"]:
-        mine = [Path(p).relative_to(root).as_posix() for p in tests if p.startswith(root.rstrip("/") + "/")]
+        mine = [Path(p).relative_to(root).as_posix() for p in tests if _within(p, root)]
         if not mine:
             continue
         after, error = _vitest(copy / root, mine, timeout=cfg.get("timeout", 600))

@@ -32,7 +32,6 @@
                 document.getElementById('user').textContent = data.user;
                 document.getElementById('message').textContent = data.dashboardMessage;
             } else {
-                // C5 BUG: This shows a blank state when session is expired/stale
                 document.getElementById('user').textContent = '';
                 document.getElementById('message').textContent = '';
             }

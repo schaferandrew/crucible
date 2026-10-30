@@ -23,6 +23,39 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
   workspace root, so none has an `interest/` package and all grade 0). Engine: Python graders (CHANGELOG
   Unreleased).
 
+- **blank-dashboard-debug (formerly CODE-5): version 2, rubric 2, still provisional.** Now an isolated,
+  per-test grader on `repos/login-service` (`artifacts`: server.js, public). 13 equal hidden tests: the API
+  answers 401 rather than 200 with blank data (just expired, long expired and repeated, a logged-out cookie,
+  no session: 4), the dashboard page run in jsdom against the real app sends an expired, logged-out or missing
+  session to log in (3), normal sessions still work until they expire, expire independently, log in again
+  and log out (5), plus the model's own regression test as one test (1). Every one fails on the seeded repo.
+  "Existing tests still pass" (the repo's seeded login, dashboard and reset tests) is a cap of 5. The
+  trigger is deterministic: sessions last 30 seconds (stated in the prompt) and the tests move the clock; the
+  `/api/admin/expire-session` endpoint is gone. Leaks removed: the "C5" comments in server.js and
+  dashboard.html, the admin endpoint and SKILL.md's "blank state" symptom. Also fixed in the repo: the
+  server read signed cookies from `req.cookies`, so every session was blank (stored runs spent their time on
+  that); `test.js` used jest and supertest, which weren't installed, and is now `server.test.js` on vitest.
+  The repo gains a lockfile, an audit log and a vitest/supertest/jsdom dev toolchain. Reference solution and
+  four calibration fixtures. The stored runs used the leaky version 1 and don't count for version 2; their
+  workspaces rescored on copies for reference: gemma-4-e4b 2.31 (was unscored), gpt-oss-20b 2.31 (unscored),
+  qwen3.8-27b 5.38 (judge 10.0; its tests are node:test and its 30 minute lifetime isn't the new 30 seconds).
+  Runs must be redone.
+
+- **login-recovery (formerly CODE-4): version 2, rubric 2, still active.** Now fully deterministic, scored
+  from the app's own audit log (`.crucible/audit.jsonl`, hash-chained, written by server.js), the git diff
+  against the seeded commit and the answer: ended with a valid session for testuser (3, cap 3), recovered
+  through the documented reset flow (3), app code untouched and the app actually used (1, cap 3), and the
+  final `FAILURE: <mode>` line names the seeded mode, wrong password (3). The test user's password is now
+  actually rotated (fixture `login-recovery/accounts.json`, stored as a scrypt hash), so the seeded failure
+  exists; before, login always worked and "diagnose the failure" had nothing to find. Needs the repo changes
+  listed under blank-dashboard-debug (cookie fix, neutral SKILL.md) and drops the browser-use criterion,
+  which no server state can show. Stored runs (gemma-4-26b 5.0, qwen3.8-27b 9.17 by the judge, gemma-4-e4b and
+  gpt-oss-20b unscored) have no audit log and ended with no FAILURE line, so they rescore to 0.0 (capped at
+  3); they ran the leaky, cookie-broken version 1 and don't count. Runs must be redone.
+
+- login-recovery-repeat (formerly CODE-4b): version 2. Shares `repos/login-service`, which changed for the two
+  tasks above; its prompt and judge rubric are unchanged. It is slated to retire.
+
 - **accessibility-audit-fixes (formerly CODE-15): rubric 2 → 3, still provisional.** Now an isolated,
   per-test grader (`artifacts`: apps/web/src). 38 hidden tests cover all six audit findings (dialog 9,
   read more 6, tag filter 7, button names 6, form errors 6, status messages 4) plus the model's own
