@@ -10,6 +10,24 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
 
 ## Unreleased
 
+## Suite v2 (2026-10-30)
+
+**Suite v2 at a glance.** Calibrated on three models one at a time (gemma-4-e4b local, qwen3.6-35b-a3b local over
+LM Link, gpt-6-luna via OpenRouter), every task scored by checks or hidden tests only: no AI-judge scores.
+
+- **Promoted to active (17):** calendar-free-at-330 (spark); fact-check-history, household-money-math,
+  landlocked-countries, news-briefing-from-feeds, react-lead-form, calendar-hour-with-jamie,
+  accessibility-audit-fixes, geography-trick-questions, letter-from-1863 (temper); blank-dashboard-debug,
+  cache-leak-incident, cursor-pagination, editorial-review-workflow, invite-signup-loop, calendar-team-of-16
+  (forge). Each separated the three models.
+- **Moved from forge to temper:** accessibility-audit-fixes (2.3 / 6.4 / 8.0), geography-trick-questions
+  (1.7 / 10 / 10) and letter-from-1863 (0 / 10 / 10). The mid-size model handles them, which is temper's band.
+- **Retired (7):** interest-cli-open-ended, responsive-navbar-open-ended, login-recovery-repeat, nextjs-course,
+  todays-local-news, live-weather-open-ended, novel-character-names. Their runs stay on record and stop counting.
+- **Still provisional:** capitals-not-largest-city, order-historical-events, recipe-and-discount,
+  river-haiku-banned-words and competition-math (all three models scored 10, so they don't separate yet), plus
+  navbar-hamburger-menu and weather-vs-normal (planned for Suite v3). They run and show, outside tier scores.
+
 - **proofread-customer-email: rubric 4 → 5.** The agreement error was only found when the `ERRORS:` line quoted
   "items were damaged"; all three calibration models wrote it as `were → was` or quoted the whole clause, and lost
   2 points for a correct fix. Any `were → was` line now counts (and is not counted as a style suggestion).

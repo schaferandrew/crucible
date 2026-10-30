@@ -10,7 +10,7 @@ area: everyday
 tier: temper
 version: 2
 rubric_version: 2
-status: provisional
+status: active
 auto_grade: true
 repo: null
 prompt: |

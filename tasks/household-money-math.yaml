@@ -8,7 +8,7 @@ area: math
 tier: temper
 version: 1
 rubric_version: 2
-status: provisional
+status: active
 auto_grade: false
 repo: null
 prompt: 'Everyday money and measurement questions. Show your working, and round only at the end.

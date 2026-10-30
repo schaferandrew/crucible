@@ -5,10 +5,10 @@ aliases:
 needs_tools: true
 category: browser_tool
 area: coding
-tier: forge
+tier: temper
 version: 1
 rubric_version: 3
-status: provisional
+status: active
 auto_grade: true
 repo: conduit-a11y
 grader: accessibility-audit-fixes

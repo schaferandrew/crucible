@@ -8,7 +8,7 @@ area: coding
 tier: forge
 version: 2
 rubric_version: 3
-status: provisional
+status: active
 auto_grade: true
 scoring: per_test
 repo: conduit-invites

@@ -5,10 +5,10 @@ aliases:
 needs_tools: false
 category: history
 area: history
-tier: forge
+tier: temper
 version: 1
 rubric_version: 2
-status: provisional
+status: active
 auto_grade: false
 repo: null
 prompt: 'A letter has turned up, dated June 10, 1863, written by a farmer in Ohio. It mentions the following. Which of them
