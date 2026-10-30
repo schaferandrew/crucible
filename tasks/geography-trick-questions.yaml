@@ -5,10 +5,10 @@ aliases:
 needs_tools: false
 category: geography
 area: geography
-tier: forge
+tier: temper
 version: 1
 rubric_version: 1
-status: provisional
+status: active
 auto_grade: false
 repo: null
 prompt: 'Six geography questions, each with a single answer. The obvious answer is wrong for several of them. Give a one-sentence

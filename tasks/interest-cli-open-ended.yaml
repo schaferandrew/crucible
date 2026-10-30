@@ -8,7 +8,7 @@ area: coding
 tier: temper
 version: 1
 rubric_version: 1
-status: active
+status: retired
 auto_grade: true
 repo: null
 prompt: |

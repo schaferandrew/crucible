@@ -8,7 +8,7 @@ area: coding
 tier: temper
 version: 1
 rubric_version: 1
-status: provisional
+status: active
 auto_grade: true
 repo: react-lead-form
 grader: react-lead-form

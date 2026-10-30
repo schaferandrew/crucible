@@ -7,7 +7,7 @@ area: research
 tier: temper
 version: 1
 rubric_version: 1
-status: active
+status: retired
 needs_tools: true
 auto_grade: true
 repo: null
