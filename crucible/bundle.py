@@ -253,8 +253,8 @@ class Publisher:
             path = self.to / "catalog" / f"{name}.json"
             data = catalog(name, suites_dir)
             old = runrecord.read_json(path)
-            # A past suite's catalog never changes; the current one follows task names and summaries
-            if old is None or (name == names[-1] and old != data):
+            # A past suite's catalog never changes, except its status when a newer suite is cut; the latest one follows task names and summaries
+            if old is None or (name == names[-1] and old != data) or (old != data and old["suite"]["status"] != data["suite"]["status"]):
                 if self._write("catalog", path, data):
                     self.counts["catalogs"] += 1
 

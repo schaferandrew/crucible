@@ -12,6 +12,12 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## 3.6.2 (2026-10-31)
+
+### Fixed
+- `crucible publish` now demotes a suite's catalog to `past` when a newer suite is cut. Before, the
+  previous suite kept `status: current` in the published catalog, so the dashboard showed two current suites.
+
 ## 3.6.1 (2026-10-31)
 
 ### Fixed

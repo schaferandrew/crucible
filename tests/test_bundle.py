@@ -129,6 +129,23 @@ def test_check_finds_edits_and_bad_files(tmp_path):
     assert any("task.version" in p for p in found) and any("content hash" in p for p in found)
 
 
+def test_publish_demotes_the_previous_suite_when_a_new_one_is_cut(tmp_path):
+    import json
+    from crucible import suites
+    names = suites.names()
+    if len(names) < 2:
+        return
+    to = tmp_path / "crucible"
+    bundle.publish(_runs(tmp_path, 1), to, bundle.default_outputs(to))
+    previous = to / "catalog" / f"{names[-2]}.json"
+    stale = json.loads(previous.read_text())
+    stale["suite"]["status"] = "current"
+    previous.write_text(json.dumps(stale))
+    bundle.publish(_runs(tmp_path, 1), to, bundle.default_outputs(to))
+    assert json.loads(previous.read_text())["suite"]["status"] == "past"
+    assert json.loads((to / "catalog" / f"{names[-1]}.json").read_text())["suite"]["status"] == "current"
+
+
 def test_catalog_describes_the_suite(tmp_path):
     from crucible import suites, workspace
     data = bundle.catalog(suites.names()[-1])
