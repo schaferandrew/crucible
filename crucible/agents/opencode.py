@@ -108,9 +108,11 @@ class OpenCodeAgent(Agent):
         return sum(costs) if costs else None
 
     def response_timings(self, run_dir: Path) -> list[dict]:
-        """Per assistant message: time {created, streamed (2.x only), completed} in epoch ms.
+        """Per assistant message: duration from time {created, completed} in epoch ms.
 
-        2.x records when streaming started, which gives time to first token; 1.x doesn't.
+        No time to first token: 2.x's time.streamed lands near the end of the response (a median
+        98% of the way through in real runs), not at the first token, so it can't separate prompt
+        processing from decoding. TTFT and decode speed stay unknown for opencode.
         """
         timings = []
         for msg in _messages(run_dir):
@@ -118,10 +120,10 @@ class OpenCodeAgent(Agent):
             if _role(msg) != "assistant":
                 continue
             t = info.get("time") or {}
-            created, streamed, completed = t.get("created"), t.get("streamed"), t.get("completed")
+            created, completed = t.get("created"), t.get("completed")
             tok = info.get("tokens") or {}
             timings.append({
-                "ttft_s": (streamed - created) / 1000 if created and streamed else None,
+                "ttft_s": None,
                 "duration_s": (completed - created) / 1000 if created and completed else None,
                 "tokens_out": (tok.get("output", 0) or 0) + (tok.get("reasoning", 0) or 0) if tok else None,
             })

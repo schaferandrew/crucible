@@ -23,7 +23,7 @@ class TestModesAndAreas:
         assert mode_for(chat) == "chat" and mode_for(agentic) == "agentic"
         assert harness_problem(chat, "direct") is None
         assert harness_problem(chat, "opencode")
-        assert harness_problem(agentic, "direct")
+        assert harness_problem(agentic, "direct").endswith("is an agentic task, which runs with opencode or pi, not direct")
         assert harness_problem(agentic, "pi") is None
 
 

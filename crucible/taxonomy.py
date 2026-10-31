@@ -84,7 +84,7 @@ def harness_problem(prompt_def: dict, harness: str) -> str | None:
     mode = mode_for(prompt_def)
     if harness in MODE_HARNESSES[mode]:
         return None
-    return (f"{prompt_def.get('id')} is a {MODE_LABELS[mode]} task, which runs with "
+    return (f"{prompt_def.get('id')} is {'an' if mode == 'agentic' else 'a'} {MODE_LABELS[mode].lower()} task, which runs with "
             f"{' or '.join(MODE_HARNESSES[mode])}, not {harness}")
 
 
