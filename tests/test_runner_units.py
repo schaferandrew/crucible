@@ -167,7 +167,9 @@ class TestOpenCodeLaunch:
         agent = AGENTS["opencode"]
         assert agent.token_usage(tmp_path) == (10, 6)
         assert agent.cost_estimate(tmp_path) == 0.01
-        assert agent.response_timings(tmp_path) == [{"ttft_s": 1.5, "duration_s": 3.0, "tokens_out": 6}]
+        # time.streamed isn't the first token, so there's no TTFT and no decode speed
+        assert agent.response_timings(tmp_path) == [{"ttft_s": None, "duration_s": 3.0, "tokens_out": 6}]
+        assert metrics.timing_summary(agent.response_timings(tmp_path))["output_tokens_per_s"] is None
         session = json.loads((tmp_path / "session.json").read_text())
         assert opencode_agent.message_texts(session) == ["done"]
         assert session_mod_count(tmp_path / "session.json") == 1
