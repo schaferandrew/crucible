@@ -1,0 +1,423 @@
+# Suite v4: written by `crucible suite`, never edited by hand (docs/versioning.md#suites).
+suite: v4
+version: '4.0'
+cut_at: '2026-10-31'
+scoring_policy:
+  coverage_min: 0.75
+  in_progress_below: 0.75
+  repeat_aggregate: mean
+tiers:
+- id: spark
+  label: Spark
+  role: gate
+  gate:
+    mean: 8
+    min: 5
+- id: temper
+  label: Temper
+  role: headline
+- id: forge
+  label: Forge
+  role: stretch
+category_weights:
+  coding_build: 0.1
+  coding_debug: 0.1
+  coding_repo: 0.1
+  browser_tool: 0.1
+  writing: 0.1
+  everyday: 0.1
+  reasoning: 0.05
+  structured_data: 0.05
+  long_agent: 0.05
+  home_maintenance: 0.05
+  math: 0.05
+  geography: 0.05
+  history: 0.05
+  evals: 0.05
+tasks:
+- id: accessibility-audit-fixes
+  aliases:
+  - CODE-15
+  version: 1
+  rubric_version: 3
+  content_hash: 02332049fef999c1
+  rubric_hash: ba79097d3d49ec8d
+  tier: temper
+  category: browser_tool
+  weight: 0.033333
+- id: blank-dashboard-debug
+  aliases:
+  - CODE-5
+  version: 2
+  rubric_version: 2
+  content_hash: 1cd54ceb401f0947
+  rubric_hash: c99e9bf61025cb59
+  tier: forge
+  category: browser_tool
+  weight: 0.033333
+- id: cache-leak-incident
+  aliases:
+  - CODE-13
+  version: 3
+  rubric_version: 4
+  content_hash: 403fdd42d838cff4
+  rubric_hash: a89eea7caac68e18
+  tier: forge
+  category: coding_debug
+  weight: 0.033333
+- id: calendar-free-at-330
+  aliases:
+  - TASK-4
+  version: 2
+  rubric_version: 2
+  content_hash: 6d145f996bd1436b
+  rubric_hash: d2ed1dccfdb0032f
+  tier: spark
+  category: everyday
+  weight: 0.025
+- id: calendar-hour-with-jamie
+  aliases:
+  - TASK-5
+  version: 2
+  rubric_version: 2
+  content_hash: 6bab741addfb16f9
+  rubric_hash: 84fe475354719203
+  tier: temper
+  category: long_agent
+  weight: 0.016667
+- id: calendar-team-of-16
+  aliases:
+  - TASK-6
+  version: 2
+  rubric_version: 2
+  content_hash: b3eb371da517cb6a
+  rubric_hash: 28b2d02d8b0aedf0
+  tier: forge
+  category: long_agent
+  weight: 0.016667
+- id: capitals-not-largest-city
+  aliases:
+  - GEOG-1
+  version: 1
+  rubric_version: 2
+  content_hash: 247e19c02dbb774c
+  rubric_hash: 63748bedb94bf1b8
+  tier: spark
+  category: geography
+  weight: 0.016667
+- id: competition-math
+  aliases:
+  - MATH-3
+  version: 1
+  rubric_version: 1
+  content_hash: a5574ec7fbcf8a8a
+  rubric_hash: f6ab32399662966b
+  tier: temper
+  category: math
+  weight: 0.016667
+- id: cursor-pagination
+  aliases:
+  - CODE-12
+  version: 2
+  rubric_version: 4
+  content_hash: 840e2d2836e3ca9a
+  rubric_hash: c9a169ab0763f926
+  tier: forge
+  category: coding_repo
+  weight: 0.033333
+- id: editorial-review-workflow
+  aliases:
+  - CODE-11
+  version: 3
+  rubric_version: 4
+  content_hash: 02dc7545b79f29a4
+  rubric_hash: 045074375d3af88a
+  tier: forge
+  category: coding_repo
+  weight: 0.033333
+- id: fact-check-history
+  aliases:
+  - HIST-2
+  version: 2
+  rubric_version: 2
+  content_hash: 33f30be6930d812b
+  rubric_hash: 0fdc5051fcd23767
+  tier: temper
+  category: history
+  weight: 0.016667
+- id: fill-in-crossword-grids
+  aliases: []
+  version: 1
+  rubric_version: 1
+  content_hash: 7d3cd79b50d123cd
+  rubric_hash: 879e9754aac89329
+  tier: forge
+  category: reasoning
+  weight: 0.0125
+- id: fire-truck-color
+  aliases:
+  - KNOW-1
+  version: 1
+  rubric_version: 2
+  content_hash: 4f544d69ec35ecb1
+  rubric_hash: 93b038f024a752e9
+  tier: spark
+  category: everyday
+  weight: 0.025
+- id: geography-trick-questions
+  aliases:
+  - GEOG-3
+  version: 1
+  rubric_version: 1
+  content_hash: 5a1af1208cb9b9a5
+  rubric_hash: 5944fb9d7568cdce
+  tier: temper
+  category: geography
+  weight: 0.016667
+- id: grade-binary-search-answer
+  aliases:
+  - EVAL-3
+  version: 1
+  rubric_version: 1
+  content_hash: e914619e43d38223
+  rubric_hash: 8f27c5af40bbe68b
+  tier: temper
+  category: evals
+  weight: 0.016667
+- id: grade-palindrome-function
+  aliases:
+  - EVAL-1
+  version: 1
+  rubric_version: 1
+  content_hash: 07e7a478cef8a182
+  rubric_hash: bb12e2e785065ea5
+  tier: spark
+  category: evals
+  weight: 0.016667
+- id: grade-two-sentence-summary
+  aliases:
+  - EVAL-2
+  version: 1
+  rubric_version: 1
+  content_hash: 0289e039fdb2109c
+  rubric_hash: 26bf360f734a2bbb
+  tier: temper
+  category: evals
+  weight: 0.016667
+- id: household-money-math
+  aliases:
+  - MATH-2
+  version: 1
+  rubric_version: 2
+  content_hash: 7f6f5246841ce00c
+  rubric_hash: 3a7f59dac961798f
+  tier: temper
+  category: math
+  weight: 0.016667
+- id: interest-calculator-cli
+  aliases:
+  - CODE-1b
+  version: 2
+  rubric_version: 2
+  content_hash: 89de4378a797689c
+  rubric_hash: f45237ead95e5fe5
+  tier: temper
+  category: coding_build
+  weight: 0.1
+- id: invite-signup-loop
+  aliases:
+  - CODE-14
+  version: 2
+  rubric_version: 3
+  content_hash: c6414d81d51c4642
+  rubric_hash: 534a86d7de9cff6b
+  tier: forge
+  category: coding_debug
+  weight: 0.033333
+- id: landlocked-countries
+  aliases:
+  - GEOG-2
+  version: 2
+  rubric_version: 2
+  content_hash: 7b5379ce8b6a3e04
+  rubric_hash: f75bb0a15226bc61
+  tier: temper
+  category: geography
+  weight: 0.016667
+- id: letter-from-1863
+  aliases:
+  - HIST-3
+  version: 1
+  rubric_version: 2
+  content_hash: f73283c0960967b1
+  rubric_hash: 44543ae2a21316cd
+  tier: temper
+  category: history
+  weight: 0.016667
+- id: logic-and-game-puzzles
+  aliases: []
+  version: 1
+  rubric_version: 1
+  content_hash: 8104a48508bbe599
+  rubric_hash: 2502acca0cb631ef
+  tier: forge
+  category: reasoning
+  weight: 0.0125
+- id: login-recovery
+  aliases:
+  - CODE-4
+  version: 2
+  rubric_version: 2
+  content_hash: 9e2054ec754b41ca
+  rubric_hash: 13b36751db77b664
+  tier: temper
+  category: browser_tool
+  weight: 0.033333
+- id: morning-brief-priorities
+  aliases:
+  - TASK-3
+  version: 3
+  rubric_version: 3
+  content_hash: 5adc9d482d290291
+  rubric_hash: 6ebad5dfa2fc77b6
+  tier: temper
+  category: long_agent
+  weight: 0.016667
+- id: morning-brief-spanish
+  aliases:
+  - TASK-2
+  version: 2
+  rubric_version: 3
+  content_hash: a6695597fb3c2428
+  rubric_hash: 01912ad7b66e347c
+  tier: spark
+  category: everyday
+  weight: 0.025
+- id: multi-step-competition-math
+  aliases: []
+  version: 1
+  rubric_version: 1
+  content_hash: fa3e7d98ab144ac2
+  rubric_hash: 72028ed7b1732171
+  tier: forge
+  category: math
+  weight: 0.016667
+- id: names-for-one-character
+  aliases:
+  - WRIT-2b
+  version: 2
+  rubric_version: 4
+  content_hash: 56a5c060f36cc57f
+  rubric_hash: a5437ba617323fd5
+  tier: temper
+  category: writing
+  weight: 0.02
+- id: news-briefing-from-feeds
+  aliases:
+  - KNOW-4
+  version: 2
+  rubric_version: 2
+  content_hash: ab43c774dcf4271c
+  rubric_hash: 7f63c4216de11a95
+  tier: temper
+  category: everyday
+  weight: 0.025
+- id: nextjs-server-data-boundary
+  aliases:
+  - CODE-3
+  version: 2
+  rubric_version: 2
+  content_hash: f5196c62d3613d53
+  rubric_hash: 071f25e0acdbacbf
+  tier: temper
+  category: coding_repo
+  weight: 0.033333
+- id: order-historical-events
+  aliases:
+  - HIST-1
+  version: 2
+  rubric_version: 2
+  content_hash: 172ee5b11307dd30
+  rubric_hash: f66e11cca0e3815d
+  tier: spark
+  category: history
+  weight: 0.016667
+- id: proofread-customer-email
+  aliases:
+  - WRIT-1a
+  version: 2
+  rubric_version: 5
+  content_hash: c41a36c4fafcbd9f
+  rubric_hash: bae4e4c306c407ff
+  tier: spark
+  category: writing
+  weight: 0.02
+- id: proofread-economics-essay
+  aliases:
+  - WRIT-1c
+  version: 2
+  rubric_version: 3
+  content_hash: 2bc3c8fb72053c52
+  rubric_hash: 936fb11c6fb812f3
+  tier: temper
+  category: writing
+  weight: 0.02
+- id: proofread-literary-paragraph
+  aliases:
+  - WRIT-1b
+  version: 2
+  rubric_version: 3
+  content_hash: 9d22ee63b2c772a5
+  rubric_hash: 056064e7a4ede298
+  tier: temper
+  category: writing
+  weight: 0.02
+- id: react-lead-form
+  aliases:
+  - CODE-16
+  version: 1
+  rubric_version: 1
+  content_hash: 02ccc27101b8f69d
+  rubric_hash: 248484a519654873
+  tier: temper
+  category: coding_debug
+  weight: 0.033333
+- id: river-haiku-banned-words
+  aliases:
+  - WRIT-3
+  version: 1
+  rubric_version: 2
+  content_hash: abfd04ef9376bbaa
+  rubric_hash: 66b089cf0968cc9e
+  tier: spark
+  category: writing
+  weight: 0.02
+- id: seating-logic-puzzle
+  aliases:
+  - MATH-4
+  version: 3
+  rubric_version: 3
+  content_hash: 4bc46a0e3e4f1478
+  rubric_hash: ba4027243454539b
+  tier: temper
+  category: reasoning
+  weight: 0.0125
+- id: sudoku-variants
+  aliases: []
+  version: 1
+  rubric_version: 1
+  content_hash: 400a7ce4b6918400
+  rubric_hash: f542332fa2498e17
+  tier: forge
+  category: reasoning
+  weight: 0.0125
+- id: two-calendar-slots-json
+  aliases:
+  - TASK-1
+  version: 3
+  rubric_version: 2
+  content_hash: f768898b61923888
+  rubric_hash: e6394e3e00a41fc7
+  tier: temper
+  category: structured_data
+  weight: 0.05

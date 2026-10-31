@@ -8,7 +8,7 @@ area: geography
 tier: spark
 version: 1
 rubric_version: 2
-status: provisional
+status: active
 auto_grade: false
 repo: null
 prompt: 'What is the capital of each of these countries? Answer with one line per country, in the form `Country: Capital`.
