@@ -10,6 +10,24 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
 
 ## Unreleased
 
+## Suite v4 (2026-10-31)
+
+- **Promoted to active: multi-step-competition-math, fill-in-crossword-grids and logic-and-game-puzzles
+  (forge), competition-math (temper) and river-haiku-banned-words (spark).** Calibrated on small local
+  (gemma-4-e4b), mid-size (deepseek-v4-flash, kimi-k2.6, gpt-6-luna) and frontier (claude-sonnet-5.5,
+  gpt-6.1-sol, deepseek-v4.1-flash) models, with spread scores: multi-step-competition-math 0 to 10, the
+  crosswords 0.5 to 10 (only frontier models solve both grids), logic-and-game-puzzles 0 to 10. Their
+  existing runs at these versions now count; Forge in Chat goes from no tasks to three.
+- **Promoted to active: order-historical-events (spark, v2).** Larger models score 10; qwen3.5-9b with
+  reasoning on loops on it and never answers, so it separates the smallest models.
+- **Promoted to active: sudoku-variants (forge).** Only the newest frontier model (gpt-6.1-sol) solves it;
+  claude-sonnet-5.5 and both deepseek flash models reason past their output-token limit and gpt-6-luna
+  answers wrong. It is meant as the ceiling: a task today's best models have only just reached.
+- **Promoted to active: capitals-not-largest-city (spark).** Every model from gemma-4-e4b up scores 10;
+  lfm2-1.2b names the right capitals but doesn't use the answer block and scores 0. It is the Spark task
+  nearly every model passes.
+- **Retired: recipe-and-discount (spark).** Every model scored 10, down to lfm2-1.2b, so it can't separate
+  any of them. Its runs are kept but no longer counted.
 - **competition-math: forge -> temper (still provisional, no version change).** Every model from gemma-4-e4b up
   scored 10 when it finished, so it can't be a forge test. It is kept as a temper math check; the forge slot is
   taken by multi-step-competition-math.

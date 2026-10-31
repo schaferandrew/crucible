@@ -12,6 +12,13 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## 3.6.1 (2026-10-31)
+
+### Fixed
+- The suite tests no longer depend on a real task still being provisional. Suite v4 promoted or retired
+  every provisional task, so the tests now promote `recipe-and-discount` (retired, pinned by no suite)
+  after resetting it to provisional in their sandbox. No change to Crucible's behavior.
+
 ## 3.6.0 (2026-10-31)
 
 ### Added

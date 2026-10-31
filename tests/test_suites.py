@@ -30,7 +30,7 @@ def test_runs_count_in_suites_by_task_version():
     pin = suites.pins(suites.load("v1"))["fire-truck-color"]
     assert "v1" in suites.counts_in("fire-truck-color", pin["version"])
     assert suites.counts_in("fire-truck-color", pin["version"] + 1) == []
-    assert suites.counts_in("capitals-not-largest-city", 1) == []  # provisional: in no suite yet
+    assert suites.counts_in("recipe-and-discount", 1) == []  # retired before any suite pinned it
 
 
 @pytest.fixture
@@ -40,12 +40,14 @@ def sandbox(tmp_path, monkeypatch):
     shutil.copytree(workspace.TASKS_DIR, tasks)
     shutil.copytree(suites.SUITES_DIR, tmp_path / "suites")
     changelog = tmp_path / "SUITE_CHANGELOG.md"
-    changelog.write_text("# Suite changelog\n\n## Unreleased\n\n- Promoted river-haiku-banned-words.\n\n"
+    changelog.write_text("# Suite changelog\n\n## Unreleased\n\n- Promoted recipe-and-discount.\n\n"
                          "## Suite v1 (2026-10-24)\n\nThe first suite.\n", encoding="utf-8")
     monkeypatch.setattr(workspace, "TASKS_DIR", tasks)
     monkeypatch.setattr(versioning, "LOCK_PATH", tasks / "versions.lock.json")
     monkeypatch.setattr(suites, "SUITES_DIR", tmp_path / "suites")
     monkeypatch.setattr(suites, "CHANGELOG_PATH", changelog)
+    # Every real task has been promoted or retired; the tests promote one that no suite pins
+    _edit(tmp_path, "recipe-and-discount", status="provisional")
     return tmp_path
 
 
@@ -65,21 +67,21 @@ def _edit(sandbox, task_id, **changes):
 
 def test_cut_promotes_retires_and_closes_the_changelog(sandbox):
     _, nxt, after = _names()
-    path = suites.cut(nxt, promote=["WRIT-3"], retire=["seating-logic-puzzle"], date="2026-11-15", check_graders=False)
+    path = suites.cut(nxt, promote=["MATH-1"], retire=["seating-logic-puzzle"], date="2026-11-15", check_graders=False)
     assert path == sandbox / "suites" / f"{nxt}.yaml"
     v2 = yaml.safe_load(path.read_text())
     pinned = suites.pins(v2)
-    assert "river-haiku-banned-words" in pinned and "seating-logic-puzzle" not in pinned
-    assert workspace.load_task("river-haiku-banned-words")["status"] == "active"
+    assert "recipe-and-discount" in pinned and "seating-logic-puzzle" not in pinned
+    assert workspace.load_task("recipe-and-discount")["status"] == "active"
     assert workspace.load_task("seating-logic-puzzle")["status"] == "retired"
     lock = versioning.read_lock()
-    assert pinned["river-haiku-banned-words"]["content_hash"] == lock["river-haiku-banned-words"]["content_hash"]
+    assert pinned["recipe-and-discount"]["content_hash"] == lock["recipe-and-discount"]["content_hash"]
     by_category = {}
     for t in v2["tasks"]:
         by_category.setdefault(t["category"], []).append(t["weight"])
     assert all(abs(sum(w) - v2["category_weights"][c]) < 1e-5 for c, w in by_category.items())
     text = (sandbox / "SUITE_CHANGELOG.md").read_text()
-    assert f"## Unreleased\n\n## Suite {nxt} (2026-11-15)\n\n- Promoted river-haiku-banned-words." in text
+    assert f"## Unreleased\n\n## Suite {nxt} (2026-11-15)\n\n- Promoted recipe-and-discount." in text
     assert suites.verify() == []
     # Suites are immutable and numbered in order
     with pytest.raises(ValueError, match=f"next suite is {after}"):
@@ -90,15 +92,15 @@ def test_cut_refuses_without_a_changelog_entry_or_with_a_dirty_lock(sandbox):
     nxt = _names()[1]
     (sandbox / "SUITE_CHANGELOG.md").write_text("# Suite changelog\n\n## Unreleased\n\n## Suite v1 (x)\n")
     with pytest.raises(ValueError, match="Nothing under"):
-        suites.cut(nxt, promote=["WRIT-3"], check_graders=False)
+        suites.cut(nxt, promote=["MATH-1"], check_graders=False)
     assert not (sandbox / "suites" / f"{nxt}.yaml").exists()
     (sandbox / "SUITE_CHANGELOG.md").write_text("# Suite changelog\n\n## Unreleased\n\n- x\n")
-    original = workspace.load_task("river-haiku-banned-words")["prompt"]
-    _edit(sandbox, "river-haiku-banned-words", prompt="A different haiku.")
+    original = workspace.load_task("recipe-and-discount")["prompt"]
+    _edit(sandbox, "recipe-and-discount", prompt="A different haiku.")
     with pytest.raises(ValueError, match="lock isn't clean"):
-        suites.cut(nxt, promote=["WRIT-3"], check_graders=False)
+        suites.cut(nxt, promote=["MATH-1"], check_graders=False)
     with pytest.raises(ValueError, match="not provisional"):
-        _edit(sandbox, "river-haiku-banned-words", prompt=original)
+        _edit(sandbox, "recipe-and-discount", prompt=original)
         suites.cut(nxt, promote=["fire-truck-color"], check_graders=False)
 
 
@@ -108,10 +110,10 @@ def test_verify_catches_unbumped_changes_and_status_edits(sandbox):
     versioning.write_lock()  # someone updated the lock but forgot the version bump
     problems = suites.verify()
     assert any(f"fire-truck-color: content changed since suite {latest}" in p for p in problems)
-    _edit(sandbox, "river-haiku-banned-words", status="active")
+    _edit(sandbox, "recipe-and-discount", status="active")
     _edit(sandbox, "names-for-one-character", status="retired")
     problems = suites.verify()
-    assert any(f"river-haiku-banned-words: active but not in suite {latest}" in p for p in problems)
+    assert any(f"recipe-and-discount: active but not in suite {latest}" in p for p in problems)
     assert any(f"names-for-one-character: pinned in suite {latest} but retired" in p for p in problems)
 
 
