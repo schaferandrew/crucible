@@ -158,9 +158,11 @@ def test_publish_derives_decode_speed_for_a_run_made_before_it_was_recorded(tmp_
     from crucible import runrecord
     from crucible.agents import pi as pi_agent
     from tests.records import run_meta, write_run
+    from crucible import workspace
     runs = tmp_path / "runs"
-    meta = run_meta("capitals-not-largest-city", 1, 1, harness="pi", run_path="lmstudio_m/capitals-not-largest-city/20260101_000000")
-    run_dir = write_run(runs / meta["run_path"], meta, "Australia: Canberra")
+    p = workspace.load_task("interest-calculator-cli")  # agentic, so pi is its harness
+    meta = run_meta(p["id"], p["version"], p["rubric_version"], harness="pi", run_path=f"lmstudio_m/{p['id']}/20260101_000000")
+    run_dir = write_run(runs / meta["run_path"], meta, "Done.")
     (run_dir / pi_agent.TIMING_FILENAME).write_text(
         json.dumps({"request_start": 0, "first_token": 500, "end": 2500}) + "\n", encoding="utf-8")
     sessions = run_dir / pi_agent.SESSION_DIRNAME
@@ -183,3 +185,19 @@ def test_publish_adds_no_decode_speed_when_nothing_was_timed(tmp_path):
     bundle.publish(runs, to, outputs)
     published = json.loads(next((to / "runs").glob("*/*.json")).read_text(encoding="utf-8"))
     assert "output_tokens_per_s" not in published["metrics"]
+
+
+def test_publish_skips_runs_through_a_harness_their_mode_does_not_use(tmp_path):
+    from crucible import runrecord, workspace
+    from tests.records import run_meta, write_run
+    runs, to = _runs(tmp_path, 1), tmp_path / "site" / "_data" / "crucible"
+    p = workspace.load_task("capitals-not-largest-city")
+    for i, harness in enumerate(("opencode", "pool")):
+        meta = run_meta(p["id"], p["version"], p["rubric_version"], harness=harness,
+                        run_uuid=f"00000000-0000-4000-8000-00000000001{i}", run_path=f"lmstudio_m/{p['id']}/2026010{i}_120000")
+        write_run(runs / meta["run_path"], meta, "Australia: Canberra")
+    pub = bundle.publish(runs, to, bundle.default_outputs(to))
+    assert pub.errors == [] and pub.counts["runs"] == 1 and len(pub.skipped) == 2
+    assert "not opencode" in pub.skipped[0] and "not pool" in pub.skipped[1]
+    # Skipped, not deleted: the runs are still there to rescore or publish once they can count
+    assert len(runrecord.run_dirs(runs)) == 3

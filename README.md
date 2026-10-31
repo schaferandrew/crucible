@@ -265,7 +265,7 @@ An exact match earns full points, and the penalty grows with the distance: a gra
 
 ### Publishing results
 
-`crucible publish` adds this machine's results to the portfolio's `_data/crucible/` folder in **bundle format 3** ([docs/bundle-format.md](docs/bundle-format.md)): one file per run (`runs/<yyyy-mm>/<run_uuid>.json`), one per score record and status record, and one catalog per suite that holds every label, tier and weight the page shows. Full outputs go to `crucible-data/outputs/`, outside `_data`. Publishing only adds files, keyed by each run's permanent `run_uuid`, so publishing twice changes nothing and two machines never touch the same file; everything is validated before it's written.
+`crucible publish` adds this machine's results to the portfolio's `_data/crucible/` folder in **bundle format 3** ([docs/bundle-format.md](docs/bundle-format.md)): one file per run (`runs/<yyyy-mm>/<run_uuid>.json`), one per score record and status record, and one catalog per suite that holds every label, tier and weight the page shows. Full outputs go to `crucible-data/outputs/`, outside `_data`. Publishing only adds files, keyed by each run's permanent `run_uuid`, so publishing twice changes nothing and two machines never touch the same file; everything is validated before it's written. Runs through a harness their mode doesn't use (chat: direct; agentic: opencode, pi) are skipped and listed, and stay in `runs/`.
 
 ```bash
 crucible publish                         # this machine's runs -> ../schaferandrew.github.io/_data/crucible/
