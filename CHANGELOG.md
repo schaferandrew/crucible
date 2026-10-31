@@ -27,6 +27,15 @@ here ([docs/versioning.md](docs/versioning.md)).
   from `hf.co/...`.
 - Bundle format 3, revision 1: the optional `model.origin` field. Readers that ignore it keep working.
 
+## 3.5.2 (2026-10-30)
+
+### Fixed
+- opencode runs no longer report a time to first token or a decode speed. opencode 2.x's `time.streamed`
+  lands near the end of each response (a median 98% of the way through), not at the first token, so TTFT
+  came out close to the whole response time and decode speed in the thousands of tokens per second. Both
+  are now empty for opencode, as the README already said; its response times are unchanged.
+- The message for a run through the wrong harness says "an agentic task" / "a chat task".
+
 ## 3.5.1 (2026-10-30)
 
 ### Fixed
