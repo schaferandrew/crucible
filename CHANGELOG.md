@@ -12,6 +12,21 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## 3.6.0 (2026-10-31)
+
+### Added
+- Runs record who trained the model: `model.origin` has `maker` (`qwen`, `google`, `openai`...), `base_repo`,
+  `params`, `active_params` and `source`. The values come from the model's own source at run time, never
+  from a list Crucible keeps. Sources in order of trust: the GGUF header or MLX model card when the weights
+  are on this machine, then Ollama's model info, the OpenRouter model ID's author, and the LM Studio
+  model key. A packager (mlx-community, lmstudio-community, unsloth, bartowski) never counts as the maker.
+  `model.publisher` still means who packaged the weights, so variant keys don't change. Runs from earlier
+  versions have no `origin` and aren't rewritten. See docs/data-model.md#model-origin.
+- `model.artifact` is filled with the repo the weights were downloaded from
+  (`lmstudio-community/Qwen3.5-9B-GGUF`) when LM Studio ran them on this machine, or Ollama pulled them
+  from `hf.co/...`.
+- Bundle format 3, revision 1: the optional `model.origin` field. Readers that ignore it keep working.
+
 ## 3.5.2 (2026-10-30)
 
 ### Fixed

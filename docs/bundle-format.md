@@ -46,7 +46,7 @@ committing the portfolio.
 
 ```json
 {
-  "format_version": 3, "format_revision": 0,
+  "format_version": 3, "format_revision": 1,
   "suite": {"id": "v1", "version": "1.0", "cut_at": "2026-10-28", "status": "current", "changelog_url": "…"},
   "crucible_version": "3.0.0",
   "scoring_policy": {"coverage_min": 0.75, "in_progress_below": 0.75, "repeat_aggregate": "mean"},
@@ -78,6 +78,10 @@ committing the portfolio.
 - `format_version` changes only for breaking changes; `format_revision` counts additive ones (see
   [versioning.md](versioning.md#bundle-format)). A page that meets a higher `format_version` skips
   the file and shows one line, never an error.
+- Revisions: 1 (Crucible 3.6.0) adds the run record's optional `model.origin` (who trained the
+  model, read from the source; see [data-model.md](data-model.md#model-origin)). Runs published
+  before it don't have the field and are never rewritten to add it, so a reader treats it as
+  optional and falls back to its own inference when it's missing.
 - Unknown areas, categories or tiers render generically, after the known ones; an unknown task ID
   in a run is kept and listed under "Other runs"; unknown fields are ignored; an unknown enum value
   shows as a raw tag.

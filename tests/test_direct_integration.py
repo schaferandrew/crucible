@@ -46,6 +46,9 @@ def test_direct_records_tokens_and_ttft(tmp_path, fake_model, provider):
     assert meta["task"]["id"] == "seating-logic-puzzle" and meta["task"]["content_hash"]
     assert meta["provenance"]["machine_id"].startswith("m_") and meta["provenance"]["source"] == "crucible-run"
     assert meta["model"]["base"] == "fake-model" and meta["model"]["reasoning"]["requested"] == "default"
+    # No prefix, no file on this machine, no metadata from the fake server: an origin that found nothing
+    assert meta["model"]["origin"] == {"maker": None, "base_repo": None, "params": None, "active_params": None,
+                                       "source": "none"}
     assert meta["endpoint"]["where"] == "local" and meta["endpoint"]["upstream"] is None
     assert meta["hardware"]["key"]  # a local run on this machine
     assert meta["outcome"]["status"] == "completed"

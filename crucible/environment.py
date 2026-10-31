@@ -108,6 +108,35 @@ def lmstudio_device(model_id: str, loaded: list | None, link: dict | None) -> di
     return {"device": hardware.canonical(peer.get("deviceName")), "same_machine": False, "served_via": "LM Link"}
 
 
+def lmstudio_models_dirs() -> list[Path]:
+    """Where LM Studio keeps downloaded models: LMSTUDIO_MODELS_DIR, else its default folders."""
+    custom = os.environ.get("LMSTUDIO_MODELS_DIR")
+    return ([Path(custom).expanduser()] if custom else []) + [
+        Path.home() / ".lmstudio" / "models", Path.home() / ".cache" / "lm-studio" / "models"]
+
+
+def lmstudio_model_file(model_id: str, entries: list | None, roots: list[Path] | None = None) -> dict:
+    """The model's file or folder on this machine and the repo it was downloaded from, from `lms ls`/`lms ps`.
+
+    LM Studio stores a download as <models dir>/<org>/<repo>/..., so the path's first two parts are the
+    packaged repo (lmstudio-community/Qwen3.5-9B-GGUF). {} when the model or its file isn't found.
+    """
+    entry = next((m for m in entries or [] if isinstance(m, dict) and m.get("path")
+                  and model_id in (m.get("modelKey"), m.get("identifier"), m.get("indexedModelIdentifier"))), None)
+    if entry is None:
+        return {}
+    rel = Path(entry["path"])
+    for root in roots if roots is not None else lmstudio_models_dirs():
+        full = rel if rel.is_absolute() else root / rel
+        if full.exists():
+            try:
+                parts = full.relative_to(root).parts
+            except ValueError:
+                parts = ()
+            return {"model_path": str(full), **({"artifact": "/".join(parts[:2])} if len(parts) >= 2 else {})}
+    return {}
+
+
 def _lmstudio(model_id: str) -> dict:
     base = providers.LMSTUDIO_BASE_URL.rsplit("/v1", 1)[0]
     info = _get(f"{base}/api/v0/models/{model_id}") or {}
@@ -117,7 +146,13 @@ def _lmstudio(model_id: str) -> dict:
               "publisher": info.get("publisher"), "format": info.get("compatibility_type")}
     # The CLI talks to this machine's LM Studio, so it only describes a server on localhost
     if urlparse(base).hostname in LOCAL_HOSTS:
-        record.update(lmstudio_device(model_id, _lms_json("ps"), _lms_json("link", "status")))
+        loaded = _lms_json("ps")
+        record.update(lmstudio_device(model_id, loaded, _lms_json("link", "status")))
+        # The weights' file, for model.origin and model.artifact: only when this machine ran them
+        # (a model served over LM Link lives on the peer, and a local copy may be another variant)
+        if record.get("device") and record.get("same_machine") and not record.get("served_via"):
+            listed = _lms_json("ls")
+            record.update(lmstudio_model_file(model_id, [*(loaded or []), *(listed if isinstance(listed, list) else [])]))
     return record
 
 
@@ -128,13 +163,23 @@ def _ollama(model_id: str) -> dict:
     details = show.get("details") or {}
     return {"quantization": details.get("quantization_level"), "context_length": loaded.get("context_length"),
             "max_context_length": None, "arch": details.get("family"),
-            "publisher": ollama_publisher(model_id), "format": "gguf"}
+            "publisher": ollama_publisher(model_id), "format": "gguf",
+            # The GGUF's own general.* metadata, for model.origin (scalars only)
+            "model_info": {k: v for k, v in (show.get("model_info") or {}).items()
+                           if k.startswith("general.") and isinstance(v, (str, int, float, bool))},
+            "parameter_size": details.get("parameter_size"), "artifact": ollama_artifact(model_id)}
 
 
 def ollama_publisher(model_id: str) -> str | None:
     """The namespace an Ollama model was pulled from ("unsloth" in hf.co/unsloth/qwen3:Q4), if any."""
     namespace = model_id.split(":", 1)[0].split("/")[:-1]
     return namespace[-1] if namespace else None
+
+
+def ollama_artifact(model_id: str) -> str | None:
+    """The Hugging Face repo an Ollama model was pulled from (hf.co/unsloth/Qwen3-GGUF:Q4 -> unsloth/Qwen3-GGUF)."""
+    parts = model_id.split(":", 1)[0].split("/")
+    return "/".join(parts[1:3]) if len(parts) == 3 and parts[0] in ("hf.co", "huggingface.co") else None
 
 
 PROVIDER_BASE_URLS = {

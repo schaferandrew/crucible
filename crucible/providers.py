@@ -105,11 +105,30 @@ def catalog_openrouter() -> list[tuple[str, str]]:
     return out
 
 
+# OpenRouter's model entries by ID, once fetched in this process (a failed fetch isn't kept)
+_OPENROUTER_ENTRIES: dict[str, dict] = {}
+
+
+def fetch_openrouter_model(model_id: str) -> dict | None:
+    """OpenRouter's /models entry for a model (pricing, hugging_face_id, ...), or None."""
+    if not _OPENROUTER_ENTRIES:
+        try:
+            data = _get_json(f"{OPENROUTER_BASE_URL}/models").get("data", [])
+            _OPENROUTER_ENTRIES.update({m["id"]: m for m in data if isinstance(m, dict) and m.get("id")})
+        except Exception:
+            return None
+    return _OPENROUTER_ENTRIES.get(model_id)
+
+
+def openrouter_model_if_fetched(model_id: str) -> dict | None:
+    """The model's /models entry only when this process already fetched the list; never fetches."""
+    return _OPENROUTER_ENTRIES.get(model_id)
+
+
 def fetch_openrouter_pricing(model_id: str) -> tuple[float, float] | None:
     """(input, output) USD per million tokens for an OpenRouter model, or None."""
     try:
-        data = _get_json(f"{OPENROUTER_BASE_URL}/models").get("data", [])
-        pricing = next(m["pricing"] for m in data if m["id"] == model_id)
+        pricing = (fetch_openrouter_model(model_id) or {})["pricing"]
         return float(pricing["prompt"]) * 1e6, float(pricing["completion"]) * 1e6
     except Exception:
         return None

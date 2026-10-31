@@ -24,8 +24,8 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from crucible import (checks, console, environment, graders, provenance, runrecord, scorer, versioning,
-                      workspace)
+from crucible import (checks, console, environment, graders, origin, provenance, providers, runrecord, scorer,
+                      versioning, workspace)
 from crucible.agents import AGENTS, DEFAULT_AGENT, Agent, RunContext
 from crucible.agents.base import available_mcp_servers
 from crucible.cost import BilledCost
@@ -118,8 +118,11 @@ def _write_meta(ctx: RunContext, agent: Agent, prompt_def: dict, result: dict,
         "harness": {"id": agent.name, "version": env.get("harness_version")},
         # The weights as a variant (who converted them, into what format and quant) and the reasoning
         # level they ran at; each level is its own model on the dashboard
-        "model": runrecord.model_record(ctx.model, ctx.reasoning,
-                                        environment.reasoning_resolved(ctx.model, ctx.reasoning), inference),
+        "model": {**runrecord.model_record(ctx.model, ctx.reasoning,
+                                           environment.reasoning_resolved(ctx.model, ctx.reasoning), inference),
+                  # Who trained the weights, from the file or server itself (never a lookup table)
+                  "origin": origin.capture(ctx.model, inference, providers.openrouter_model_if_fetched(
+                      (ctx.model or "").partition("/")[2]))},
         "endpoint": runrecord.endpoint_record(ctx.model, inference, environment.endpoint(ctx.model, ctx.run_dir)),
         # The device that ran the weights; cloud runs have none
         "hardware": runrecord.hardware_record(ctx.model, env.get("machine"), inference),

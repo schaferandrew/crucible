@@ -30,7 +30,8 @@ from crucible import checks, exporter, provenance, runrecord, suites, workspace
 SCHEMAS = Path(__file__).parent / "schemas"
 SCHEMA_PATH = SCHEMAS / "results.schema.json"   # format 2 (`crucible export --format 2`)
 RECORD_SCHEMAS = {kind: SCHEMAS / f"{kind}.schema.json" for kind in ("catalog", "run", "score", "status")}
-FORMAT_REVISION = 0
+# Counts additive, optional fields across the bundle (docs/versioning.md#bundle-format). 1: model.origin on runs
+FORMAT_REVISION = 1
 # Where publish writes when --to isn't given: the portfolio checkout next to this one
 DEFAULT_DIRS = [Path(os.environ["CRUCIBLE_PUBLISH_DIR"])] if os.environ.get("CRUCIBLE_PUBLISH_DIR") else []
 DEFAULT_DIRS.append(Path(__file__).resolve().parents[2] / "schaferandrew.github.io" / "_data" / "crucible")
