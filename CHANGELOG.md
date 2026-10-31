@@ -12,6 +12,14 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## 3.5.1 (2026-10-30)
+
+### Fixed
+- `crucible publish` skips runs through a harness their task's mode doesn't use (chat: direct; agentic:
+  opencode, pi), as `crucible export` already did, and lists them. Before, it published every run in `runs/`
+  that the site didn't have, so runs removed from the site for that reason came back on the next publish.
+  Skipped runs stay in `runs/`.
+
 ## 3.5.0 (2026-10-30)
 
 ### Added

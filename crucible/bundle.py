@@ -208,6 +208,7 @@ class Publisher:
         self.to, self.outputs, self.dry_run = to, outputs, dry_run
         self.counts = {"runs": 0, "scores": 0, "status": 0, "catalogs": 0, "outputs": 0, "invalid": 0}
         self.errors: list[str] = []
+        self.skipped: list[str] = []
         self.runs = {p.stem for p in (to / "runs").glob("*/*.json")}
         self.scores = {p.name for p in (to / "scores").glob("*/*.json")}
 
@@ -257,6 +258,16 @@ class Publisher:
                     self.counts["catalogs"] += 1
 
 
+def harness_problem(meta: dict) -> str | None:
+    """Why a run's harness can't count for its task's mode (chat: direct; agentic: opencode, pi), if it can't."""
+    from crucible.taxonomy import harness_problem as problem
+    try:
+        task = workspace.load_task(meta["task"]["id"])
+    except FileNotFoundError:
+        return None
+    return problem(task, (meta.get("harness") or {}).get("id"))
+
+
 def publish(runs_dir: Path, to: Path, outputs: Path, dry_run: bool = False) -> Publisher:
     runrecord.require_migrated(runs_dir)
     pub = Publisher(to, outputs, dry_run)
@@ -264,6 +275,11 @@ def publish(runs_dir: Path, to: Path, outputs: Path, dry_run: bool = False) -> P
         meta = runrecord.read(run_dir)
         if not meta.get("run_uuid"):
             pub.errors.append(f"{run_dir}: no run_uuid (run `crucible migrate`)")
+            continue
+        problem = harness_problem(meta)
+        if problem:
+            # Not comparable, so never published (matching `crucible export`); the run stays in runs/
+            pub.skipped.append(f"{meta.get('run_path') or run_dir.name}: {problem}")
             continue
         output = checks.final_answer(run_dir) or None
         meta = {**meta, "metrics": {**(meta.get("metrics") or {}), **derived_metrics(run_dir, meta)}}
@@ -331,6 +347,9 @@ def main() -> None:
     verb = "Would add" if args.dry_run else "Added"
     print(f"{verb} {c['runs']} runs, {c['scores']} score records, {c['status']} status records, "
           f"{c['catalogs']} catalogs to {folder}; {c['outputs']} outputs")
+    if pub.skipped:
+        print(f"Skipped {len(pub.skipped)} runs through a harness their mode doesn't use (kept in {args.runs}/):\n  "
+              + "\n  ".join(pub.skipped[:30]))
     if pub.errors:
         print("Not written (invalid):\n  " + "\n  ".join(pub.errors[:30]))
         sys.exit(1)

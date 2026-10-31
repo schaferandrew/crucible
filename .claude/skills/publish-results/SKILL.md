@@ -43,6 +43,8 @@ uv run crucible publish --check ../schaferandrew.github.io/_data/crucible   # sc
 
 - Publishing twice adds nothing. A rescore under a new rubric version adds a score record; a run marked with
   `crucible status <run> --invalid REASON` (or `--withdrawn`) adds a status record. Nothing else changes.
+- Runs through a harness their mode doesn't use are skipped and listed (they stay in `runs/`), so runs
+  removed from the site for that reason don't come back. Never delete them from `runs/` to keep them off.
 - Full outputs go to `crucible-data/outputs/`, outside `_data`, so Jekyll never parses them.
 - From another machine: run `crucible publish --to <folder>` there and copy the new files in (they never
   collide: names are UUIDs), or convert its format-2 file with
