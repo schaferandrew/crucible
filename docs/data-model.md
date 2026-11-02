@@ -34,7 +34,7 @@ published; `local` stays on the machine.
 | `started_at`, `ended_at`, `elapsed_s` | Timing |
 | `task` | `id`, `version`, `rubric_version`, `content_hash`, `rubric_hash`, and `alias`: the ID a migrated run was recorded under |
 | `harness` | `id` (direct, opencode, pi), `version` |
-| `model` | `id` (provider/model as run), `base`, `publisher` (who packaged the weights), `artifact` (the packaged repo they were downloaded from, when the source names it), `format`, `quant`, `reasoning` (`requested`, `resolved`), `context_loaded`, `variant_key`, `display`, and since 3.6.0 `origin` (who trained them, below) |
+| `model` | `id` (provider/model as run), `base`, `publisher` (who packaged the weights), `artifact` (the packaged repo they were downloaded from, when the source names it), `format`, `quant`, `reasoning` (`requested`, `resolved`, `resolved_source`), `context_loaded`, `variant_key`, `display`, and since 3.6.0 `origin` (who trained them, below) |
 | `endpoint` | `where` (local or cloud), `provider`, `app`, `served_via` (LM Link), `device`, `upstream` (OpenRouter's provider), `resolved_model` |
 | `hardware` | The device that ran the weights: `key`, `class`, `accelerators`, `system_memory_gb`, `cpu`, `offload`, `label`. Null for cloud runs |
 | `outcome` | `status` (completed, timeout, no_answer, context_limit, failed, harness_error), `harness_status`, `returncode`, `timed_out`, `invalid` (set at run time), `leaks` |
@@ -144,3 +144,31 @@ Folders without a `meta.json` (runs stopped before they were recorded) and unkno
 reported and left alone. Running it twice changes nothing. `crucible migrate --bundle FILE --to DIR`
 converts a published format-2 bundle into format-3 records, for runs whose folders exist only on
 another machine; runs already in DIR are skipped.
+
+### Publisher rules
+
+`model.publisher` identifies who packaged the weights. It is **not** the maker/trainer:
+
+| Run type | Publisher source (in order) | Notes |
+|---|---|---|
+| Local | `model.artifact` prefix → GGUF/MLX metadata → inference.publisher → model key → null | For LM Studio/Ollama models, the packager is extracted from the model artifact or file metadata. Null means "unknown packager". |
+| Cloud | The maker (provider) itself | Cloud providers serve weights directly, so the publisher equals the maker. |
+
+Packager namespaces (`mlx-community`, `lmstudio-community`, `unsloth`, `bartowski`) are never makers.
+
+### Reasoning resolution
+
+`model.reasoning.resolved` is the reasoning level the model actually ran at. For "default" reasoning,
+Crucible tries to determine the actual level from the server or chat template. The `resolved_source`
+field indicates where the information came from:
+
+| Source | Meaning | When used |
+|---|---|---|
+| `server` | Reported by the inference server (LM Studio capabilities API) | LM Studio with reasoning support |
+| `template` | Reported by the chat template in the model's config | Future: when template parsing is added |
+| `requested` | The requested level was used (non-default reasoning) | When `reasoning.requested != "default"` |
+| `inferred` | Inferred from reasoning output (on/off only, never a level) | Future: when output analysis is added |
+| `unknown` | Cannot be determined | Most non-LM Studio runs |
+
+**Important**: Default reasoning only merges with a named level when `resolved == X` and `resolved_source`
+is `server` or `template`. An inferred on/off never merges with a named level.

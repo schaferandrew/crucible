@@ -119,7 +119,9 @@ def _write_meta(ctx: RunContext, agent: Agent, prompt_def: dict, result: dict,
         # The weights as a variant (who converted them, into what format and quant) and the reasoning
         # level they ran at; each level is its own model on the dashboard
         "model": {**runrecord.model_record(ctx.model, ctx.reasoning,
-                                           environment.reasoning_resolved(ctx.model, ctx.reasoning), inference),
+                                           environment.reasoning_resolved(ctx.model, ctx.reasoning)[0],
+                                           inference,
+                                           resolved_source=environment.reasoning_resolved(ctx.model, ctx.reasoning)[1]),
                   # Who trained the weights, from the file or server itself (never a lookup table)
                   "origin": origin.capture(ctx.model, inference, providers.openrouter_model_if_fetched(
                       (ctx.model or "").partition("/")[2]))},

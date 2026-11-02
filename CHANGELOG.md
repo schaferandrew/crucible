@@ -1,5 +1,25 @@
 # Changelog
 
+## 3.7.0 (2026-11-02)
+
+### Added
+- `clean_base_model()` function in `runrecord.py` that extracts format, quant, and publisher from model IDs, handling packager prefixes, quant/format tags, provider suffixes, and date suffixes.
+- `crucible coverage` command to report task coverage per variant with skip-done commands.
+- `resolved_source` field in `model.reasoning` to track where the resolved reasoning level came from (server, template, inferred, requested, unknown).
+- Warnings in `crucible publish --check` for unnormalized base names.
+
+### Changed
+- `reasoning_resolved()` now returns a tuple of (resolved_level, source) instead of just the level.
+- `model_record()` now accepts `resolved_source` parameter and includes it in the reasoning object.
+- Enhanced `implied_variant()` to use the new `clean_base_model()` function.
+- Improved publisher extraction logic to handle packager prefixes and cloud vs local runs.
+
+### Fixed
+- Better handling of model IDs with quant/format tags embedded in the name (e.g., `granite-4.2-3b-mlx@4bit`, `google/gemma-4-12b-qat`).
+- Proper extraction of publisher from packager prefixes (e.g., `mlx-community/muse-glimmer-30b`).
+- Handling of OpenRouter latest aliases (e.g., `~openai/gpt-luna-latest`).
+- Handling of provider suffixes (e.g., `deepseek-v4.1-flash-free`, `nvidia/nemotron-3-ultra-550b-a55b:free`).
+
 Crucible's own releases: the tool people install. What changed in the benchmark itself (which tasks
 are scored, at which versions) is in [SUITE_CHANGELOG.md](SUITE_CHANGELOG.md).
 

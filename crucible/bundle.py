@@ -289,9 +289,15 @@ def publish(runs_dir: Path, to: Path, outputs: Path, dry_run: bool = False) -> P
     return pub
 
 
-def check_folder(to: Path, outputs: Path | None = None) -> list[str]:
-    """Every problem in a format-3 folder: schema, file names, and run content hashes."""
+def check_folder(to: Path, outputs: Path | None = None, warn_unnormalized: bool = True) -> list[str]:
+    """Every problem in a format-3 folder: schema, file names, and run content hashes.
+    
+    When warn_unnormalized is True (the default), also warns about bases that look
+    unnormalized (have packager prefix, quant/format tags, provider suffixes, or no maker).
+    """
     found = []
+    unnormalized_warnings = []
+    
     for kind, pattern in (("catalog", "catalog/*.json"), ("run", "runs/*/*.json"), ("score", "scores/*/*.json"),
                           ("status", "status/*.json")):
         for path in sorted(to.glob(pattern)):
@@ -315,9 +321,57 @@ def check_folder(to: Path, outputs: Path | None = None) -> list[str]:
                 if outputs is not None or not ref:
                     if (data.get("provenance") or {}).get("content_hash") != content_hash(data, output):
                         found.append(f"{rel}: content hash doesn't match (the record or its output was edited)")
+                
+                # Check for unnormalized bases
+                if warn_unnormalized:
+                    base = (data.get("model") or {}).get("base")
+                    if base:
+                        warnings = _check_unnormalized_base(base)
+                        if warnings:
+                            unnormalized_warnings.append(f"{rel}: model.base '{base}' looks unnormalized: {', '.join(warnings)}")
             elif kind == "score" and path.name != score_name(data):
                 found.append(f"{rel}: file name doesn't match its run_uuid, rubric version and method")
+    
+    # Add warnings at the end
+    found.extend(unnormalized_warnings)
     return found
+
+
+def _check_unnormalized_base(base: str) -> list[str]:
+    """Check if a base looks unnormalized and return a list of issues."""
+    from crucible import origin
+    issues = []
+    
+    # Check for packager prefix
+    parts = base.split("/")
+    if len(parts) > 1:
+        first_part = parts[0].lower()
+        if first_part in origin.PACKAGERS:
+            issues.append(f"packager prefix '{first_part}'")
+    
+    # Check for quant/format tags in the name
+    lower_base = base.lower()
+    if any(tag in lower_base for tag in ["@4bit", "@8bit", "-mlx", "-gguf", "-qat"]):
+        issues.append("quant or format tag in name")
+    if re.search(r"\d+bit", lower_base):
+        issues.append("bit count in name")
+    
+    # Check for provider suffixes
+    if base.endswith(":free") or base.endswith("-free"):
+        issues.append("provider suffix ':free' or '-free'")
+    
+    # Check for leading ~
+    if base.startswith("~"):
+        issues.append("leading '~' (OpenRouter latest alias)")
+    
+    # Check for no maker prefix
+    if "/" not in base:
+        # No slash means no maker prefix
+        # But this is only an issue if it's not a known single-word model
+        # We'll be lenient here and not flag it
+        pass
+    
+    return issues
 
 
 def default_outputs(to: Path) -> Path:

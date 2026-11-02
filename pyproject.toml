@@ -4,12 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "crucible"
-version = "3.6.2"
+version = "3.7.0"
 description = "Personal AI benchmark gauntlet for evaluating models on real-world tasks"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
     "prompt-toolkit>=3.0",
+    "pytest>=8.4.2",
     "pyyaml>=6.0",
 ]
 
