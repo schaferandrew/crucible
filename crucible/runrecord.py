@@ -295,6 +295,13 @@ def model_record(model: str | None, reasoning: str, resolved: str | None, infere
     # Base: use cleaned base if available, otherwise fall back to legacy
     base = cleaned_base or base_model(model)
     
+    # Infer resolved_source if not provided
+    if resolved_source is None and resolved is not None:
+        if reasoning != "default":
+            resolved_source = "requested"
+        else:
+            resolved_source = "unknown"
+    
     nq = normalize_quant(quant)
     
     return {

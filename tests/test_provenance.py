@@ -37,8 +37,8 @@ def test_ollama_publisher_from_namespace():
 
 
 def test_requested_reasoning_level_is_the_resolved_one():
-    assert environment.reasoning_resolved("openrouter/openai/gpt-x", "off") == "off"
-    assert environment.reasoning_resolved("openrouter/openai/gpt-x", "default") is None  # can't be told
+    assert environment.reasoning_resolved("openrouter/openai/gpt-x", "off") == ("off", "requested")
+    assert environment.reasoning_resolved("openrouter/openai/gpt-x", "default") == (None, "unknown")  # can't be told
 
 
 def test_lmstudio_default_reasoning_is_read_from_the_server(monkeypatch):
@@ -46,8 +46,8 @@ def test_lmstudio_default_reasoning_is_read_from_the_server(monkeypatch):
                            "capabilities": {"reasoning": {"allowed_options": ["low", "high"], "default": "high"}}},
                           {"key": "mlx-community/plain", "capabilities": {}}]}
     monkeypatch.setattr(environment, "_get", lambda url, body=None: listing)
-    assert environment.reasoning_resolved("lmstudio/meta/muse", "default") == "high"
-    assert environment.reasoning_resolved("lmstudio/mlx-community/plain", "default") is None
+    assert environment.reasoning_resolved("lmstudio/meta/muse", "default") == ("high", "server")
+    assert environment.reasoning_resolved("lmstudio/mlx-community/plain", "default") == (None, "unknown")
 
 
 def test_openrouter_endpoint(tmp_path, monkeypatch):
@@ -71,7 +71,7 @@ def test_model_record():
                                     "format": "gguf", "quantization": "Q4_K_M", "context_length": 100096})
     assert (local["base"], local["publisher"], local["format"], local["quant"]) == (
         "qwen/qwen3.5-9b", "lmstudio-community", "gguf", "Q4_K_M")
-    assert local["reasoning"] == {"requested": "off", "resolved": "off"} and local["context_loaded"] == 100096
+    assert local["reasoning"] == {"requested": "off", "resolved": "off", "resolved_source": "requested"} and local["context_loaded"] == 100096
     assert local["variant_key"] == "qwen/qwen3.5-9b|lmstudio-community|gguf|q4_k_m"
     cloud = runrecord.model_record("openrouter/openai/gpt-x-2026-10-01", "default", None,
                                    {"provider": "openrouter", "local": False})
@@ -80,9 +80,12 @@ def test_model_record():
 
 
 def test_variant_implied_by_the_model_key():
+    # mlx-community in the model ID is a publisher, not a format indicator
     assert runrecord.implied_variant("lmstudio/mlx-community/muse-glimmer-30b", None) == {
-        "publisher": "mlx-community", "format": "mlx"}
+        "publisher": "mlx-community", "format": None}
+    # -mlx tag in the model ID indicates MLX format
     assert runrecord.implied_variant("ollama/qwen3.5:9b-mlx", None)["format"] == "mlx"
+    # 4bit quant implies MLX format
     assert runrecord.implied_variant("lmstudio/qwen/qwen3.5-9b", "4bit")["format"] == "mlx"
     assert runrecord.implied_variant("lmstudio/qwen/qwen3.5-9b", "Q4_K_M") == {"publisher": None, "format": None}
     assert runrecord.normalize_quant("4bit") == "mlx-4bit" and runrecord.normalize_quant("MXFP4") == "mxfp4"
