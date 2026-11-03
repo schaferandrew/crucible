@@ -32,6 +32,8 @@ SCALE = 10
 NAMESPACE = uuid.UUID("6f0c1d2e-8a4b-5c3d-9e7f-c7a1b5e0d3f9")
 LOCAL_PROVIDERS = ("lmstudio", "ollama")
 DATE_SUFFIX = re.compile(r"-(?:\d{4}-\d{2}-\d{2}|\d{8})$")
+# LM Studio addresses one loaded variant as model@quant (qwen/qwen3.6-35b-a3b@6bit)
+VARIANT_SUFFIX = re.compile(r"@[^/]+$")
 
 
 def read_json(path: Path):
@@ -110,11 +112,12 @@ def where(model: str | None, inference: dict | None) -> str | None:
 
 
 def base_model(model: str | None) -> str | None:
-    """The model without its provider prefix or a date suffix: qwen/qwen3.5-9b, openai/gpt-6-luna."""
+    """The model without its provider prefix, a loaded variant suffix or a date suffix:
+    qwen/qwen3.5-9b, openai/gpt-6-luna."""
     if not model:
         return None
     rest = model.split("/", 1)[1] if provider_of(model) and "/" in model else model
-    return DATE_SUFFIX.sub("", rest)
+    return DATE_SUFFIX.sub("", VARIANT_SUFFIX.sub("", rest))
 
 
 def normalize_quant(quant: str | None) -> str | None:

@@ -25,6 +25,10 @@ here ([docs/versioning.md](docs/versioning.md)).
   so a `@6bit` instance behind the plain model key isn't mistaken for the key's 4bit default, and a
   machine with two variants loaded on different devices records the one that answered.
 
+### Changed
+- A run requested as a loaded variant (`lmstudio/qwen/qwen3.6-35b-a3b@6bit`) is recorded under the base
+  model, so the dashboard shows it as a `6bit` variant of that model instead of a separate model.
+
 ## 3.6.2 (2026-10-31)
 
 ### Fixed

@@ -79,6 +79,15 @@ def test_model_record():
     assert cloud["variant_key"] == "openai/gpt-x|openai|api|-"
 
 
+def test_variant_key_is_the_same_model():
+    """`lmstudio/...#6bit` names a quant of the model, not another model, on the dashboard."""
+    variant = runrecord.model_record("lmstudio/qwen/qwen3.6-35b-a3b@6bit", "default", "on",
+                                     {"provider": "lmstudio", "local": True, "publisher": "qwen",
+                                      "format": "mlx", "quantization": "6bit"})
+    assert variant["base"] == "qwen/qwen3.6-35b-a3b"
+    assert variant["variant_key"] == "qwen/qwen3.6-35b-a3b|qwen|mlx|mlx-6bit"
+
+
 def test_variant_implied_by_the_model_key():
     assert runrecord.implied_variant("lmstudio/mlx-community/muse-glimmer-30b", None) == {
         "publisher": "mlx-community", "format": "mlx"}
