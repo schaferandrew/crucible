@@ -22,6 +22,9 @@ from crucible.agents.base import TASK_INSTRUCTION, WATCH_INSTRUCTION, Agent, Lau
 
 
 EXTRA_OPENROUTER_PROVIDER = "openrouter-extra"
+# Providers whose models are whatever that local server has loaded, so a key can appear at
+# any time (LM Studio addresses one loaded variant as model@quant).
+LOCAL_PROVIDERS = ("lmstudio", "ollama")
 
 
 class OpenCodeAgent(Agent):
@@ -53,6 +56,15 @@ class OpenCodeAgent(Agent):
                 "models": {model_id: {"name": model_id, "tool_call": True, **_cost_config(model_id)}},
             }}
             model = f"{EXTRA_OPENROUTER_PROVIDER}/{model_id}"
+        # A local server can address one loaded variant as model@quant (LM Studio's
+        # lmstudio/qwen/qwen3.6-35b-a3b@6bit), but opencode's catalog only knows the keys it
+        # saw at startup, so it refuses the newer one with "Model unavailable" (provider.no-route).
+        # Register it on the provider opencode already has, for this run only, so the run's
+        # recorded model id stays exactly what was asked for.
+        provider, _, model_id = (model or "").partition("/")
+        if provider in LOCAL_PROVIDERS and model_id and model not in _known_models(provider):
+            config.setdefault("provider", {}).setdefault(provider, {}).setdefault("models", {}) \
+                .update({model_id: {"name": model_id, "tool_call": True}})
         if config:
             env["OPENCODE_CONFIG_CONTENT"] = json.dumps(config)
 

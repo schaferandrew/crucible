@@ -203,6 +203,29 @@ class TestOpenCodeLaunch:
         assert provider["models"]["new/model-1"]["cost"] == {"input": 0.06, "output": 0.12}
         assert launch.cmd[-2:] == ["-m", "openrouter-extra/new/model-1"]
 
+    def test_local_variant_not_in_the_catalog_is_registered(self, tmp_path, monkeypatch):
+        """A loaded variant (…@6bit) that opencode's catalog predates is added to its provider.
+
+        opencode refuses an unknown key with provider.no-route, so the run is registered on the
+        provider opencode already has (baseURL and all), and the recorded model id is unchanged.
+        """
+        from crucible.agents import opencode as opencode_agent
+        monkeypatch.setattr(opencode_agent, "_known_models",
+                            lambda provider: frozenset({f"{provider}/qwen/qwen3.6-35b-a3b"}))
+        launch = AGENTS["opencode"].launch(_ctx(tmp_path, model="lmstudio/qwen/qwen3.6-35b-a3b@6bit"))
+        provider = json.loads(launch.env["OPENCODE_CONFIG_CONTENT"])["provider"]["lmstudio"]
+        assert provider["models"]["qwen/qwen3.6-35b-a3b@6bit"]["tool_call"] is True
+        assert "options" not in provider  # merged onto the built-in provider, not replacing it
+        assert launch.cmd[-2:] == ["-m", "lmstudio/qwen/qwen3.6-35b-a3b@6bit"]
+
+    def test_catalogued_local_model_passes_through(self, tmp_path, monkeypatch):
+        from crucible.agents import opencode as opencode_agent
+        monkeypatch.setattr(opencode_agent, "_known_models",
+                            lambda provider: frozenset({f"{provider}/qwen/qwen3.6-35b-a3b"}))
+        launch = AGENTS["opencode"].launch(_ctx(tmp_path, model="lmstudio/qwen/qwen3.6-35b-a3b"))
+        assert "OPENCODE_CONFIG_CONTENT" not in launch.env
+        assert launch.cmd[-2:] == ["-m", "lmstudio/qwen/qwen3.6-35b-a3b"]
+
     def test_token_usage(self, tmp_path):
         (tmp_path / "session.json").write_text(json.dumps({"messages": [
             {"info": {"tokens": {"input": 5, "output": 2, "reasoning": 1}}},
