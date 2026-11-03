@@ -89,16 +89,21 @@ def _lms_json(*args: str):
         return None
 
 
-def lmstudio_device(model_id: str, loaded: list | None, link: dict | None) -> dict:
+def lmstudio_device(model_id: str, loaded: list | None, link: dict | None,
+                    quant: str | None = None) -> dict:
     """Which device LM Studio ran the model on, from `lms ps` and `lms link status`.
 
     LM Link serves models from another machine through the same local API, and the
     API doesn't say which device answered; the CLI does. Each loaded instance names
-    its device, and the link status names every device. Unknown (the CLI missing, the
+    its device, and the link status names every device. `quant` picks between two
+    variants of one key loaded on different devices. Unknown (the CLI missing, the
     model not loaded, or loaded on two devices) records nothing rather than a guess.
     """
-    devices = {m.get("deviceIdentifier") for m in loaded or []
-               if model_id in (m.get("identifier"), m.get("modelKey"))}
+    matches = [m for m in loaded or []
+               if model_id in (m.get("identifier"), m.get("modelKey"))]
+    if quant:
+        matches = [m for m in matches if (quant_name(m) or "").lower() == quant.lower()] or matches
+    devices = {m.get("deviceIdentifier") for m in matches}
     if len(devices) != 1 or link is None:
         return {}
     (device,) = devices
@@ -166,10 +171,14 @@ def _lmstudio(model_id: str, device: bool = True) -> dict:
     instance = lmstudio_loaded(model_id, loaded)
     if instance and quant_name(instance):
         record["quantization"] = quant_name(instance)
+    # A variant key (`...@6bit`) has no API entry of its own, so the loaded instance also fills in
+    # the publisher the API would have named for the base key.
+    record["publisher"] = record["publisher"] or (instance or {}).get("publisher")
     # The CLI talks to this machine's LM Studio, so it only describes a server on localhost.
     # `device` skips the device and file lookups when only the variant is needed (the skip-done probe).
     if device and local:
-        record.update(lmstudio_device(model_id, loaded, _lms_json("link", "status")))
+        record.update(lmstudio_device(model_id, loaded, _lms_json("link", "status"),
+                                      record["quantization"]))
         # The weights' file, for model.origin and model.artifact: only when this machine ran them
         # (a model served over LM Link lives on the peer, and a local copy may be another variant)
         if record.get("device") and record.get("same_machine") and not record.get("served_via"):

@@ -142,6 +142,31 @@ class TestProbe:
             {"identifier": "qwen/x", "modelKey": "qwen/x@6bit", "quantization": {"name": "6bit"}}])
         assert environment._lmstudio("qwen/x", device=False)["quantization"] == "4bit"
 
+    def test_lmstudio_device_picks_the_variant_that_answers(self, monkeypatch):
+        link = {"deviceIdentifier": "local", "deviceName": "Ironwood",
+                "peers": [{"deviceIdentifier": "peer", "deviceName": "Duskfall"}]}
+        loaded = [{"identifier": "qwen/x", "modelKey": "qwen/x", "deviceIdentifier": None,
+                   "quantization": {"name": "4bit"}},
+                  {"identifier": "qwen/x", "modelKey": "qwen/x@6bit", "deviceIdentifier": "peer",
+                   "quantization": {"name": "6bit"}}]
+
+        def fake_lms(*args):
+            return {("ps",): loaded, ("link", "status"): link}.get(args) or []
+
+        monkeypatch.setattr(environment, "_get",
+                            lambda url, body=None: {"quantization": "4bit", "publisher": "qwen"})
+        monkeypatch.setattr(environment, "_lms_json", fake_lms)
+        found = environment._lmstudio("qwen/x")
+        assert (found["quantization"], found["device"], found["same_machine"]) == ("4bit", "Ironwood", True)
+
+    def test_lmstudio_variant_key_uses_the_loaded_publisher(self, monkeypatch):
+        monkeypatch.setattr(environment, "_get", lambda url, body=None: {})
+        monkeypatch.setattr(environment, "_lms_json", lambda *args: [
+            {"identifier": "qwen/x", "modelKey": "qwen/x@6bit", "publisher": "qwen",
+             "quantization": {"name": "6bit"}}] if args == ("ps",) else [])
+        found = environment._lmstudio("qwen/x@6bit", device=False)
+        assert (found["quantization"], found["publisher"]) == ("6bit", "qwen")
+
     def test_lmstudio_variant_probe_skips_device_calls(self, monkeypatch):
         calls = []
 

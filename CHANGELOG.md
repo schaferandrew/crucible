@@ -20,9 +20,10 @@ here ([docs/versioning.md](docs/versioning.md)).
   another publisher's build of the same quant no longer counts, and a `default` run whose effective
   reasoning level the server now reports differently no longer counts. Quant, publisher and resolved
   reasoning are compared only when the server and the recorded run both know them, so cloud runs, an
-  unreachable server and records from before those fields were captured still count as done. The quant
-  comes from the variant actually loaded in LM Studio (`lms ps`), so a `@6bit` instance behind the plain
-  model key isn't mistaken for the key's 4bit default.
+  unreachable server and records from before those fields were captured still count as done. The quant,
+  and for a variant key the publisher, come from the instance actually loaded in LM Studio (`lms ps`),
+  so a `@6bit` instance behind the plain model key isn't mistaken for the key's 4bit default, and a
+  machine with two variants loaded on different devices records the one that answered.
 
 ## 3.6.2 (2026-10-31)
 
