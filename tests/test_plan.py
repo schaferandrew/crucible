@@ -108,13 +108,56 @@ class TestProbe:
                             lambda model, level: pytest.fail("asked for the default level"))
         assert plan.current_variant(MODEL, "off") == {"quant": "mlx-4bit", "publisher": "qwen", "reasoning": "off"}
 
-    def test_lmstudio_variant_probe_skips_lms(self, monkeypatch):
+    def test_current_variant_reads_the_loaded_variant(self, monkeypatch):
+        monkeypatch.setattr(environment, "_get",
+                            lambda url, body=None: {"quantization": "4bit", "publisher": "qwen"})
+        monkeypatch.setattr(environment, "_lms_json", lambda *args: [
+            {"identifier": "qwen/qwen3.6-35b-a3b", "modelKey": "qwen/qwen3.6-35b-a3b@6bit",
+             "quantization": {"name": "6bit", "bits": 6}}])
+        monkeypatch.setattr(environment, "reasoning_resolved", lambda model, level: "on")
+        assert plan.current_variant("lmstudio/qwen/qwen3.6-35b-a3b") == {
+            "quant": "mlx-6bit", "publisher": "qwen", "reasoning": "on"}
+
+    def test_lmstudio_loaded_variant_wins(self, monkeypatch):
         monkeypatch.setattr(environment, "_get",
                             lambda url, body=None: {"quantization": "4bit", "publisher": "qwen",
                                                     "compatibility_type": "mlx"})
-        monkeypatch.setattr(environment, "_lms_json", lambda *args: pytest.fail("ran lms"))
+        monkeypatch.setattr(environment, "_lms_json", lambda *args: [
+            {"identifier": "qwen/qwen3.6-35b-a3b", "modelKey": "qwen/qwen3.6-35b-a3b@6bit",
+             "quantization": {"name": "6bit", "bits": 6}}])
+        found = environment._lmstudio("qwen/qwen3.6-35b-a3b", device=False)
+        assert found["quantization"] == "6bit"
+
+    def test_lmstudio_unloaded_model_uses_api_quant(self, monkeypatch):
+        monkeypatch.setattr(environment, "_get",
+                            lambda url, body=None: {"quantization": "4bit", "publisher": "qwen"})
+        monkeypatch.setattr(environment, "_lms_json", lambda *args: [])
+        assert environment._lmstudio("qwen/qwen3.6-35b-a3b", device=False)["quantization"] == "4bit"
+
+    def test_lmstudio_ambiguous_loaded_quants_use_api_quant(self, monkeypatch):
+        monkeypatch.setattr(environment, "_get",
+                            lambda url, body=None: {"quantization": "4bit", "publisher": "qwen"})
+        monkeypatch.setattr(environment, "_lms_json", lambda *args: [
+            {"identifier": "qwen/x", "modelKey": "qwen/x@4bit", "quantization": {"name": "4bit"}},
+            {"identifier": "qwen/x", "modelKey": "qwen/x@6bit", "quantization": {"name": "6bit"}}])
+        assert environment._lmstudio("qwen/x", device=False)["quantization"] == "4bit"
+
+    def test_lmstudio_variant_probe_skips_device_calls(self, monkeypatch):
+        calls = []
+
+        def fake_lms(*args):
+            calls.append(args)
+            return ([{"identifier": "qwen/qwen3.5-9b", "modelKey": "qwen/qwen3.5-9b@4bit",
+                      "quantization": {"name": "4bit"}}] if args == ("ps",) else [])
+
+        monkeypatch.setattr(environment, "_get",
+                            lambda url, body=None: {"quantization": "4bit", "publisher": "qwen",
+                                                    "compatibility_type": "mlx"})
+        monkeypatch.setattr(environment, "_lms_json", fake_lms)
         found = environment._lmstudio("qwen/qwen3.5-9b", device=False)
         assert (found["quantization"], found["publisher"], found["format"]) == ("4bit", "qwen", "mlx")
+        assert ("ps",) in calls
+        assert ("link", "status") not in calls and ("ls",) not in calls
 
     def test_build_probes_once_for_the_whole_sweep(self, monkeypatch, tmp_path):
         calls = []

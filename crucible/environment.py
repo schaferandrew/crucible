@@ -108,6 +108,21 @@ def lmstudio_device(model_id: str, loaded: list | None, link: dict | None) -> di
     return {"device": hardware.canonical(peer.get("deviceName")), "same_machine": False, "served_via": "LM Link"}
 
 
+def quant_name(entry: dict) -> str | None:
+    """A loaded model's quant: `lms ps` uses {"name": "6bit", "bits": 6}, the API uses a string."""
+    quant = entry.get("quantization")
+    return (quant.get("name") if isinstance(quant, dict) else quant) or None
+
+
+def lmstudio_loaded(model_id: str, loaded: list | None) -> dict | None:
+    """The `lms ps` entry serving this model, which can name a loaded variant
+    (`qwen/qwen3.6-35b-a3b@6bit`). None when nothing matches or its quants disagree."""
+    matches = [m for m in loaded or []
+               if isinstance(m, dict) and model_id in (m.get("identifier"), m.get("modelKey"))]
+    quants = {quant_name(m) for m in matches}
+    return matches[0] if matches and len(quants) == 1 else None
+
+
 def lmstudio_models_dirs() -> list[Path]:
     """Where LM Studio keeps downloaded models: LMSTUDIO_MODELS_DIR, else its default folders."""
     custom = os.environ.get("LMSTUDIO_MODELS_DIR")
@@ -139,15 +154,21 @@ def lmstudio_model_file(model_id: str, entries: list | None, roots: list[Path] |
 
 def _lmstudio(model_id: str, device: bool = True) -> dict:
     base = providers.LMSTUDIO_BASE_URL.rsplit("/v1", 1)[0]
+    local = urlparse(base).hostname in LOCAL_HOSTS
     info = _get(f"{base}/api/v0/models/{model_id}") or {}
     record = {"quantization": info.get("quantization"), "context_length": info.get("loaded_context_length"),
               "max_context_length": info.get("max_context_length"), "arch": info.get("arch"),
               # Who converted the weights, and into what (gguf, mlx): the same model in two variants
               "publisher": info.get("publisher"), "format": info.get("compatibility_type")}
+    # `lms ps` says which variant is actually loaded: the base key's API entry reports its default
+    # quant, so a loaded qwen/...@6bit behind qwen/... would otherwise read as 4bit.
+    loaded = _lms_json("ps") if local else None
+    instance = lmstudio_loaded(model_id, loaded)
+    if instance and quant_name(instance):
+        record["quantization"] = quant_name(instance)
     # The CLI talks to this machine's LM Studio, so it only describes a server on localhost.
-    # `device` skips the `lms` calls when only the variant is needed (the skip-done probe).
-    if device and urlparse(base).hostname in LOCAL_HOSTS:
-        loaded = _lms_json("ps")
+    # `device` skips the device and file lookups when only the variant is needed (the skip-done probe).
+    if device and local:
         record.update(lmstudio_device(model_id, loaded, _lms_json("link", "status")))
         # The weights' file, for model.origin and model.artifact: only when this machine ran them
         # (a model served over LM Link lives on the peer, and a local copy may be another variant)
@@ -193,8 +214,8 @@ PROVIDER_DETAILS = {"lmstudio": _lmstudio, "ollama": _ollama}
 def inference(model: str | None, device: bool = True) -> dict:
     """Provider, whether it runs on this machine, and what the server reports about the model.
 
-    `device=False` skips the hardware lookup (LM Studio's `lms` calls) for callers that only need
-    the variant: the quant, publisher and format the server reports.
+    `device=False` skips the hardware and origin lookups (LM Studio's link and `lms ls` calls) for
+    callers that only need the variant. `lms ps` is still read, since it names the loaded variant.
     """
     try:
         provider_def, model_id = providers.split_model(model or "")
