@@ -11,7 +11,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from crucible import versioning, workspace
+from crucible import environment, runrecord, versioning, workspace
 from crucible.taxonomy import AREAS, MODE_HARNESSES, MODE_LABELS, MODES, TIERS, mode_for
 
 DEFAULT_AGENTIC_HARNESS = "opencode"
@@ -98,15 +98,18 @@ def sort_tasks(task_ids: list[str], prompts: dict[str, dict]) -> list[str]:
 
 def build(model: str, task_ids: list[str], harness: str | None = None, timeout: int | None = None,
           skip_done: bool = False, runs_dir: Path = Path("runs"), allow_long: bool = False,
-          reasoning: str = "default") -> Plan:
+          reasoning: str = "default", variant: dict | None = None) -> Plan:
     """A plan for these tests. `harness` is the agentic harness; chat tests always use direct."""
     prompts = all_prompts()
     plan = Plan(model=model, reasoning=reasoning)
+    if skip_done and variant is None and (runs_dir / model_slug(model, reasoning)).is_dir():
+        # One probe for the whole sweep, not one per test; no runs means nothing to skip
+        variant = current_variant(model, reasoning)
     for t in task_ids:
         p = prompts[t]
         mode = mode_for(p)
         h = MODE_HARNESSES[mode][0] if mode == "chat" else (harness or DEFAULT_AGENTIC_HARNESS)
-        if skip_done and has_current_run(runs_dir, model, t, p, h, reasoning):
+        if skip_done and has_current_run(runs_dir, model, t, p, h, reasoning, variant):
             plan.skipped_done.append(t)
             continue
         limit = timeout or TIER_TIMEOUTS.get(p.get("tier"), 900)
@@ -117,17 +120,53 @@ def build(model: str, task_ids: list[str], harness: str | None = None, timeout: 
 model_slug = workspace.model_slug
 
 
+def current_variant(model: str, reasoning: str = "default") -> dict:
+    """What the server says the current weights and reasoning level are, for `--skip-done`.
+
+    Only the local server can tell: cloud models, an unreachable server, and servers that don't
+    report these leave the fields None, and an unknown field always matches a run.
+    """
+    inference = environment.inference(model, device=False)
+    return {
+        "quant": runrecord.normalize_quant(inference.get("quantization")),
+        "publisher": (inference.get("publisher") or "").lower() or None,
+        "reasoning": (reasoning if reasoning != "default"
+                      else environment.reasoning_resolved(model, "default")),
+    }
+
+
+def _variant_matches(meta: dict, variant: dict) -> bool:
+    """No field known on both the run and the server differs (see `current_variant`)."""
+    model = meta.get("model") or {}
+    stored_quant = runrecord.normalize_quant(model.get("quant"))
+    live_quant = runrecord.normalize_quant(variant.get("quant"))
+    if stored_quant and live_quant and stored_quant != live_quant:
+        return False
+    stored_publisher = (model.get("publisher") or "").lower() or None
+    live_publisher = (variant.get("publisher") or "").lower() or None
+    if stored_publisher and live_publisher and stored_publisher != live_publisher:
+        return False
+    stored_reasoning = (model.get("reasoning") or {}).get("resolved")
+    if stored_reasoning and variant.get("reasoning") and stored_reasoning != variant["reasoning"]:
+        return False
+    return True
+
+
 def has_current_run(runs_dir: Path, model: str, task_id: str, prompt_def: dict, harness: str,
-                    reasoning: str = "default") -> bool:
-    """A valid run of this task's current version, by this model, harness and reasoning level, already exists."""
-    from crucible import runrecord
+                    reasoning: str = "default", variant: dict | None = None) -> bool:
+    """A valid run of this task's current version, by this model, harness and reasoning level, on
+    the same weights (quant and publisher) and effective reasoning level, when the server can tell,
+    already exists."""
     current = versioning.content_hash(prompt_def)
     for run_dir in sorted((runs_dir / model_slug(model, reasoning) / task_id).glob("*")):
         meta = runrecord.read(run_dir)
         if (meta and meta["task"].get("content_hash") == current and meta["harness"].get("id") == harness
                 and meta["model"]["reasoning"].get("requested") == reasoning
                 and not runrecord.invalid(run_dir, meta) and meta["outcome"].get("status") != "harness_error"):
-            return True
+            if variant is None:
+                variant = current_variant(model, reasoning)
+            if _variant_matches(meta, variant):
+                return True
     return False
 
 
@@ -163,5 +202,5 @@ def describe(plan: Plan) -> list[str]:
         lines.append(f"{MODE_LABELS[mode]} ({', '.join(harnesses)}): {len(steps)} test{'' if len(steps) == 1 else 's'}")
         lines.append("  " + " ".join(s.task_id for s in steps))
     if plan.skipped_done:
-        lines.append(f"Already run on the current version, skipped: {' '.join(plan.skipped_done)}")
+        lines.append(f"Already run on the current version with these weights, skipped: {' '.join(plan.skipped_done)}")
     return lines

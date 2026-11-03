@@ -61,7 +61,7 @@ With no arguments, `crucible run` asks what to run, one question at a time:
 3. **Which area and tier?** For a section, narrow to an area (Writing, Coding, ...) and a tier (Spark, Temper, Forge), or keep them all.
 4. **Which agent harness?** Only asked when agentic tests are included: opencode or pi.
 5. **Watch?** Only offered for three or fewer agentic tests (see watch mode below).
-6. **Skip what's already done?** When some tests already have a run of their current version for this model.
+6. **Skip what's already done?** When some tests already have a run of their current version at this model's quant, publisher and reasoning level.
 
 Menus take arrow keys, the number next to an option, or its first letter (press it again for the next match), then Enter; yes/no questions are `y`/`n`. They're drawn with prompt_toolkit. Where a menu can't be drawn the questions fall back to typed numbers, and say why. Before starting, the wizard prints the plan and the one-line command that repeats it without the questions.
 
@@ -87,7 +87,7 @@ Selectors add up (`seating-logic-puzzle competition-math`), filters narrow (`cha
 | `--agent` | Harness for agentic tasks: `opencode` (default) or `pi`. Chat tasks always use `direct`. |
 | `--timeout` | Seconds per task. Default by tier: Spark 5 min, Temper 15 min, Forge 20 min. No task runs longer than 20 minutes, so a runaway agent can't burn tokens for an hour. |
 | `--allow-long` | Lift the 20-minute safety cap |
-| `--skip-done` | Skip tasks this model already ran on their current version |
+| `--skip-done` | Skip tasks this model already ran at this quant, publisher and reasoning level on their current version |
 | `--watch` | Open the agent's TUI instead of running headless |
 | `--reasoning` | Reasoning (thinking) level: `default` (the model's own), `off`, `low`, `medium`, `high`. Each level is recorded as its own model, in its own run folder (`<model>@reasoning-off`), and shows as its own row on the dashboard. Chat tasks send it to the provider; agentic tasks need pi (`--thinking`), since opencode can't set it per run. |
 

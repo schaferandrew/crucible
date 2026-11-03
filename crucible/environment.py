@@ -89,16 +89,21 @@ def _lms_json(*args: str):
         return None
 
 
-def lmstudio_device(model_id: str, loaded: list | None, link: dict | None) -> dict:
+def lmstudio_device(model_id: str, loaded: list | None, link: dict | None,
+                    quant: str | None = None) -> dict:
     """Which device LM Studio ran the model on, from `lms ps` and `lms link status`.
 
     LM Link serves models from another machine through the same local API, and the
     API doesn't say which device answered; the CLI does. Each loaded instance names
-    its device, and the link status names every device. Unknown (the CLI missing, the
+    its device, and the link status names every device. `quant` picks between two
+    variants of one key loaded on different devices. Unknown (the CLI missing, the
     model not loaded, or loaded on two devices) records nothing rather than a guess.
     """
-    devices = {m.get("deviceIdentifier") for m in loaded or []
-               if model_id in (m.get("identifier"), m.get("modelKey"))}
+    matches = [m for m in loaded or []
+               if model_id in (m.get("identifier"), m.get("modelKey"))]
+    if quant:
+        matches = [m for m in matches if (quant_name(m) or "").lower() == quant.lower()] or matches
+    devices = {m.get("deviceIdentifier") for m in matches}
     if len(devices) != 1 or link is None:
         return {}
     (device,) = devices
@@ -106,6 +111,21 @@ def lmstudio_device(model_id: str, loaded: list | None, link: dict | None) -> di
         return {"device": hardware.canonical(link.get("deviceName")), "same_machine": True}
     peer = next((p for p in link.get("peers") or [] if p.get("deviceIdentifier") == device), {})
     return {"device": hardware.canonical(peer.get("deviceName")), "same_machine": False, "served_via": "LM Link"}
+
+
+def quant_name(entry: dict) -> str | None:
+    """A loaded model's quant: `lms ps` uses {"name": "6bit", "bits": 6}, the API uses a string."""
+    quant = entry.get("quantization")
+    return (quant.get("name") if isinstance(quant, dict) else quant) or None
+
+
+def lmstudio_loaded(model_id: str, loaded: list | None) -> dict | None:
+    """The `lms ps` entry serving this model, which can name a loaded variant
+    (`qwen/qwen3.6-35b-a3b@6bit`). None when nothing matches or its quants disagree."""
+    matches = [m for m in loaded or []
+               if isinstance(m, dict) and model_id in (m.get("identifier"), m.get("modelKey"))]
+    quants = {quant_name(m) for m in matches}
+    return matches[0] if matches and len(quants) == 1 else None
 
 
 def lmstudio_models_dirs() -> list[Path]:
@@ -137,17 +157,28 @@ def lmstudio_model_file(model_id: str, entries: list | None, roots: list[Path] |
     return {}
 
 
-def _lmstudio(model_id: str) -> dict:
+def _lmstudio(model_id: str, device: bool = True) -> dict:
     base = providers.LMSTUDIO_BASE_URL.rsplit("/v1", 1)[0]
+    local = urlparse(base).hostname in LOCAL_HOSTS
     info = _get(f"{base}/api/v0/models/{model_id}") or {}
     record = {"quantization": info.get("quantization"), "context_length": info.get("loaded_context_length"),
               "max_context_length": info.get("max_context_length"), "arch": info.get("arch"),
               # Who converted the weights, and into what (gguf, mlx): the same model in two variants
               "publisher": info.get("publisher"), "format": info.get("compatibility_type")}
-    # The CLI talks to this machine's LM Studio, so it only describes a server on localhost
-    if urlparse(base).hostname in LOCAL_HOSTS:
-        loaded = _lms_json("ps")
-        record.update(lmstudio_device(model_id, loaded, _lms_json("link", "status")))
+    # `lms ps` says which variant is actually loaded: the base key's API entry reports its default
+    # quant, so a loaded qwen/...@6bit behind qwen/... would otherwise read as 4bit.
+    loaded = _lms_json("ps") if local else None
+    instance = lmstudio_loaded(model_id, loaded)
+    if instance and quant_name(instance):
+        record["quantization"] = quant_name(instance)
+    # A variant key (`...@6bit`) has no API entry of its own, so the loaded instance also fills in
+    # the publisher the API would have named for the base key.
+    record["publisher"] = record["publisher"] or (instance or {}).get("publisher")
+    # The CLI talks to this machine's LM Studio, so it only describes a server on localhost.
+    # `device` skips the device and file lookups when only the variant is needed (the skip-done probe).
+    if device and local:
+        record.update(lmstudio_device(model_id, loaded, _lms_json("link", "status"),
+                                      record["quantization"]))
         # The weights' file, for model.origin and model.artifact: only when this machine ran them
         # (a model served over LM Link lives on the peer, and a local copy may be another variant)
         if record.get("device") and record.get("same_machine") and not record.get("served_via"):
@@ -156,7 +187,7 @@ def _lmstudio(model_id: str) -> dict:
     return record
 
 
-def _ollama(model_id: str) -> dict:
+def _ollama(model_id: str, device: bool = True) -> dict:
     show = _get(f"{providers.OLLAMA_BASE_URL}/api/show", {"model": model_id}) or {}
     loaded = next((m for m in (_get(f"{providers.OLLAMA_BASE_URL}/api/ps") or {}).get("models", [])
                    if m.get("name") == model_id or m.get("model") == model_id), {})
@@ -189,8 +220,12 @@ PROVIDER_BASE_URLS = {
 PROVIDER_DETAILS = {"lmstudio": _lmstudio, "ollama": _ollama}
 
 
-def inference(model: str | None) -> dict:
-    """Provider, whether it runs on this machine, and what the server reports about the model."""
+def inference(model: str | None, device: bool = True) -> dict:
+    """Provider, whether it runs on this machine, and what the server reports about the model.
+
+    `device=False` skips the hardware and origin lookups (LM Studio's link and `lms ls` calls) for
+    callers that only need the variant. `lms ps` is still read, since it names the loaded variant.
+    """
     try:
         provider_def, model_id = providers.split_model(model or "")
     except ValueError:
@@ -206,7 +241,7 @@ def inference(model: str | None) -> dict:
         "endpoint_host": None if host in LOCAL_HOSTS else host,
     }
     if provider in PROVIDER_DETAILS:
-        record.update(PROVIDER_DETAILS[provider](model_id))
+        record.update(PROVIDER_DETAILS[provider](model_id, device=device))
     return record
 
 

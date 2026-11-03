@@ -310,19 +310,24 @@ def run_wizard(args) -> tuple[planner.Plan, dict] | None:
             watch = confirm("Watch the agent work in its TUI? (for debugging; you quit the TUI to finish each test)",
                             default=False)
         reasoning = args.reasoning or ask_reasoning(model, "opencode" if agentic and (harness or "opencode") == "opencode" else None)
+        # What the server reports now, once: the skip question and the plan must agree
+        variant = planner.current_variant(model, reasoning)
         done = sum(planner.has_current_run(args.output, model, t, prompts[t],
                                            "direct" if mode_for(prompts[t]) == "chat" else harness or "opencode",
-                                           reasoning)
+                                           reasoning, variant)
                    for t in tests)
         skip_done = args.skip_done or (done > 0 and not confirm(
-            f"{done} of these already have a run on their current version. Run them again?", default=False))
-        plan = planner.build(model, tests, harness, args.timeout, skip_done, args.output, args.allow_long, reasoning)
+            f"{done} of these already have a run on their current version with these weights "
+            "and reasoning level. Run them again?", default=False))
+        plan = planner.build(model, tests, harness, args.timeout, skip_done, args.output, args.allow_long, reasoning,
+                             variant)
         problem = planner.reasoning_problem(plan)
         if problem:
             print(problem)
             return None
         if not plan.steps:
-            print("Everything selected has already been run on its current version.")
+            print("Everything selected has already been run on its current version "
+                  "with these weights and reasoning level.")
             return None
         print()
         for line in planner.describe(plan):
