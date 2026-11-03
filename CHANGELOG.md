@@ -12,6 +12,16 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## 3.7.0 (2026-11-02)
+
+### Fixed
+- `--skip-done` and the wizard's "already run" question now compare the weights and reasoning level,
+  not just the model name: a run of a task at `Q4_K_M` (GGUF) no longer counts for `4bit` (MLX),
+  another publisher's build of the same quant no longer counts, and a `default` run whose effective
+  reasoning level the server now reports differently no longer counts. Quant, publisher and resolved
+  reasoning are compared only when the server and the recorded run both know them, so cloud runs, an
+  unreachable server and records from before those fields were captured still count as done.
+
 ## 3.6.2 (2026-10-31)
 
 ### Fixed
