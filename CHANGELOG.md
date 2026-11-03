@@ -12,6 +12,17 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## 3.7.1 (2026-11-03)
+
+### Fixed
+- The opencode agent now runs a loaded local variant that its catalog doesn't list yet. LM Studio
+  addresses one loaded variant as `model@quant` (`lmstudio/qwen/qwen3.6-35b-a3b@6bit`), and opencode's
+  catalog is a snapshot from startup, so a key that appears later resolved to nothing and every run
+  failed with `provider.no-route` before the model was called. Crucible registers the variant on the
+  provider opencode already has — for the spawned process only, so global opencode config is untouched
+  and the run's recorded model id stays exactly what was requested — and leaves already-catalogued
+  models alone. The same case for a new OpenRouter model keeps its separate provider.
+
 ## 3.7.0 (2026-11-02)
 
 ### Fixed
