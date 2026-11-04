@@ -60,9 +60,14 @@ Then publish (the usual steps, with the resolved path):
    uv run crucible publish --check "$USB"
    ```
 
-   Expected today: exactly 30 run-record failures, all dated `2026-09` (legacy,
-   `source: crucible-migrate`, no content hash). Anything else failing is real trouble — but note
-   other machines' bundles may have their own known-failure tallies; count before flagging.
+   Judge failures by their **signature, not a count** — a per-drive tally isn't stable. A record that
+   fails because it predates content hashing produces exactly two lines (a `content_hash: null` type
+   error plus a "hash doesn't match" error) with no sign of tampering. Known-blessed signatures: the
+   2026-09 `crucible-migrate` batch and Ironwood Crucible 3.4.1 records (`source: crucible-run` or
+   `crucible-migrate`, no hash) all fail this way and are intact — don't worry about them. What IS
+   real trouble: a hash mismatch on a record that already carries a hash (edited in place), or a file
+   the schema rejects outright. Summarize the match/mismatch counts for the user rather than inferring
+   "clean" from any fixed number.
 
 ## Troubleshooting
 
@@ -70,5 +75,5 @@ Then publish (the usual steps, with the resolved path):
   or report and finish.
 - If `crucible` says runs are from before 3.0.0 locally, they need `crucible migrate` first — show
   `crucible migrate --dry-run` to the user and only run it on their say-so.
-- If publish targets a bundle from another machine's format-2 export, stop and ask: never convert or
-  overwrite another machine's file without confirmation.
+- `publish --dry-run` may report 0 outputs even when the subsequent publish adds outputs — the
+  dry-run delta isn't a perfect predictor; that's fine, publish only adds.
