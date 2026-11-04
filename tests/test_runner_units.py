@@ -142,6 +142,13 @@ class TestOpenCodeLaunch:
         launch = AGENTS["opencode"].launch(_ctx(tmp_path, model="openrouter/x/y"))
         assert "--dir" in launch.cmd and "--standalone" not in launch.cmd and launch.cwd is None
 
+    def test_v1_watch_uses_root_tui(self, tmp_path):
+        ctx = _ctx(tmp_path, watch=True)
+        launch = AGENTS["opencode"].launch(ctx)
+        assert launch.cmd == ["opencode", str(ctx.workspace), "--prompt",
+                              "Read prompt.txt in the current directory and complete the benchmark task it describes.",
+                              "--auto"]
+
     def test_v2_runs_standalone_in_the_workspace(self, tmp_path, monkeypatch):
         from crucible.agents import opencode as opencode_agent
         monkeypatch.setattr(opencode_agent, "_major_version", lambda: 2)
@@ -153,7 +160,16 @@ class TestOpenCodeLaunch:
         assert launch.env["PWD"] == str(ctx.workspace)
         assert "OPENCODE_CONFIG_CONTENT" in launch.env
         watch = AGENTS["opencode"].launch(_ctx(tmp_path, watch=True))
-        assert watch.cmd[:2] == ["opencode", "--standalone"]
+        assert watch.cmd == ["opencode", "mini", "--standalone", "--prompt",
+                             "Read prompt.txt in the current directory and complete the benchmark task it describes."]
+        assert watch.cwd == tmp_path / "workspace"
+        assert watch.env["PWD"] == str(tmp_path / "workspace")
+
+    def test_v2_watch_passes_model_to_mini(self, tmp_path, monkeypatch):
+        from crucible.agents import opencode as opencode_agent
+        monkeypatch.setattr(opencode_agent, "_major_version", lambda: 2)
+        watch = AGENTS["opencode"].launch(_ctx(tmp_path, watch=True, model="lmstudio/test/model"))
+        assert watch.cmd[-2:] == ["-m", "lmstudio/test/model"]
 
     def test_v2_export_reading(self, tmp_path):
         from crucible.agents import opencode as opencode_agent

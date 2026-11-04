@@ -74,7 +74,12 @@ class OpenCodeAgent(Agent):
         workspace = str(ctx.workspace)
         if ctx.watch:
             # The TUI takes no file attachment; the agent reads prompt.txt itself.
-            cmd = ["opencode", *standalone, workspace, "--prompt", WATCH_INSTRUCTION, "--auto"]
+            if v2:
+                # 2.x moved the interactive interface to `mini`; the root command
+                # no longer accepts model flags and mini has no --auto option.
+                cmd = ["opencode", "mini", *standalone, "--prompt", WATCH_INSTRUCTION]
+            else:
+                cmd = ["opencode", workspace, "--prompt", WATCH_INSTRUCTION, "--auto"]
         else:
             # 2.x: JSON events on stdout carry the session ID, which collect() exports
             cmd = ["opencode", "run", *standalone, *(["--format", "json"] if v2 else []), TASK_INSTRUCTION,

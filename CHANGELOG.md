@@ -12,6 +12,13 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## 3.7.4 (2026-11-03)
+
+### Fixed
+- OpenCode 2.x watch runs now launch its `mini` interface, which accepts the model and prompt
+  options. Previously watch mode used the obsolete root command, which rejected `-m` before the
+  model could produce anything.
+
 ## 3.7.3 (2026-11-03)
 
 ### Fixed
