@@ -122,10 +122,48 @@ def quant_name(entry: dict) -> str | None:
 def lmstudio_loaded(model_id: str, loaded: list | None) -> dict | None:
     """The `lms ps` entry serving this model, which can name a loaded variant
     (`qwen/qwen3.6-35b-a3b@6bit`). None when nothing matches or its quants disagree."""
-    matches = [m for m in loaded or []
-               if isinstance(m, dict) and model_id in (m.get("identifier"), m.get("modelKey"))]
+    matches = lmstudio_variants(model_id, loaded)
     quants = {quant_name(m) for m in matches}
     return matches[0] if matches and len(quants) == 1 else None
+
+
+def lmstudio_variants(model_id: str, loaded: list | None) -> list[dict]:
+    """Every `lms ps` instance that can serve this key, base instance and loaded variants alike.
+
+    A variant instance (`qwen/qwen3.6-35b-a3b@6bit`) carries the base key in `identifier`, so a base
+    key's list includes its loaded variants: which one answers depends on what's loaded elsewhere, and
+    matching each run against all of them is what keeps a sibling's presence from changing the answer.
+    A variant key names itself, so only its own instance answers.
+    """
+    base = model_id.split("@", 1)[0]
+    rows = [m for m in loaded or [] if isinstance(m, dict)]
+    if "@" in model_id:
+        return [m for m in rows if model_id in (m.get("modelKey"), m.get("selectedVariant"))]
+    return [m for m in rows
+            if m.get("identifier") == base or str(m.get("modelKey") or "").split("@", 1)[0] == base]
+
+
+def lmstudio_weights(entry: dict) -> dict:
+    """The weights a loaded instance runs: precision, container, size and the repo they came from.
+
+    `lms ps` names the repo in `indexedModelIdentifier` (`<device hash>:<key>@<repo>`, e.g.
+    `...:qwen/qwen3.6-35b-a3b@lmstudio-community/Qwen3.6-35B-A3B-MLX-6bit`), so the repo is known even
+    when LM Link serves the instance and the file lives on the peer. `bits` matches the `/api/v1/models`
+    `bits_per_weight` for the same variant, and the quant name is the string the runs record.
+    """
+    indexed = str(entry.get("indexedModelIdentifier") or "")
+    repo = indexed.split(":", 1)[1] if ":" in indexed else indexed
+    repo = repo.rsplit("@", 1)[1] if "@" in repo else repo
+    quant = entry.get("quantization")
+    return {
+        "key": entry.get("modelKey"),
+        "quant": quant.get("name") if isinstance(quant, dict) else quant,
+        "bits": quant.get("bits") if isinstance(quant, dict) else None,
+        "format": entry.get("format"),
+        "artifact": repo or None,
+        "size_bytes": entry.get("sizeBytes"),
+        "device": entry.get("deviceIdentifier"),
+    }
 
 
 def lmstudio_models_dirs() -> list[Path]:
@@ -168,12 +206,22 @@ def _lmstudio(model_id: str, device: bool = True) -> dict:
     # `lms ps` says which variant is actually loaded: the base key's API entry reports its default
     # quant, so a loaded qwen/...@6bit behind qwen/... would otherwise read as 4bit.
     loaded = _lms_json("ps") if local else None
+    # Every loaded instance that can serve this key, with the weights each one runs: the base key's
+    # API entry describes one default variant, so a sibling variant being loaded elsewhere must not
+    # change what a run's own weights are compared against.
+    variants = [w for w in (lmstudio_weights(m) for m in lmstudio_variants(model_id, loaded)) if w.get("quant")]
+    if variants:
+        record["variants"] = variants
     instance = lmstudio_loaded(model_id, loaded)
     if instance and quant_name(instance):
         record["quantization"] = quant_name(instance)
     # A variant key (`...@6bit`) has no API entry of its own, so the loaded instance also fills in
     # the publisher the API would have named for the base key.
     record["publisher"] = record["publisher"] or (instance or {}).get("publisher")
+    # The weights' packaged repo, when the loaded instance names it: the same answer whether the file
+    # sits on this machine or on an LM Link peer, so provenance can name the weights it actually ran.
+    if len(variants) == 1 and variants[0].get("artifact"):
+        record["artifact"] = record.get("artifact") or variants[0]["artifact"]
     # The CLI talks to this machine's LM Studio, so it only describes a server on localhost.
     # `device` skips the device and file lookups when only the variant is needed (the skip-done probe).
     if device and local:

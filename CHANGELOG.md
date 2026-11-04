@@ -12,6 +12,17 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## 3.7.2 (2026-11-04)
+
+### Fixed
+- `--skip-done` now correctly distinguishes sibling variants of the same model key when
+  identifying whether a task has already been run. Previously, a loaded `@6bit` variant
+  would incorrectly hide `@4bit` runs (and vice versa) because skip-done matched only the
+  base model key's reported quant. Now `has_current_run` checks whether the stored run's
+  weights (quant, publisher, reasoning level) are among the *currently loaded variants*
+  for that key, so a run on one quant is skipped only when that exact quant is loaded.
+  A `weights_note` explains why nothing was skipped when runs exist on different weights.
+
 ## 3.7.1 (2026-11-03)
 
 ### Fixed

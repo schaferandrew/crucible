@@ -28,8 +28,9 @@ def _write_run(tmp_path, *, quant=None, publisher=None, reasoning="default", res
     return run_dir
 
 
-def _done(tmp_path, *, model=MODEL, requested="default", quant=None, publisher=None, resolved=None):
-    variant = {"quant": quant, "publisher": publisher, "reasoning": resolved}
+def _done(tmp_path, *, model=MODEL, requested="default", quant=None, publisher=None, resolved=None,
+          variants=None):
+    variant = {"quant": quant, "variants": variants or [], "publisher": publisher, "reasoning": resolved}
     return plan.has_current_run(tmp_path, model, TASK, _prompt(), "direct", requested, variant)
 
 
@@ -55,6 +56,38 @@ class TestQuant:
     def test_unknown_live_quant_matches(self, tmp_path):
         _write_run(tmp_path, quant="Q4_K_M")
         assert _done(tmp_path, quant=None)
+
+
+class TestLoadedVariants:
+    """One LM Studio key, two variants loaded on different devices: each run matches its own weights."""
+
+    def test_a_loaded_sibling_does_not_hide_the_runs_weights(self, tmp_path):
+        _write_run(tmp_path, quant="4bit", publisher="qwen")
+        both = [{"quant": "mlx-4bit"}, {"quant": "mlx-6bit"}]
+        assert _done(tmp_path, variants=both)
+        # Only the 6bit sibling loaded: the 4bit weights really aren't loaded, so it isn't done
+        assert not _done(tmp_path, variants=[{"quant": "mlx-6bit"}])
+
+    def test_a_run_on_another_loaded_variant_does_not_count(self, tmp_path):
+        _write_run(tmp_path, quant="6bit", publisher="qwen")
+        both = [{"quant": "mlx-4bit"}, {"quant": "mlx-6bit"}]
+        assert _done(tmp_path, variants=both)
+        assert not _done(tmp_path, variants=[{"quant": "mlx-4bit"}])
+
+    def test_an_unknown_loaded_set_falls_back_to_the_single_quant(self, tmp_path):
+        _write_run(tmp_path, quant="6bit", publisher="qwen")
+        assert _done(tmp_path, quant="6bit", variants=[])
+        assert not _done(tmp_path, quant="4bit", variants=[])
+
+    def test_weights_note_names_both_sides(self, tmp_path):
+        _write_run(tmp_path, quant="4bit", publisher="qwen", reasoning="off", resolved="off")
+        note = plan.weights_note(tmp_path, MODEL, "off",
+                                 {"variants": [{"quant": "mlx-6bit", "artifact": "org/X-MLX-6bit"}]})
+        assert "mlx-4bit" in note and "mlx-6bit" in note and "org/X-MLX-6bit" in note
+
+    def test_weights_note_is_silent_when_the_runs_weights_are_loaded(self, tmp_path):
+        _write_run(tmp_path, quant="4bit", publisher="qwen", reasoning="off", resolved="off")
+        assert plan.weights_note(tmp_path, MODEL, "off", {"variants": [{"quant": "mlx-4bit"}]}) is None
 
 
 class TestPublisher:
@@ -99,14 +132,16 @@ class TestProbe:
         monkeypatch.setattr(environment, "inference",
                             lambda model, device=True: {"quantization": "Q4_K_M", "publisher": "Qwen"})
         monkeypatch.setattr(environment, "reasoning_resolved", lambda model, level: "on")
-        assert plan.current_variant(MODEL) == {"quant": "q4_k_m", "publisher": "qwen", "reasoning": "on"}
+        assert plan.current_variant(MODEL) == {"quant": "q4_k_m", "variants": [], "publisher": "qwen",
+                                               "reasoning": "on"}
 
     def test_explicit_reasoning_needs_no_provider_call(self, monkeypatch):
         monkeypatch.setattr(environment, "inference",
                             lambda model, device=True: {"quantization": "4bit", "publisher": "qwen"})
         monkeypatch.setattr(environment, "reasoning_resolved",
                             lambda model, level: pytest.fail("asked for the default level"))
-        assert plan.current_variant(MODEL, "off") == {"quant": "mlx-4bit", "publisher": "qwen", "reasoning": "off"}
+        assert plan.current_variant(MODEL, "off") == {"quant": "mlx-4bit", "variants": [], "publisher": "qwen",
+                                                      "reasoning": "off"}
 
     def test_current_variant_reads_the_loaded_variant(self, monkeypatch):
         monkeypatch.setattr(environment, "_get",
@@ -116,7 +151,8 @@ class TestProbe:
              "quantization": {"name": "6bit", "bits": 6}}])
         monkeypatch.setattr(environment, "reasoning_resolved", lambda model, level: "on")
         assert plan.current_variant("lmstudio/qwen/qwen3.6-35b-a3b") == {
-            "quant": "mlx-6bit", "publisher": "qwen", "reasoning": "on"}
+            "quant": "mlx-6bit", "variants": [{"quant": "mlx-6bit", "artifact": None, "bits": 6, "device": None}],
+            "publisher": "qwen", "reasoning": "on"}
 
     def test_lmstudio_loaded_variant_wins(self, monkeypatch):
         monkeypatch.setattr(environment, "_get",
@@ -141,6 +177,36 @@ class TestProbe:
             {"identifier": "qwen/x", "modelKey": "qwen/x@4bit", "quantization": {"name": "4bit"}},
             {"identifier": "qwen/x", "modelKey": "qwen/x@6bit", "quantization": {"name": "6bit"}}])
         assert environment._lmstudio("qwen/x", device=False)["quantization"] == "4bit"
+
+    def test_lmstudio_lists_every_loaded_variant_of_a_key(self, monkeypatch):
+        monkeypatch.setattr(environment, "_get",
+                            lambda url, body=None: {"quantization": "4bit", "publisher": "qwen"})
+        monkeypatch.setattr(environment, "_lms_json", lambda *args: [
+            {"identifier": "qwen/x", "modelKey": "qwen/x", "quantization": {"name": "4bit", "bits": 4},
+             "sizeBytes": 20429364306},
+            {"identifier": "qwen/x", "modelKey": "qwen/x@6bit", "quantization": {"name": "6bit", "bits": 6},
+             "sizeBytes": 29088963084,
+             "indexedModelIdentifier": "hash:qwen/x@lmstudio-community/X-MLX-6bit"}])
+        found = environment._lmstudio("qwen/x", device=False)
+        # The base key's own API quant stays for provenance, and both loaded variants are comparable
+        assert found["quantization"] == "4bit"
+        assert [w["quant"] for w in found["variants"]] == ["4bit", "6bit"]
+        assert [w["bits"] for w in found["variants"]] == [4, 6]
+        assert found["variants"][1]["artifact"] == "lmstudio-community/X-MLX-6bit"
+        # The base key's artifact stays unknown: two variants means the API's pick names neither
+        assert "artifact" not in found or found["artifact"] is None
+
+    def test_lmstudio_weights_names_the_repo_over_lm_link(self, monkeypatch):
+        monkeypatch.setattr(environment, "_get",
+                            lambda url, body=None: {"quantization": "4bit", "publisher": "qwen"})
+        monkeypatch.setattr(environment, "_lms_json", lambda *args: [
+            {"identifier": "qwen/x", "modelKey": "qwen/x@6bit", "quantization": {"name": "6bit", "bits": 6},
+             "deviceIdentifier": "peer",
+             "indexedModelIdentifier": "peer:qwen/x@lmstudio-community/X-MLX-6bit"}])
+        found = environment._lmstudio("qwen/x", device=False)
+        # Served over LM Link, so no local file: the repo still names the weights that ran
+        assert found["quantization"] == "6bit"
+        assert found["artifact"] == "lmstudio-community/X-MLX-6bit"
 
     def test_lmstudio_device_picks_the_variant_that_answers(self, monkeypatch):
         link = {"deviceIdentifier": "local", "deviceName": "Ironwood",
