@@ -160,10 +160,78 @@ def lmstudio_weights(entry: dict) -> dict:
         "quant": quant.get("name") if isinstance(quant, dict) else quant,
         "bits": quant.get("bits") if isinstance(quant, dict) else None,
         "format": entry.get("format"),
+        "publisher": entry.get("publisher"),
         "artifact": repo or None,
         "size_bytes": entry.get("sizeBytes"),
         "device": entry.get("deviceIdentifier"),
     }
+
+
+def lmstudio_expected_variant(model_id: str, available: list | None, link: dict | None) -> dict | None:
+    """The weights an unloaded model key will resolve to, when LM-Link makes that unambiguous.
+
+    The REST model catalog describes a default quantization even when the model is not loaded; that
+    value need not be the copy LM-Link will choose. `/api/v1/models` exposes variants but no device,
+    so join the per-device `lms ls` inventory to LM-Link's preferred device. If the preferred device
+    has more than one distinct candidate, don't guess. With no preferred-device copy, a single unique
+    available weight set is still safe to identify (for example, a model available only locally).
+    """
+    if not isinstance(available, list) or not isinstance(link, dict):
+        return None
+    base = model_id.split("@", 1)[0]
+    rows = [m for m in available if isinstance(m, dict)]
+    if "@" in model_id:
+        rows = [m for m in rows if model_id in (m.get("modelKey"), m.get("selectedVariant"))]
+    else:
+        rows = [m for m in rows
+                if m.get("identifier") == base or str(m.get("modelKey") or "").split("@", 1)[0] == base]
+    if not rows:
+        return None
+
+    local_id = link.get("deviceIdentifier")
+    preferred_id = link.get("preferredDeviceIdentifier")
+    peers = {p.get("deviceIdentifier"): p for p in link.get("peers") or [] if isinstance(p, dict)}
+    connected = {device for device, peer in peers.items() if peer.get("status") == "connected"}
+    if preferred_id and preferred_id != local_id:
+        peer = peers.get(preferred_id)
+        if not peer or peer.get("status") != "connected":
+            return None
+
+    def device_id(entry: dict):
+        # lms ls represents this machine with null; LM Link status gives it an identifier.
+        return entry.get("deviceIdentifier") or local_id
+
+    # Do not infer a route from an inventory row whose peer is disconnected.
+    rows = [m for m in rows if device_id(m) == local_id or device_id(m) in connected]
+    if not rows:
+        return None
+    preferred_rows = ([m for m in rows if device_id(m) == preferred_id]
+                      if preferred_id else [])
+    candidates = preferred_rows or rows
+    distinct: dict[tuple, dict] = {}
+    for entry in candidates:
+        weights = lmstudio_weights(entry)
+        if not weights.get("quant"):
+            continue
+        weights["publisher"] = (weights.get("publisher") or "").lower() or None
+        # Keep same-quant builds distinct when their packaged artifacts differ.
+        identity = (str(weights.get("key") or "").lower(),
+                    str(weights.get("quant") or "").lower(),
+                    str(weights.get("publisher") or "").lower(),
+                    str(weights.get("artifact") or "").lower())
+        distinct.setdefault(identity, weights)
+    if len(distinct) != 1:
+        return None
+    resolved = next(iter(distinct.values()))
+    resolved["resolution"] = "preferred" if preferred_rows else "unique"
+    resolved_devices = {device_id(m) for m in (preferred_rows or candidates)}
+    resolved_device = preferred_id if preferred_rows else (next(iter(resolved_devices))
+                                                            if len(resolved_devices) == 1 else None)
+    if resolved_device:
+        peer = peers.get(resolved_device) or {}
+        resolved["device_name"] = hardware.canonical(
+            link.get("deviceName") if resolved_device == local_id else peer.get("deviceName"))
+    return resolved
 
 
 def lmstudio_models_dirs() -> list[Path]:
@@ -199,7 +267,8 @@ def _lmstudio(model_id: str, device: bool = True) -> dict:
     base = providers.LMSTUDIO_BASE_URL.rsplit("/v1", 1)[0]
     local = urlparse(base).hostname in LOCAL_HOSTS
     info = _get(f"{base}/api/v0/models/{model_id}") or {}
-    record = {"quantization": info.get("quantization"), "context_length": info.get("loaded_context_length"),
+    record = {"quantization": info.get("quantization"), "state": info.get("state"),
+              "context_length": info.get("loaded_context_length"),
               "max_context_length": info.get("max_context_length"), "arch": info.get("arch"),
               # Who converted the weights, and into what (gguf, mlx): the same model in two variants
               "publisher": info.get("publisher"), "format": info.get("compatibility_type")}
@@ -222,10 +291,20 @@ def _lmstudio(model_id: str, device: bool = True) -> dict:
     # sits on this machine or on an LM Link peer, so provenance can name the weights it actually ran.
     if len(variants) == 1 and variants[0].get("artifact"):
         record["artifact"] = record.get("artifact") or variants[0]["artifact"]
+    link = None
+    # An unloaded model's API quant is a catalog default, not necessarily the variant the API will
+    # load. LM-Link documents that REST requests use the preferred device; lms ls is the inventory
+    # that identifies each variant's device. Use it only if that device has one distinct candidate.
+    if local and info.get("state") == "not-loaded" and not variants:
+        link = _lms_json("link", "status")
+        record["expected_variant"] = lmstudio_expected_variant(model_id, _lms_json("ls", model_id), link)
     # The CLI talks to this machine's LM Studio, so it only describes a server on localhost.
-    # `device` skips the device and file lookups when only the variant is needed (the skip-done probe).
+    # `device` skips the serving-device and local-file lookups; an unloaded model still needs the
+    # preferred-device catalog above for an accurate skip-done probe.
     if device and local:
-        record.update(lmstudio_device(model_id, loaded, _lms_json("link", "status"),
+        if link is None:
+            link = _lms_json("link", "status")
+        record.update(lmstudio_device(model_id, loaded, link,
                                       record["quantization"]))
         # The weights' file, for model.origin and model.artifact: only when this machine ran them
         # (a model served over LM Link lives on the peer, and a local copy may be another variant)

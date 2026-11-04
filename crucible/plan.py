@@ -127,20 +127,36 @@ def current_variant(model: str, reasoning: str = "default") -> dict:
     """What the server says the current weights and reasoning level are, for `--skip-done`.
 
     Only the local server can tell: cloud models, an unreachable server, and servers that don't
-    report these leave the fields None, and an unknown field always matches a run. `variants` lists
-    every loaded instance that can serve the key, so one sibling's presence can't hide another's.
+    report these leave the fields None. `variants` lists every loaded instance that can serve the key,
+    so one sibling's presence can't hide another's. When LM Studio says the key is unloaded, use the
+    exact variant on its preferred LM-Link device if the inventory makes that unique; an ambiguous
+    unloaded route is unknown and must not cause a run to be skipped.
     """
     inference = environment.inference(model, device=False)
     raw_variants = inference.get("variants")
     variants = [{"quant": runrecord.normalize_quant(w.get("quant")), "artifact": w.get("artifact"),
                  "bits": w.get("bits"), "device": w.get("device")}
                 for w in raw_variants if w.get("quant")] if raw_variants is not None else []
+    reasoning_level = (reasoning if reasoning != "default"
+                       else environment.reasoning_resolved(model, "default"))
+    if inference.get("state") == "not-loaded" and not variants:
+        expected = inference.get("expected_variant")
+        if expected:
+            expected = {**expected, "quant": runrecord.normalize_quant(expected.get("quant")),
+                        "publisher": (expected.get("publisher") or "").lower() or None}
+        return {
+            "quant": expected.get("quant") if expected else None,
+            "variants": [],
+            "publisher": expected.get("publisher") if expected else None,
+            "reasoning": reasoning_level,
+            "unloaded": True,
+            "expected_variant": expected,
+        }
     return {
         "quant": runrecord.normalize_quant(inference.get("quantization")),
         "variants": variants,
         "publisher": (inference.get("publisher") or "").lower() or None,
-        "reasoning": (reasoning if reasoning != "default"
-                      else environment.reasoning_resolved(model, "default")),
+        "reasoning": reasoning_level,
     }
 
 
@@ -157,6 +173,21 @@ def _variant_matches(meta: dict, variant: dict) -> bool:
             return False
         stored_publisher = (model.get("publisher") or "").lower() or None
         live_publisher = (variant.get("publisher") or "").lower() or None
+        if stored_publisher and live_publisher and stored_publisher != live_publisher:
+            return False
+        return _reasoning_matches(model, variant)
+    # For an unloaded LM Studio model, the API's advertised quant is only a default and may belong
+    # to a different device. Match only the uniquely resolved next-load variant; unknown routing is
+    # deliberately conservative so it cannot hide a run on the wrong sibling.
+    if variant.get("unloaded"):
+        expected = variant.get("expected_variant")
+        if not expected:
+            return False
+        live_quant = runrecord.normalize_quant(expected.get("quant"))
+        if stored_quant and live_quant and stored_quant != live_quant:
+            return False
+        stored_publisher = (model.get("publisher") or "").lower() or None
+        live_publisher = (expected.get("publisher") or "").lower() or None
         if stored_publisher and live_publisher and stored_publisher != live_publisher:
             return False
         return _reasoning_matches(model, variant)
@@ -182,6 +213,29 @@ def weights_note(runs_dir: Path, model: str, reasoning: str, variant: dict) -> s
     so a key whose only loaded instance is another variant reads as "nothing has been run" without a
     word. This says which weights the runs are on and which are loaded, so the reason is visible.
     """
+    if variant.get("unloaded"):
+        expected = variant.get("expected_variant")
+        if not expected:
+            return ("Nothing skipped: LM Studio reports this model as unloaded, and its next-load "
+                    "variant could not be resolved from the available device catalog.")
+        target = runrecord.normalize_quant(expected.get("quant"))
+        if not target:
+            return ("Nothing skipped: the model is unloaded and its next-load weights are unknown.")
+        stored = set()
+        for run_dir in sorted((runs_dir / model_slug(model, reasoning)).glob("*/*")):
+            meta = runrecord.read(run_dir)
+            if not meta or runrecord.invalid(run_dir, meta) or meta["outcome"].get("status") == "harness_error":
+                continue
+            quant = runrecord.normalize_quant((meta.get("model") or {}).get("quant"))
+            if quant and quant != target:
+                stored.add(quant)
+        if not stored:
+            return None
+        where = f" on {expected['device_name']}" if expected.get("device_name") else ""
+        runs_on = ", ".join(sorted(stored))
+        return (f"Nothing skipped: the runs here are on {runs_on}; the unloaded model will resolve to "
+                f"{target}{where}.")
+
     loaded = {runrecord.normalize_quant(w.get("quant")) for w in variant.get("variants") or []}
     loaded.discard(None)
     stored: dict[str, str | None] = {}

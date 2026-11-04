@@ -12,6 +12,16 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## 3.7.3 (2026-11-03)
+
+### Fixed
+- When an LM Studio model is unloaded, `--skip-done` now resolves its expected weights from the
+  preferred LM-Link device's available variant when that choice is unique. It no longer mistakes
+  the API's default quantization for the weights that the preferred device will load. If the route
+  or variant is ambiguous, the planner conservatively skips nothing. Loaded-instance matching is
+  unchanged.
+- Explain unresolved unloaded weights without claiming that unknown weights are already loaded.
+
 ## 3.7.2 (2026-11-04)
 
 ### Fixed

@@ -29,8 +29,10 @@ def _write_run(tmp_path, *, quant=None, publisher=None, reasoning="default", res
 
 
 def _done(tmp_path, *, model=MODEL, requested="default", quant=None, publisher=None, resolved=None,
-          variants=None):
+          variants=None, unloaded=False, expected_variant=None):
     variant = {"quant": quant, "variants": variants or [], "publisher": publisher, "reasoning": resolved}
+    if unloaded:
+        variant.update(unloaded=True, expected_variant=expected_variant)
     return plan.has_current_run(tmp_path, model, TASK, _prompt(), "direct", requested, variant)
 
 
@@ -88,6 +90,31 @@ class TestLoadedVariants:
     def test_weights_note_is_silent_when_the_runs_weights_are_loaded(self, tmp_path):
         _write_run(tmp_path, quant="4bit", publisher="qwen", reasoning="off", resolved="off")
         assert plan.weights_note(tmp_path, MODEL, "off", {"variants": [{"quant": "mlx-4bit"}]}) is None
+
+
+class TestUnloadedPreferredVariant:
+    def test_unloaded_preferred_weights_skip_matching_history_not_sibling(self, tmp_path):
+        _write_run(tmp_path, quant="Q4_K_M", publisher="qwen", reasoning="off", resolved="off")
+        preferred = {"quant": "q4_k_m", "publisher": "qwen"}
+        # The v0 API's unloaded default says 8bit; the preferred-device resolver says Q4_K_M.
+        assert _done(tmp_path, requested="off", quant="8bit", publisher="qwen", resolved="off",
+                     unloaded=True, expected_variant=preferred)
+        sibling = tmp_path / "sibling"
+        _write_run(sibling, quant="8bit", publisher="qwen", reasoning="off", resolved="off")
+        assert not _done(sibling, requested="off", quant="8bit", publisher="qwen", resolved="off",
+                         unloaded=True, expected_variant=preferred)
+
+    def test_ambiguous_unloaded_route_never_skips_on_api_default(self, tmp_path):
+        _write_run(tmp_path, quant="Q4_K_M", publisher="qwen", reasoning="off", resolved="off")
+        assert not _done(tmp_path, requested="off", quant=None, unloaded=True, expected_variant=None)
+
+    def test_unloaded_weights_note_does_not_claim_weights_are_loaded(self, tmp_path):
+        _write_run(tmp_path, quant="8bit", publisher="qwen", reasoning="off", resolved="off")
+        note = plan.weights_note(tmp_path, MODEL, "off", {
+            "unloaded": True, "expected_variant": {"quant": "q4_k_m", "device_name": "Whitehall"},
+        })
+        assert "mlx-8bit" in note and "will resolve to q4_k_m on Whitehall" in note
+        assert "server has" not in note
 
 
 class TestPublisher:
@@ -154,6 +181,58 @@ class TestProbe:
             "quant": "mlx-6bit", "variants": [{"quant": "mlx-6bit", "artifact": None, "bits": 6, "device": None}],
             "publisher": "qwen", "reasoning": "on"}
 
+    def test_current_variant_prefers_resolved_unloaded_weights_over_api_default(self, monkeypatch):
+        monkeypatch.setattr(environment, "inference", lambda model, device=True: {
+            "state": "not-loaded", "quantization": "8bit", "publisher": "qwen",
+            "expected_variant": {"quant": "Q4_K_M", "publisher": "Qwen", "device_name": "Whitehall"},
+        })
+        found = plan.current_variant(MODEL, "off")
+        assert found == {
+            "quant": "q4_k_m", "variants": [], "publisher": "qwen", "reasoning": "off",
+            "unloaded": True,
+            "expected_variant": {"quant": "q4_k_m", "publisher": "qwen", "device_name": "Whitehall"},
+        }
+
+    def test_current_variant_marks_unresolved_unloaded_route_unknown(self, monkeypatch):
+        monkeypatch.setattr(environment, "inference", lambda model, device=True: {
+            "state": "not-loaded", "quantization": "8bit", "publisher": "qwen", "expected_variant": None,
+        })
+        found = plan.current_variant(MODEL, "off")
+        assert found["unloaded"] and found["expected_variant"] is None
+        assert found["quant"] is None and found["publisher"] is None
+
+    def test_unloaded_preferred_peer_skips_its_weights_not_api_sibling(self, monkeypatch, tmp_path):
+        link = {"deviceIdentifier": "ironwood", "deviceName": "Ironwood",
+                "preferredDeviceIdentifier": "whitehall",
+                "peers": [{"deviceIdentifier": "whitehall", "deviceName": "Whitehall", "status": "connected"},
+                          {"deviceIdentifier": "duskfall", "deviceName": "Duskfall", "status": "connected"}]}
+        available = [
+            {"modelKey": "qwen/qwen3.5-9b@4bit", "quantization": {"name": "4bit"},
+             "publisher": "qwen", "format": "safetensors", "deviceIdentifier": None,
+             "indexedModelIdentifier": "qwen/qwen3.5-9b@org/X-MLX-4bit"},
+            {"modelKey": "qwen/qwen3.5-9b@q4_k_m", "quantization": {"name": "Q4_K_M"},
+             "publisher": "qwen", "format": "gguf", "deviceIdentifier": "whitehall",
+             "indexedModelIdentifier": "whitehall:qwen/qwen3.5-9b@org/X-GGUF-Q4_K_M"},
+            {"modelKey": "qwen/qwen3.5-9b@8bit", "quantization": {"name": "8bit"},
+             "publisher": "qwen", "format": "safetensors", "deviceIdentifier": "duskfall",
+             "indexedModelIdentifier": "duskfall:qwen/qwen3.5-9b@org/X-MLX-8bit"},
+        ]
+        def fake_lms(*args):
+            return {("ps",): [], ("link", "status"): link,
+                    ("ls", "qwen/qwen3.5-9b"): available}.get(args)
+        monkeypatch.setattr(environment, "_get", lambda url, body=None: {
+            "quantization": "8bit", "publisher": "qwen", "state": "not-loaded"})
+        monkeypatch.setattr(environment, "_lms_json", fake_lms)
+
+        current = plan.current_variant(MODEL, "off")
+        assert current["quant"] == "q4_k_m" and current["expected_variant"]["device_name"] == "Whitehall"
+        _write_run(tmp_path, quant="Q4_K_M", publisher="qwen", reasoning="off", resolved="off")
+        assert plan.has_current_run(tmp_path, MODEL, TASK, _prompt(), "direct", "off", current)
+
+        sibling = tmp_path / "sibling"
+        _write_run(sibling, quant="8bit", publisher="qwen", reasoning="off", resolved="off")
+        assert not plan.has_current_run(sibling, MODEL, TASK, _prompt(), "direct", "off", current)
+
     def test_lmstudio_loaded_variant_wins(self, monkeypatch):
         monkeypatch.setattr(environment, "_get",
                             lambda url, body=None: {"quantization": "4bit", "publisher": "qwen",
@@ -169,6 +248,83 @@ class TestProbe:
                             lambda url, body=None: {"quantization": "4bit", "publisher": "qwen"})
         monkeypatch.setattr(environment, "_lms_json", lambda *args: [])
         assert environment._lmstudio("qwen/qwen3.6-35b-a3b", device=False)["quantization"] == "4bit"
+
+    def test_lmstudio_unloaded_model_uses_unique_preferred_device_variant(self, monkeypatch):
+        link = {"deviceIdentifier": "ironwood", "deviceName": "Ironwood",
+                "preferredDeviceIdentifier": "whitehall",
+                "peers": [{"deviceIdentifier": "whitehall", "deviceName": "Whitehall", "status": "connected"},
+                          {"deviceIdentifier": "duskfall", "deviceName": "Duskfall", "status": "connected"}]}
+        available = [
+            {"modelKey": "qwen/x@4bit", "quantization": {"name": "4bit"}, "publisher": "qwen",
+             "format": "safetensors", "indexedModelIdentifier": "qwen/x@org/X-MLX-4bit",
+             "deviceIdentifier": None},
+            {"modelKey": "qwen/x@q4_k_m", "quantization": {"name": "Q4_K_M"}, "publisher": "qwen",
+             "format": "gguf", "indexedModelIdentifier": "whitehall:qwen/x@org/X-GGUF-Q4_K_M",
+             "deviceIdentifier": "whitehall"},
+            {"modelKey": "qwen/x@8bit", "quantization": {"name": "8bit"}, "publisher": "qwen",
+             "format": "safetensors", "indexedModelIdentifier": "duskfall:qwen/x@org/X-MLX-8bit",
+             "deviceIdentifier": "duskfall"},
+        ]
+
+        def fake_lms(*args):
+            return {("ps",): [], ("link", "status"): link, ("ls", "qwen/x"): available}.get(args)
+
+        monkeypatch.setattr(environment, "_get", lambda url, body=None: {
+            "quantization": "8bit", "publisher": "qwen", "state": "not-loaded"})
+        monkeypatch.setattr(environment, "_lms_json", fake_lms)
+        found = environment._lmstudio("qwen/x", device=False)
+        assert found["quantization"] == "8bit"  # raw API default remains available for diagnostics
+        assert found["expected_variant"]["quant"] == "Q4_K_M"
+        assert found["expected_variant"]["device_name"] == "Whitehall"
+        assert found["expected_variant"]["resolution"] == "preferred"
+
+    def test_lmstudio_unloaded_ambiguous_preferred_variants_stay_unknown(self, monkeypatch):
+        link = {"deviceIdentifier": "ironwood", "preferredDeviceIdentifier": "whitehall",
+                "peers": [{"deviceIdentifier": "whitehall", "status": "connected"}]}
+        available = [
+            {"modelKey": "qwen/x@4bit", "quantization": {"name": "4bit"}, "publisher": "qwen",
+             "deviceIdentifier": "whitehall", "indexedModelIdentifier": "whitehall:qwen/x@org/X4"},
+            {"modelKey": "qwen/x@6bit", "quantization": {"name": "6bit"}, "publisher": "qwen",
+             "deviceIdentifier": "whitehall", "indexedModelIdentifier": "whitehall:qwen/x@org/X6"},
+        ]
+        def fake_lms(*args):
+            return {("ps",): [], ("link", "status"): link, ("ls", "qwen/x"): available}.get(args)
+        monkeypatch.setattr(environment, "_get", lambda url, body=None: {
+            "quantization": "8bit", "publisher": "qwen", "state": "not-loaded"})
+        monkeypatch.setattr(environment, "_lms_json", fake_lms)
+        found = environment._lmstudio("qwen/x", device=False)
+        assert found["expected_variant"] is None
+
+    def test_lmstudio_unloaded_disconnected_copy_is_not_a_resolution(self, monkeypatch):
+        link = {"deviceIdentifier": "ironwood", "peers": [
+            {"deviceIdentifier": "offline", "status": "disconnected"}]}
+        available = [{"modelKey": "qwen/x@q4_k_m", "quantization": {"name": "Q4_K_M"},
+                      "publisher": "qwen", "deviceIdentifier": "offline",
+                      "indexedModelIdentifier": "offline:qwen/x@org/X-Q4_K_M"}]
+        def fake_lms(*args):
+            return {("ps",): [], ("link", "status"): link, ("ls", "qwen/x"): available}.get(args)
+        monkeypatch.setattr(environment, "_get", lambda url, body=None: {
+            "quantization": "Q4_K_M", "publisher": "qwen", "state": "not-loaded"})
+        monkeypatch.setattr(environment, "_lms_json", fake_lms)
+        found = environment._lmstudio("qwen/x", device=False)
+        assert found["expected_variant"] is None
+
+    def test_lmstudio_unloaded_unique_local_copy_is_resolvable_when_preference_has_no_copy(self, monkeypatch):
+        link = {"deviceIdentifier": "ironwood", "deviceName": "Ironwood",
+                "preferredDeviceIdentifier": "whitehall",
+                "peers": [{"deviceIdentifier": "whitehall", "deviceName": "Whitehall", "status": "connected"}]}
+        available = [{"modelKey": "google/gemma-4-e4b@4bit", "quantization": {"name": "4bit"},
+                      "publisher": "google", "deviceIdentifier": None,
+                      "indexedModelIdentifier": "google/gemma-4-e4b@org/Gemma-E4B-MLX-4bit"}]
+        def fake_lms(*args):
+            return {("ps",): [], ("link", "status"): link,
+                    ("ls", "google/gemma-4-e4b"): available}.get(args)
+        monkeypatch.setattr(environment, "_get", lambda url, body=None: {
+            "quantization": "4bit", "publisher": "google", "state": "not-loaded"})
+        monkeypatch.setattr(environment, "_lms_json", fake_lms)
+        found = environment._lmstudio("google/gemma-4-e4b", device=False)
+        assert found["expected_variant"]["quant"] == "4bit"
+        assert found["expected_variant"]["resolution"] == "unique"
 
     def test_lmstudio_ambiguous_loaded_quants_use_api_quant(self, monkeypatch):
         monkeypatch.setattr(environment, "_get",
