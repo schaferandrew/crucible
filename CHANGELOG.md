@@ -23,6 +23,8 @@ here ([docs/versioning.md](docs/versioning.md)).
   `crucible publish` writes it as `corrections.json` (bundle format revision 2).
 - `crucible publish --check` warns, without failing, about every published base that doesn't look
   like `<maker>/<model>` and isn't corrected.
+- `crucible publish --check` lists migrated runs that have no output and no content hash (written
+  by an older `crucible migrate`) as unverifiable warnings instead of failing the folder.
 - Run records' `model.reasoning.resolved_source`: how the resolved reasoning level is known
   (`requested`, `server`, `unknown`).
 

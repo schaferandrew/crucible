@@ -42,7 +42,9 @@ add a status record (`crucible status <run> --withdrawn REASON`) and publish.
 compact) of the run record without `provenance`, a zero byte, and the output text.
 `crucible publish --check DIR [--outputs DIR]` validates every file against its schema, checks the
 file names, and recomputes every content hash, so an edited copy is detectable. Run it before
-committing the portfolio. It also prints, as warnings that never fail the check, every published
+committing the portfolio. A run `crucible migrate --bundle` converted without its output before
+3.7.0 has an empty hash (nothing was hashed); runs are never edited, so the check lists those as
+unverifiable instead of failing. It also prints, as warnings that never fail the check, every published
 `model.base` that doesn't look like `<maker>/<model>` (a packager prefix, a format or quant tag, an
 OpenRouter `~` or `:free`, no maker) and that `corrections.json` doesn't fix.
 

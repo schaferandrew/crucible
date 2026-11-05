@@ -324,8 +324,15 @@ def check_folder(to: Path, outputs: Path | None = None) -> list[str]:
             if data is None:
                 found.append(f"{rel}: not valid JSON")
                 continue
-            found += [f"{rel}: {p}" for p in record_problems(kind, data)]
-            if kind == "run":
+            problems_here = record_problems(kind, data)
+            if kind == "run" and unverifiable(data):
+                # Migrated before migrate hashed records without an output: nothing to check it against
+                problems_here = [p for p in problems_here if not p.startswith("$.provenance.content_hash:")]
+            found += [f"{rel}: {p}" for p in problems_here]
+            if kind == "run" and unverifiable(data):
+                if data.get("run_uuid") != path.stem:
+                    found.append(f"{rel}: file name isn't its run_uuid")
+            elif kind == "run":
                 if data.get("run_uuid") != path.stem:
                     found.append(f"{rel}: file name isn't its run_uuid")
                 ref = data.get("output_ref")
@@ -343,6 +350,20 @@ def check_folder(to: Path, outputs: Path | None = None) -> list[str]:
             elif kind == "score" and path.name != score_name(data):
                 found.append(f"{rel}: file name doesn't match its run_uuid, rubric version and method")
     return found
+
+
+def unverifiable(run: dict) -> bool:
+    """A run `crucible migrate` converted from a format-2 bundle, with no output, before 3.7.0 hashed
+    such records: its content hash is empty, so `--check` can't verify it. Runs are never edited, so
+    these stay; the check lists them as a warning instead of failing."""
+    prov = run.get("provenance") or {}
+    return prov.get("source") == "crucible-migrate" and not run.get("output_ref") and not prov.get("content_hash")
+
+
+def unverifiable_warnings(to: Path) -> list[str]:
+    found = sorted(str(p.relative_to(to)) for p in to.glob("runs/*/*.json") if unverifiable(runrecord.read_json(p) or {}))
+    return [f"{len(found)} migrated runs have no output and no content hash, so they can't be verified: "
+            + ", ".join(Path(f).stem[:8] for f in found)] if found else []
 
 
 def base_warnings(to: Path) -> list[str]:
@@ -393,7 +414,7 @@ def main() -> None:
     if args.check:
         found = check_folder(args.check, args.outputs or default_outputs(args.check))
         print("\n".join(found[:50]) if found else f"{args.check} is a valid format-3 folder.")
-        warnings = base_warnings(args.check)
+        warnings = unverifiable_warnings(args.check) + base_warnings(args.check)
         if warnings:
             print("Warnings (not errors):\n  " + "\n  ".join(warnings))
         sys.exit(1 if found else 0)
