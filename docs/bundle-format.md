@@ -2,7 +2,7 @@
 
 What `crucible publish` writes for the dashboard. Format 3 splits what a suite **is** (a catalog)
 from what **happened** (run, score and status records), one file per thing, so publishing only ever
-adds files. Schemas: `crucible/schemas/{catalog,run,score,status}.schema.json`.
+adds files. Schemas: `crucible/schemas/{catalog,run,score,status,corrections}.schema.json`.
 
 ## Layout
 
@@ -12,6 +12,7 @@ _data/crucible/
   runs/2026-10/<run_uuid>.json                   one per run, never edited
   scores/2026-10/<run_uuid>.r<n>.<method>.json   one per run × rubric version × method
   status/<run_uuid>.json                         status records, only appended to
+  corrections.json                               reviewed fixes for badly recorded model fields
 crucible-data/outputs/<run_uuid>.txt             full model output, outside _data
 ```
 
@@ -31,7 +32,8 @@ crucible publish [--to <site>/_data/crucible] [--outputs DIR] [--runs runs] [--d
    records.
 4. Writes a catalog for every suite that has none, and rewrites the latest suite's catalog when it
    changed (task names, summaries, provisional tasks). A past suite's catalog never changes.
-5. Validates every file before writing it, and prints what it added.
+5. Writes `corrections.json` from the repo's `corrections.yaml` when it changed (below).
+6. Validates every file before writing it, and prints what it added.
 
 Publishing twice writes nothing. Nothing published is deleted or rewritten: to take a run out,
 add a status record (`crucible status <run> --withdrawn REASON`) and publish.
@@ -40,7 +42,29 @@ add a status record (`crucible status <run> --withdrawn REASON`) and publish.
 compact) of the run record without `provenance`, a zero byte, and the output text.
 `crucible publish --check DIR [--outputs DIR]` validates every file against its schema, checks the
 file names, and recomputes every content hash, so an edited copy is detectable. Run it before
-committing the portfolio.
+committing the portfolio. It also prints, as warnings that never fail the check, every published
+`model.base` that doesn't look like `<maker>/<model>` (a packager prefix, a format or quant tag, an
+OpenRouter `~` or `:free`, no maker) and that `corrections.json` doesn't fix.
+
+## Corrections
+
+Runs are never edited, so a model field recorded badly stays that way in its run record.
+`corrections.yaml` (the Crucible repo's root) is the reviewed list of how to read them, and
+`crucible publish` writes it whole as `corrections.json`:
+
+```json
+{"record": "corrections", "format_version": 3,
+ "models": [{"base": "granite-4.2-3b-mlx@4bit", "to_base": "ibm-granite/granite-4.2-3b",
+             "maker": "ibm-granite", "publisher": null, "reason": "..."}],
+ "publishers": [{"from": "Qwen", "to": "qwen"}]}
+```
+
+The page applies it once, as it reads the runs: a run whose `model.base` equals an entry's `base` is
+read as `to_base` (in `variant_key` too); the entry's `maker` and `publisher` fill only fields the
+run left empty; a `publishers` entry maps a recorded spelling. The page also fills an empty `format`
+from a quant name only one format uses (`Q4_K_M`, `IQ3_XS`: gguf; `4bit`: mlx). It keeps what was
+recorded and shows it in the run detail. Add an entry only when the answer is known; never guess a
+maker, and never merge two models nothing recorded says are the same.
 
 ## The catalog
 
@@ -82,6 +106,8 @@ committing the portfolio.
   model, read from the source; see [data-model.md](data-model.md#model-origin)). Runs published
   before it don't have the field and are never rewritten to add it, so a reader treats it as
   optional and falls back to its own inference when it's missing.
+- Revision 2 (Crucible 3.7.0) adds `corrections.json` and the run record's optional
+  `model.reasoning.resolved_source`. A reader without corrections shows runs as recorded.
 - Unknown areas, categories or tiers render generically, after the known ones; an unknown task ID
   in a run is kept and listed under "Other runs"; unknown fields are ignored; an unknown enum value
   shows as a raw tag.

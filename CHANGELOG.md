@@ -1,25 +1,5 @@
 # Changelog
 
-## 3.7.0 (2026-11-02)
-
-### Added
-- `clean_base_model()` function in `runrecord.py` that extracts format, quant, and publisher from model IDs, handling packager prefixes, quant/format tags, provider suffixes, and date suffixes.
-- `crucible coverage` command to report task coverage per variant with skip-done commands.
-- `resolved_source` field in `model.reasoning` to track where the resolved reasoning level came from (server, template, inferred, requested, unknown).
-- Warnings in `crucible publish --check` for unnormalized base names.
-
-### Changed
-- `reasoning_resolved()` now returns a tuple of (resolved_level, source) instead of just the level.
-- `model_record()` now accepts `resolved_source` parameter and includes it in the reasoning object.
-- Enhanced `implied_variant()` to use the new `clean_base_model()` function.
-- Improved publisher extraction logic to handle packager prefixes and cloud vs local runs.
-
-### Fixed
-- Better handling of model IDs with quant/format tags embedded in the name (e.g., `granite-4.2-3b-mlx@4bit`, `google/gemma-4-12b-qat`).
-- Proper extraction of publisher from packager prefixes (e.g., `mlx-community/muse-glimmer-30b`).
-- Handling of OpenRouter latest aliases (e.g., `~openai/gpt-luna-latest`).
-- Handling of provider suffixes (e.g., `deepseek-v4.1-flash-free`, `nvidia/nemotron-3-ultra-550b-a55b:free`).
-
 Crucible's own releases: the tool people install. What changed in the benchmark itself (which tasks
 are scored, at which versions) is in [SUITE_CHANGELOG.md](SUITE_CHANGELOG.md).
 
@@ -31,6 +11,25 @@ minor; fixes that change no behavior anyone relies on are patches. Which tasks e
 slugs, tiers and weights, are suite data, not part of this surface. Every change to `crucible/`,
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
+
+## 3.7.0 (2026-11-05)
+
+### Added
+- `crucible coverage [--suite v4] [--json]`: which suite tasks each model and reasoning level has
+  finished, counted the way the dashboard counts them, with the `crucible run ... --skip-done`
+  command that fills the gaps.
+- Corrections: `corrections.yaml` lists how the dashboard should read published runs whose model
+  fields were recorded badly (a base without its maker, with a packager prefix or a quant tag).
+  `crucible publish` writes it as `corrections.json` (bundle format revision 2).
+- `crucible publish --check` warns, without failing, about every published base that doesn't look
+  like `<maker>/<model>` and isn't corrected.
+- Run records' `model.reasoning.resolved_source`: how the resolved reasoning level is known
+  (`requested`, `server`, `unknown`).
+
+### Changed
+- New runs record a cleaner `model.base`: OpenRouter's `~` and `:free`, and trailing `-mlx`,
+  `-gguf` and `@4bit` tags come off (into `format` and `quant`); a packager namespace such as
+  `mlx-community/` moves to the publisher. The maker and training variants such as `-qat` stay.
 
 ## 3.6.2 (2026-10-31)
 

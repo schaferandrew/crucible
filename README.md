@@ -274,7 +274,12 @@ crucible publish --to <folder>           # somewhere else (or set CRUCIBLE_PUBLI
 crucible publish --check <folder>        # validate a folder and recompute every run's content hash
 crucible export --format 2 --out <file>  # the single-file bundle the page reads until it switches to format 3
 crucible migrate --bundle <file> --to <folder>   # convert another machine's format-2 bundle into records
+crucible coverage [--suite v4] [--json]  # which suite tasks each model has finished, and the command for the rest
 ```
+
+A model recorded under a bad name (no maker, a packager prefix, a quant tag in it) is fixed in
+`corrections.yaml`, never in the published run: `crucible publish` sends that file along, and
+`crucible publish --check` lists every published name that still needs an entry.
 
 Until the dashboard switches to format 3, the live page reads the format-2 file (`_data/crucible/ironwood.json`) written by `crucible export --format 2`, which keeps the pre-3.0.0 IDs. Claude Code users can say "publish my Crucible results": the repo ships a skill for it (`.claude/skills/publish-results/`).
 

@@ -145,30 +145,30 @@ reported and left alone. Running it twice changes nothing. `crucible migrate --b
 converts a published format-2 bundle into format-3 records, for runs whose folders exist only on
 another machine; runs already in DIR are skipped.
 
-### Publisher rules
+### Model names
 
-`model.publisher` identifies who packaged the weights. It is **not** the maker/trainer:
+`model.base` is `<maker>/<model>` with only what never names the model taken off
+(`runrecord.clean_base_model`): the provider prefix, a date suffix, OpenRouter's `~` and `:free`,
+and trailing format and quant tags (`-mlx`, `-gguf`, `@4bit`, `-8bit`), which go to `format` and
+`quant`. Training variants such as `-qat` are part of the model and stay. A packager namespace in
+front (`mlx-community/...`) moves to `publisher`; the maker it hides isn't guessed. Runs recorded
+before 3.7.0 keep their bases; `corrections.yaml` says how the dashboard reads the ones that are
+wrong ([bundle-format.md](bundle-format.md#corrections)).
 
-| Run type | Publisher source (in order) | Notes |
-|---|---|---|
-| Local | `model.artifact` prefix → GGUF/MLX metadata → inference.publisher → model key → null | For LM Studio/Ollama models, the packager is extracted from the model artifact or file metadata. Null means "unknown packager". |
-| Cloud | The maker (provider) itself | Cloud providers serve weights directly, so the publisher equals the maker. |
-
-Packager namespaces (`mlx-community`, `lmstudio-community`, `unsloth`, `bartowski`) are never makers.
+`model.publisher` is who packaged the weights, never the maker: from the inference server, else a
+packager namespace in the key, else (cloud runs) the OpenRouter slug's org, else null.
 
 ### Reasoning resolution
 
-`model.reasoning.resolved` is the reasoning level the model actually ran at. For "default" reasoning,
-Crucible tries to determine the actual level from the server or chat template. The `resolved_source`
-field indicates where the information came from:
+`model.reasoning.resolved` is the level the model actually ran at, and `resolved_source` (3.7.0 on)
+says how Crucible knows it:
 
-| Source | Meaning | When used |
-|---|---|---|
-| `server` | Reported by the inference server (LM Studio capabilities API) | LM Studio with reasoning support |
-| `template` | Reported by the chat template in the model's config | Future: when template parsing is added |
-| `requested` | The requested level was used (non-default reasoning) | When `reasoning.requested != "default"` |
-| `inferred` | Inferred from reasoning output (on/off only, never a level) | Future: when output analysis is added |
-| `unknown` | Cannot be determined | Most non-LM Studio runs |
+| Source | Meaning |
+|---|---|
+| `requested` | A named level was requested, so it is the level |
+| `server` | The server reported the model's default (LM Studio's model listing) |
+| `template`, `inferred` | Reserved: read from the chat template, or on/off from the output |
+| `unknown` | Default was requested and nothing reported what it resolved to |
 
-**Important**: Default reasoning only merges with a named level when `resolved == X` and `resolved_source`
-is `server` or `template`. An inferred on/off never merges with a named level.
+On the dashboard a run that requested the default and has no resolved level only joins setups that
+also requested the default; once resolved, it's grouped with runs at that level.

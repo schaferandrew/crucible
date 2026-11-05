@@ -1,0 +1,57 @@
+# Model corrections: how the dashboard should read run records whose model fields were recorded
+# badly. Published runs are never edited, so a fix goes here instead; `crucible publish` writes this
+# file to <site>/_data/crucible/corrections.json, and the page applies it when it reads each run.
+#
+# models: a run whose model.base is exactly `base` is shown as `to_base`, made by `maker`
+#   (model.origin.maker, used only when the run didn't record one) and packaged by `publisher`
+#   (used only when the run didn't record one). Every entry needs a reason a reader can check.
+# publishers: a recorded model.publisher spelled `from` is shown as `to`.
+#
+# `crucible publish --check` warns about every published base that looks unnormalized and has no
+# entry here. Add an entry only when you know the answer; never guess a maker.
+models:
+  - base: granite-4.2-3b-mlx@4bit
+    to_base: ibm-granite/granite-4.2-3b
+    maker: ibm-granite
+    reason: LM Studio key with the format and quant tags; IBM's Granite 4.2 3B
+  - base: mlx-community/muse-glimmer-30b
+    to_base: meta/muse-glimmer-30b
+    maker: meta
+    publisher: mlx-community
+    reason: >-
+      mlx-community's conversion of Meta's Muse Glimmer, recorded under the packager's namespace.
+      Not merged with meta/muse-glimmer: nothing recorded says they are the same size
+  - base: lfm2.5:24b
+    to_base: liquid/lfm2.5-24b
+    maker: liquid
+    reason: Ollama tag without the maker; LFM is Liquid AI's model family
+  - base: laguna-xs-2.1
+    to_base: poolside/laguna-xs-2.1
+    maker: poolside
+    reason: local key without the maker; the same model as the poolside/laguna-xs-2.1 cloud runs
+  - base: deepseek-v4.1-flash-free
+    to_base: deepseek/deepseek-v4.1-flash
+    maker: deepseek
+    reason: the free tier of deepseek/deepseek-v4.1-flash, recorded without the maker
+  - base: nvidia/nemotron-3-ultra-550b-a55b:free
+    to_base: nvidia/nemotron-3-ultra-550b-a55b
+    maker: nvidia
+    reason: OpenRouter's :free tier suffix
+  - base: ~openai/gpt-luna-latest
+    to_base: openai/gpt-luna-latest
+    maker: openai
+    publisher: openai
+    reason: OpenRouter's ~ latest alias prefix
+  - base: qwen2.5-0.5b-instruct
+    to_base: qwen/qwen2.5-0.5b-instruct
+    maker: qwen
+    reason: local key without the maker
+  - base: qwen2.5-1.5b-instruct
+    to_base: qwen/qwen2.5-1.5b-instruct
+    maker: qwen
+    reason: local key without the maker
+publishers:
+  - from: Qwen
+    to: qwen
+  - from: ~openai
+    to: openai

@@ -7,10 +7,12 @@ Format 3 (docs/bundle-format.md) is one file per thing, so publishing only ever 
   <to>/runs/<yyyy-mm>/<run_uuid>.json                one run record, never edited
   <to>/scores/<yyyy-mm>/<run_uuid>.r<n>.<method>.json one score record per rubric version and method
   <to>/status/<run_uuid>.json                        status records (invalidations), append-only
+  <to>/corrections.json                              model fields the page reads differently
   <outputs>/<run_uuid>.txt                           the model's full output, outside _data
 
 Publishing twice writes nothing; nothing published is deleted or rewritten, except the latest
-suite's catalog (task names and summaries may change) and status files (only appended to). Every
+suite's catalog (task names and summaries may change), status files (only appended to) and
+corrections.json (corrections.yaml, the reviewed fixes for badly recorded model fields). Every
 file is validated before it's written, and `crucible publish --check <to>` validates a folder and
 recomputes every run's content hash.
 """
@@ -29,9 +31,13 @@ from crucible import checks, exporter, provenance, runrecord, suites, workspace
 
 SCHEMAS = Path(__file__).parent / "schemas"
 SCHEMA_PATH = SCHEMAS / "results.schema.json"   # format 2 (`crucible export --format 2`)
-RECORD_SCHEMAS = {kind: SCHEMAS / f"{kind}.schema.json" for kind in ("catalog", "run", "score", "status")}
-# Counts additive, optional fields across the bundle (docs/versioning.md#bundle-format). 1: model.origin on runs
-FORMAT_REVISION = 1
+RECORD_SCHEMAS = {kind: SCHEMAS / f"{kind}.schema.json" for kind in ("catalog", "run", "score", "status", "corrections")}
+# Reviewed fixes for badly recorded model fields (corrections.yaml), published whole on every publish
+CORRECTIONS_SOURCE = Path(__file__).resolve().parents[1] / "corrections.yaml"
+CORRECTIONS_FILE = "corrections.json"
+# Counts additive, optional fields across the bundle (docs/versioning.md#bundle-format). 1: model.origin on runs;
+# 2: corrections.json and model.reasoning.resolved_source
+FORMAT_REVISION = 2
 # Where publish writes when --to isn't given: the portfolio checkout next to this one
 DEFAULT_DIRS = [Path(os.environ["CRUCIBLE_PUBLISH_DIR"])] if os.environ.get("CRUCIBLE_PUBLISH_DIR") else []
 DEFAULT_DIRS.append(Path(__file__).resolve().parents[2] / "schaferandrew.github.io" / "_data" / "crucible")
@@ -207,7 +213,7 @@ class Publisher:
 
     def __init__(self, to: Path, outputs: Path, dry_run: bool = False):
         self.to, self.outputs, self.dry_run = to, outputs, dry_run
-        self.counts = {"runs": 0, "scores": 0, "status": 0, "catalogs": 0, "outputs": 0, "invalid": 0}
+        self.counts = {"runs": 0, "scores": 0, "status": 0, "catalogs": 0, "corrections": 0, "outputs": 0, "invalid": 0}
         self.errors: list[str] = []
         self.skipped: list[str] = []
         self.runs = {p.stem for p in (to / "runs").glob("*/*.json")}
@@ -258,6 +264,20 @@ class Publisher:
                 if self._write("catalog", path, data):
                     self.counts["catalogs"] += 1
 
+    def add_corrections(self, source: Path | None = None) -> None:
+        """The one file publish rewrites whole: it's a reviewed list, never a run."""
+        path, data = self.to / CORRECTIONS_FILE, corrections(source)
+        if runrecord.read_json(path) != data and self._write("corrections", path, data):
+            self.counts["corrections"] += 1
+
+
+def corrections(source: Path | None = None) -> dict:
+    """The corrections record: corrections.yaml as published (docs/bundle-format.md#corrections)."""
+    import yaml
+    data = yaml.safe_load((source or CORRECTIONS_SOURCE).read_text(encoding="utf-8")) or {}
+    return {"record": "corrections", "format_version": runrecord.FORMAT_VERSION,
+            "models": data.get("models") or [], "publishers": data.get("publishers") or []}
+
 
 def harness_problem(meta: dict) -> str | None:
     """Why a run's harness can't count for its task's mode (chat: direct; agentic: opencode, pi), if it can't."""
@@ -286,18 +306,16 @@ def publish(runs_dir: Path, to: Path, outputs: Path, dry_run: bool = False) -> P
         meta = {**meta, "metrics": {**(meta.get("metrics") or {}), **derived_metrics(run_dir, meta)}}
         pub.add(published_run(meta, output), output, runrecord.scores(run_dir), runrecord.statuses(run_dir))
     pub.add_catalogs()
+    pub.add_corrections()
     return pub
 
 
-def check_folder(to: Path, outputs: Path | None = None, warn_unnormalized: bool = True) -> list[str]:
-    """Every problem in a format-3 folder: schema, file names, and run content hashes.
-    
-    When warn_unnormalized is True (the default), also warns about bases that look
-    unnormalized (have packager prefix, quant/format tags, provider suffixes, or no maker).
-    """
+def check_folder(to: Path, outputs: Path | None = None) -> list[str]:
+    """Every problem in a format-3 folder: schema, file names, and run content hashes."""
     found = []
-    unnormalized_warnings = []
-    
+    corrections = to / CORRECTIONS_FILE
+    if corrections.exists():
+        found += [f"{CORRECTIONS_FILE}: {p}" for p in record_problems("corrections", runrecord.read_json(corrections))]
     for kind, pattern in (("catalog", "catalog/*.json"), ("run", "runs/*/*.json"), ("score", "scores/*/*.json"),
                           ("status", "status/*.json")):
         for path in sorted(to.glob(pattern)):
@@ -321,56 +339,39 @@ def check_folder(to: Path, outputs: Path | None = None, warn_unnormalized: bool 
                 if outputs is not None or not ref:
                     if (data.get("provenance") or {}).get("content_hash") != content_hash(data, output):
                         found.append(f"{rel}: content hash doesn't match (the record or its output was edited)")
-                
-                # Check for unnormalized bases
-                if warn_unnormalized:
-                    base = (data.get("model") or {}).get("base")
-                    if base:
-                        warnings = _check_unnormalized_base(base)
-                        if warnings:
-                            unnormalized_warnings.append(f"{rel}: model.base '{base}' looks unnormalized: {', '.join(warnings)}")
+
             elif kind == "score" and path.name != score_name(data):
                 found.append(f"{rel}: file name doesn't match its run_uuid, rubric version and method")
-    
-    # Add warnings at the end
-    found.extend(unnormalized_warnings)
     return found
 
 
-def _check_unnormalized_base(base: str) -> list[str]:
-    """Check if a base looks unnormalized and return a list of issues."""
-    from crucible import origin
+def base_warnings(to: Path) -> list[str]:
+    """Published bases that look unnormalized and that the corrections file doesn't fix: one line per
+    base, with how many runs carry it. Warnings, never errors: published runs can't be edited."""
+    fixed = {m["base"] for m in (runrecord.read_json(to / CORRECTIONS_FILE) or {}).get("models", [])}
+    seen: dict[str, int] = {}
+    for path in to.glob("runs/*/*.json"):
+        base = ((runrecord.read_json(path) or {}).get("model") or {}).get("base")
+        if base and base not in fixed and unnormalized(base):
+            seen[base] = seen.get(base, 0) + 1
+    return [f"model.base {b!r} ({n} runs): {', '.join(unnormalized(b))}; add it to corrections.yaml"
+            for b, n in sorted(seen.items())]
+
+
+def unnormalized(base: str) -> list[str]:
+    """Why a recorded base doesn't look like <maker>/<model>, if it doesn't."""
+    cleaned, fmt, quant, publisher = runrecord.clean_base_model(base)
     issues = []
-    
-    # Check for packager prefix
-    parts = base.split("/")
-    if len(parts) > 1:
-        first_part = parts[0].lower()
-        if first_part in origin.PACKAGERS:
-            issues.append(f"packager prefix '{first_part}'")
-    
-    # Check for quant/format tags in the name
-    lower_base = base.lower()
-    if any(tag in lower_base for tag in ["@4bit", "@8bit", "-mlx", "-gguf", "-qat"]):
-        issues.append("quant or format tag in name")
-    if re.search(r"\d+bit", lower_base):
-        issues.append("bit count in name")
-    
-    # Check for provider suffixes
-    if base.endswith(":free") or base.endswith("-free"):
-        issues.append("provider suffix ':free' or '-free'")
-    
-    # Check for leading ~
+    if publisher:
+        issues.append(f"packager prefix '{publisher}'")
+    if fmt or quant:
+        issues.append("format or quant tag in the name")
     if base.startswith("~"):
-        issues.append("leading '~' (OpenRouter latest alias)")
-    
-    # Check for no maker prefix
-    if "/" not in base:
-        # No slash means no maker prefix
-        # But this is only an issue if it's not a known single-word model
-        # We'll be lenient here and not flag it
-        pass
-    
+        issues.append("OpenRouter '~' alias prefix")
+    if base.endswith(":free") or base.endswith("-free"):
+        issues.append("provider tier suffix")
+    if "/" not in (cleaned or "") and not publisher:
+        issues.append("no maker")
     return issues
 
 
@@ -392,6 +393,9 @@ def main() -> None:
     if args.check:
         found = check_folder(args.check, args.outputs or default_outputs(args.check))
         print("\n".join(found[:50]) if found else f"{args.check} is a valid format-3 folder.")
+        warnings = base_warnings(args.check)
+        if warnings:
+            print("Warnings (not errors):\n  " + "\n  ".join(warnings))
         sys.exit(1 if found else 0)
 
     folder = args.to or next((d for d in DEFAULT_DIRS if d.parent.exists()), None)
@@ -401,7 +405,7 @@ def main() -> None:
     c = pub.counts
     verb = "Would add" if args.dry_run else "Added"
     print(f"{verb} {c['runs']} runs, {c['scores']} score records, {c['status']} status records, "
-          f"{c['catalogs']} catalogs to {folder}; {c['outputs']} outputs")
+          f"{c['catalogs']} catalogs, {c['corrections']} corrections files to {folder}; {c['outputs']} outputs")
     if pub.skipped:
         print(f"Skipped {len(pub.skipped)} runs through a harness their mode doesn't use (kept in {args.runs}/):\n  "
               + "\n  ".join(pub.skipped[:30]))

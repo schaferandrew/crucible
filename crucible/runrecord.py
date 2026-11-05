@@ -33,100 +33,48 @@ NAMESPACE = uuid.UUID("6f0c1d2e-8a4b-5c3d-9e7f-c7a1b5e0d3f9")
 LOCAL_PROVIDERS = ("lmstudio", "ollama")
 DATE_SUFFIX = re.compile(r"-(?:\d{4}-\d{2}-\d{2}|\d{8})$")
 
-# Provider prefixes to strip
+# Provider prefixes a model key can carry before its maker/model part
 PROVIDER_PREFIXES = ("lmstudio", "ollama", "openrouter")
-# Provider suffixes to strip
-PROVIDER_SUFFIXES = (":free", "-free")
+FORMAT_TAG = re.compile(r"[-_](mlx|gguf)$", re.I)
+BIT_TAG = re.compile(r"[@-](\d+)bit$", re.I)
 
 
 def clean_base_model(model_id: str | None) -> tuple[str | None, str | None, str | None, str | None]:
-    """Clean up a model ID, extracting format and quant tags, and handling packager prefixes.
-    
-    Returns: (cleaned_base, format, quant, publisher)
-    
-    Rules in order:
-    1. Strip provider prefix (lmstudio/, ollama/, openrouter/)
-    2. Strip date suffixes (-YYYY-MM-DD or -YYYYMMDD)
-    3. Strip leading ~ (OpenRouter latest alias) and any provider prefix after it
-    4. Strip provider suffixes (:free, -free)
-    5. Extract format/quant tags from the name
-    6. Check if first path component is a packager -> move to publisher
-    
-    Examples:
-        'granite-4.2-3b-mlx@4bit' -> ('granite-4.2-3b', 'mlx', '4bit', None)
-        'mlx-community/muse-glimmer-30b' -> ('muse-glimmer-30b', None, None, 'mlx-community')
-        'deepseek-v4.1-flash-free' -> ('deepseek-v4.1-flash', None, None, None)
-        '~openai/gpt-luna-latest' -> ('gpt-luna-latest', None, None, None)
-        'google/gemma-4-12b-qat' -> ('google/gemma-4-12b', 'qat', None, None)
+    """A model key split into (base, format, quant, publisher), keeping what names the model.
+
+    Strips only what never names it: the provider prefix (lmstudio/, ollama/, openrouter/), a date
+    suffix, OpenRouter's leading ~ (latest alias; the maker after it stays), the :free tier suffix,
+    and trailing format and quant tags (-mlx, -gguf, @4bit, -8bit). A packager namespace in front
+    (mlx-community/...) moves to the publisher; the maker it hides is not guessed (the published
+    corrections map fills it). Training variants such as -qat are part of the model and stay.
+
+        'lmstudio/granite-4.2-3b-mlx@4bit' -> ('granite-4.2-3b', 'mlx', '4bit', None)
+        'mlx-community/muse-glimmer-30b'   -> ('muse-glimmer-30b', None, None, 'mlx-community')
+        'openrouter/~openai/gpt-luna-latest' -> ('openai/gpt-luna-latest', None, None, None)
+        'google/gemma-4-12b-qat'           -> ('google/gemma-4-12b-qat', None, None, None)
     """
     if not model_id:
         return None, None, None, None
-    
-    # Step 1: Strip provider prefix
     name = model_id
-    for prefix in PROVIDER_PREFIXES:
-        if name.startswith(f"{prefix}/"):
-            name = name[len(prefix) + 1:]
-            break
-    
-    # Step 2: Strip date suffix
+    prefix, _, rest = name.partition("/")
+    if prefix in PROVIDER_PREFIXES and rest:
+        name = rest
+    name = name.lstrip("~")
+    if name.endswith(":free"):
+        name = name[:-len(":free")]
     name = DATE_SUFFIX.sub("", name)
-    
-    # Step 3: Strip leading ~ and any provider prefix after it
-    if name.startswith("~"):
-        name = name[1:]
-        # After stripping ~, check if there's a provider prefix (including openai, deepseek, etc.)
-        # Common cloud providers that might appear after ~
-        all_prefixes = PROVIDER_PREFIXES + ("openai", "deepseek", "anthropic", "google", "nvidia", "meta", "mistral", "poolside", "liquid", "z-ai", "moonshotai")
-        for prefix in all_prefixes:
-            if name.startswith(f"{prefix}/"):
-                name = name[len(prefix) + 1:]
-                break
-    
-    # Step 4: Strip provider suffixes
-    for suffix in PROVIDER_SUFFIXES:
-        if name.endswith(suffix):
-            name = name[:-len(suffix)]
-    
-    # Step 5: Extract format/quant tags
-    fmt = None
-    quant = None
-    
-    # Check for @Nbit pattern
-    match = re.search(r"@(\d+)bit$", name)
-    if match:
-        quant = match.group(1) + "bit"
-        name = name[:match.start()]
-        fmt = "mlx"  # @4bit, @8bit are MLX style
-    
-    # Check for -qat, -gguf, -mlx tags (in that order, as -qat might be part of model name)
-    for tag in ["-qat", "-gguf", "-mlx"]:
-        if name.endswith(tag):
-            fmt = tag.lstrip("-")
-            name = name[:-len(tag)]
-            break
-    
-    # Check for QAT in the name (google/gemma-4-12b-qat)
-    # If we have a model like "gemma-4-12b-qat", the qat is a quant method
-    if fmt is None and "-qat" in name.lower():
-        parts = name.rsplit("-qat", 1)
-        if len(parts) == 2:
-            name = parts[0]
-            fmt = "qat"
-    
-    # Step 6: Check if first component is a packager
+    fmt = quant = None
+    m = BIT_TAG.search(name)
+    if m:
+        quant, fmt, name = f"{m.group(1)}bit", "mlx", name[:m.start()]
+    m = FORMAT_TAG.search(name)
+    if m:
+        fmt, name = m.group(1).lower(), name[:m.start()]
     publisher = None
-    parts = name.split("/")
-    if len(parts) > 1:
-        first_part = parts[0].lower()
-        if first_part in origin.PACKAGERS:
-            publisher = parts[0]
-            name = "/".join(parts[1:])
-    
-    # Clean up the name
-    name = name.strip("-")
-    
-    return name if name else None, fmt, quant, publisher
+    org, _, model = name.partition("/")
+    if model and org.lower() in origin.PACKAGERS:
+        publisher, name = org.lower(), model
+    return name or None, fmt, quant, publisher
 
 
 def read_json(path: Path):
@@ -221,87 +169,32 @@ def normalize_quant(quant: str | None) -> str | None:
 
 
 def implied_variant(model: str | None, quant: str | None) -> dict:
-    """publisher and format where the model key or quant name says them; None where they don't.
-    
-    Uses the new clean_base_model() to extract format and publisher from the model ID.
-    """
+    """publisher and format where the model key or quant name says them; None where they don't."""
     _, fmt, _, publisher = clean_base_model(model)
-    
-    # If quant suggests MLX (e.g., "4bit", "8bit")
-    if fmt is None and quant:
-        q = str(quant).strip().lower()
-        if re.fullmatch(r"\d+bit", q):
+    key = (base_model(model) or "").lower()
+    if fmt is None:
+        if publisher == "mlx-community" or re.search(r"[-:_]mlx\b", key) or re.fullmatch(r"\d+bit", str(quant or "").lower()):
             fmt = "mlx"
-    
-    # Fallback for org check
-    if publisher is None:
-        key = (base_model(model) or "").lower()
-        org = key.split("/")[0] if "/" in key else None
-        if org in origin.PACKAGERS:
-            publisher = org
-    
+        elif re.search(r"[-_]gguf\b", key) or publisher == "lmstudio-community":
+            fmt = "gguf"
     return {"publisher": publisher, "format": fmt}
 
 
 def model_record(model: str | None, reasoning: str, resolved: str | None, inference: dict | None,
                  variant: dict | None = None, resolved_source: str | None = None) -> dict:
-    """Build the model record for a run.
-    
-    Args:
-        model: The full model ID (provider/model)
-        reasoning: The requested reasoning level
-        resolved: The resolved reasoning level (or None)
-        inference: The inference environment dict
-        variant: Optional variant overrides
-        resolved_source: The source of the resolved reasoning level
-    
-    Returns:
-        The model record dict
-    """
     inference = inference or {}
     variant = variant or {}
-    
-    # Use the new cleanup to get base, format, quant, publisher from model ID
-    cleaned_base, fmt_from_model, quant_from_model, pub_from_model = clean_base_model(model)
-    
-    # Get implied variant from the model ID
+    base, _, quant_from_key, _ = clean_base_model(model)
     implied = implied_variant(model, inference.get("quantization"))
-    
     cloud = where(model, inference) == "cloud"
-    
-    # Publisher: variant > inference > implied > from model cleanup
-    publisher = (variant.get("publisher") or 
-                 inference.get("publisher") or 
-                 implied["publisher"] or 
-                 pub_from_model)
-    
-    # For cloud runs without explicit publisher, use the model's org
-    if publisher is None and cloud and model and model.count("/") > 1:
-        publisher = model.split("/")[1]  # an OpenRouter slug's org
-    
-    # Format: variant > inference > implied > from model cleanup
-    fmt = (variant.get("format") or 
-           inference.get("format") or 
-           implied["format"] or 
-           fmt_from_model)
-    if isinstance(fmt, str):
-        fmt = fmt.lower()
-    
-    # Quant: variant > inference > from model cleanup
-    quant = (variant.get("quant") or 
-             inference.get("quantization") or 
-             quant_from_model)
-    
-    # Base: use cleaned base if available, otherwise fall back to legacy
-    base = cleaned_base or base_model(model)
-    
-    # Infer resolved_source if not provided
-    if resolved_source is None and resolved is not None:
-        if reasoning != "default":
-            resolved_source = "requested"
-        else:
-            resolved_source = "unknown"
-    
+    publisher = variant.get("publisher") or inference.get("publisher") or implied["publisher"]
+    if publisher is None and cloud and base and "/" in base:
+        publisher = base.split("/")[0]  # an OpenRouter slug's org
+    fmt = variant.get("format") or inference.get("format") or implied["format"]
+    fmt = fmt.lower() if isinstance(fmt, str) else None
+    quant = variant.get("quant") or inference.get("quantization") or quant_from_key
+    if resolved_source is None:
+        resolved_source = "requested" if reasoning and reasoning != "default" else ("unknown" if resolved is None else None)
     nq = normalize_quant(quant)
     
     return {

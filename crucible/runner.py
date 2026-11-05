@@ -102,6 +102,7 @@ def _write_meta(ctx: RunContext, agent: Agent, prompt_def: dict, result: dict,
     for name in ("stdout.txt", "stderr.txt"):
         (ctx.run_dir / name).touch()
     env = environment.capture(ctx.model, agent.executable)
+    resolved, resolved_source = environment.reasoning_resolved(ctx.model, ctx.reasoning)
     inference = env["inference"]
     identity = versioning.task_identity(prompt_def)
     meta = {
@@ -118,10 +119,8 @@ def _write_meta(ctx: RunContext, agent: Agent, prompt_def: dict, result: dict,
         "harness": {"id": agent.name, "version": env.get("harness_version")},
         # The weights as a variant (who converted them, into what format and quant) and the reasoning
         # level they ran at; each level is its own model on the dashboard
-        "model": {**runrecord.model_record(ctx.model, ctx.reasoning,
-                                           environment.reasoning_resolved(ctx.model, ctx.reasoning)[0],
-                                           inference,
-                                           resolved_source=environment.reasoning_resolved(ctx.model, ctx.reasoning)[1]),
+        "model": {**runrecord.model_record(ctx.model, ctx.reasoning, resolved, inference,
+                                           resolved_source=resolved_source),
                   # Who trained the weights, from the file or server itself (never a lookup table)
                   "origin": origin.capture(ctx.model, inference, providers.openrouter_model_if_fetched(
                       (ctx.model or "").partition("/")[2]))},

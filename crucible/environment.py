@@ -218,7 +218,7 @@ def reasoning_resolved(model: str | None, requested: str) -> tuple[str | None, s
         "template" - reported by the chat template
         "inferred" - inferred from reasoning output (on/off only)
         "unknown" - cannot be determined
-        None - when requested != "default", the requested level is used
+        "requested" - a named level was requested, so it is the level
     
     For "default" reasoning:
       - LM Studio: from server capabilities
