@@ -152,7 +152,7 @@ another machine; runs already in DIR are skipped.
 and trailing format and quant tags (`-mlx`, `-gguf`, `@4bit`, `-8bit`), which go to `format` and
 `quant`. Training variants such as `-qat` are part of the model and stay. A packager namespace in
 front (`mlx-community/...`) moves to `publisher`; the maker it hides isn't guessed. Runs recorded
-before 3.7.0 keep their bases; `corrections.yaml` says how the dashboard reads the ones that are
+before 3.8.0 keep their bases; `corrections.yaml` says how the dashboard reads the ones that are
 wrong ([bundle-format.md](bundle-format.md#corrections)).
 
 `model.publisher` is who packaged the weights, never the maker: from the inference server, else a
@@ -160,7 +160,7 @@ packager namespace in the key, else (cloud runs) the OpenRouter slug's org, else
 
 ### Reasoning resolution
 
-`model.reasoning.resolved` is the level the model actually ran at, and `resolved_source` (3.7.0 on)
+`model.reasoning.resolved` is the level the model actually ran at, and `resolved_source` (3.8.0 on)
 says how Crucible knows it:
 
 | Source | Meaning |

@@ -106,3 +106,10 @@ def test_coverage_counts_like_the_dashboard(tmp_path):
     runrecord.add_status(run_dir, "00000000-0000-4000-8000-000000000002", invalid={"reason": "test"})
     assert coverage.coverage(runs, suite)["setups"][0]["tasks_done"] == 0
     assert result["total_tasks"] == len(pins)
+
+
+def test_skip_done_reads_the_resolved_level_not_its_source(monkeypatch):
+    from crucible import environment, plan
+    monkeypatch.setattr(environment, "inference", lambda model, device=False: {"variants": None})
+    monkeypatch.setattr(environment, "reasoning_resolved", lambda model, requested: ("high", "server"))
+    assert plan.current_variant("lmstudio/meta/muse", "default")["reasoning"] == "high"

@@ -241,6 +241,6 @@ def test_check_lists_unhashed_migrated_runs_as_warnings(tree, tmp_path):
     assert bundle.check_folder(to, bundle.default_outputs(to)) == []
     (warning,) = bundle.unverifiable_warnings(to)
     assert p.stem[:8] in warning
-    run["provenance"]["source"] = None  # not migrated: still an error
+    run["output_ref"] = f"outputs/{run['run_uuid']}.txt"  # has an output but no hash: still an error
     p.write_text(json.dumps(run))
     assert bundle.check_folder(to, bundle.default_outputs(to)) != []

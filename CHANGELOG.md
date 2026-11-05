@@ -12,7 +12,7 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
-## 3.7.0 (2026-11-05)
+## 3.8.0 (2026-11-05)
 
 ### Added
 - `crucible coverage [--suite v4] [--json]`: which suite tasks each model and reasoning level has
@@ -23,8 +23,9 @@ here ([docs/versioning.md](docs/versioning.md)).
   `crucible publish` writes it as `corrections.json` (bundle format revision 2).
 - `crucible publish --check` warns, without failing, about every published base that doesn't look
   like `<maker>/<model>` and isn't corrected.
-- `crucible publish --check` lists migrated runs that have no output and no content hash (written
-  by an older `crucible migrate`) as unverifiable warnings instead of failing the folder.
+- `crucible publish --check` lists runs that have no output and no content hash (published before
+  every record was hashed, such as older `crucible migrate` conversions) as unverifiable warnings
+  instead of failing the folder. A mismatched hash is still an error.
 - Run records' `model.reasoning.resolved_source`: how the resolved reasoning level is known
   (`requested`, `server`, `unknown`).
 
@@ -32,6 +33,62 @@ here ([docs/versioning.md](docs/versioning.md)).
 - New runs record a cleaner `model.base`: OpenRouter's `~` and `:free`, and trailing `-mlx`,
   `-gguf` and `@4bit` tags come off (into `format` and `quant`); a packager namespace such as
   `mlx-community/` moves to the publisher. The maker and training variants such as `-qat` stay.
+
+## 3.7.4 (2026-11-03)
+
+### Fixed
+- OpenCode 2.x watch runs now launch its `mini` interface, which accepts the model and prompt
+  options. Previously watch mode used the obsolete root command, which rejected `-m` before the
+  model could produce anything.
+
+## 3.7.3 (2026-11-03)
+
+### Fixed
+- When an LM Studio model is unloaded, `--skip-done` now resolves its expected weights from the
+  preferred LM-Link device's available variant when that choice is unique. It no longer mistakes
+  the API's default quantization for the weights that the preferred device will load. If the route
+  or variant is ambiguous, the planner conservatively skips nothing. Loaded-instance matching is
+  unchanged.
+- Explain unresolved unloaded weights without claiming that unknown weights are already loaded.
+
+## 3.7.2 (2026-11-04)
+
+### Fixed
+- `--skip-done` now correctly distinguishes sibling variants of the same model key when
+  identifying whether a task has already been run. Previously, a loaded `@6bit` variant
+  would incorrectly hide `@4bit` runs (and vice versa) because skip-done matched only the
+  base model key's reported quant. Now `has_current_run` checks whether the stored run's
+  weights (quant, publisher, reasoning level) are among the *currently loaded variants*
+  for that key, so a run on one quant is skipped only when that exact quant is loaded.
+  A `weights_note` explains why nothing was skipped when runs exist on different weights.
+
+## 3.7.1 (2026-11-03)
+
+### Fixed
+- The opencode agent now runs a loaded local variant that its catalog doesn't list yet. LM Studio
+  addresses one loaded variant as `model@quant` (`lmstudio/qwen/qwen3.6-35b-a3b@6bit`), and opencode's
+  catalog is a snapshot from startup, so a key that appears later resolved to nothing and every run
+  failed with `provider.no-route` before the model was called. Crucible registers the variant on the
+  provider opencode already has — for the spawned process only, so global opencode config is untouched
+  and the run's recorded model id stays exactly what was requested — and leaves already-catalogued
+  models alone. The same case for a new OpenRouter model keeps its separate provider.
+
+## 3.7.0 (2026-11-02)
+
+### Fixed
+- `--skip-done` and the wizard's "already run" question now compare the weights and reasoning level,
+  not just the model name: a run of a task at `Q4_K_M` (GGUF) no longer counts for `4bit` (MLX),
+  another publisher's build of the same quant no longer counts, and a `default` run whose effective
+  reasoning level the server now reports differently no longer counts. Quant, publisher and resolved
+  reasoning are compared only when the server and the recorded run both know them, so cloud runs, an
+  unreachable server and records from before those fields were captured still count as done. The quant,
+  and for a variant key the publisher, come from the instance actually loaded in LM Studio (`lms ps`),
+  so a `@6bit` instance behind the plain model key isn't mistaken for the key's 4bit default, and a
+  machine with two variants loaded on different devices records the one that answered.
+
+### Changed
+- A run requested as a loaded variant (`lmstudio/qwen/qwen3.6-35b-a3b@6bit`) is recorded under the base
+  model, so the dashboard shows it as a `6bit` variant of that model instead of a separate model.
 
 ## 3.6.2 (2026-10-31)
 

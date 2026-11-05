@@ -326,7 +326,7 @@ def check_folder(to: Path, outputs: Path | None = None) -> list[str]:
                 continue
             problems_here = record_problems(kind, data)
             if kind == "run" and unverifiable(data):
-                # Migrated before migrate hashed records without an output: nothing to check it against
+                # Published before every record was hashed, without an output: nothing to check it against
                 problems_here = [p for p in problems_here if not p.startswith("$.provenance.content_hash:")]
             found += [f"{rel}: {p}" for p in problems_here]
             if kind == "run" and unverifiable(data):
@@ -353,16 +353,19 @@ def check_folder(to: Path, outputs: Path | None = None) -> list[str]:
 
 
 def unverifiable(run: dict) -> bool:
-    """A run `crucible migrate` converted from a format-2 bundle, with no output, before 3.7.0 hashed
-    such records: its content hash is empty, so `--check` can't verify it. Runs are never edited, so
-    these stay; the check lists them as a warning instead of failing."""
+    """A run published with no content hash and no output: written before publish hashed every record
+    (a format-2 bundle converted by an older `crucible migrate`, or an early 3.x publish). There's
+    nothing to check it against. Runs are never edited, so these stay; `--check` lists every one as a
+    warning instead of failing, so a stripped hash is still visible. A record with a hash that doesn't
+    match, or with an output and no hash, is still an error."""
     prov = run.get("provenance") or {}
-    return prov.get("source") == "crucible-migrate" and not run.get("output_ref") and not prov.get("content_hash")
+    return not run.get("output_ref") and not prov.get("content_hash")
 
 
 def unverifiable_warnings(to: Path) -> list[str]:
     found = sorted(str(p.relative_to(to)) for p in to.glob("runs/*/*.json") if unverifiable(runrecord.read_json(p) or {}))
-    return [f"{len(found)} migrated runs have no output and no content hash, so they can't be verified: "
+    return [f"{len(found)} runs have no output and no content hash (published before records were hashed), "
+            "so they can't be verified: "
             + ", ".join(Path(f).stem[:8] for f in found)] if found else []
 
 

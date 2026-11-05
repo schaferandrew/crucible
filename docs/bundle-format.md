@@ -42,9 +42,11 @@ add a status record (`crucible status <run> --withdrawn REASON`) and publish.
 compact) of the run record without `provenance`, a zero byte, and the output text.
 `crucible publish --check DIR [--outputs DIR]` validates every file against its schema, checks the
 file names, and recomputes every content hash, so an edited copy is detectable. Run it before
-committing the portfolio. A run `crucible migrate --bundle` converted without its output before
-3.7.0 has an empty hash (nothing was hashed); runs are never edited, so the check lists those as
-unverifiable instead of failing. It also prints, as warnings that never fail the check, every published
+committing the portfolio. A run published before every record was hashed (a format-2 run converted
+by an older `crucible migrate --bundle`, or an early 3.x publish) and with no output has an empty
+hash; runs are never edited, so the check lists those as unverifiable warnings instead of failing.
+A hash that doesn't match, or an output with no hash, is always an error. The exit code is the
+verdict: 0 means valid, whatever the warnings. It also prints, as warnings that never fail the check, every published
 `model.base` that doesn't look like `<maker>/<model>` (a packager prefix, a format or quant tag, an
 OpenRouter `~` or `:free`, no maker) and that `corrections.json` doesn't fix.
 
@@ -108,7 +110,7 @@ maker, and never merge two models nothing recorded says are the same.
   model, read from the source; see [data-model.md](data-model.md#model-origin)). Runs published
   before it don't have the field and are never rewritten to add it, so a reader treats it as
   optional and falls back to its own inference when it's missing.
-- Revision 2 (Crucible 3.7.0) adds `corrections.json` and the run record's optional
+- Revision 2 (Crucible 3.8.0) adds `corrections.json` and the run record's optional
   `model.reasoning.resolved_source`. A reader without corrections shows runs as recorded.
 - Unknown areas, categories or tiers render generically, after the known ones; an unknown task ID
   in a run is kept and listed under "Other runs"; unknown fields are ignored; an unknown enum value

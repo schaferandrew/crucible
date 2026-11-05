@@ -142,6 +142,13 @@ class TestOpenCodeLaunch:
         launch = AGENTS["opencode"].launch(_ctx(tmp_path, model="openrouter/x/y"))
         assert "--dir" in launch.cmd and "--standalone" not in launch.cmd and launch.cwd is None
 
+    def test_v1_watch_uses_root_tui(self, tmp_path):
+        ctx = _ctx(tmp_path, watch=True)
+        launch = AGENTS["opencode"].launch(ctx)
+        assert launch.cmd == ["opencode", str(ctx.workspace), "--prompt",
+                              "Read prompt.txt in the current directory and complete the benchmark task it describes.",
+                              "--auto"]
+
     def test_v2_runs_standalone_in_the_workspace(self, tmp_path, monkeypatch):
         from crucible.agents import opencode as opencode_agent
         monkeypatch.setattr(opencode_agent, "_major_version", lambda: 2)
@@ -153,7 +160,16 @@ class TestOpenCodeLaunch:
         assert launch.env["PWD"] == str(ctx.workspace)
         assert "OPENCODE_CONFIG_CONTENT" in launch.env
         watch = AGENTS["opencode"].launch(_ctx(tmp_path, watch=True))
-        assert watch.cmd[:2] == ["opencode", "--standalone"]
+        assert watch.cmd == ["opencode", "mini", "--standalone", "--prompt",
+                             "Read prompt.txt in the current directory and complete the benchmark task it describes."]
+        assert watch.cwd == tmp_path / "workspace"
+        assert watch.env["PWD"] == str(tmp_path / "workspace")
+
+    def test_v2_watch_passes_model_to_mini(self, tmp_path, monkeypatch):
+        from crucible.agents import opencode as opencode_agent
+        monkeypatch.setattr(opencode_agent, "_major_version", lambda: 2)
+        watch = AGENTS["opencode"].launch(_ctx(tmp_path, watch=True, model="lmstudio/test/model"))
+        assert watch.cmd[-2:] == ["-m", "lmstudio/test/model"]
 
     def test_v2_export_reading(self, tmp_path):
         from crucible.agents import opencode as opencode_agent
@@ -202,6 +218,29 @@ class TestOpenCodeLaunch:
         assert provider["options"]["apiKey"] == "{env:OPENROUTER_API_KEY}"
         assert provider["models"]["new/model-1"]["cost"] == {"input": 0.06, "output": 0.12}
         assert launch.cmd[-2:] == ["-m", "openrouter-extra/new/model-1"]
+
+    def test_local_variant_not_in_the_catalog_is_registered(self, tmp_path, monkeypatch):
+        """A loaded variant (…@6bit) that opencode's catalog predates is added to its provider.
+
+        opencode refuses an unknown key with provider.no-route, so the run is registered on the
+        provider opencode already has (baseURL and all), and the recorded model id is unchanged.
+        """
+        from crucible.agents import opencode as opencode_agent
+        monkeypatch.setattr(opencode_agent, "_known_models",
+                            lambda provider: frozenset({f"{provider}/qwen/qwen3.6-35b-a3b"}))
+        launch = AGENTS["opencode"].launch(_ctx(tmp_path, model="lmstudio/qwen/qwen3.6-35b-a3b@6bit"))
+        provider = json.loads(launch.env["OPENCODE_CONFIG_CONTENT"])["provider"]["lmstudio"]
+        assert provider["models"]["qwen/qwen3.6-35b-a3b@6bit"]["tool_call"] is True
+        assert "options" not in provider  # merged onto the built-in provider, not replacing it
+        assert launch.cmd[-2:] == ["-m", "lmstudio/qwen/qwen3.6-35b-a3b@6bit"]
+
+    def test_catalogued_local_model_passes_through(self, tmp_path, monkeypatch):
+        from crucible.agents import opencode as opencode_agent
+        monkeypatch.setattr(opencode_agent, "_known_models",
+                            lambda provider: frozenset({f"{provider}/qwen/qwen3.6-35b-a3b"}))
+        launch = AGENTS["opencode"].launch(_ctx(tmp_path, model="lmstudio/qwen/qwen3.6-35b-a3b"))
+        assert "OPENCODE_CONFIG_CONTENT" not in launch.env
+        assert launch.cmd[-2:] == ["-m", "lmstudio/qwen/qwen3.6-35b-a3b"]
 
     def test_token_usage(self, tmp_path):
         (tmp_path / "session.json").write_text(json.dumps({"messages": [
