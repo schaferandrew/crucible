@@ -13,18 +13,20 @@ models:
   - base: granite-4.2-3b-mlx@4bit
     to_base: ibm-granite/granite-4.2-3b
     maker: ibm-granite
-    reason: LM Studio key with the format and quant tags; IBM's Granite 4.2 3B
+    reason: LM Studio key with the format and quant tags; IBM's Granite 4.2 3B (ibm-granite/granite-4.2-3b)
   - base: mlx-community/muse-glimmer-30b
-    to_base: meta/muse-glimmer-30b
+    to_base: meta/muse-glimmer
     maker: meta
     publisher: mlx-community
     reason: >-
-      mlx-community's conversion of Meta's Muse Glimmer, recorded under the packager's namespace.
-      Not merged with meta/muse-glimmer: nothing recorded says they are the same size
+      mlx-community's conversion of Meta's Muse Glimmer (one size, 29.6B, released as
+      meta-models/Muse-Glimmer-30B), recorded under the packager's namespace
   - base: lfm2.5:24b
-    to_base: liquid/lfm2.5-24b
+    to_base: liquid/lfm2.5-24b-a2b
     maker: liquid
-    reason: Ollama tag without the maker; LFM is Liquid AI's model family
+    reason: >-
+      Ollama's lfm2.5:24b is Liquid AI's LFM2.5-24B-A2B (LiquidAI/LFM2.5-24B-A2B); not the older
+      LFM2-24B-A2B (liquid/lfm2-24b-a2b, Ollama lfm2:24b-a2b)
   - base: laguna-xs-2.1
     to_base: poolside/laguna-xs-2.1
     maker: poolside
