@@ -34,7 +34,7 @@ published; `local` stays on the machine.
 | `started_at`, `ended_at`, `elapsed_s` | Timing |
 | `task` | `id`, `version`, `rubric_version`, `content_hash`, `rubric_hash`, and `alias`: the ID a migrated run was recorded under |
 | `harness` | `id` (direct, opencode, pi), `version` |
-| `model` | `id` (provider/model as run), `base`, `publisher` (who packaged the weights), `artifact` (the packaged repo they were downloaded from, when the source names it), `format`, `quant`, `reasoning` (`requested`, `resolved`), `context_loaded`, `variant_key`, `display`, and since 3.6.0 `origin` (who trained them, below) |
+| `model` | `id` (provider/model as run), `base`, `publisher` (who packaged the weights), `artifact` (the packaged repo they were downloaded from, when the source names it), `format`, `quant`, `reasoning` (`requested`, `resolved`, `resolved_source`), `context_loaded`, `variant_key`, `display`, and since 3.6.0 `origin` (who trained them, below) |
 | `endpoint` | `where` (local or cloud), `provider`, `app`, `served_via` (LM Link), `device`, `upstream` (OpenRouter's provider), `resolved_model` |
 | `hardware` | The device that ran the weights: `key`, `class`, `accelerators`, `system_memory_gb`, `cpu`, `offload`, `label`. Null for cloud runs |
 | `outcome` | `status` (completed, timeout, no_answer, context_limit, failed, harness_error), `harness_status`, `returncode`, `timed_out`, `invalid` (set at run time), `leaks` |
@@ -144,3 +144,31 @@ Folders without a `meta.json` (runs stopped before they were recorded) and unkno
 reported and left alone. Running it twice changes nothing. `crucible migrate --bundle FILE --to DIR`
 converts a published format-2 bundle into format-3 records, for runs whose folders exist only on
 another machine; runs already in DIR are skipped.
+
+### Model names
+
+`model.base` is `<maker>/<model>` with only what never names the model taken off
+(`runrecord.clean_base_model`): the provider prefix, a date suffix, OpenRouter's `~` and `:free`,
+and trailing format and quant tags (`-mlx`, `-gguf`, `@4bit`, `-8bit`), which go to `format` and
+`quant`. Training variants such as `-qat` are part of the model and stay. A packager namespace in
+front (`mlx-community/...`) moves to `publisher`; the maker it hides isn't guessed. Runs recorded
+before 3.8.0 keep their bases; `corrections.yaml` says how the dashboard reads the ones that are
+wrong ([bundle-format.md](bundle-format.md#corrections)).
+
+`model.publisher` is who packaged the weights, never the maker: from the inference server, else a
+packager namespace in the key, else (cloud runs) the OpenRouter slug's org, else null.
+
+### Reasoning resolution
+
+`model.reasoning.resolved` is the level the model actually ran at, and `resolved_source` (3.8.0 on)
+says how Crucible knows it:
+
+| Source | Meaning |
+|---|---|
+| `requested` | A named level was requested, so it is the level |
+| `server` | The server reported the model's default (LM Studio's model listing) |
+| `template`, `inferred` | Reserved: read from the chat template, or on/off from the output |
+| `unknown` | Default was requested and nothing reported what it resolved to |
+
+On the dashboard a run that requested the default and has no resolved level only joins setups that
+also requested the default; once resolved, it's grouped with runs at that level.

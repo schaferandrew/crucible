@@ -35,6 +35,49 @@ DATE_SUFFIX = re.compile(r"-(?:\d{4}-\d{2}-\d{2}|\d{8})$")
 # LM Studio addresses one loaded variant as model@quant (qwen/qwen3.6-35b-a3b@6bit)
 VARIANT_SUFFIX = re.compile(r"@[^/]+$")
 
+# Provider prefixes a model key can carry before its maker/model part
+PROVIDER_PREFIXES = ("lmstudio", "ollama", "openrouter")
+FORMAT_TAG = re.compile(r"[-_](mlx|gguf)$", re.I)
+BIT_TAG = re.compile(r"[@-](\d+)bit$", re.I)
+
+
+def clean_base_model(model_id: str | None) -> tuple[str | None, str | None, str | None, str | None]:
+    """A model key split into (base, format, quant, publisher), keeping what names the model.
+
+    Strips only what never names it: the provider prefix (lmstudio/, ollama/, openrouter/), a date
+    suffix, OpenRouter's leading ~ (latest alias; the maker after it stays), the :free tier suffix,
+    and trailing format and quant tags (-mlx, -gguf, @4bit, -8bit). A packager namespace in front
+    (mlx-community/...) moves to the publisher; the maker it hides is not guessed (the published
+    corrections map fills it). Training variants such as -qat are part of the model and stay.
+
+        'lmstudio/granite-4.2-3b-mlx@4bit' -> ('granite-4.2-3b', 'mlx', '4bit', None)
+        'mlx-community/muse-glimmer-30b'   -> ('muse-glimmer-30b', None, None, 'mlx-community')
+        'openrouter/~openai/gpt-luna-latest' -> ('openai/gpt-luna-latest', None, None, None)
+        'google/gemma-4-12b-qat'           -> ('google/gemma-4-12b-qat', None, None, None)
+    """
+    if not model_id:
+        return None, None, None, None
+    name = model_id
+    prefix, _, rest = name.partition("/")
+    if prefix in PROVIDER_PREFIXES and rest:
+        name = rest
+    name = name.lstrip("~")
+    if name.endswith(":free"):
+        name = name[:-len(":free")]
+    name = DATE_SUFFIX.sub("", name)
+    fmt = quant = None
+    m = BIT_TAG.search(name)
+    if m:
+        quant, fmt, name = f"{m.group(1)}bit", "mlx", name[:m.start()]
+    m = FORMAT_TAG.search(name)
+    if m:
+        fmt, name = m.group(1).lower(), name[:m.start()]
+    publisher = None
+    org, _, model = name.partition("/")
+    if model and org.lower() in origin.PACKAGERS:
+        publisher, name = org.lower(), model
+    return name or None, fmt, quant, publisher
+
 
 def read_json(path: Path):
     try:
@@ -130,32 +173,33 @@ def normalize_quant(quant: str | None) -> str | None:
 
 def implied_variant(model: str | None, quant: str | None) -> dict:
     """publisher and format where the model key or quant name says them; None where they don't."""
+    _, fmt, _, publisher = clean_base_model(model)
     key = (base_model(model) or "").lower()
-    publisher = fmt = None
-    org = key.split("/")[0] if "/" in key else None
-    if org in origin.PACKAGERS:
-        publisher = org
-    if org == "mlx-community" or re.search(r"[-:_]mlx\b", key) or re.fullmatch(r"\d+bit", str(quant or "").lower()):
-        fmt = "mlx"
-    elif re.search(r"[-_]gguf\b", key) or org == "lmstudio-community":
-        fmt = "gguf"
+    if fmt is None:
+        if publisher == "mlx-community" or re.search(r"[-:_]mlx\b", key) or re.fullmatch(r"\d+bit", str(quant or "").lower()):
+            fmt = "mlx"
+        elif re.search(r"[-_]gguf\b", key) or publisher == "lmstudio-community":
+            fmt = "gguf"
     return {"publisher": publisher, "format": fmt}
 
 
 def model_record(model: str | None, reasoning: str, resolved: str | None, inference: dict | None,
-                 variant: dict | None = None) -> dict:
+                 variant: dict | None = None, resolved_source: str | None = None) -> dict:
     inference = inference or {}
     variant = variant or {}
+    base, _, quant_from_key, _ = clean_base_model(model)
     implied = implied_variant(model, inference.get("quantization"))
     cloud = where(model, inference) == "cloud"
     publisher = variant.get("publisher") or inference.get("publisher") or implied["publisher"]
-    if publisher is None and cloud and model and model.count("/") > 1:
-        publisher = model.split("/")[1]  # an OpenRouter slug's org
+    if publisher is None and cloud and base and "/" in base:
+        publisher = base.split("/")[0]  # an OpenRouter slug's org
     fmt = variant.get("format") or inference.get("format") or implied["format"]
     fmt = fmt.lower() if isinstance(fmt, str) else None
-    quant = variant.get("quant") or inference.get("quantization")
-    base = base_model(model)
+    quant = variant.get("quant") or inference.get("quantization") or quant_from_key
+    if resolved_source is None:
+        resolved_source = "requested" if reasoning and reasoning != "default" else ("unknown" if resolved is None else None)
     nq = normalize_quant(quant)
+    
     return {
         "id": model,
         "base": base,
@@ -164,7 +208,11 @@ def model_record(model: str | None, reasoning: str, resolved: str | None, infere
         "artifact": inference.get("artifact"),
         "format": fmt,
         "quant": quant,
-        "reasoning": {"requested": reasoning or "default", "resolved": resolved},
+        "reasoning": {
+            "requested": reasoning or "default",
+            "resolved": resolved,
+            "resolved_source": resolved_source
+        },
         "context_loaded": inference.get("context_length"),
         "variant_key": "|".join([base or "-", publisher or "-", fmt or ("api" if cloud else "-"), nq or "-"]),
         "display": " · ".join(filter(None, [(base or model or "unknown").split("/")[-1], quant])),

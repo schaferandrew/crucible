@@ -209,3 +209,38 @@ def test_bundle_conversion_gives_the_same_uuids(tree, tmp_path):
     assert converted.errors == [] and converted.counts["runs"] == len(data["runs"])
     assert {p.stem for p in (fresh / "runs").rglob("*.json")} <= {p.stem for p in (published / "runs").rglob("*.json")}
     assert bundle.check_folder(fresh, bundle.default_outputs(fresh)) == []
+
+
+def test_bundle_runs_without_output_are_still_hashed(tree, tmp_path):
+    runs = tree / "runs"
+    _migrate(runs)
+    data = exporter.export(runs)
+    for run in data["runs"]:
+        run.pop("output", None)
+    path = tmp_path / "b.json"
+    path.write_text(json.dumps(data))
+    fresh = tmp_path / "fresh" / "_data" / "crucible"
+    migrate.convert_bundle(path, fresh, bundle.default_outputs(fresh))
+    for p in (fresh / "runs").rglob("*.json"):
+        run = json.loads(p.read_text())
+        assert run["output_ref"] is None and run["provenance"]["content_hash"].startswith("sha256:")
+    assert bundle.check_folder(fresh, bundle.default_outputs(fresh)) == []
+
+
+def test_check_lists_unhashed_migrated_runs_as_warnings(tree, tmp_path):
+    runs = tree / "runs"
+    _migrate(runs)
+    to = tmp_path / "site" / "_data" / "crucible"
+    bundle.publish(runs, to, bundle.default_outputs(to))
+    p = next((to / "runs").rglob("*.json"))
+    run = json.loads(p.read_text())
+    # What an older migrate wrote for a format-2 run without its output
+    run["output_ref"] = None
+    run["provenance"].update(source="crucible-migrate", content_hash=None)
+    p.write_text(json.dumps(run))
+    assert bundle.check_folder(to, bundle.default_outputs(to)) == []
+    (warning,) = bundle.unverifiable_warnings(to)
+    assert p.stem[:8] in warning
+    run["output_ref"] = f"outputs/{run['run_uuid']}.txt"  # has an output but no hash: still an error
+    p.write_text(json.dumps(run))
+    assert bundle.check_folder(to, bundle.default_outputs(to)) != []

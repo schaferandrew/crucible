@@ -45,6 +45,10 @@ uv run crucible publish                           # adds to ../schaferandrew.git
 uv run crucible publish --check ../schaferandrew.github.io/_data/crucible   # schema, names, content hashes
 ```
 
+`--check` must exit 0 before anything is committed. Its warnings aren't failures: list them for the
+user. A model name it flags gets an entry in `corrections.yaml` (then publish again, which sends the
+file along as `corrections.json`); never edit a published run.
+
 - Publishing twice adds nothing. A rescore under a new rubric version adds a score record; a run marked with
   `crucible status <run> --invalid REASON` (or `--withdrawn`) adds a status record. Nothing else changes.
 - Runs through a harness their mode doesn't use are skipped and listed (they stay in `runs/`), so runs
@@ -60,9 +64,11 @@ The bundle may already contain records also present on the site. A matching UUID
 assume two files are identical: a later publish can enrich an older record with hashes, metrics or
 an output reference. Never overwrite a destination file during import.
 
-1. Check the source bundle and the site's `_data/crucible/` with `crucible publish --check`.
-   Ignore only recognized legacy pre-hash signatures and report any schema errors or hash mismatches
-   on records that already have hashes. Ignore `._*` AppleDouble sidecars; never import them.
+1. Check the source bundle and the site's `_data/crucible/` with `crucible publish --check`. The exit
+   code is the verdict: 0 is valid. Report its warnings (unverifiable pre-hash runs, model names that
+   need a `corrections.yaml` entry) but don't treat them as failures. A non-zero exit means stop: show
+   the errors and import nothing from that bundle until they're understood. Ignore `._*` AppleDouble
+   sidecars; never import them.
 2. For `catalog/`, `runs/`, `scores/` and `status/`, compare relative paths. Copy a source file only
    when the destination path is absent. If it exists and bytes differ, preserve the site's copy and
    report the conflict; if identical, skip it. Catalogs are included in this rule too.

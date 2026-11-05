@@ -12,6 +12,28 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## 3.8.0 (2026-11-05)
+
+### Added
+- `crucible coverage [--suite v4] [--json]`: which suite tasks each model and reasoning level has
+  finished, counted the way the dashboard counts them, with the `crucible run ... --skip-done`
+  command that fills the gaps.
+- Corrections: `corrections.yaml` lists how the dashboard should read published runs whose model
+  fields were recorded badly (a base without its maker, with a packager prefix or a quant tag).
+  `crucible publish` writes it as `corrections.json` (bundle format revision 2).
+- `crucible publish --check` warns, without failing, about every published base that doesn't look
+  like `<maker>/<model>` and isn't corrected.
+- `crucible publish --check` lists runs that have no output and no content hash (published before
+  every record was hashed, such as older `crucible migrate` conversions) as unverifiable warnings
+  instead of failing the folder. A mismatched hash is still an error.
+- Run records' `model.reasoning.resolved_source`: how the resolved reasoning level is known
+  (`requested`, `server`, `unknown`).
+
+### Changed
+- New runs record a cleaner `model.base`: OpenRouter's `~` and `:free`, and trailing `-mlx`,
+  `-gguf` and `@4bit` tags come off (into `format` and `quant`); a packager namespace such as
+  `mlx-community/` moves to the publisher. The maker and training variants such as `-qat` stay.
+
 ## 3.7.4 (2026-11-03)
 
 ### Fixed

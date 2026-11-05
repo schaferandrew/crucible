@@ -138,7 +138,7 @@ def current_variant(model: str, reasoning: str = "default") -> dict:
                  "bits": w.get("bits"), "device": w.get("device")}
                 for w in raw_variants if w.get("quant")] if raw_variants is not None else []
     reasoning_level = (reasoning if reasoning != "default"
-                       else environment.reasoning_resolved(model, "default"))
+                       else environment.reasoning_resolved(model, "default")[0])
     if inference.get("state") == "not-loaded" and not variants:
         expected = inference.get("expected_variant")
         if expected:

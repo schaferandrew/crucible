@@ -190,6 +190,13 @@
                 "string",
                 "null"
               ]
+            },
+            "resolved_source": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "enum": ["server", "template", "inferred", "requested", "unknown", null]
             }
           }
         },

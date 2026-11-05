@@ -158,7 +158,7 @@ class TestProbe:
     def test_current_variant_normalizes_and_resolves(self, monkeypatch):
         monkeypatch.setattr(environment, "inference",
                             lambda model, device=True: {"quantization": "Q4_K_M", "publisher": "Qwen"})
-        monkeypatch.setattr(environment, "reasoning_resolved", lambda model, level: "on")
+        monkeypatch.setattr(environment, "reasoning_resolved", lambda model, level: ("on", "server"))
         assert plan.current_variant(MODEL) == {"quant": "q4_k_m", "variants": [], "publisher": "qwen",
                                                "reasoning": "on"}
 
@@ -176,7 +176,7 @@ class TestProbe:
         monkeypatch.setattr(environment, "_lms_json", lambda *args: [
             {"identifier": "qwen/qwen3.6-35b-a3b", "modelKey": "qwen/qwen3.6-35b-a3b@6bit",
              "quantization": {"name": "6bit", "bits": 6}}])
-        monkeypatch.setattr(environment, "reasoning_resolved", lambda model, level: "on")
+        monkeypatch.setattr(environment, "reasoning_resolved", lambda model, level: ("on", "server"))
         assert plan.current_variant("lmstudio/qwen/qwen3.6-35b-a3b") == {
             "quant": "mlx-6bit", "variants": [{"quant": "mlx-6bit", "artifact": None, "bits": 6, "device": None}],
             "publisher": "qwen", "reasoning": "on"}

@@ -54,20 +54,22 @@ Then publish (the usual steps, with the resolved path):
    uv run crucible publish --to "$USB"
    ```
 
-3. Verify (optional but recommended):
+3. Verify (always):
 
    ```bash
    uv run crucible publish --check "$USB"
    ```
 
-   Judge failures by their **signature, not a count** — a per-drive tally isn't stable. A record that
-   fails because it predates content hashing produces exactly two lines (a `content_hash: null` type
-   error plus a "hash doesn't match" error) with no sign of tampering. Known-blessed signatures: the
-   2026-09 `crucible-migrate` batch and Ironwood Crucible 3.4.1 records (`source: crucible-run` or
-   `crucible-migrate`, no hash) all fail this way and are intact — don't worry about them. What IS
-   real trouble: a hash mismatch on a record that already carries a hash (edited in place), or a file
-   the schema rejects outright. Summarize the match/mismatch counts for the user rather than inferring
-   "clean" from any fixed number.
+   The exit code is the verdict. 0 means the bundle is valid, whatever warnings follow. Report the
+   warnings to the user without treating them as failures:
+   - "runs have no output and no content hash": records from before every record was hashed (old
+     `crucible migrate` conversions, early 3.x publishes). Expected; they can't be verified.
+   - "model.base ... add it to corrections.yaml": a model recorded under a bad name. Say which; the fix
+     is an entry in `corrections.yaml`, never an edit to the run.
+
+   A non-zero exit is real trouble: a hash that doesn't match (a record or output edited after
+   publishing), a schema error, or a missing output. Stop, show the user the lines, and don't copy
+   that bundle onward until it's understood.
 
 ## Troubleshooting
 

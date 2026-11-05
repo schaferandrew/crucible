@@ -372,23 +372,43 @@ def inference(model: str | None, device: bool = True) -> dict:
     return record
 
 
-def reasoning_resolved(model: str | None, requested: str) -> str | None:
-    """The reasoning level the model actually ran at: the requested one, or for "default" what the
-    provider reports as the model's default (LM Studio lists it); None when that can't be told."""
+def reasoning_resolved(model: str | None, requested: str) -> tuple[str | None, str | None]:
+    """The reasoning level the model actually ran at and its source.
+    
+    Returns: (resolved_level, source) where source is one of:
+        "server" - reported by the server (LM Studio)
+        "template" - reported by the chat template
+        "inferred" - inferred from reasoning output (on/off only)
+        "unknown" - cannot be determined
+        "requested" - a named level was requested, so it is the level
+    
+    For "default" reasoning:
+      - LM Studio: from server capabilities
+      - Others: try to infer from output, otherwise unknown
+    For non-default: the requested level is the resolved level.
+    """
     if requested != "default":
-        return requested
+        return requested, "requested"
+    
     try:
         provider_def, model_id = providers.split_model(model or "")
     except ValueError:
-        return None
-    if provider_def.name != "lmstudio":
-        return None
-    base = providers.LMSTUDIO_BASE_URL.rsplit("/v1", 1)[0]
-    for m in (_get(f"{base}/api/v1/models") or {}).get("models") or []:
-        ids = {m.get("key"), *(m.get("variants") or []), *(i.get("id") for i in m.get("loaded_instances") or [])}
-        if model_id in ids:
-            return ((m.get("capabilities") or {}).get("reasoning") or {}).get("default")
-    return None
+        return None, "unknown"
+    
+    # LM Studio: get from server
+    if provider_def.name == "lmstudio":
+        base = providers.LMSTUDIO_BASE_URL.rsplit("/v1", 1)[0]
+        for m in (_get(f"{base}/api/v1/models") or {}).get("models") or []:
+            ids = {m.get("key"), *(m.get("variants") or []), *(i.get("id") for i in m.get("loaded_instances") or [])}
+            if model_id in ids:
+                level = ((m.get("capabilities") or {}).get("reasoning") or {}).get("default")
+                if level:
+                    return level, "server"
+        return None, "unknown"
+    
+    # For other providers, we can't currently get the default level
+    # In the future, we could check the chat template or infer from output
+    return None, "unknown"
 
 
 def endpoint(model: str | None, run_dir: Path) -> dict:

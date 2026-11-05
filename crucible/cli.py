@@ -10,7 +10,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from crucible import (bundle, checks, exporter, graders, judge, migrate, reporter, runner, runrecord, scorer, suites,
+from crucible import (bundle, checks, coverage, exporter, graders, judge, migrate, reporter, runner, runrecord, scorer, suites,
                       tasks, versioning)
 
 
@@ -73,7 +73,7 @@ COMMANDS = {
     "run": runner.main, "score": scorer.main, "report": reporter.main,
     "judge": judge.main, "versions": versioning.main, "export": exporter.main, "publish": bundle.main, "checks": checks.main,
     "grader": graders.main, "task": tasks.main, "suite": suites.main, "migrate": migrate.main,
-    "status": runrecord.status_main,
+    "status": runrecord.status_main, "coverage": coverage.main,
 }
 
 

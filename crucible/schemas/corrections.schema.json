@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/schaferandrew/crucible/blob/main/crucible/schemas/corrections.schema.json",
+  "title": "Crucible model corrections (bundle format 3)",
+  "description": "How the page reads badly recorded model fields: _data/crucible/corrections.json, written by crucible publish from corrections.yaml. Runs are never edited; this is applied when they are read.",
+  "type": "object",
+  "required": ["record", "format_version", "models", "publishers"],
+  "properties": {
+    "record": {"type": "string", "enum": ["corrections"]},
+    "format_version": {"type": "integer"},
+    "models": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["base", "to_base", "reason"],
+        "properties": {
+          "base": {"type": "string"},
+          "to_base": {"type": "string"},
+          "maker": {"type": ["string", "null"]},
+          "publisher": {"type": ["string", "null"]},
+          "reason": {"type": "string"}
+        }
+      }
+    },
+    "publishers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "to"],
+        "properties": {"from": {"type": "string"}, "to": {"type": "string"}}
+      }
+    }
+  }
+}
