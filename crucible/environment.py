@@ -44,6 +44,14 @@ def _total_ram_gb() -> float | None:
 def _cpu() -> str | None:
     if sys.platform == "darwin":
         return _run(["sysctl", "-n", "machdep.cpu.brand_string"])
+    # platform.processor() is often empty on Linux (or just the arch); /proc/cpuinfo names the chip
+    try:
+        for line in Path("/proc/cpuinfo").read_text(encoding="utf-8", errors="replace").splitlines():
+            label, _, value = line.partition(":")
+            if label.strip() == "model name" and value.strip():
+                return value.strip()
+    except OSError:
+        pass
     return platform.processor() or None
 
 

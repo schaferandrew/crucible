@@ -12,6 +12,13 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## 3.8.1 (2026-11-10)
+
+### Fixed
+- Local runs on Linux record the CPU's model name from `/proc/cpuinfo`. `platform.processor()` is
+  empty on many Linux machines (GitHub's Ubuntu runners among them), which left the CPU and the
+  hardware key unrecorded.
+
 ## 3.8.0 (2026-11-05)
 
 ### Added
