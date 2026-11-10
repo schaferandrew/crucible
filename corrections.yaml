@@ -52,6 +52,25 @@ models:
     to_base: qwen/qwen2.5-1.5b-instruct
     maker: qwen
     reason: local key without the maker
+  - base: qwen3.8-27b-splash
+    to_base: qwen/qwen3.8-27b
+    maker: qwen
+    publisher: incoai
+    reason: >-
+      incoai's Splash-runtime repack of Qwen3.8-27B (incoai/Qwen3.8-27B-Splash, format "splash",
+      not mlx); the same model as the qwen/qwen3.8-27b runs, grouped under qwen and distinguished by
+      the run's format/variant_key
+  - base: ornith-1.5-9b
+    to_base: ornith-ai/Ornith-1.5-9B
+    maker: ornith-ai
+    reason: local key without the maker; artifact ornith-ai/Ornith-1.5-9B-GGUF
+  - base: ornith-1.5-35b-a3b
+    to_base: ornith-ai/Ornith-1.5-35B-A3B
+    maker: ornith-ai
+    reason: >-
+      local key without the maker; the 35B-A3B size of ornith-ai/Ornith-1.5. Publisher is left
+      unset on purpose: most runs recorded the bartowski GGUF repack, some recorded ornith-ai's own
+      publish, and the field would only fill a blank run — keeping all of them as recorded
 publishers:
   - from: Qwen
     to: qwen
