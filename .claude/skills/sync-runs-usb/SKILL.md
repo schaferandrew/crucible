@@ -9,6 +9,12 @@ The destination is any removable volume containing a `crucible-results/` bundle 
 accumulated from all machines, everything keyed by `run_uuid` so nothing ever collides and
 publish only adds). **No volume name is hardcoded** — find the destination first.
 
+**Put files there only with `crucible publish --to`.** Never copy records onto the drive with
+`cp`, Finder or drag-and-drop: on macOS every such copy also writes an AppleDouble sidecar
+(`._<name>`) next to the file, and `--check` then parses those sidecars as records and fails
+the whole bundle ("not valid JSON"). If you must copy by hand, prefix the command with
+`COPYFILE_DISABLE=1`. A bundle can accumulate thousands of sidecars this way — clean them in step 2.
+
 ## Step 1: resolve the destination
 
 In order of preference:
@@ -35,6 +41,18 @@ Only create a new `crucible-results/` on a drive when the user explicitly asks t
 that drive; without user confirmation the directory may be live, so always resolve before publishing.
 
 ## Step 2: publish (and verify)
+
+First drop any macOS copy junk the drive has picked up. It is safe: sidecars are resource-fork
+metadata, never records, and no real record is zero bytes.
+
+```bash
+find "$USB" -name '._*' -delete              # AppleDouble sidecars from Finder/cp
+find "$USB" -type f -size 0 -print           # zero-byte files: failed writes, inspect, then delete
+```
+
+A zero-byte record is a copy that was cut short. Delete it and let `crucible publish --to` write the
+real one; if the record already exists on the other side of a sync, the good copy is the other one.
+Don't try to repair it by hand-editing.
 
 Then publish (the usual steps, with the resolved path):
 
@@ -69,7 +87,9 @@ Then publish (the usual steps, with the resolved path):
 
    A non-zero exit is real trouble: a hash that doesn't match (a record or output edited after
    publishing), a schema error, or a missing output. Stop, show the user the lines, and don't copy
-   that bundle onward until it's understood.
+   that bundle onward until it's understood. The one exception is a wall of `._*` "not valid JSON"
+   errors with little else: that is copy junk, not a broken bundle — clean it (step 2) and check
+   again before deciding anything is wrong.
 
 ## Troubleshooting
 
