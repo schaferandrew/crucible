@@ -332,8 +332,8 @@
     "version": 1,
     "content_hash": "abfd04ef9376bbaa",
     "prompt_hash": "48f9caaab0fbfacf",
-    "rubric_version": 2,
-    "rubric_hash": "66b089cf0968cc9e"
+    "rubric_version": 3,
+    "rubric_hash": "fc5d57064fbd9a4e"
   },
   "running-toilet-advice": {
     "version": 1,

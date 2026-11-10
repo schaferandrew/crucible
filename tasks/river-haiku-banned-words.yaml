@@ -7,7 +7,7 @@ category: writing
 area: writing
 tier: spark
 version: 1
-rubric_version: 2
+rubric_version: 3
 status: active
 auto_grade: true
 repo: null
@@ -31,8 +31,8 @@ checks:
   - id: about_a_river
     type: required_patterns
     min_matches: 1
-    patterns: ['\b(river|stream|creek|current|flow\w*|bend|stone\w*|pebble\w*|delta|valley|downstream|upstream|reed\w*|heron|mouth|source|silt|eddy|ford|course|cours\w*|run\w*)\b']
-    rule: "Uses at least one river image (current, stone, bend, heron, flow, valley...)."
+    patterns: ['\b(rivers?|streams?|creeks?|brooks?|rills?|currents?|flow\w*|bends?|stone\w*|pebble\w*|gravel|deltas?|valleys?|canyons?|gorges?|ravines?|downstream|upstream|reed\w*|herons?|otters?|trout|salmon|mouth|source|silt|eddy|eddies|ford|course|cours\w*|run\w*|rapids?|torrent\w*|cascad\w*|falls|meander\w*|winding|carv\w*|sea|ocean|estuar\w*|tides?|springs?|thaw\w*|flood\w*|rush\w*|roar\w*|trickl\w*|babbl\w*|murmur\w*|drift\w*|ferry|bridges?|shores?)\b']
+    rule: "Uses at least one river image (current, stone, bend, heron, canyon, carving, rapids, sea...)."
 rubric:
   - criterion: "No forbidden words"
     max_score: 4

@@ -10,6 +10,11 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
 
 ## Unreleased
 
+- **river-haiku-banned-words rubric 3.** "Evokes a river" now accepts indirect river imagery (canyon, carving,
+  rapids, sea, roar, meander...), not just the words the old list named; a haiku about a river carving a canyon
+  to the sea scored 0/3 there. Stored runs are rescored by the next suite patch. An LLM judge for this check is
+  tracked in #66.
+
 ## Suite v4 (2026-10-31)
 
 - **Promoted to active: multi-step-competition-math, fill-in-crossword-grids and logic-and-game-puzzles
