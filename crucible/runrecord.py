@@ -274,7 +274,6 @@ V4_DROPPED = ("run_path", "variant_key", "display", "model.variant_key", "model.
 # What hardware may carry in format 4: the serving machine's class, never its name
 V4_HARDWARE = ("key", "chip", "memory_gb", "accelerators", "served_remotely", "nickname")
 NICKNAME_MAX = 40
-IP_LIKE = re.compile(r"(\d{1,3}\.){3}\d{1,3}|^ip[-_]\d|^[0-9a-f:]*:[0-9a-f:]+$", re.I)
 
 
 def nickname_problem(value) -> str | None:
@@ -286,7 +285,7 @@ def nickname_problem(value) -> str | None:
         return f"must be at most {NICKNAME_MAX} characters"
     if any(ord(c) < 32 for c in value):
         return "must be a single line of plain text"
-    if IP_LIKE.search(value.strip()):
+    if hostnames.looks_like_ip(value):
         return "looks like an IP address or host name"
     return None
 

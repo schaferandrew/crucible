@@ -22,6 +22,7 @@ import copy
 import sys
 from pathlib import Path
 
+from crucible import hostnames
 from crucible import registry as reg_mod
 
 MIN_EVIDENCE = 2
@@ -139,7 +140,7 @@ def render(found: dict) -> str:
     lines.append(("  " + dump(found["overrides"]).rstrip().replace("\n", "\n  ")) if found["overrides"] else "  []")
     text = "\n".join(lines) + "\n"
     # The registry is published: never print anything that looks like an address
-    return "\n".join(line for line in text.splitlines() if not reg_mod.IP_LIKE.search(line)) + "\n"
+    return "\n".join(line for line in text.splitlines() if not hostnames.contains_ip(line)) + "\n"
 
 
 def main() -> None:

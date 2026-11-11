@@ -1,19 +1,14 @@
 """The privacy guard: no IP address, and no host name derived from one, may appear in site-data output."""
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
-H = r"[0-9a-fA-F]{1,4}"
-PATTERNS = {
-    "IPv4 address": re.compile(r"(?<![\w.])(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)(?![\w.]*\d)"),
-    "IPv6 address": re.compile(rf"(?<![\w:])(?:(?:{H}:){{7}}{H}|(?:{H}:){{1,7}}:(?:{H})?(?::{H}){{0,6}}|::(?:{H}:){{0,6}}{H})(?![\w:])"),
-    "IP-derived host name": re.compile(r"\bip-\d{1,3}-\d{1,3}-\d{1,3}-\d{1,3}\b", re.IGNORECASE),
-}
+from crucible import hostnames
 
 
 def scan_text(text: str) -> list:
-    return sorted({f"{kind} {m.group(0)!r}" for kind, rx in PATTERNS.items() for m in rx.finditer(text)})
+    """The detector is crucible/hostnames.py: the same one publish and the registry use."""
+    return sorted({f"IP address or IP-derived host name {t!r}" for t in hostnames.find_ips(text)})
 
 
 def scan(folder) -> list:

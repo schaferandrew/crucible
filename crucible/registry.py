@@ -18,6 +18,8 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from crucible import hostnames
+
 REGISTRY_DIR = Path(__file__).resolve().parents[1] / "registry"
 NAMES = ("makers", "models", "packagers", "machines", "overrides")
 FORMAT_VERSION = 3
@@ -30,11 +32,6 @@ UNRECORDED = "unrecorded"
 GGUF_QUANT = re.compile(r"^i?q\d(_[a-z0-9]+)*$", re.IGNORECASE)
 MLX_QUANT = re.compile(r"^(mlx-)?\d+bit$", re.IGNORECASE)
 LOCAL_PROVIDERS = ("lmstudio", "ollama")
-
-
-# An IPv4/IPv6 address or a host name derived from one (ip-192-168-1-5, 192-168-1-5)
-IP_LIKE = re.compile(r"(?<![\w.])(?:\d{1,3}[.-]){3}\d{1,3}(?![\w])|(?:^|[^\w])ip-\d{1,3}-\d{1,3}-\d{1,3}-\d{1,3}"
-                     r"|(?:[0-9a-f]{1,4}:){2,7}[0-9a-f]{1,4}", re.I)
 
 
 def slug(text, keep_slash: bool = False) -> str:
@@ -221,7 +218,7 @@ class Registry:
                 found.append(f"machine {m['id']}: hardware {m['hardware']!r} isn't in the hardware list")
             hosts += [h.strip().lower() for h in m.get("host_aliases") or []]
             for h in m.get("host_aliases") or []:
-                if IP_LIKE.search(str(h)):
+                if hostnames.looks_like_ip(str(h)):
                     found.append(f"machine {m.get('id')}: host alias {h!r} looks like an IP address; "
                                  "the registry is published, so never list one")
             ids += list(m.get("machine_ids") or [])

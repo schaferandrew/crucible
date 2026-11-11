@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from crucible import bundle, cli, registry, registry_suggest
+from crucible import bundle, cli, hostnames, registry, registry_suggest
 from tests.test_registry import REG, SITE, _tweak, run
 
 
@@ -118,7 +118,7 @@ def test_the_suggest_command_prints_yaml_without_addresses(capsys, monkeypatch, 
     out = capsys.readouterr().out
     parsed = yaml.safe_load(out)
     assert parsed["defaults"]["qwen/qwen3.5-9b"]["defaults"][0]["packager"] == "unsloth"
-    assert not registry.IP_LIKE.search(out)
+    assert not hostnames.contains_ip(out)
     assert not (site / "registry").exists()   # it only prints
 
 
