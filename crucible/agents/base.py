@@ -65,6 +65,7 @@ class RunContext:
     workspace: Path | None = None   # None for agents with uses_workspace = False
     mcp_servers: list[str] = field(default_factory=list)
     fixtures: list[str] = field(default_factory=list)
+    images: list[str] = field(default_factory=list)   # under fixtures/, attached to the prompt
     reasoning: str = "default"      # a level from crucible.reasoning
     run_uuid: str | None = None     # minted with the run directory
 
@@ -123,6 +124,8 @@ class Agent:
     # Web tools the harness ships on its own (recorded in meta.json, since
     # they decide what E6-style tasks measure); None = not known
     builtin_web_tools: list[str] | None = None
+    # Whether it can attach a task's images to the prompt
+    supports_images: bool = False
 
     # ---- checks ----------------------------------------------------------
 
@@ -133,6 +136,8 @@ class Agent:
         if reasoning not in self.reasoning_levels:
             return (f"{self.name} can't set the reasoning level (it supports: {', '.join(self.reasoning_levels)}); "
                     "use the model default, or another harness")
+        if prompt_def.get("images") and not self.supports_images:
+            return f"this task attaches images, which {self.name} can't send; use --agent direct"
         return self.validate(model, prompt_def)
 
     def validate(self, model: str | None, prompt_def: dict) -> str | None:

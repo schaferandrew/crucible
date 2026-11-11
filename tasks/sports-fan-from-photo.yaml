@@ -1,0 +1,48 @@
+id: sports-fan-from-photo
+name: Which team is this fan rooting for?
+aliases: []
+category: everyday
+area: general
+tier: spark
+version: 2
+rubric_version: 1
+status: provisional
+needs_tools: false
+auto_grade: true
+repo: null
+# The photo is attached to the prompt (direct harness only; a vision model is needed to read it). The baby
+# wears a green Michigan State onesie ("Nap like a champ" over a partly hidden Spartan helmet); the school's
+# name isn't on it. Small models tend to answer the University of Michigan.
+images:
+- images/michigan-state-fan.jpg
+prompt: |
+  Look at the attached photo.
+
+  1. Which college sports team is the little one a fan of? Name the school.
+
+  Explain your reasoning first if it helps. Then end your reply with this block, and nothing after it:
+
+  ANSWERS:
+  <number>: <answer>
+
+  One line per numbered question, in order. Give only the answer (a number, name or letter), not a sentence.
+checks:
+- id: team
+  type: items
+  header: [ANSWERS, ANSWER]
+  normalize: name
+  items:
+  - id: school
+    key: '1'
+    expect: Michigan State
+    aliases: [Michigan State University, MSU, Michigan State Spartans, Michigan State University Spartans,
+      Spartans, MSU Spartans]
+    label: 'Question 1 is Michigan State'
+  rule: 'Line 1 names Michigan State (Michigan State University, MSU or the Spartans); the University of Michigan,
+    Michigan or the Wolverines scores nothing.'
+rubric:
+- criterion: Team
+  max_score: 1
+  check: team
+  description: 'Names Michigan State as the team the baby supports, not the University of Michigan.'
+critical_failure: null

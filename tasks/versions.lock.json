@@ -356,6 +356,13 @@
     "rubric_version": 1,
     "rubric_hash": "58c3e214665a719a"
   },
+  "sports-fan-from-photo": {
+    "version": 2,
+    "content_hash": "724fe7efc27c5321",
+    "prompt_hash": "c3b6cf3d5820db69",
+    "rubric_version": 1,
+    "rubric_hash": "e3084c4e34f85e94"
+  },
   "sudoku-variants": {
     "version": 1,
     "content_hash": "400a7ce4b6918400",

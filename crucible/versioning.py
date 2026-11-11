@@ -24,7 +24,8 @@ from crucible import workspace
 
 LOCK_PATH = workspace.TASKS_DIR / "versions.lock.json"
 
-# Prompt fields that change what the model does vs. how the run is graded
+# Prompt fields that change what the model does vs. how the run is graded (images are content too,
+# hashed in content_hash only when a task has them)
 CONTENT_FIELDS = ("prompt", "needs_tools", "repo", "fixtures", "mcp_servers")
 RUBRIC_FIELDS = ("rubric", "critical_failure", "hidden_answer", "auto_grade")
 
@@ -76,6 +77,12 @@ def content_hash(prompt_def: dict) -> str:
         parts += _tree_bytes(workspace.REPOS_DIR / repo)
     for name in workspace.fixture_names(prompt_def):
         parts += _tree_bytes(workspace.FIXTURES_DIR / name)
+    # Hashed only when present, so tasks without images keep their hashes
+    images = workspace.image_names(prompt_def)
+    if images:
+        parts.append(_canonical({"images": images}))
+        for name in images:
+            parts += _tree_bytes(workspace.FIXTURES_DIR / name)
     for server in prompt_def.get("mcp_servers") or []:
         name, _, dataset = server.partition(":")
         paths = list(MCP_SERVER_DATA.get(server) or MCP_SERVER_DATA.get(name, []))
