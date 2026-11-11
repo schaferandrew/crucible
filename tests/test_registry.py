@@ -157,10 +157,10 @@ def test_aliases_match_exactly_and_the_id_matches_in_any_case():
     assert REG.resolve_run(run(base=None)).model_id == "unknown/unrecorded"
 
 
-def test_a_recorded_maker_wins_and_a_disagreement_is_noted():
+def test_a_known_model_keeps_the_registry_maker_and_a_disagreement_is_noted():
     res = REG.resolve_run(run(origin_maker="somebody"))
-    assert res.maker == "somebody" and res.sources["maker_from"] == "recorded"
-    assert any("differs from the registry's qwen" in n for n in res.notes)
+    assert res.maker == "qwen" and res.sources["maker_from"] == "registry"
+    assert any("recorded maker somebody" in n for n in res.notes)
     assert REG.resolve_run(run()).sources["maker_from"] == "registry"
 
 
