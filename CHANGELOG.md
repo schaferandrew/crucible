@@ -12,6 +12,18 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## 3.11.0 (2026-11-11)
+
+### Added
+- `crucible site-data --bundle DIR --outputs DIR --out DIR`: turns the published bundle (format 3 and 4 run
+  records) into the static JSON the new dashboard loads: a per-suite `index.json` (catalog, entities, one cell per
+  setup and task, precomputed time, speed and cost per setup), per-task and per-model run lists, one file per run,
+  monthly run lists and the copied outputs. It applies the page's run-state rules (withdrawn, unknown or retired task,
+  invalid, older version, harness not allowed, counted or provisional) and resolves every run through the registry.
+  The output is deterministic, and the build refuses to finish if it contains an IP address or an IP-derived host
+  name. The format is in [docs/site-data-format.md](docs/site-data-format.md), with JSON Schemas in
+  `crucible/schemas/site-data/`.
+
 ## 3.10.0 (2026-11-11)
 
 ### Added

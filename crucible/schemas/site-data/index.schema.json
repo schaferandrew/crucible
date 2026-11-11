@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "site-data <suite>/index.json",
+  "description": "The first-load file for one suite: catalog, entities, cells, setup_stats, other. See docs/site-data-format.md.",
+  "type": "object",
+  "required": ["suite", "counts", "catalog", "entities", "cells", "setup_stats", "other"],
+  "$defs": {
+    "nullable_string": {"type": ["string", "null"]},
+    "block": {
+      "type": "object",
+      "required": ["n", "n_scored", "mean", "min", "max", "n_finished", "mean_finished", "timeouts", "errors"],
+      "properties": {
+        "n": {"type": "integer"}, "n_scored": {"type": "integer"},
+        "mean": {"type": ["number", "null"]}, "min": {"type": ["number", "null"]}, "max": {"type": ["number", "null"]},
+        "n_finished": {"type": "integer"}, "mean_finished": {"type": ["number", "null"]},
+        "timeouts": {"type": "integer"}, "errors": {"type": "integer"}
+      }
+    },
+    "stats": {
+      "type": "object",
+      "required": ["runs", "time", "tps", "cost"],
+      "properties": {
+        "runs": {"type": "integer"}, "time": {"type": ["number", "null"]}, "cost": {"type": ["number", "null"]},
+        "tps": {"type": "object", "required": ["median", "n"],
+                "properties": {"median": {"type": ["number", "null"]}, "n": {"type": "integer"}}}
+      }
+    },
+    "setup": {
+      "type": "object",
+      "required": ["id", "variant", "artifact", "deployment", "model", "maker", "packager", "format", "quant", "reasoning",
+                   "harness", "where", "hw", "provider", "modes", "runs", "labels", "unrecorded"],
+      "properties": {
+        "id": {"type": "string"}, "variant": {"type": "string"}, "artifact": {"type": "string"}, "deployment": {"type": "string"},
+        "model": {"type": "string"}, "maker": {"type": "string"},
+        "packager": {"$ref": "#/$defs/nullable_string"}, "format": {"$ref": "#/$defs/nullable_string"},
+        "quant": {"$ref": "#/$defs/nullable_string"}, "reasoning": {"type": "string"}, "harness": {"type": "string"},
+        "where": {"type": "string"}, "hw": {"$ref": "#/$defs/nullable_string"}, "provider": {"$ref": "#/$defs/nullable_string"},
+        "modes": {"type": "array", "items": {"type": "string"}},
+        "runs": {"type": "integer"},
+        "labels": {"type": "object", "required": ["model", "maker", "packager", "hw", "machines", "provider"],
+                   "properties": {"model": {"type": "string"}, "maker": {"type": "string"},
+                                  "machines": {"type": "array", "items": {"type": "string"}},
+                                  "packager": {"$ref": "#/$defs/nullable_string"}, "hw": {"$ref": "#/$defs/nullable_string"},
+                                  "provider": {"$ref": "#/$defs/nullable_string"}}},
+        "unrecorded": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  },
+  "properties": {
+    "suite": {"type": "string"},
+    "counts": {"type": "object", "additionalProperties": {"type": "integer"}},
+    "catalog": {
+      "type": "object",
+      "required": ["suite", "modes", "areas", "categories", "tiers", "harnesses", "scoring_policy", "scoring_methods", "labels", "tasks"],
+      "properties": {
+        "suite": {"type": "object", "required": ["id", "name"],
+                  "properties": {"id": {"type": "string"}, "name": {"type": "string"}, "version": {"$ref": "#/$defs/nullable_string"},
+                                 "cut_at": {"$ref": "#/$defs/nullable_string"}, "status": {"$ref": "#/$defs/nullable_string"},
+                                 "changelog_url": {"$ref": "#/$defs/nullable_string"}}},
+        "modes": {"type": "array", "items": {"type": "object", "required": ["id", "label", "blurb", "order", "areas", "harnesses"],
+                  "properties": {"id": {"type": "string"}, "label": {"type": "string"}, "blurb": {"type": "string"},
+                                 "order": {"type": "number"}, "areas": {"type": "array", "items": {"type": "string"}},
+                                 "harnesses": {"type": "array", "items": {"type": "string"}}}}},
+        "areas": {"type": "array", "items": {"type": "object", "required": ["id", "label", "mode", "order", "blurb", "examples"],
+                  "properties": {"id": {"type": "string"}, "label": {"type": "string"}, "mode": {"$ref": "#/$defs/nullable_string"},
+                                 "order": {"type": "number"}, "blurb": {"type": "string"}, "examples": {"type": "string"}}}},
+        "categories": {"type": "array", "items": {"type": "object", "required": ["id", "label", "weight"],
+                       "properties": {"id": {"type": "string"}, "label": {"type": "string"}, "weight": {"type": ["number", "null"]}}}},
+        "tiers": {"type": "array", "items": {"type": "object", "required": ["id", "label", "blurb", "detail", "role", "gate", "order"],
+                  "properties": {"id": {"type": "string"}, "label": {"type": "string"}, "blurb": {"type": "string"},
+                                 "detail": {"type": "string"}, "role": {"$ref": "#/$defs/nullable_string"},
+                                 "gate": {"type": ["object", "null"]}, "order": {"type": "number"}}}},
+        "harnesses": {"type": "array", "items": {"type": "object", "required": ["id", "label", "modes"],
+                      "properties": {"id": {"type": "string"}, "label": {"type": "string"},
+                                     "modes": {"type": "array", "items": {"type": "string"}}}}},
+        "scoring_policy": {"type": "object", "required": ["coverage_min", "in_progress_below"],
+                           "properties": {"coverage_min": {"type": "number"}, "in_progress_below": {"type": "number"}}},
+        "scoring_methods": {"type": "object", "additionalProperties": {"type": "object", "required": ["label", "blurb", "criteria_label"],
+                            "properties": {"label": {"type": "string"}, "blurb": {"type": "string"}, "criteria_label": {"type": "string"}}}},
+        "labels": {"type": "object", "required": ["overall", "combined"],
+                   "properties": {"overall": {"type": "string"},
+                                  "combined": {"type": "object", "required": ["label", "blurb"],
+                                               "properties": {"label": {"type": "string"}, "blurb": {"type": "string"}}}}},
+        "tasks": {"type": "array", "items": {"type": "object", "required": ["id", "name", "aliases", "scoring"],
+                  "properties": {"id": {"type": "string"}, "name": {"type": ["string", "null"]},
+                                 "aliases": {"type": "array", "items": {"type": "string"}},
+                                 "mode": {"$ref": "#/$defs/nullable_string"}, "area": {"$ref": "#/$defs/nullable_string"},
+                                 "category": {"$ref": "#/$defs/nullable_string"}, "tier": {"$ref": "#/$defs/nullable_string"},
+                                 "status": {"$ref": "#/$defs/nullable_string"}, "weight": {"type": ["number", "null"]},
+                                 "scoring": {"type": "object", "required": ["method", "unit", "total", "scale"]}}}}
+      }
+    },
+    "entities": {
+      "type": "object",
+      "required": ["makers", "models", "artifacts", "variants", "deployments", "setups"],
+      "properties": {
+        "makers": {"type": "object", "additionalProperties": {"type": "object", "required": ["id", "label"],
+                   "properties": {"id": {"type": "string"}, "label": {"type": "string"}, "url": {"$ref": "#/$defs/nullable_string"}}}},
+        "models": {"type": "object", "additionalProperties": {"type": "object", "required": ["id", "label", "maker", "known"],
+                   "properties": {"id": {"type": "string"}, "label": {"type": "string"}, "maker": {"type": "string"},
+                                  "known": {"type": "boolean"}}}},
+        "artifacts": {"type": "object", "additionalProperties": {"type": "object", "required": ["id", "model", "api"],
+                      "properties": {"id": {"type": "string"}, "model": {"type": "string"}, "packager": {"$ref": "#/$defs/nullable_string"},
+                                     "format": {"$ref": "#/$defs/nullable_string"}, "quant": {"$ref": "#/$defs/nullable_string"},
+                                     "api": {"type": "boolean"}}}},
+        "variants": {"type": "object", "additionalProperties": {"type": "object", "required": ["id", "artifact", "reasoning", "harness"],
+                     "properties": {"id": {"type": "string"}, "artifact": {"type": "string"}, "reasoning": {"type": "string"},
+                                    "harness": {"$ref": "#/$defs/nullable_string"}}}},
+        "deployments": {"type": "object", "additionalProperties": {"type": "object", "required": ["id", "where", "label", "machines"],
+                        "properties": {"id": {"type": "string"}, "label": {"type": "string"},
+                                       "machines": {"type": "array", "items": {"type": "object", "required": ["label", "runs"], "properties": {"label": {"type": "string"}, "runs": {"type": "integer"}}}}, "where": {"$ref": "#/$defs/nullable_string"},
+                                       "provider": {"$ref": "#/$defs/nullable_string"}, "hw": {"$ref": "#/$defs/nullable_string"},
+                                       "hw_label": {"$ref": "#/$defs/nullable_string"}, "watts": {"type": ["number", "null"]}}}},
+        "setups": {"type": "object", "additionalProperties": {"$ref": "#/$defs/setup"}}
+      }
+    },
+    "cells": {"type": "array", "items": {"type": "object", "required": ["setup", "task", "runs"],
+              "properties": {"setup": {"type": "string"}, "task": {"type": "string"}, "runs": {"type": "integer"},
+                             "counted": {"$ref": "#/$defs/block"}, "provisional": {"$ref": "#/$defs/block"}}}},
+    "setup_stats": {
+      "type": "object",
+      "required": ["format", "tiers", "by_setup"],
+      "properties": {
+        "format": {"type": "string", "enum": ["subsets", "cells"]},
+        "tiers": {"type": "array", "items": {"type": "string"}},
+        "keys": {"type": "array", "items": {"type": "string"}},
+        "by_setup": {"type": "object"}
+      }
+    },
+    "other": {"type": "object", "additionalProperties": {"type": "object", "additionalProperties": {"type": "integer"}}}
+  }
+}

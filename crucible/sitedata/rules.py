@@ -21,6 +21,11 @@ def s(value):
     return value if isinstance(value, str) else None
 
 
+def truthy(value) -> bool:
+    """JavaScript truthiness for JSON values: {} and [] are true, None, False, 0 and "" are false."""
+    return value is not None and value is not False and value != 0 and value != ""
+
+
 def num(value, fallback=None):
     """A finite JSON number (never a bool), else the fallback (the page's `num`)."""
     if isinstance(value, bool) or not isinstance(value, (int, float)):
@@ -55,26 +60,26 @@ def validity(statuses: list, run: dict) -> str:
     valid === true); with none, a harness mark `outcome.invalid` makes it invalid. `statuses` is sorted by `at`."""
     last = d(statuses[-1]) if statuses else None
     if last:
-        if last.get("withdrawn"):
+        if truthy(last.get("withdrawn")):
             return "withdrawn"
-        if last.get("invalid"):
+        if truthy(last.get("invalid")):
             return "invalid"
         if last.get("valid") is True:
             return "valid"
-    return "invalid" if d(run.get("outcome")).get("invalid") else "valid"
+    return "invalid" if truthy(d(run.get("outcome")).get("invalid")) else "valid"
 
 
 def invalid_reason(statuses: list, run: dict):
     """Why a run is invalid (core 967), from the last status record or the harness mark."""
     last = d(statuses[-1]) if statuses else {}
-    inv = d(last.get("invalid") or d(run.get("outcome")).get("invalid"))
+    inv = d(last.get("invalid") if truthy(last.get("invalid")) else d(run.get("outcome")).get("invalid"))
     return inv.get("reason") or inv.get("detail") or None
 
 
 def outcome_of(run: dict) -> str:
     """finished | timed_out | error (core 702)."""
     o = d(run.get("outcome"))
-    if o.get("timed_out") or o.get("status") == "timeout":
+    if truthy(o.get("timed_out")) or o.get("status") == "timeout":
         return "timed_out"
     return "finished" if o.get("status") == "completed" else "error"
 

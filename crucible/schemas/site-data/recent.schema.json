@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "site-data recent/<YYYY-MM>.json",
+  "description": "Slim runs started in one month, newest first, each with its state in every visible suite. See docs/site-data-format.md.",
+  "type": "object",
+  "required": ["month", "runs"],
+  "properties": {
+    "month": {"type": "string"},
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["run_uuid", "started_at", "setup", "model", "task", "harness", "outcome", "elapsed_s", "cost", "tps", "validity", "states"],
+        "properties": {
+          "run_uuid": {"type": "string"}, "started_at": {"type": ["string", "null"]}, "setup": {"type": "string"},
+          "model": {"type": "string"}, "task": {"type": ["string", "null"]}, "harness": {"type": ["string", "null"]},
+          "outcome": {"type": "string", "enum": ["finished", "timed_out", "error"]},
+          "elapsed_s": {"type": ["number", "null"]}, "cost": {"type": ["number", "null"]}, "tps": {"type": ["number", "null"]}, "machine": {"type": ["string", "null"]},
+          "validity": {"type": "string", "enum": ["valid", "invalid", "withdrawn"]},
+          "states": {"type": "object", "additionalProperties": {
+            "type": "object", "required": ["state", "task", "score"],
+            "properties": {"state": {"type": "string"}, "task": {"type": ["string", "null"]}, "score": {"type": ["number", "null"]}}}}
+        }
+      }
+    }
+  }
+}

@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from crucible import registry as registry_mod
-from crucible.sitedata import rules
+from crucible.sitedata import guard, rules
 from crucible.sitedata.catalog import build_catalog, slim_task, suite_label, suite_sort_key
 from crucible.sitedata.reader import read_bundle, suite_id
 from crucible.sitedata.rules import d, mean, median, num, s, sig
@@ -66,6 +66,12 @@ def safe_resolve(reg, run: dict):
             harness=None, sources={"model_from": "unknown"}, notes=[f"the record could not be resolved: {exc}"])
 
 
+def machine_label(reg, res):
+    """The registry label of the machine that served a local run (display only: never an ID, filter or grouping key).
+    None unless the host resolved to a registry machine; raw host names are never emitted."""
+    return (reg.machines.get(res.machine) or {}).get("label") if res.machine else None
+
+
 def safe_cost(reg, run: dict, res):
     try:
         return sig(reg.energy_cost(run, res))
@@ -91,13 +97,33 @@ def unrecorded_fields(res) -> list:
     return out
 
 
+HW_FILLED = re.compile(r"^hardware key not recorded; read as (\S+) from machine .+$")
+HW_DIFFERS = re.compile(r"^recorded hardware (\S+) differs from .+'s (\S+)$")
+
+
+def public_notes(notes: list) -> list:
+    """The resolver's notes without machine names: hardware class is the only public machine identity."""
+    out = []
+    for note in notes:
+        m = HW_FILLED.match(note)
+        if m:
+            out.append(f"hardware key not recorded; filled in from the registry as {m.group(1)}")
+        elif HW_DIFFERS.match(note):
+            m = HW_DIFFERS.match(note)
+            out.append(f"recorded hardware {m.group(1)} differs from the registry's {m.group(2)}")
+        elif "machine" not in note.lower():
+            out.append(note)
+    return out
+
+
 def resolution_json(res) -> dict:
+    sources = {k: v for k, v in res.sources.items() if k != "machine_from"}
     return {
         "model": res.model_id, "maker": res.maker, "packager": res.packager, "format": res.format, "quant": res.quant,
-        "where": res.where, "provider": res.provider, "machine": res.machine, "hardware_key": res.hardware_key,
+        "where": res.where, "provider": res.provider, "hardware_key": res.hardware_key,
         "reasoning": res.reasoning_level, "harness": res.harness, "artifact": res.artifact_id, "variant": res.variant_id,
         "deployment": res.deployment_id, "setup": res.setup_id, "unrecorded": unrecorded_fields(res),
-        "sources": dict(res.sources), "notes": list(res.notes)}
+        "sources": sources, "notes": public_notes(res.notes)}
 
 
 def run_summary(run: dict) -> dict:
@@ -113,13 +139,11 @@ def run_summary(run: dict) -> dict:
                   "packager": m.get("packager") or m.get("publisher"), "format": m.get("format"),
                   "format_source": m.get("format_source"), "quant": m.get("quant"), "reasoning": d(m.get("reasoning")),
                   "context_loaded": m.get("context_loaded")},
-        "endpoint": {k: e.get(k) for k in ("where", "provider", "served_via", "device", "upstream", "resolved_model")},
-        "serving_host": run.get("serving_host"), "harness_host": run.get("harness_host"),
-        "hardware": {"key": hw.get("key"), "label": hw.get("label")},
+        "endpoint": {k: e.get(k) for k in ("where", "provider", "served_via", "upstream", "resolved_model")},
+        "hardware": {"key": hw.get("key")},
         "outcome": {k: o.get(k) for k in ("status", "harness_status", "returncode", "timed_out", "invalid")},
         "metrics": d(run.get("metrics")),
-        "provenance": {k: prov.get(k) for k in ("crucible_version", "crucible_commit", "source", "content_hash", "machine_id",
-                                                 "machine_label")},
+        "provenance": {k: prov.get(k) for k in ("crucible_version", "crucible_commit", "source", "content_hash")},
     }
 
 
@@ -128,7 +152,7 @@ def run_summary(run: dict) -> dict:
 class Info:
     """One run as one suite sees it."""
     __slots__ = ("uuid", "setup", "task", "task_ref", "tier", "state", "score", "rec", "outcome", "elapsed", "tps", "cost",
-                 "started", "tools", "model")
+                 "started", "tools", "model", "machine")
 
 
 def block(infos: list):
@@ -214,6 +238,7 @@ def build_suite(sid, catalog, resolved, rules_for, facts, bundle, reg) -> dict:
         info.score = rules.score_value(rec)
         info.outcome, info.elapsed, info.tps, info.cost = f["outcome"], f["elapsed"], f["tps"], f["cost"]
         info.started, info.tools, info.model = f["started"], f["tools"], f["res"].model_id
+        info.machine = f["machine"]
         infos[uuid] = info
         counts["runs"] += 1
         counts[state] += 1
@@ -254,7 +279,8 @@ def build_suite(sid, catalog, resolved, rules_for, facts, bundle, reg) -> dict:
 
 def slim_run(info: Info, with_task: bool = False) -> dict:
     out = {"run_uuid": info.uuid, "setup": info.setup, "state": info.state, "score": info.score, "outcome": info.outcome,
-           "elapsed_s": info.elapsed, "tps": sig(info.tps), "cost": info.cost, "started_at": info.started, "tool_calls": info.tools}
+           "elapsed_s": info.elapsed, "tps": sig(info.tps), "cost": info.cost, "started_at": info.started, "tool_calls": info.tools,
+           "machine": info.machine}
     if with_task:
         out["task"] = info.task or info.task_ref
     return out
@@ -266,9 +292,9 @@ def slim_sort(items: list) -> list:
 
 # --------------------------------------------------------------------------- entities
 
-def entities_for(setups: dict, models_other: set, modes: dict, runs_per_setup: dict, machines_per_setup: dict, reg) -> dict:
+def entities_for(setups: dict, models_other: set, modes: dict, runs_per_setup: dict, credit: dict, reg) -> dict:
     """Entity tables for the setups in a suite. `setups` maps setup id -> a Resolution of one of its runs."""
-    makers, models, artifacts, variants, deployments, out_setups, machines = {}, {}, {}, {}, {}, {}, {}
+    makers, models, artifacts, variants, deployments, out_setups = {}, {}, {}, {}, {}, {}
 
     def add_model(model_id, maker):
         if model_id in models:
@@ -294,14 +320,13 @@ def entities_for(setups: dict, models_other: set, modes: dict, runs_per_setup: d
         variants.setdefault(res.variant_id, {"id": res.variant_id, "artifact": res.artifact_id, "reasoning": res.reasoning_level,
                                              "harness": res.harness})
         hw = reg.hardware.get(res.hardware_key) or {}
+        credited = [{"label": k, "runs": n} for k, n in sorted(credit.get(res.deployment_id, {}).items())]
+        names = ", ".join(c["label"] for c in credited)
         deployments.setdefault(res.deployment_id, {
             "id": res.deployment_id, "where": res.where, "provider": res.provider if res.where == "cloud" else None,
             "hw": res.hardware_key if res.where != "cloud" else None, "hw_label": hw.get("label"),
-            "watts": hw.get("watts") if res.where != "cloud" else None})
-        mids = machines_per_setup.get(sid, [])
-        for mid in mids:
-            m = reg.machines.get(mid) or {}
-            machines[mid] = {"id": mid, "label": m.get("label") or mid, "hardware": m.get("hardware")}
+            "label": (hw.get("label") or res.hardware_key or res.provider or UNRECORDED) + (f" ({names})" if names else ""),
+            "machines": credited, "watts": hw.get("watts") if res.where != "cloud" else None})
         cloud = res.where == "cloud"
         packager = reg.packagers.get(res.packager) or {}
         out_setups[sid] = {
@@ -311,14 +336,14 @@ def entities_for(setups: dict, models_other: set, modes: dict, runs_per_setup: d
             "quant": None if cloud else (res.quant or UNRECORDED), "reasoning": res.reasoning_level,
             "harness": res.harness or UNRECORDED, "where": res.where or UNRECORDED,
             "hw": None if cloud else (res.hardware_key or UNRECORDED), "provider": (res.provider or UNRECORDED) if cloud else None,
-            "machines": mids, "modes": sorted(modes.get(sid, [])), "runs": runs_per_setup.get(sid, 0),
+            "modes": sorted(modes.get(sid, [])), "runs": runs_per_setup.get(sid, 0),
             "labels": {"model": models[res.model_id]["label"], "maker": makers[maker]["label"],
                        "packager": packager.get("label") or res.packager, "hw": hw.get("label") or res.hardware_key,
-                       "machines": [machines[m]["label"] for m in mids], "provider": res.provider if cloud else None},
+                       "machines": [c["label"] for c in credited], "provider": res.provider if cloud else None},
             "unrecorded": unrecorded_fields(res)}
     for model_id in sorted(models_other):
         add_model(model_id, None)
-    return {"makers": makers, "models": models, "machines": machines, "artifacts": artifacts, "variants": variants,
+    return {"makers": makers, "models": models, "artifacts": artifacts, "variants": variants,
             "deployments": deployments, "setups": out_setups}
 
 
@@ -371,7 +396,7 @@ def build(bundle_dir, outputs_dir, out_dir, display=None, fallbacks=None, built_
         facts[uuid] = {
             "run": run, "res": res, "valid": rules.validity(st, run), "reason": rules.invalid_reason(st, run),
             "outcome": rules.outcome_of(run), "elapsed": num(run.get("elapsed_s")), "tps": rules.tps_of(run),
-            "cost": safe_cost(reg, run, res), "started": run.get("started_at") if isinstance(run.get("started_at"), str) else None,
+            "machine": machine_label(reg, res), "cost": safe_cost(reg, run, res), "started": run.get("started_at") if isinstance(run.get("started_at"), str) else None,
             "tools": num(d(run.get("metrics")).get("tool_calls"))}
 
     suites_meta, per_suite, counts_by_suite = [], {}, {}
@@ -386,18 +411,17 @@ def build(bundle_dir, outputs_dir, out_dir, display=None, fallbacks=None, built_
 
     for sid, (cat, resolved, result) in per_suite.items():
         infos = result["infos"]
-        setup_res, per_setup_runs, machines = {}, {}, {}
+        setup_res, per_setup_runs, credit = {}, {}, {}
         cell_setups = {c["setup"] for c in result["cells"]}
         for uuid in sorted(infos):
             info = infos[uuid]
             if info.setup in cell_setups and info.state in ("counted", "provisional", "older", "harness", "invalid"):
                 setup_res.setdefault(info.setup, facts[uuid]["res"])
                 per_setup_runs[info.setup] = per_setup_runs.get(info.setup, 0) + 1
-                m = facts[uuid]["res"].machine
-                if m:
-                    machines.setdefault(info.setup, set()).add(m)
-        entities = entities_for(setup_res, set(result["other"]), result["modes"], per_setup_runs,
-                                {k: sorted(v) for k, v in machines.items()}, reg)
+                if facts[uuid]["machine"]:
+                    by = credit.setdefault(facts[uuid]["res"].deployment_id, {})
+                    by[facts[uuid]["machine"]] = by.get(facts[uuid]["machine"], 0) + 1
+        entities = entities_for(setup_res, set(result["other"]), result["modes"], per_setup_runs, credit, reg)
         index = {"suite": sid, "counts": result["counts"], "catalog": resolved, "entities": entities, "cells": result["cells"],
                  "setup_stats": result["stats"], "other": result["other"]}
         sizes[f"{sid}/index.json"] = dump(out / sid / "index.json", index)
@@ -433,7 +457,7 @@ def build(bundle_dir, outputs_dir, out_dir, display=None, fallbacks=None, built_
             (out / "outputs").mkdir(parents=True, exist_ok=True)
             shutil.copyfile(src, out / "outputs" / f"{uuid}.txt")
             output = f"outputs/{uuid}.txt"
-        body = {"run_uuid": uuid, "summary": run_summary(run), "resolution": resolution_json(res), "setup": res.setup_id,
+        body = {"run_uuid": uuid, "summary": run_summary(run), "resolution": dict(resolution_json(res), machine=f["machine"]), "setup": res.setup_id,
                 "validity": {"state": f["valid"], "reason": f["reason"]}, "suites": states, "cost": f["cost"],
                 "outcome": f["outcome"], "scores": bundle.scores.get(uuid, []), "status": bundle.status.get(uuid, []),
                 "output": output}
@@ -443,7 +467,7 @@ def build(bundle_dir, outputs_dir, out_dir, display=None, fallbacks=None, built_
         recent.setdefault(month, []).append({
             "run_uuid": uuid, "started_at": f["started"], "setup": res.setup_id, "model": res.model_id,
             "task": s(d(run.get("task")).get("id")) or s(d(run.get("task")).get("alias")), "harness": res.harness,
-            "outcome": f["outcome"], "elapsed_s": f["elapsed"], "cost": f["cost"], "tps": sig(f["tps"]), "validity": f["valid"],
+            "outcome": f["outcome"], "elapsed_s": f["elapsed"], "cost": f["cost"], "tps": sig(f["tps"]), "machine": f["machine"], "validity": f["valid"],
             "states": {k: {"state": v["state"], "task": v["task"], "score": v["score"]} for k, v in states.items()}})
     for month, runs in sorted(recent.items()):
         sizes[f"recent/{month}.json"] = dump(out / "recent" / f"{month}.json", {"month": month, "runs": slim_sort(runs)})
@@ -453,4 +477,9 @@ def build(bundle_dir, outputs_dir, out_dir, display=None, fallbacks=None, built_
             "crucible_version": crucible_version(), "bundle_hash": bundle.hash,
             "current_suite": suite_id(current) if current else None, "suites": suites_meta}
     sizes["meta.json"] = dump(out / "meta.json", meta)
+    try:
+        guard.enforce(out)
+    except guard.PrivacyError:
+        (out / "meta.json").unlink()    # an unfinished build must not look like a finished one
+        raise
     return {"sizes": sizes, "counts": counts_by_suite, "meta": meta, "skipped": bundle.skipped}
