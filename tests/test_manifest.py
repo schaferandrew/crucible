@@ -217,14 +217,16 @@ def test_record_format_is_3_unless_opted_in(monkeypatch):
 
 def test_format_4_record_fields(tmp_path):
     _, v4 = _v4_runs(tmp_path)
-    assert v4["format_version"] == 4 and v4["serving_host"] == "Ironwood" and v4["harness_host"] == "Ironwood"
+    assert v4["format_version"] == 4 and "serving_host" not in v4 and "harness_host" not in v4
     model = v4["model"]
     assert (model["id"], model["maker"], model["packager"]) == ("qwen/qwen3.5-9b", "qwen", "lmstudio-community")
     assert (model["raw_base"], model["format"], model["format_source"], model["quant"]) == ("qwen/qwen3.5-9b", "gguf", "runtime", "Q4_K_M")
-    assert v4["hardware"] == {"key": "m1-pro-32gb"} and "app" not in v4["endpoint"] and "device" not in v4["endpoint"]
+    assert v4["hardware"] == {"key": "m1-pro-32gb", "chip": "Apple M1 Pro", "memory_gb": 32.0, "accelerators": [],
+                              "served_remotely": False}
+    assert "app" not in v4["endpoint"] and "device" not in v4["endpoint"]
     for gone in ("variant_key", "display", "publisher"):
         assert gone not in model
-    assert not {"submitter", "verification", "machine_label"} & set(v4["provenance"])
+    assert not {"submitter", "verification", "machine_label", "machine_id"} & set(v4["provenance"])
     assert "local" in v4  # in the local meta.json only
 
 
@@ -250,8 +252,9 @@ def test_format_4_end_to_end_write_publish_check(tmp_path):
     assert bundle.record_problems("run", record) == []
     assert bundle.check_folder(to, outputs) == []
     resolved = registry.default().resolve_run(record)
-    assert (resolved.model_id, resolved.maker, resolved.packager, resolved.format, resolved.machine) == (
-        "qwen/qwen3.5-9b", "qwen", "lmstudio-community", "gguf", "ironwood")
+    assert (resolved.model_id, resolved.maker, resolved.packager, resolved.format, resolved.hardware_key) == (
+        "qwen/qwen3.5-9b", "qwen", "lmstudio-community", "gguf", "m1-pro-32gb")
+    assert "Ironwood" not in path.read_text(encoding="utf-8")
     again = bundle.publish(runs, to, outputs)
     assert again.errors == [] and not any(again.counts.values())
 
@@ -261,7 +264,7 @@ def test_format_4_cloud_run(tmp_path):
     inference = {"provider": "openrouter", "local": False}
     meta = run_meta(p["id"], p["version"], p["rubric_version"], model="openrouter/qwen/qwen3.5-9b", inference=inference)
     v4 = runrecord.record_v4(meta, registry.default())
-    assert v4["hardware"] is None and v4["serving_host"] is None and v4["model"]["format_source"] is None
+    assert v4["hardware"] is None and v4["model"]["format_source"] is None
     assert v4["model"]["id"] == "qwen/qwen3.5-9b"
     write_run(tmp_path / "runs" / v4["run_path"], v4, "ok")
     to = tmp_path / "bundle"
@@ -292,5 +295,56 @@ def test_format_4_schema_rejects_dropped_fields():
     leaked = {**v4, "model": {**v4["model"], "variant_key": "a|b"}, "endpoint": {**v4["endpoint"], "app": None}}
     found = "\n".join(bundle.record_problems("run", leaked))
     assert "model.variant_key" in found and "endpoint.app" in found
-    assert bundle.record_problems("run", {k: v for k, v in v4.items() if k != "serving_host"}) == []
+    for field in ("serving_host", "harness_host"):
+        assert any(field in p for p in bundle.record_problems("run", {**v4, field: "Ironwood"}))
+    hw = v4["hardware"]
+    assert any("hardware.label" in p for p in bundle.record_problems("run", {**v4, "hardware": {**hw, "label": "Ironwood"}}))
+    assert any("machine_id" in p for p in bundle.record_problems(
+        "run", {**v4, "provenance": {**v4["provenance"], "machine_id": "m_1234"}}))
     assert any("format_source" in p for p in bundle.record_problems("run", {**v4, "model": {**v4["model"], "format_source": "guess"}}))
+
+
+def test_the_nickname_is_optional_chosen_and_display_only(tmp_path, monkeypatch):
+    monkeypatch.delenv("CRUCIBLE_MACHINE_NAME", raising=False)
+    _, plain = _v4_runs(tmp_path)
+    assert "nickname" not in plain["hardware"]            # never the OS hostname by default
+    monkeypatch.setenv("CRUCIBLE_MACHINE_NAME", "Basement Box")
+    _, named = _v4_runs(tmp_path / "named")
+    assert named["hardware"]["nickname"] == "Basement Box"
+    assert {k: v for k, v in named["hardware"].items() if k != "nickname"} == plain["hardware"]   # not part of the key
+    published = bundle.published_run(named, None)
+    assert bundle.record_problems("run", published) == []
+    for bad in ("192.168.1.5", "ip-192-168-1-5", "fe80::1", "", "x" * 41, "two\nlines"):
+        assert any("nickname" in p for p in bundle.record_problems(
+            "run", {**published, "hardware": {**published["hardware"], "nickname": bad}})), bad
+    monkeypatch.setenv("CRUCIBLE_MACHINE_NAME", "ip-10-0-0-1")
+    with pytest.raises(SystemExit):
+        runrecord.machine_nickname()
+
+
+# --------------------------------------------------------------------------
+# No IP addresses in records
+# --------------------------------------------------------------------------
+
+def test_publish_refuses_a_new_run_with_an_ip_in_it(tmp_path):
+    runs, to = _runs(tmp_path, 1), tmp_path / "bundle"
+    (run_dir,) = runrecord.run_dirs(runs)
+    meta = json.loads((run_dir / "meta.json").read_text())
+    meta["provenance"]["machine_label"] = "ip-192-168-1-162"
+    (run_dir / "meta.json").write_text(json.dumps(meta))
+    pub = bundle.publish(runs, to, bundle.default_outputs(to))
+    assert pub.counts["runs"] == 0 and not list(to.glob("runs/*/*.json"))
+    assert "IP address" in pub.errors[0] and "provenance.machine_label" in pub.errors[0] and "ip-192-168-1-162" in pub.errors[0]
+
+
+def test_check_warns_about_published_runs_with_an_ip_but_does_not_fail(tmp_path):
+    runs, to = _runs(tmp_path, 1), tmp_path / "bundle"
+    bundle.publish(runs, to, bundle.default_outputs(to))
+    (path,) = to.glob("runs/*/*.json")
+    record = json.loads(path.read_text())
+    record["hardware"]["label"] = "ip-192-168-1-162"
+    path.write_text(json.dumps(record))
+    bundle.write_manifest(to)
+    assert not any("IP address" in p for p in bundle.check_folder(to, bundle.default_outputs(to)))  # format 3: a warning only
+    (warning,) = [w for w in bundle.legacy_warnings(to) if "IP" in w]
+    assert record["run_uuid"][:8] in warning

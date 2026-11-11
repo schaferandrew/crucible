@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/schaferandrew/crucible/blob/main/crucible/schemas/run.v4.schema.json",
   "title": "Crucible run record (bundle format 4)",
-  "description": "One run, immutable once published. Format 4 (docs/bundle-format.md#format-4): the maker, packager and canonical model id are recorded at run time; serving_host and harness_host replace endpoint.device, hardware.label and provenance.machine_label; variant_key, display, run_path, endpoint.app, hardware.offload, origin.base_repo and provenance.submitter/verification are gone; `local` is never published. Unknown fields are ignored by readers.",
+  "description": "One run, immutable once published. Format 4 (docs/bundle-format.md#format-4): the maker, packager and canonical model id are recorded at run time; hardware describes the serving machine by class (no host names or machine ids); variant_key, display, run_path, endpoint.app, hardware.offload, origin.base_repo and provenance.submitter/verification are gone; `local` is never published. Unknown fields are ignored by readers.",
   "type": "object",
   "required": [
     "record",
@@ -303,12 +303,60 @@
         "object",
         "null"
       ],
+      "description": "The machine that SERVED the weights, by class; null for cloud runs. Never a host name, label or machine id.",
       "properties": {
         "key": {
           "type": [
             "string",
             "null"
+          ],
+          "description": "Deterministic from the detected chip/GPU and memory (crucible/hardware.py key())."
+        },
+        "chip": {
+          "type": [
+            "string",
+            "null"
           ]
+        },
+        "memory_gb": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "accelerators": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "memory_gb": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "count": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "served_remotely": {
+          "type": "boolean",
+          "description": "Served by an LM Link peer or another machine, not the one running the harness."
+        },
+        "nickname": {
+          "type": "string",
+          "description": "Optional, chosen by the user (CRUCIBLE_MACHINE_NAME); display only, never part of identity."
         }
       }
     },
@@ -389,12 +437,6 @@
             "null"
           ]
         },
-        "machine_id": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "source": {
           "type": [
             "string",
@@ -405,20 +447,6 @@
           "type": "string"
         }
       }
-    },
-    "serving_host": {
-      "type": [
-        "string",
-        "null"
-      ],
-      "description": "The machine that served the weights (null for cloud runs)."
-    },
-    "harness_host": {
-      "type": [
-        "string",
-        "null"
-      ],
-      "description": "The machine that ran the harness."
     }
   }
 }

@@ -27,7 +27,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from crucible import runrecord, workspace
+from crucible import hostnames, runrecord, workspace
 
 LEGACY_CHECKS = "check_results.json"
 LEGACY_GRADER = "grader_results.json"
@@ -76,7 +76,7 @@ def from_legacy(meta: dict, run_path: str, task_id: str) -> dict:
         "provenance": {**runrecord.null_provenance(), **legacy_provenance,
                        "machine_id": legacy_provenance.get("machine_id") or (
                            runrecord.legacy_machine_id(hostname) if hostname else None),
-                       "machine_label": hostname, "source": "crucible-migrate"},
+                       "machine_label": hostnames.public_label(hostname), "source": "crucible-migrate"},
         "local": {
             "environment": env,
             "tools": meta.get("tools"),
@@ -253,7 +253,7 @@ def bundle_records(bundle: dict) -> list[tuple[dict, str | None, list[dict]]]:
             "output_ref": None,
             "provenance": {**runrecord.null_provenance(), **{k: v for k, v in (run.get("provenance") or {}).items() if v},
                            "machine_id": (run.get("provenance") or {}).get("machine_id") or runrecord.legacy_machine_id(machine),
-                           "machine_label": machine, "source": "bundle-format-2"},
+                           "machine_label": hostnames.public_label(machine), "source": "bundle-format-2"},
         }
         scores = []
         if run.get("check_score") is not None and test.get("rubric_version") is not None:

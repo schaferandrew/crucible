@@ -111,9 +111,31 @@ catalogs stay format 3, and format-3 runs are never rewritten; readers handle bo
 | `model.base` | `model.raw_base` (same value: the key as the runtime called it, without provider prefix, format or quant tag) |
 | `model.origin.maker` | `model.maker`: the registry model's maker, else the runtime's (`origin.maker`) |
 | `model.format` (guessed from names) | `model.format` + `model.format_source`: `runtime` (LM Studio, Ollama or a GGUF file said so), `filename` (the key or quant name implies it), `unknown`; null for cloud runs |
-| `endpoint.device`, `hardware.label`, `provenance.machine_label` | `serving_host` (machine that served the weights; null for cloud) and `harness_host` (machine that ran the harness) |
-| `hardware` (key, class, cpu, memory, label, offload) | `hardware: {key}` (null for cloud); the rest lives in `registry/machines.yaml` |
+| `endpoint.device`, `hardware.label`, `provenance.machine_label`, `provenance.machine_id` | dropped: no host names, machine labels or raw machine ids in format 4 |
+| `hardware` (key, class, cpu, memory, label, offload) | `hardware: {key, chip, memory_gb, accelerators: [{name, memory_gb, count}], served_remotely, nickname?}` describing the machine that **served** the weights (null for cloud runs) |
 | `model.variant_key`, `model.display`, `run_path`, `endpoint.app`, `hardware.offload`, `model.origin.base_repo`, `provenance.submitter`, `provenance.verification` | dropped |
+
+**Hardware identity.** `hardware.key` is built by one deterministic rule (`crucible/hardware.py`
+`key()`), so every submitter's identical hardware gets the same key: a discrete GPU as its name and VRAM
+(`rtx-5070-ti-16gb`; several cards `2x-rtx-3090-24gb`, mixed cards joined by `+`, largest first), else Apple
+silicon as its chip and unified memory (`m5-pro-48gb`), else the CPU and system RAM (`cpu-ryzen-7-7700-32gb`).
+Vendor and marketing words (`Apple`, `NVIDIA GeForce`, `Core`) and memory in a name are dropped, names are
+lowercased and joined by hyphens, memory is rounded to whole GB. `served_remotely` is true when an LM Link
+peer or another machine served the model rather than the one running the harness; it affects speed.
+
+**`hardware.nickname`** is optional and display-only (credit, fun): a name the user chooses with
+`CRUCIBLE_MACHINE_NAME`, never the OS host name by default, and never part of the key or any identity.
+Unset means omitted. `publish` rejects a nickname that isn't a short single-line string (40 characters at
+most) or that looks like an IP address or `ip-...` host name; the harness refuses to run with such a value.
+
+**No IP addresses, ever.** Every host name enters a record through `crucible/hostnames.py`
+`public_label()`, which returns nothing for an IPv4 or IPv6 address or a name derived from one
+(`ip-192-168-1-162`, `192-168-1-162.local`, `ec2-1-2-3-4...`); an IP host in a base URL is dropped too.
+This applies to format 3 and 4. `crucible publish` refuses a new run record with an IP-like string
+anywhere in it, with the path and value in the message. Format-3 runs already published with one (33 in the
+bundle: `provenance.machine_label`, `hardware.label`) stay as published, and `--check` lists them as
+warnings; a format-4 record with one is a `--check` error. A format-4 record carrying `serving_host`,
+`harness_host`, `hardware.label` or `provenance.machine_id` is rejected too.
 
 The local `meta.json` of a format-4 run keeps `run_path` and `local` for the tools that read the run
 folder; `publish` drops both. A `local` key is rejected by `publish` in either format and is an error in

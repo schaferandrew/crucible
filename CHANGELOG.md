@@ -26,6 +26,14 @@ here ([docs/versioning.md](docs/versioning.md)).
   canonical `model.id`, `model.raw_base`, `model.format` with `format_source`, `serving_host` and
   `harness_host`, `hardware: {key}`, and none of the dead fields. `publish` and `--check` validate both
   formats (`run.v4.schema.json`) and reject a `local` key. See docs/bundle-format.md.
+- Format 4 describes the machine that served the weights by class, never by name:
+  `hardware: {key, chip, memory_gb, accelerators, served_remotely}` (the key by the same rule for every
+  submitter) plus an optional display-only `hardware.nickname` from `CRUCIBLE_MACHINE_NAME`. No host names,
+  machine labels or machine ids are recorded.
+- IP addresses and IP-derived host names (`ip-192-168-1-162`) are no longer recorded in any format: host
+  names pass through `crucible/hostnames.py`, an IP host in a base URL is dropped, and `crucible publish`
+  refuses a new run record with an IP-like string in it. `--check` warns about runs already published
+  with one.
 
 ## 3.9.0 (2026-11-10)
 

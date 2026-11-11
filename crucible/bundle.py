@@ -29,7 +29,7 @@ import re
 import sys
 from pathlib import Path
 
-from crucible import checks, exporter, manifest, provenance, registry, runrecord, suites, workspace
+from crucible import checks, exporter, hostnames, manifest, provenance, registry, runrecord, suites, workspace
 
 SCHEMAS = Path(__file__).parent / "schemas"
 SCHEMA_PATH = SCHEMAS / "results.schema.json"   # format 2 (`crucible export --format 2`)
@@ -87,7 +87,23 @@ def record_problems(kind: str, data, strict: bool = False) -> list[str]:
     if kind == "run" and isinstance(data, dict):
         if "local" in data and (strict or version == 4):
             found.append("$.local: a `local` key never leaves the machine and can't be published")
+        if strict or version == 4:
+            ips = hostnames.ip_strings(data)
+            if ips:
+                found.append("contains an IP address or an IP-derived host name, which are never published "
+                             "(the harness drops them at capture; this record predates that or was edited): "
+                             + "; ".join(ips[:3]))
         if version == 4:
+            hardware = data.get("hardware")
+            if isinstance(hardware, dict):
+                found += [f"$.hardware.{k}: not part of format 4 (hardware describes the machine's class, never its name)"
+                          for k in hardware if k not in runrecord.V4_HARDWARE]
+                if "nickname" in hardware:
+                    why = runrecord.nickname_problem(hardware["nickname"])
+                    if why:
+                        found.append(f"$.hardware.nickname: {why}")
+                if "served_remotely" in hardware and not isinstance(hardware["served_remotely"], bool):
+                    found.append("$.hardware.served_remotely: expected boolean")
             for dotted in runrecord.V4_DROPPED:
                 node = data
                 for part in dotted.split("."):
@@ -101,7 +117,8 @@ _MISSING = object()
 
 
 def machine_name() -> str:
-    return re.sub(r"[^a-z0-9-]+", "-", platform.node().split(".")[0].lower()).strip("-") or "machine"
+    label = hostnames.public_label(platform.node().split(".")[0]) or ""
+    return re.sub(r"[^a-z0-9-]+", "-", label.lower()).strip("-") or "machine"
 
 
 # --------------------------------------------------------------------------
@@ -648,10 +665,17 @@ def machine_warnings(to: Path, reg: registry.Registry | None = None) -> list[str
 def legacy_warnings(to: Path) -> list[str]:
     """Runs already published with a leaked `local` key or a null content hash. Never edited, only listed."""
     local = hashless = 0
+    with_ip: list[str] = []
     for run in published_runs(to):
         local += "local" in run
         hashless += not (run.get("provenance") or {}).get("content_hash")
+        if run.get("format_version") != 4 and hostnames.ip_strings(run):
+            with_ip.append(str(run.get("run_uuid"))[:8])
     found = []
+    if with_ip:
+        found.append(f"{len(with_ip)} runs contain an IP address or an IP-derived host name (published before "
+                     "the harness dropped them at capture; they stay as published, new ones are refused): "
+                     + ", ".join(sorted(with_ip)))
     if local:
         found.append(f"{local} runs carry a `local` key (published before publish dropped it); they stay as published")
     if hashless:
