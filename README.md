@@ -278,8 +278,9 @@ crucible coverage [--suite v4] [--json]  # which suite tasks each model has fini
 ```
 
 A model recorded under a bad name (no maker, a packager prefix, a quant tag in it) is fixed in
-`corrections.yaml`, never in the published run: `crucible publish` sends that file along, and
-`crucible publish --check` lists every published name that still needs an entry.
+the registry (`registry/models.yaml`: an alias with a reason), never in the published run: `crucible publish`
+sends the registry along (and a generated `corrections.json` for the live page), and
+`crucible publish --check` lists every published name the registry doesn't resolve.
 
 Until the dashboard switches to format 3, the live page reads the format-2 file (`_data/crucible/ironwood.json`) written by `crucible export --format 2`, which keeps the pre-3.0.0 IDs. Claude Code users can say "publish my Crucible results": the repo ships a skill for it (`.claude/skills/publish-results/`).
 

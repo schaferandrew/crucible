@@ -284,7 +284,7 @@ class Registry:
                 if how == "alias":
                     notes.append(f"recorded as model {raw}; corrected to {model_id}: {alias['reason'].strip()}")
             else:
-                model_id = "unknown/" + (slug(str(raw).lstrip("~"), keep_slash=True) or UNRECORDED)
+                model_id = "unknown/" + ((slug(str(raw).lstrip("~"), keep_slash=True) if raw else "") or UNRECORDED)
                 sources["model_from"] = "unknown"
                 notes.append(f"model {raw!r} isn't in the registry")
         entry = self.models.get(model_id)

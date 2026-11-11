@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/schaferandrew/crucible/blob/main/crucible/schemas/corrections.schema.json",
   "title": "Crucible model corrections (bundle format 3)",
-  "description": "How the page reads badly recorded model fields: _data/crucible/corrections.json, written by crucible publish from corrections.yaml. Runs are never edited; this is applied when they are read.",
+  "description": "How the page reads badly recorded model fields: _data/crucible/corrections.json, written by crucible publish, generated from the registry (registry/models.yaml aliases, registry/packagers.yaml spellings). Runs are never edited; this is applied when they are read.",
   "type": "object",
   "required": ["record", "format_version", "models", "publishers"],
   "properties": {

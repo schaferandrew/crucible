@@ -12,6 +12,27 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## 3.10.0 (2026-11-11)
+
+### Added
+- The registry, `registry/*.yaml`: hand-reviewed makers, models (canonical `<maker>/<name>` ids with
+  aliases for the raw names runs recorded, each with a reason), packagers, machines (host names,
+  hardware, watts) and per-run overrides. `crucible/registry.py` loads it (from the repo or from a
+  published bundle) and resolves any published run to its canonical model, maker, packager, format,
+  quant, machine and hardware key, plus stable artifact, variant, deployment and setup IDs. It reads
+  format 3 records and the planned format 4 shape.
+- `crucible publish` writes `registry/<name>.json` into the bundle (bundle format revision 3) and
+  refuses to publish when the registry has problems (duplicate ids or aliases, an alias without a
+  reason, a reference to something that doesn't exist).
+- `crucible publish --check` also reports registry problems and warns, without failing, about
+  published model names the registry doesn't resolve, local runs with no machine or hardware key (with
+  their host names), and runs already published with a `local` key or a null content hash.
+- New runs fill a missing `model.origin.maker` from the registry when it knows the model.
+
+### Changed
+- `corrections.yaml` is gone. `corrections.json` is still written for the live page, now generated from
+  the registry's aliases and packager spellings (same entries as before).
+
 ## 3.9.0 (2026-11-10)
 
 ### Added
