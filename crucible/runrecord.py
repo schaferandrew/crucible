@@ -13,12 +13,13 @@ See docs/data-model.md.
 from __future__ import annotations
 
 import json
+import os
 import re
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from crucible import origin
+from crucible import hostnames, origin
 
 FORMAT_VERSION = 3
 # A run folder is <model_slug>/<task>/<timestamp>; before 3.0.0 it was <model_slug>/<category>/<test_id>/<timestamp>
@@ -226,7 +227,7 @@ def endpoint_record(model: str | None, inference: dict | None, endpoint: dict | 
         "provider": inference.get("provider") or provider_of(model),
         "app": None,
         "served_via": inference.get("served_via"),
-        "device": inference.get("device"),
+        "device": hostnames.public_label(inference.get("device")),
         "upstream": endpoint.get("upstream"),
         "resolved_model": endpoint.get("resolved_model"),
     }
@@ -240,7 +241,7 @@ def hardware_record(model: str | None, machine: dict | None, inference: dict | N
     specs = hardware.serving(machine or {}, inference or {})
     if not specs or not any(specs.get(k) for k in ("cpu", "gpu", "ram_gb")):
         return {"key": None, "class": None, "accelerators": [], "system_memory_gb": None, "cpu": None,
-                "offload": None, "label": (specs or {}).get("hostname")}
+                "offload": None, "label": hostnames.public_label((specs or {}).get("hostname"))}
     cards = hardware._gpus(specs["gpu"]) if specs.get("gpu") else []
     key = hardware.key(specs.get("cpu"), specs.get("gpu"), specs.get("ram_gb"))
     kind = "discrete_gpu" if cards else ("apple_silicon" if key and hardware.APPLE_SILICON.match(key) else "cpu")
@@ -251,13 +252,149 @@ def hardware_record(model: str | None, machine: dict | None, inference: dict | N
         "system_memory_gb": specs.get("ram_gb"),
         "cpu": specs.get("cpu"),
         "offload": None,
-        "label": specs.get("hostname"),
+        "label": hostnames.public_label(specs.get("hostname")),
     }
 
 
 def null_provenance() -> dict:
     return {"crucible_version": None, "crucible_commit": None, "crucible_dirty": None, "machine_id": None,
             "machine_label": None, "source": None, "content_hash": None, "submitter": None, "verification": None}
+
+
+# --------------------------------------------------------------------------
+# Format 4 (opt-in: CRUCIBLE_RECORD_FORMAT=4)
+# --------------------------------------------------------------------------
+
+# Fields format 4 drops (docs/bundle-format.md#format-4); a published format-4 record may not carry them
+V4_DROPPED = ("run_path", "variant_key", "display", "model.variant_key", "model.display", "model.publisher",
+              "model.origin.base_repo", "endpoint.app", "endpoint.device", "hardware.offload",
+              "provenance.submitter", "provenance.verification", "provenance.machine_label",
+              # Host names and machine ids never leave the machine in format 4 (community submissions)
+              "serving_host", "harness_host", "hardware.label", "hardware.hostname", "provenance.machine_id")
+# What hardware may carry in format 4: the serving machine's class, never its name
+V4_HARDWARE = ("key", "chip", "memory_gb", "accelerators", "served_remotely", "nickname")
+NICKNAME_MAX = 40
+IP_LIKE = re.compile(r"(\d{1,3}\.){3}\d{1,3}|^ip[-_]\d|^[0-9a-f:]*:[0-9a-f:]+$", re.I)
+
+
+def nickname_problem(value) -> str | None:
+    """Why a hardware.nickname can't be published, if it can't: it must be a short, free-text name the user
+    chose, never an IP address or an `ip-...` cloud host name."""
+    if not isinstance(value, str) or not value.strip():
+        return "must be a non-empty string"
+    if len(value) > NICKNAME_MAX:
+        return f"must be at most {NICKNAME_MAX} characters"
+    if any(ord(c) < 32 for c in value):
+        return "must be a single line of plain text"
+    if IP_LIKE.search(value.strip()):
+        return "looks like an IP address or host name"
+    return None
+
+
+def machine_nickname() -> str | None:
+    """The name the user chose for their machine (env CRUCIBLE_MACHINE_NAME). Never the OS hostname by
+    default: unset means no nickname. A value publish would reject is an error here, at run time."""
+    value = os.environ.get("CRUCIBLE_MACHINE_NAME", "").strip()
+    if not value:
+        return None
+    problem = nickname_problem(value)
+    if problem:
+        raise SystemExit(f"CRUCIBLE_MACHINE_NAME={value!r}: {problem}")
+    return value
+FORMAT_SOURCES = ("runtime", "filename", "unknown")
+
+
+def record_format() -> int:
+    """The run record format to write: 3 (default) or 4. The live legacy page skips records past format 3,
+    so 4 stays off until the dashboard cuts over; set CRUCIBLE_RECORD_FORMAT=4 to opt in."""
+    value = os.environ.get("CRUCIBLE_RECORD_FORMAT", "").strip()
+    if value in ("", "3"):
+        return 3
+    if value == "4":
+        return 4
+    raise SystemExit(f"CRUCIBLE_RECORD_FORMAT={value!r}: record formats are 3 and 4")
+
+
+def null_provenance_v4() -> dict:
+    return {"crucible_version": None, "crucible_commit": None, "crucible_dirty": None,
+            "source": None, "content_hash": None}
+
+
+def format_and_source(model: str | None, inference: dict | None, recorded: str | None = None) -> tuple[str | None, str]:
+    """(weights format, where it came from): `runtime` when the serving runtime said it (LM Studio's
+    compatibility_type, Ollama serving GGUF only, a .gguf file the harness read), `filename` when only the
+    model key or quant name implies it, `unknown` otherwise. A cloud run has no format: (None, "unknown")."""
+    inference = inference or {}
+    if where(model, inference) == "cloud":
+        return None, "unknown"
+    said = inference.get("format")
+    if isinstance(said, str) and said.strip():
+        return said.strip().lower(), "runtime"
+    if str(inference.get("model_path") or "").lower().endswith(".gguf"):
+        return "gguf", "runtime"
+    implied = implied_variant(model, inference.get("quantization"))["format"] or (recorded.lower() if recorded else None)
+    return (implied, "filename") if implied else (None, "unknown")
+
+
+def record_v4(meta: dict, reg=None, inference: dict | None = None, nickname: str | None = None) -> dict:
+    """A format-3 run record rewritten as format 4 (docs/bundle-format.md#format-4).
+
+    `reg` is the registry (crucible.registry.Registry): with it the record carries the canonical
+    `model.id`, the maker and the packager's id; without, `model.id` is null and the maker is only what
+    the runtime told. `inference` is what the harness captured of the serving runtime (default: the
+    record's local.environment.inference). `nickname` is the user's chosen machine name (default: env
+    CRUCIBLE_MACHINE_NAME; none when unset). run_path and `local` stay in the local meta.json for the
+    tools that read it; `published()` drops both.
+    """
+    env = (meta.get("local") or {}).get("environment") or {}
+    inference = inference if inference is not None else env.get("inference") or {}
+    model, endpoint, hardware = meta.get("model") or {}, meta.get("endpoint") or {}, meta.get("hardware")
+    prov = meta.get("provenance") or {}
+    raw = model.get("base")
+    found = reg.model_for_base(raw) if reg is not None else None
+    origin = {k: v for k, v in (model.get("origin") or {}).items() if k != "base_repo"}
+    maker = reg.models[found[0]]["maker"] if found else origin.get("maker")
+    is_local = endpoint.get("where") == "local"
+    fmt, fmt_source = format_and_source(model.get("id"), inference, model.get("format"))
+    packager = model.get("publisher")
+    if reg is not None and packager:
+        packager = reg.packager_id(packager)
+    # The machine that served the weights, by class: no host name, label or machine id
+    serving = None
+    if hardware is not None:
+        nick = nickname if nickname is not None else machine_nickname()
+        serving = {"key": hardware.get("key"), "chip": hardware.get("cpu"), "memory_gb": hardware.get("system_memory_gb"),
+                   "accelerators": hardware.get("accelerators") or [],
+                   "served_remotely": inference.get("same_machine") is False,
+                   **({"nickname": nick} if nick else {})}
+    out = {k: v for k, v in meta.items() if k not in ("model", "endpoint", "hardware", "provenance", "local")}
+    out.update({
+        "format_version": 4,
+        "model": {
+            "id": found[0] if found else None,
+            "raw_base": raw,
+            "maker": maker,
+            "packager": packager,
+            "artifact": model.get("artifact"),
+            "format": fmt,
+            "format_source": fmt_source if is_local else None,
+            "quant": model.get("quant"),
+            "reasoning": model.get("reasoning"),
+            "context_loaded": model.get("context_loaded"),
+            **({"origin": origin} if origin else {}),
+        },
+        "endpoint": {k: v for k, v in endpoint.items() if k not in ("app", "device")},
+        "hardware": serving,
+        "provenance": {k: v for k, v in prov.items() if k in null_provenance_v4()},
+    })
+    order = ["record", "format_version", "run_uuid", "run_path", "legacy_run_id", "started_at", "ended_at", "elapsed_s",
+             "task", "harness", "model", "endpoint", "hardware", "outcome", "metrics",
+             "output_ref", "provenance"]
+    result = {k: out[k] for k in order if k in out}
+    result.update({k: v for k, v in out.items() if k not in order})
+    if "local" in meta:
+        result["local"] = meta["local"]
+    return result
 
 
 # --------------------------------------------------------------------------
@@ -388,8 +525,10 @@ def add_status(run_dir: Path, run_uuid: str, by: str = "maintainer", **change) -
 
 
 def published(meta: dict) -> dict:
-    """The run record as published: everything but what stays on this machine."""
-    return {k: v for k, v in meta.items() if k != "local"}
+    """The run record as published: everything but what stays on this machine (`local`, and in format 4
+    the run's local path)."""
+    left = ("local", "run_path") if meta.get("format_version") == 4 else ("local",)
+    return {k: v for k, v in meta.items() if k not in left}
 
 
 def status_main() -> None:

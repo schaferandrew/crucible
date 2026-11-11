@@ -145,6 +145,10 @@ def _write_meta(ctx: RunContext, agent: Agent, prompt_def: dict, result: dict,
             "platform": sys.platform,
         },
     }
+    if runrecord.record_format() == 4:
+        # Opt-in until the dashboard reads format 4 (docs/bundle-format.md#format-4)
+        from crucible import registry
+        meta = runrecord.record_v4(meta, registry.default(), inference)
     _save_meta(ctx.run_dir, meta)
     return meta
 

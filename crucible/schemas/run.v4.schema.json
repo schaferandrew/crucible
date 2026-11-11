@@ -1,0 +1,452 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/schaferandrew/crucible/blob/main/crucible/schemas/run.v4.schema.json",
+  "title": "Crucible run record (bundle format 4)",
+  "description": "One run, immutable once published. Format 4 (docs/bundle-format.md#format-4): the maker, packager and canonical model id are recorded at run time; hardware describes the serving machine by class (no host names or machine ids); variant_key, display, run_path, endpoint.app, hardware.offload, origin.base_repo and provenance.submitter/verification are gone; `local` is never published. Unknown fields are ignored by readers.",
+  "type": "object",
+  "required": [
+    "record",
+    "format_version",
+    "run_uuid",
+    "started_at",
+    "task",
+    "harness",
+    "model",
+    "endpoint",
+    "hardware",
+    "outcome",
+    "metrics",
+    "provenance"
+  ],
+  "properties": {
+    "record": {
+      "type": "string",
+      "enum": [
+        "run"
+      ]
+    },
+    "format_version": {
+      "type": "integer",
+      "enum": [
+        4
+      ]
+    },
+    "run_uuid": {
+      "type": "string"
+    },
+    "legacy_run_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "started_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "ended_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "elapsed_s": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "task": {
+      "type": "object",
+      "required": [
+        "id",
+        "version"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "version": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "rubric_version": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "content_hash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rubric_hash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "alias": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "harness": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "required": [
+        "id",
+        "raw_base",
+        "reasoning"
+      ],
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The registry's canonical model id (maker/name) when it knows the model, else null."
+        },
+        "artifact": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The packaged repo the weights were downloaded from (lmstudio-community/Qwen3.5-9B-GGUF), when the source names it."
+        },
+        "format": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "quant": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reasoning": {
+          "type": "object",
+          "required": [
+            "requested"
+          ],
+          "properties": {
+            "requested": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "resolved": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "resolved_source": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "enum": [
+                "server",
+                "template",
+                "inferred",
+                "requested",
+                "unknown",
+                null
+              ]
+            }
+          }
+        },
+        "context_loaded": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "origin": {
+          "type": "object",
+          "description": "Optional (added in format revision 1; runs before Crucible 3.6.0 don't have it): who trained the model, read at run time from the GGUF header, MLX model card, Ollama, OpenRouter or the LM Studio model key, first source to answer wins per field. Not part of variant_key. See docs/data-model.md.",
+          "required": [
+            "source"
+          ],
+          "properties": {
+            "maker": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "params": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "active_params": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "source": {
+              "type": "string"
+            }
+          }
+        },
+        "raw_base": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The model key as the runtime called it, without provider prefix, format or quant tag."
+        },
+        "maker": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "packager": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The namespace the weights were downloaded from (may equal the maker)."
+        },
+        "format_source": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "runtime",
+            "filename",
+            "unknown",
+            null
+          ],
+          "description": "Where `format` came from: the serving runtime, the model key or quant name, or nowhere. Null for cloud runs."
+        }
+      }
+    },
+    "endpoint": {
+      "type": "object",
+      "required": [
+        "where",
+        "provider"
+      ],
+      "properties": {
+        "where": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "provider": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "served_via": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "resolved_model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "hardware": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "The machine that SERVED the weights, by class; null for cloud runs. Never a host name, label or machine id.",
+      "properties": {
+        "key": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Deterministic from the detected chip/GPU and memory (crucible/hardware.py key())."
+        },
+        "chip": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "memory_gb": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "accelerators": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "memory_gb": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "count": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "served_remotely": {
+          "type": "boolean",
+          "description": "Served by an LM Link peer or another machine, not the one running the harness."
+        },
+        "nickname": {
+          "type": "string",
+          "description": "Optional, chosen by the user (CRUCIBLE_MACHINE_NAME); display only, never part of identity."
+        }
+      }
+    },
+    "outcome": {
+      "type": "object",
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "harness_status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "returncode": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "timed_out": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "invalid": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "leaks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "metrics": {
+      "type": "object"
+    },
+    "output_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "content_hash"
+      ],
+      "properties": {
+        "crucible_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "crucible_commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "crucible_dirty": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "source": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "content_hash": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

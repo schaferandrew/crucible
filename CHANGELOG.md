@@ -34,6 +34,25 @@ here ([docs/versioning.md](docs/versioning.md)).
   resolution, with its source `registry`.
 - `crucible registry suggest --bundle DIR` prints candidate `defaults` and `overrides` YAML for
   published runs with gaps (unanimous evidence only), to review and paste. It writes nothing.
+- `crucible publish` maintains a generated `manifest.json` in the bundle (`run_uuid` to content hash,
+  submitter, path, score records, status count) and applies one rule set to it (`crucible/manifest.py`):
+  an unknown run is added, the same run with the same hash is a no-op, the same run with a different hash
+  is rejected and never overwritten. Publishing twice changes nothing; `publish --check` also verifies the
+  manifest against the files. `crucible migrate --bundle` still skips runs that are already there.
+- `crucible publish --from-bundle OLD --to NEW` copies a published bundle byte for byte, verifying every
+  content hash, and writes its manifest. It moves the bundle between repos.
+- Run record format 4, off by default (set `CRUCIBLE_RECORD_FORMAT=4`): `model.packager`, `model.maker`,
+  canonical `model.id`, `model.raw_base`, `model.format` with `format_source`, `serving_host` and
+  `harness_host`, `hardware: {key}`, and none of the dead fields. `publish` and `--check` validate both
+  formats (`run.v4.schema.json`) and reject a `local` key. See docs/bundle-format.md.
+- Format 4 describes the machine that served the weights by class, never by name:
+  `hardware: {key, chip, memory_gb, accelerators, served_remotely}` (the key by the same rule for every
+  submitter) plus an optional display-only `hardware.nickname` from `CRUCIBLE_MACHINE_NAME`. No host names,
+  machine labels or machine ids are recorded.
+- IP addresses and IP-derived host names (`ip-192-168-1-162`) are no longer recorded in any format: host
+  names pass through `crucible/hostnames.py`, an IP host in a base URL is dropped, and `crucible publish`
+  refuses a new run record with an IP-like string in it. `--check` warns about runs already published
+  with one.
 
 ### Changed
 - `corrections.yaml` is gone. `corrections.json` is still written for the live page, now generated from
