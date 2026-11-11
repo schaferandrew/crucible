@@ -70,7 +70,9 @@ here ([docs/versioning.md](docs/versioning.md)).
   `hardware.nickname` (display only, never an id), with no host name or machine id needed. Each run file lists the other
   runs of its task and setup (`siblings`) and the cell's `scored_run` for the new run page; a lazily fetched
   `<suite>/cell-runs.json` maps each matrix cell to its scored run; `index.json` stores cells and the Combined
-  pairings as compact index tables (about 47 KB gzipped); and `index.json` has a `combined` block with the Combined view's pairings and their time, speed and
+  pairings as compact index tables (about 47 KB gzipped); catalog tasks carry their summary and typical time, task
+  files carry each run's output tokens and group results, run files carry display labels, and `recent/index.json` lists
+  the months, so pages stop fetching many files after load; and `index.json` has a `combined` block with the Combined view's pairings and their time, speed and
   cost over the pooled runs of both setups, computed exactly instead of estimated.
 - Registry: the reviewed `defaults` for five models and five run overrides from `registry suggest` are applied, plus a
   `{format: gguf}` override for the 40 openai/gpt-oss-20b MXFP4 runs on the RTX 5070 Ti that recorded no format. The

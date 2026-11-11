@@ -351,7 +351,7 @@ def test_rebuild_removes_stale_files(tmp_path):
 def test_every_file_matches_its_schema(tmp_path):
     runs = [run("a"), run("b", "t-prov"), run("c", "nope"), run("d", version=0)]
     result, out, index = states(tmp_path, runs, [score("a", 10.0), score("b", 5.0)])
-    kinds = {"meta.json": "meta", "v9/index.json": "index", "v9/cell-runs.json": "cell-runs"}
+    kinds = {"meta.json": "meta", "v9/index.json": "index", "v9/cell-runs.json": "cell-runs", "recent/index.json": "recent-index"}
     for rel in result["sizes"]:
         parts = rel.split("/")
         kind = kinds.get(rel) or {"tasks": "task", "models": "model"}.get(parts[1] if len(parts) > 2 else "") \
@@ -371,10 +371,11 @@ def test_real_bundle_files_match_their_schemas(tmp_path):
     build(SITE / "_data" / "crucible", SITE / "crucible-data" / "outputs", out, SITE / "_data" / "crucible_display.yml",
           SITE / "_data" / "crucible_fallbacks.yml")
     for rel, kind in (("meta.json", "meta"), ("v4/index.json", "index"), ("v3/index.json", "index"),
-                      ("v4/cell-runs.json", "cell-runs"), ("v3/cell-runs.json", "cell-runs")):
+                      ("v4/cell-runs.json", "cell-runs"), ("v3/cell-runs.json", "cell-runs"),
+                      ("recent/index.json", "recent-index")):
         assert schema.check(kind, json.loads((out / rel).read_text())) == [], rel
     for folder, kind in (("v4/tasks", "task"), ("v4/models", "model"), ("recent", "recent")):
-        for p in sorted((out / folder).glob("*.json"))[:5]:
+        for p in [q for q in sorted((out / folder).glob("*.json")) if q.name != "index.json"][:5]:
             assert schema.check(kind, json.loads(p.read_text())) == [], p
     for p in sorted((out / "runs").glob("*.json"))[:50]:
         assert schema.check("run", json.loads(p.read_text())) == [], p
@@ -654,3 +655,46 @@ def test_v4_index_stays_small(real_build):
     assert gz <= 60 * 1024, f"v4/index.json is {gz} bytes gzipped"
     assert "scored_run" not in (out / "v4" / "index.json").read_text()
     assert (out / "v4" / "cell-runs.json").is_file()
+
+
+# ----------------------------------------------------------------------------- data the pages used to fetch many files for
+
+def test_catalog_tasks_carry_summary_and_typical_time(tmp_path):
+    runs = [run("a", elapsed=10.0), run("b", elapsed=30.0), run("c", elapsed=500.0, status="timed_out"),
+            run("d", elapsed=99.0, started="2026-01-05T00:00:00+00:00"), run("e", "t-prov", elapsed=7.0)]
+    bad = [{"record": "status", "run_uuid": "d", "at": "1", "invalid": {"reason": "stale"}}]
+    result, out, index = states(tmp_path, runs, [score(r["run_uuid"], 8.0) for r in runs], bad)
+    tasks = {t["id"]: t for t in index["catalog"]["tasks"]}
+    assert tasks["t-active"]["summary"] == "s"
+    # median of the finished counted runs only: the timed-out and the invalid one are left out
+    assert tasks["t-active"]["typical_time"] == 20.0
+    assert tasks["t-judge"]["typical_time"] is None and tasks["t-prov"]["typical_time"] is None    # none counted
+
+
+def test_task_file_runs_carry_tokens_out_and_group_results(tmp_path):
+    a = run("a")
+    a["metrics"]["tokens_out"] = 321
+    groups = [{"id": "Correct answer", "passed": 7, "total": 7, "detail": "long text that stays out"}, {"id": "Brief", "passed": 0, "total": 3}]
+    result, out, index = states(tmp_path, [a, run("b")], [score("a", 7.0, groups=groups), score("b", 5.0)])
+    runs = {r["run_uuid"]: r for r in json.loads((out / "v9" / "tasks" / "t-active.json").read_text())["runs"]}
+    assert runs["a"]["tokens_out"] == 321 and runs["a"]["groups"] == [["Correct answer", 7, 7], ["Brief", 0, 3]]
+    assert runs["b"]["tokens_out"] is None and runs["b"]["groups"] == []                # score() has groups: []
+    model_runs = json.loads((out / "v9" / "models" / "qwen__qwen3.5-9b.json").read_text())["runs"]
+    assert "groups" not in model_runs[0] and "tokens_out" not in model_runs[0]            # model files stay slim
+
+
+def test_a_run_file_has_its_display_labels(tmp_path):
+    result, out, index = states(tmp_path, [run("a")], [score("a", 10.0)])
+    detail = json.loads((out / "runs" / "a.json").read_text())
+    setup = index["entities"]["setups"][detail["setup"]]
+    assert detail["labels"] == {k: setup["labels"][k] for k in ("hw", "model", "maker", "packager")} | {"machines": setup["labels"]["machines"]}
+    assert detail["labels"]["hw"] == "Apple M5 Pro, 48 GB" and detail["labels"]["machines"] == ["Duskfall"]
+
+
+def test_recent_index_lists_months_newest_first(tmp_path):
+    runs = [run("a", started="2025-12-30T00:00:00+00:00"), run("b", started="2026-01-02T00:00:00+00:00"),
+            run("c", started="2026-01-09T00:00:00+00:00"), run("d", started="2025-11-01T00:00:00+00:00")]
+    runs[3].pop("started_at")
+    result, out, index = states(tmp_path, runs, [])
+    assert json.loads((out / "recent" / "index.json").read_text()) == {"months": [
+        {"id": "2026-01", "runs": 2}, {"id": "2025-12", "runs": 1}, {"id": "unknown", "runs": 1}]}

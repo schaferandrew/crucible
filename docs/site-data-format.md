@@ -33,6 +33,7 @@ meta.json
 <suite>/tasks/<task>.json
 <suite>/models/<model id with "/" replaced by "__">.json
 runs/<run_uuid>.json
+recent/index.json                (the months below, newest first, with their run counts)
 recent/<YYYY-MM>.json            (also recent/unknown.json for runs with no start time)
 outputs/<run_uuid>.txt           (copied unchanged)
 ```
@@ -100,7 +101,7 @@ runs per state in this suite (`unscored` = counted runs without a numeric score;
 
 ### `catalog`
 Resolved for display; the catalog's own fields win, display text it lacks comes from the fallbacks file, so the page
-needs no fallback layer. No prompts, rules, criteria or summaries.
+needs no fallback layer. No prompts, rules or criteria; tasks carry only their one-line `summary`.
 
 - `suite`: `{id, name ("Suite v4"), version, cut_at, status, changelog_url, format_revision}`
 - `modes[]`: `{id, label, blurb, order, areas: [area id], harnesses: [harness id]}` ordered by (order, position)
@@ -112,8 +113,10 @@ needs no fallback layer. No prompts, rules, criteria or summaries.
 - `scoring_policy`: `{coverage_min, in_progress_below, ...}`
 - `scoring_methods`: `{<method>: {label, blurb, criteria_label}}` for every method a task uses (including `judge`)
 - `labels`: `{overall: "Overall", combined: {label, blurb}}`
-- `tasks[]`: `{id, name, aliases, mode, area, category, tier, status, version, rubric_version, weight, added_in, scoring: {method, unit, total, scale}}`
-  in catalog order. The full task is in `tasks/<task>.json`.
+- `tasks[]`: `{id, name, aliases, mode, area, category, tier, status, version, rubric_version, weight, added_in, scoring: {method, unit, total, scale}, summary, typical_time}`
+  in catalog order. `summary` is the task's one-line summary (or null) and `typical_time` the median `elapsed_s` of its finished
+  counted runs in this suite (null when it has none), so a task list shows times without fetching task files. The full task is
+  in `tasks/<task>.json`.
 
 ### `entities`
 All keyed by their stable IDs, restricted to what the suite uses (setups with at least one cell; the models of runs
@@ -218,7 +221,10 @@ retired, unknown_task, withdrawn`, and `unscored` (counted runs without a numeri
 `summary`). Every catalog task has a file, retired ones too. `runs` are the slim runs that resolved to the task (every
 state except `unknown_task`; withdrawn included), newest first (by `started_at`, then `run_uuid`, descending).
 
-Slim run: `{run_uuid, setup, state, score, outcome, elapsed_s, tps, cost, started_at, tool_calls, machine}`.
+Slim run: `{run_uuid, setup, state, score, outcome, elapsed_s, tps, cost, started_at, tool_calls, machine}`. In a task file each run
+also has `tokens_out` (output tokens, or null) and `groups`: the chosen score record's groups as `[[group id, passed, total], ...]`
+(group level only, no items or detail; `null` when the score has no groups), so a task page shows each run's result without
+opening its run file.
 `score` is the suite's chosen score (null if none); `machine` the registry machine label or null (display only).
 
 ## `<suite>/models/<model>.json`
@@ -227,7 +233,7 @@ resolved task id, or the recorded one for `unknown_task`).
 
 ## `runs/<run_uuid>.json`
 ```
-{run_uuid, summary, resolution, setup, validity: {state, reason},
+{run_uuid, summary, resolution, setup, labels, validity: {state, reason},
  suites: {<suite id>: {state, setup, task, score, score_ref, siblings: [{run_uuid, started_at, state, score, outcome}], scored_run}},
  cost, outcome, scores: [score record], status: [status record], output}
 ```
@@ -242,6 +248,8 @@ resolved task id, or the recorded one for `unknown_task`).
   `notes` are the "Recorded as ... corrected: <reason>" lines (machine names scrubbed from them); `machine` is the
   registry label or null; a format-4 run (which names no host) credits its own `hardware.nickname`, display only, and its
   hardware class comes from `hardware.key`.
+- `labels`: `{hw, model, maker, packager, machines: [label]}`, the display strings of the run's setup (the same ones
+  `index.json`'s entities carry; `hw` is e.g. "Apple M5 Pro, 48 GB"), so a run page opened directly needs no other file.
 - `suites`: per visible suite, the run's state and chosen score; `score_ref` is `{rubric_version, method}` of the
   record used. `setup` is the run's setup id. `siblings` are the other runs of the same task x setup in that suite
   (every state, newest first, the run itself left out), each `{run_uuid, started_at, state, score, outcome}`, and
@@ -249,6 +257,9 @@ resolved task id, or the recorded one for `unknown_task`).
   suite (`retired`, `unknown_task`). The run page shows the cell it belongs to from these without loading anything else.
 - `scores`: every score record for the run, with `items` and `groups`. `status`: every status record, oldest first.
 - `output`: `outputs/<run_uuid>.txt` when the output file exists, else null.
+
+## `recent/index.json`
+`{months: [{id: "2026-11", runs: n}, ...]}`: every month that has a file, newest first (`unknown` last), with its run count.
 
 ## `recent/<YYYY-MM>.json`
 `{month, runs}`: every run started that month (newest first), slim: `{run_uuid, started_at, setup, model, task (as

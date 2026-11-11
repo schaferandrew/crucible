@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "site-data recent/index.json",
+  "description": "The months that have a recent/<month>.json, newest first ('unknown' last), with their run counts. See docs/site-data-format.md.",
+  "type": "object",
+  "required": [
+    "months"
+  ],
+  "properties": {
+    "months": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "runs"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "runs": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  }
+}

@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 
 SCHEMAS = Path(__file__).resolve().parents[1] / "schemas" / "site-data"
-NAMES = ("meta", "index", "cell-runs", "task", "model", "run", "recent")
+NAMES = ("meta", "index", "cell-runs", "recent-index", "task", "model", "run", "recent")
 TYPES = {"object": dict, "array": list, "string": str, "integer": int, "number": (int, float), "boolean": bool,
          "null": type(None)}
 

@@ -3,7 +3,7 @@
   "title": "site-data runs/<run_uuid>.json",
   "description": "One run: record summary, resolution, validity, per-suite state, score records, status history, output. See docs/site-data-format.md.",
   "type": "object",
-  "required": ["run_uuid", "summary", "resolution", "setup", "validity", "suites", "cost", "outcome", "scores", "status", "output"],
+  "required": ["run_uuid", "summary", "resolution", "setup", "labels", "validity", "suites", "cost", "outcome", "scores", "status", "output"],
   "properties": {
     "run_uuid": {"type": "string"},
     "summary": {"type": "object", "required": ["format_version", "started_at", "elapsed_s", "task", "harness", "model", "endpoint", "outcome", "metrics", "provenance"],
@@ -20,6 +20,10 @@
                      "notes": {"type": "array", "items": {"type": "string"}}}
     },
     "setup": {"type": "string"},
+    "labels": {"type": "object", "description": "display labels of the run's setup, as in index.json's entities, for a run page opened directly",
+               "required": ["hw", "model", "maker", "packager", "machines"],
+               "properties": {"hw": {"type": ["string", "null"]}, "model": {"type": "string"}, "maker": {"type": "string"},
+                              "packager": {"type": ["string", "null"]}, "machines": {"type": "array", "items": {"type": "string"}}}},
     "validity": {"type": "object", "required": ["state", "reason"],
                  "properties": {"state": {"type": "string", "enum": ["valid", "invalid", "withdrawn"]}, "reason": {"type": ["string", "null"]}}},
     "suites": {"type": "object", "additionalProperties": {

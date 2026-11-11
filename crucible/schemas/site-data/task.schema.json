@@ -13,7 +13,11 @@
         "state": {"type": "string", "enum": ["counted", "provisional", "older", "harness", "invalid", "retired", "unknown_task", "withdrawn"]},
         "score": {"type": ["number", "null"]}, "outcome": {"type": "string", "enum": ["finished", "timed_out", "error"]},
         "elapsed_s": {"type": ["number", "null"]}, "tps": {"type": ["number", "null"]}, "cost": {"type": ["number", "null"]},
-        "started_at": {"type": ["string", "null"]}, "tool_calls": {"type": ["number", "null"]}, "machine": {"type": ["string", "null"]}, "task": {"type": ["string", "null"]}
+        "started_at": {"type": ["string", "null"]}, "tool_calls": {"type": ["number", "null"]}, "machine": {"type": ["string", "null"]}, "task": {"type": ["string", "null"]},
+        "tokens_out": {"type": ["number", "null"], "description": "output tokens (task files only)"},
+        "groups": {"type": ["array", "null"], "description": "task files only: the score record's groups as [group id, passed, total]; null when the score has none",
+                   "items": {"type": "array", "minItems": 3, "maxItems": 3,
+                             "prefixItems": [{"type": ["string", "null"]}, {"type": ["number", "null"]}, {"type": ["number", "null"]}]}}
       }
     }
   },

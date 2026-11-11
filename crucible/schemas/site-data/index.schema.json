@@ -87,7 +87,9 @@
                                  "mode": {"$ref": "#/$defs/nullable_string"}, "area": {"$ref": "#/$defs/nullable_string"},
                                  "category": {"$ref": "#/$defs/nullable_string"}, "tier": {"$ref": "#/$defs/nullable_string"},
                                  "status": {"$ref": "#/$defs/nullable_string"}, "weight": {"type": ["number", "null"]},
-                                 "scoring": {"type": "object", "required": ["method", "unit", "total", "scale"]}}}}
+                                 "scoring": {"type": "object", "required": ["method", "unit", "total", "scale"]},
+                                 "summary": {"type": ["string", "null"], "description": "the task's one-line summary"},
+                                 "typical_time": {"type": ["number", "null"], "description": "median elapsed_s of the task's finished counted runs in this suite, null when there are none"}}}}
       }
     },
     "entities": {

@@ -129,6 +129,19 @@ def resolution_json(res) -> dict:
         "sources": sources, "notes": public_notes(res.notes)}
 
 
+def run_labels(reg, res, machine) -> dict:
+    """The display labels of a run's setup, the same ones index.json's entities carry, so a run page opened directly
+    needs nothing else: {hw, model, maker, packager, machines}."""
+    entry = reg.models.get(res.model_id) or {}
+    maker = res.maker or entry.get("maker") or "unknown"
+    hw = reg.hardware.get(res.hardware_key) or {}
+    m = reg.makers.get(maker) or {}
+    return {"hw": hw.get("label") or res.hardware_key, "model": entry.get("label") or res.model_id.split("/", 1)[-1],
+            "maker": m.get("label") or ("Unknown" if maker == "unknown" else maker),
+            "packager": (reg.packagers.get(res.packager) or {}).get("label") or res.packager,
+            "machines": [machine] if machine else []}
+
+
 def run_summary(run: dict) -> dict:
     """The fields of a run record worth showing on the run page (the rest is dead weight or in the registry)."""
     m, e, hw, o, prov = d(run.get("model")), d(run.get("endpoint")), d(run.get("hardware")), d(run.get("outcome")), d(run.get("provenance"))
@@ -156,7 +169,7 @@ def run_summary(run: dict) -> dict:
 class Info:
     """One run as one suite sees it."""
     __slots__ = ("uuid", "setup", "task", "task_ref", "tier", "state", "score", "rec", "outcome", "elapsed", "tps", "cost",
-                 "started", "tools", "model", "machine")
+                 "started", "tools", "model", "machine", "tokens_out")
 
 
 def block(infos: list):
@@ -328,7 +341,7 @@ def build_suite(sid, catalog, resolved, rules_for, facts, bundle, reg) -> dict:
         info.score = rules.score_value(rec)
         info.outcome, info.elapsed, info.tps, info.cost = f["outcome"], f["elapsed"], f["tps"], f["cost"]
         info.started, info.tools, info.model = f["started"], f["tools"], f["res"].model_id
-        info.machine = f["machine"]
+        info.machine, info.tokens_out = f["machine"], f["tokens_out"]
         infos[uuid] = info
         counts["runs"] += 1
         counts[state] += 1
@@ -373,12 +386,18 @@ def build_suite(sid, catalog, resolved, rules_for, facts, bundle, reg) -> dict:
             "stats": setup_stats(by_setup, tier_ids)}
 
 
-def slim_run(info: Info, with_task: bool = False) -> dict:
+def slim_run(info: Info, with_task: bool = False, detail: bool = False) -> dict:
     out = {"run_uuid": info.uuid, "setup": info.setup, "state": info.state, "score": info.score, "outcome": info.outcome,
            "elapsed_s": info.elapsed, "tps": sig(info.tps), "cost": info.cost, "started_at": info.started, "tool_calls": info.tools,
            "machine": info.machine}
     if with_task:
         out["task"] = info.task or info.task_ref
+    if detail:
+        # What a task page shows per run without opening it: output size and the score's group-level result
+        groups = (info.rec or {}).get("groups")
+        out["tokens_out"] = info.tokens_out
+        out["groups"] = [[g.get("id"), num(g.get("passed")), num(g.get("total"))] for g in groups if isinstance(g, dict)] \
+            if isinstance(groups, list) else None
     return out
 
 
@@ -498,7 +517,7 @@ def build(bundle_dir, outputs_dir, out_dir, display=None, fallbacks=None, built_
             "run": run, "res": res, "valid": rules.validity(st, run), "reason": rules.invalid_reason(st, run),
             "outcome": rules.outcome_of(run), "elapsed": num(run.get("elapsed_s")), "tps": rules.tps_of(run),
             "machine": machine_label(reg, res), "cost": safe_cost(reg, run, res), "started": run.get("started_at") if isinstance(run.get("started_at"), str) else None,
-            "tools": num(d(run.get("metrics")).get("tool_calls"))}
+            "tools": num(d(run.get("metrics")).get("tool_calls")), "tokens_out": num(d(run.get("metrics")).get("tokens_out"))}
 
     suites_meta, per_suite, counts_by_suite = [], {}, {}
     for cat in visible:
@@ -525,6 +544,11 @@ def build(bundle_dir, outputs_dir, out_dir, display=None, fallbacks=None, built_
         entities = entities_for(setup_res, set(result["other"]), result["modes"], per_setup_runs, credit, reg)
         mode_ids = [m["id"] for m in cat.get("modes") or [] if isinstance(m, dict) and s(m.get("id"))]
         setup_ids, task_ids = list(entities["setups"]), [t["id"] for t in resolved["tasks"]]
+        summaries = {t["id"]: s(t.get("summary")) or None for t in cat.get("tasks") or [] if isinstance(t, dict) and s(t.get("id"))}
+        for task in resolved["tasks"]:
+            took = [i.elapsed for i in infos.values() if i.task == task["id"] and i.state == "counted"
+                    and i.outcome == "finished" and i.elapsed is not None]
+            task["summary"], task["typical_time"] = summaries.get(task["id"]), sig(median(took)) if took else None
         index = {"suite": sid, "counts": result["counts"], "catalog": resolved, "entities": entities,
                  "cells": encode_cells(result["cells"], setup_ids, task_ids),
                  "setup_stats": result["stats"],
@@ -539,7 +563,7 @@ def build(bundle_dir, outputs_dir, out_dir, display=None, fallbacks=None, built_
         by_task, by_model = {}, {}
         for info in infos.values():
             if info.task:
-                by_task.setdefault(info.task, []).append(slim_run(info))
+                by_task.setdefault(info.task, []).append(slim_run(info, detail=True))
             by_model.setdefault(info.model, []).append(slim_run(info, True))
         full_tasks = {t["id"]: t for t in cat.get("tasks") or [] if isinstance(t, dict) and s(t.get("id"))}
         for tid, task in sorted(full_tasks.items()):
@@ -572,6 +596,7 @@ def build(bundle_dir, outputs_dir, out_dir, display=None, fallbacks=None, built_
             shutil.copyfile(src, out / "outputs" / f"{uuid}.txt")
             output = f"outputs/{uuid}.txt"
         body = {"run_uuid": uuid, "summary": run_summary(run), "resolution": dict(resolution_json(res), machine=f["machine"]), "setup": res.setup_id,
+                "labels": run_labels(reg, res, f["machine"]),
                 "validity": {"state": f["valid"], "reason": f["reason"]}, "suites": states, "cost": f["cost"],
                 "outcome": f["outcome"], "scores": bundle.scores.get(uuid, []), "status": bundle.status.get(uuid, []),
                 "output": output}
@@ -585,6 +610,8 @@ def build(bundle_dir, outputs_dir, out_dir, display=None, fallbacks=None, built_
             "states": {k: {"state": v["state"], "task": v["task"], "score": v["score"]} for k, v in states.items()}})
     for month, runs in sorted(recent.items()):
         sizes[f"recent/{month}.json"] = dump(out / "recent" / f"{month}.json", {"month": month, "runs": slim_sort(runs)})
+    months = sorted((m for m in recent if m != "unknown"), reverse=True) + (["unknown"] if "unknown" in recent else [])
+    sizes["recent/index.json"] = dump(out / "recent" / "index.json", {"months": [{"id": m, "runs": len(recent[m])} for m in months]})
 
     current = next((c for c in visible if d(c.get("suite")).get("status") == "current"), visible[0] if visible else None)
     meta = {"site_data_format": SITE_DATA_FORMAT, "built_at": built_at_value(built_at, bundle.latest),
