@@ -224,6 +224,67 @@ def setup_stats(infos_by_setup: dict, tier_ids: list) -> dict:
     return {"format": "subsets", "tiers": tier_ids, "keys": [k for k, _, _ in keys], "by_setup": by_setup}
 
 
+def newest(infos: list):
+    """The most recent run of a list (by started_at, ties by run_uuid), or None."""
+    return max(infos, key=lambda i: (str(i.started or ""), i.uuid)) if infos else None
+
+
+def scored_run(counted: list, provisional: list):
+    """The run a matrix cell links to: its most recent counted run (scored ones first). The cell shows the mean of its
+    repeats (never the best or the latest), so this is only where its number can be opened; with no counted run, a
+    cell that exists only under "+ provisional" falls back to its most recent provisional one."""
+    for group in (counted, provisional):
+        pick = newest([i for i in group if i.score is not None]) or newest(group)
+        if pick:
+            return pick.uuid
+    return None
+
+
+def combined_view(setups: dict, mode_ids: list, pooled: dict, tier_ids: list) -> dict:
+    """The Combined view's pairing (crucible-core.js buildCombinedView), done once here.
+
+    `setups` is the entity table (setup id -> entity), `mode_ids` the suite's sections in order, `pooled` setup id ->
+    its scored counted/provisional runs. Candidates are the setups with such a run, each in the section of its tasks'
+    mode. Setups pair when they agree on everything but the harness: the same artifact (model, packager, format,
+    quant), reasoning level and deployment. A pairing takes one setup per section; where a section has several
+    candidates for one key (agentic's opencode and pi) every combination is its own pairing (`combos`), and where it
+    has none the pairing simply lacks that section. Stats are over the members' pooled runs.
+    """
+    groups, order = {}, []
+    for sid in sorted(setups):
+        if not pooled.get(sid):
+            continue
+        e = setups[sid]
+        key = "|".join([e["artifact"], e["reasoning"], e["deployment"]])
+        if key not in groups:
+            groups[key] = [[] for _ in mode_ids]
+            order.append(key)
+        for i, m in enumerate(mode_ids):
+            if m in e["modes"]:
+                groups[key][i].append(sid)
+    entities, runs = {}, {}
+    for key in sorted(order):
+        combos = [[]]
+        for candidates in groups[key]:
+            combos = [c + [x] for c in combos for x in (candidates or [None])]
+        for members in combos:
+            ids = [m for m in members if m]
+            if not ids:
+                continue
+            cid = "+".join(sorted(ids))
+            first = setups[ids[0]]
+            entities[cid] = {
+                "id": cid, "members": ids, "model": first["model"], "maker": first["maker"], "artifact": first["artifact"],
+                "deployment": first["deployment"], "packager": first["packager"], "format": first["format"],
+                "quant": first["quant"], "reasoning": first["reasoning"], "where": first["where"], "hw": first["hw"],
+                "provider": first["provider"], "harness": [setups[m]["harness"] for m in ids],
+                "modes": sorted({x for m in ids for x in setups[m]["modes"]}),
+                "runs": sum(setups[m]["runs"] for m in ids),
+                "labels": first["labels"], "unrecorded": sorted({u for m in ids for u in setups[m]["unrecorded"]})}
+            runs[cid] = [i for m in ids for i in pooled[m]]
+    return {"entities": entities, "stats": setup_stats(runs, tier_ids)}
+
+
 def build_suite(sid, catalog, resolved, rules_for, facts, bundle, reg) -> dict:
     """Everything one suite decides: per-run infos, cells, counts, other, entities."""
     suite = rules.SuiteRules(catalog)
@@ -260,9 +321,13 @@ def build_suite(sid, catalog, resolved, rules_for, facts, bundle, reg) -> dict:
             cell["runs"] += 1
             if state in ("counted", "provisional"):
                 cell[state].append(info)
+    by_cell = {}
+    for info in infos.values():
+        if info.task:
+            by_cell.setdefault((info.setup, info.task), []).append(info)
     cell_list = []
     for (setup, task), c in sorted(cells.items()):
-        row = {"setup": setup, "task": task, "runs": c["runs"]}
+        row = {"setup": setup, "task": task, "runs": c["runs"], "scored_run": scored_run(c["counted"], c["provisional"])}
         for name in ("counted", "provisional"):
             b = block(c[name])
             if b:
@@ -277,7 +342,9 @@ def build_suite(sid, catalog, resolved, rules_for, facts, bundle, reg) -> dict:
             by_setup.setdefault(info.setup, []).append(info)
     for setup in modes:
         by_setup.setdefault(setup, [])
-    return {"infos": infos, "cells": cell_list, "other": other, "counts": counts, "modes": modes,
+    return {"infos": infos, "cells": cell_list, "other": other, "counts": counts, "modes": modes, "by_cell": by_cell,
+            "scored_run": {(c["setup"], c["task"]): c["scored_run"] for c in cell_list},
+            "pooled": {k: [i for i in v if i.score is not None] for k, v in by_setup.items()},
             "stats": setup_stats(by_setup, tier_ids)}
 
 
@@ -288,6 +355,11 @@ def slim_run(info: Info, with_task: bool = False) -> dict:
     if with_task:
         out["task"] = info.task or info.task_ref
     return out
+
+
+def slim_sort_infos(infos: list) -> list:
+    """Newest first, ties by run_uuid (the order of slim_sort)."""
+    return sorted(infos, key=lambda i: (str(i.started or ""), i.uuid), reverse=True)
 
 
 def slim_sort(items: list) -> list:
@@ -426,8 +498,11 @@ def build(bundle_dir, outputs_dir, out_dir, display=None, fallbacks=None, built_
                     by = credit.setdefault(facts[uuid]["res"].deployment_id, {})
                     by[facts[uuid]["machine"]] = by.get(facts[uuid]["machine"], 0) + 1
         entities = entities_for(setup_res, set(result["other"]), result["modes"], per_setup_runs, credit, reg)
+        mode_ids = [m["id"] for m in cat.get("modes") or [] if isinstance(m, dict) and s(m.get("id"))]
         index = {"suite": sid, "counts": result["counts"], "catalog": resolved, "entities": entities, "cells": result["cells"],
-                 "setup_stats": result["stats"], "other": result["other"]}
+                 "setup_stats": result["stats"],
+                 "combined": combined_view(entities["setups"], mode_ids, result["pooled"], [t["id"] for t in resolved["tiers"]]),
+                 "other": result["other"]}
         sizes[f"{sid}/index.json"] = dump(out / sid / "index.json", index)
 
         by_task, by_model = {}, {}
@@ -452,8 +527,12 @@ def build(bundle_dir, outputs_dir, out_dir, display=None, fallbacks=None, built_
         states = {}
         for sid, (_cat, _resolved, result) in per_suite.items():
             i = result["infos"][uuid]
-            states[sid] = {"state": i.state, "task": i.task, "score": i.score,
-                           "score_ref": {"rubric_version": i.rec.get("rubric_version"), "method": i.rec.get("method")} if i.rec else None}
+            siblings = [x for x in result["by_cell"].get((i.setup, i.task), []) if x.uuid != uuid] if i.task else []
+            states[sid] = {"state": i.state, "setup": i.setup, "task": i.task, "score": i.score,
+                           "score_ref": {"rubric_version": i.rec.get("rubric_version"), "method": i.rec.get("method")} if i.rec else None,
+                           "siblings": [{"run_uuid": x.uuid, "started_at": x.started, "state": x.state, "score": x.score,
+                                         "outcome": x.outcome} for x in slim_sort_infos(siblings)],
+                           "scored_run": result["scored_run"].get((i.setup, i.task)) if i.task else None}
         out_name = Path(str(run.get("output_ref") or f"outputs/{uuid}.txt")).name
         src = Path(outputs_dir) / out_name if outputs_dir else None
         output = None

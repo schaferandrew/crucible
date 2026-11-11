@@ -99,7 +99,26 @@ the outputs) into NEW without changing a byte of any record, then writes NEW's m
 content hash is verified against its record and output first; a run that fails (or whose output is
 missing) isn't copied, nothing else is written, and the exit code is 1. The 19 runs without a hash or
 output can't be verified: they're copied as they are and counted as unverifiable. A file that already
-exists in NEW with different bytes is an error, never overwritten, so copying again is safe. OLD's
+exists in NEW with different bytes is an error, never overwritten, so copying again is safe.
+
+**Redaction.** The copy is where IP-derived host names leave the data. A run record with an IP-like value in a host
+field (`hardware.label`, `provenance.machine_label`, `endpoint.device`, or any other string the detector in
+`crucible/hostnames.py` flags) is copied with those values set to `null`; every other byte is unchanged. The copy
+gets `provenance.redacted`:
+
+```json
+"redacted": {"fields": ["$.hardware.label", "$.provenance.machine_label"], "at": "2026-11-11",
+             "reason": "IP-derived host name removed before publishing", "original_content_hash": "sha256:…"}
+```
+
+and its `provenance.content_hash` is recomputed over the redacted record (`original_content_hash` is `null` for a
+legacy run that had none, which gets a hash this way). The run's `manifest.json` entry gets `"redacted": true` (the key
+is absent otherwise). Only `--from-bundle` redacts; `publish` of local runs still refuses a record with an IP in it.
+Copying is idempotent: a record with nothing left to redact is copied as it is, and copying again keeps the `at` of an
+earlier redaction and writes nothing. The manifest rules treat a redacted copy as the same run as its source when its
+`original_content_hash` is the source's hash. `--check` accepts a redacted record whose recomputed hash is
+consistent, and reports one that lists a field that isn't null. A bundle with no `registry/` (published before the
+registry) gets the repo's registry written into the copy. OLD's
 outputs default to `<site>/crucible-data/outputs` beside `_data`; NEW's to `<to>/outputs`.
 
 ## Format 4

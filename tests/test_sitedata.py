@@ -482,3 +482,126 @@ def test_build_refuses_to_finish_when_output_has_an_ip(tmp_path):
     with pytest.raises(guard.PrivacyError):
         build(bundle, None, tmp_path / "out")
     assert not (tmp_path / "out" / "meta.json").exists()
+
+
+# ----------------------------------------------------------------------------- the run page's data and the Combined view
+
+CAT_TWO_AGENTS = dict(CATALOG, harnesses=CATALOG["harnesses"] + [{"id": "opencode", "modes": ["agentic"]}])
+
+
+def _paired_bundle(tmp_path):
+    runs = [run("c1", elapsed=10.0, started="2026-01-02T00:00:00+00:00"), run("c2", elapsed=20.0, started="2026-01-03T00:00:00+00:00"),
+            run("c3", elapsed=40.0, started="2026-01-04T00:00:00+00:00"),
+            run("a1", "t-agent", harness="pi", elapsed=100.0), run("a2", "t-agent", harness="opencode", elapsed=5.0),
+            run("other", "t-agent", harness="pi", model="other/model", elapsed=7.0)]
+    runs[-1]["model"]["id"] = "lmstudio/other/model"
+    scores = [score(r["run_uuid"], 8.0) for r in runs]
+    return states(tmp_path, runs, scores, catalog=CAT_TWO_AGENTS)
+
+
+def test_each_run_lists_its_siblings_and_the_scored_run_per_suite(tmp_path):
+    result, out, index = _paired_bundle(tmp_path)
+    detail = state_of(out, "c1")
+    assert detail["state"] == "counted" and detail["task"] == "t-active" and detail["setup"].endswith("~direct@local~m5-pro-48gb")
+    assert [s["run_uuid"] for s in detail["siblings"]] == ["c3", "c2"]            # the other runs of the cell, newest first
+    assert set(detail["siblings"][0]) == {"run_uuid", "started_at", "state", "score", "outcome"}
+    assert detail["siblings"][0]["state"] == "counted" and detail["siblings"][0]["score"] == 8.0
+    assert detail["scored_run"] == "c3"                                           # the most recent counted run
+    assert state_of(out, "c3")["scored_run"] == "c3" and "c3" not in [s["run_uuid"] for s in state_of(out, "c3")["siblings"]]
+    assert state_of(out, "a1")["siblings"] == [] and state_of(out, "a1")["scored_run"] == "a1"
+    cell = next(c for c in index["cells"] if c["task"] == "t-active")
+    assert cell["scored_run"] == "c3" and cell["runs"] == 3
+
+
+def test_scored_run_ignores_runs_that_do_not_count(tmp_path):
+    runs = [run("old", started="2026-01-02T00:00:00+00:00"), run("bad", started="2026-01-09T00:00:00+00:00"),
+            run("new", started="2026-01-05T00:00:00+00:00")]
+    statuses = [{"record": "status", "run_uuid": "bad", "at": "1", "invalid": {"reason": "stale server"}}]
+    result, out, index = states(tmp_path, runs, [score(r["run_uuid"], 8.0) for r in runs], statuses)
+    assert state_of(out, "old")["scored_run"] == "new"
+    assert {s["run_uuid"]: s["state"] for s in state_of(out, "old")["siblings"]} == {"bad": "invalid", "new": "counted"}
+    assert state_of(out, "bad")["scored_run"] == "new"
+
+
+def test_combined_pairs_setups_that_differ_only_in_harness(tmp_path):
+    result, out, index = _paired_bundle(tmp_path)
+    combined = index["combined"]
+    chat = next(s for s in index["entities"]["setups"].values() if s["harness"] == "direct")
+    pi = next(s for s in index["entities"]["setups"].values() if s["harness"] == "pi" and s["model"] == chat["model"])
+    opencode = next(s for s in index["entities"]["setups"].values() if s["harness"] == "opencode")
+    # one chat setup, two agentic ones with the same everything else: every combination is its own pairing
+    paired = {cid: e for cid, e in combined["entities"].items() if len(e["members"]) == 2}
+    assert set(paired) == {"+".join(sorted([chat["id"], pi["id"]])), "+".join(sorted([chat["id"], opencode["id"]]))}
+    for cid, e in paired.items():
+        assert e["id"] == cid and cid == "+".join(sorted(e["members"]))
+        assert e["harness"] == ["direct", "pi" if pi["id"] in e["members"] else "opencode"]
+        assert e["model"] == chat["model"] and e["quant"] == chat["quant"] and e["deployment"] == chat["deployment"]
+    # the other model's pi setup has no chat partner and stays a candidate on its own
+    (alone,) = [e for e in combined["entities"].values() if len(e["members"]) == 1 and e["model"] != chat["model"]]
+    assert alone["harness"] == ["pi"] and alone["id"] == alone["members"][0]
+
+
+def test_combined_stats_are_over_the_pooled_runs_of_the_members(tmp_path):
+    result, out, index = _paired_bundle(tmp_path)
+    st = index["combined"]["stats"]
+    assert st["keys"] == index["setup_stats"]["keys"]                               # keyed exactly like setup_stats
+    chat = next(s for s in index["entities"]["setups"].values() if s["harness"] == "direct")
+    pi = next(s for s in index["entities"]["setups"].values() if s["harness"] == "pi" and s["model"] == chat["model"])
+    opencode = next(s for s in index["entities"]["setups"].values() if s["harness"] == "opencode")
+
+    def stats(members, key="spark+temper:p0"):
+        b = st["by_setup"]["+".join(sorted(members))]
+        return b["stats"][b["index"][st["keys"].index(key)]]
+    # chat: 10, 20, 40 s; pi: 100 s; opencode: 5 s. The median is over all the runs, not of the members' medians
+    with_pi, with_oc = stats([chat["id"], pi["id"]]), stats([chat["id"], opencode["id"]])
+    assert with_pi["runs"] == 4 and with_pi["time"] == 30.0 and with_pi["tps"] == {"median": 50.0, "n": 4}
+    assert with_oc["runs"] == 4 and with_oc["time"] == 15.0
+    # a member alone is still its setup's own stats
+    assert index["setup_stats"]["by_setup"][chat["id"]]["stats"][0]["time"] == 20.0
+
+
+@pytest.mark.skipif(not (SITE.exists() and GOLDEN.exists()), reason="the portfolio site or the golden numbers aren't available here")
+def test_combined_stats_match_the_page_where_the_setups_correspond(real_build):
+    """The page's Combined rows (golden-numbers.json): time, tok/s and cost of each row's best combined setup, against
+    the pooled stats here. Four rows differ because the registry (reviewed overrides and defaults) now groups their
+    runs differently from the page's own identity rules; every other row matches exactly (cost to the golden's six
+    decimals)."""
+    result, out = real_build
+    golden = json.loads(GOLDEN.read_text())["suites"]["v4"]["modes"]["combined"]
+    index = json.loads((out / "v4" / "index.json").read_text())
+    ents, st = index["combined"]["entities"], index["combined"]["stats"]
+    tiers = [t["id"] for t in index["catalog"]["tiers"]]
+
+    def find(best):
+        found = []
+        for cid, e in ents.items():
+            place = e["hw"] if best["where"] == "local" else e["provider"]
+            want = (best["hwKey"] if best["where"] == "local" else best["provider"]) or "unrecorded"
+            quant = (best["quantKey"] or "unrecorded").replace("mlx-", "")
+            if (e["model"], e["reasoning"], e["where"], " + ".join(e["harness"]), place) == (
+                    best["base"], best["level"], best["where"], best["harness"], want) \
+                    and (best["where"] == "cloud" or e["quant"] == quant):
+                found.append(cid)
+        return found
+
+    def close(a, b):
+        return a is None and b is None or (a is not None and b is not None and abs(a - b) <= 6e-7 + 5e-4 * abs(b))
+    compared, differing = 0, set()
+    for sc in golden["scenarios"]:
+        key = "+".join(t for t in tiers if t not in sc["exclude"]) + (":p1" if sc["provisional"] else ":p0")
+        for row in sc["rows"]:
+            best = row.get("bestSetup")
+            if not best or (row["time"] is None and row["cost"] is None):
+                continue
+            ids = find(best)
+            if len(ids) != 1 or ids[0] not in st["by_setup"]:
+                continue
+            by = st["by_setup"][ids[0]]
+            i = by["index"][st["keys"].index(key)]
+            mine = by["stats"][i] if i >= 0 else None
+            got = (mine and mine["time"], mine and mine["tps"]["median"], mine and mine["cost"])
+            compared += 1
+            if not all(close(a, b) for a, b in zip(got, (row["time"], row["tps"], row["cost"]))):
+                differing.add(row["rowKey"])
+    assert compared >= 70
+    assert differing == {"openai/gpt-oss-20b#low", "qwen/qwen3.5-9b#default", "qwen/qwen3.6-35b-a3b#on", "qwen/qwen3.8-27b#xhigh"}

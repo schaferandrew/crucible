@@ -89,7 +89,7 @@ Records with `format_version` above 4 are skipped. A duplicate `run_uuid` keeps 
 
 ## `<suite>/index.json`
 
-The first-load file. Keys: `suite`, `counts`, `catalog`, `entities`, `cells`, `setup_stats`, `other`.
+The first-load file. Keys: `suite`, `counts`, `catalog`, `entities`, `cells`, `setup_stats`, `combined`, `other`.
 
 ### `counts`
 `{runs, counted, counted_scored, unscored, provisional, older, harness, invalid, retired, unknown_task, withdrawn}`:
@@ -137,11 +137,15 @@ One entry per setup x task with at least one run in the suite that reached the t
 older, harness, invalid), sorted by (setup, task):
 
 ```
-{setup, task, runs, counted?: Block, provisional?: Block}
+{setup, task, runs, scored_run, counted?: Block, provisional?: Block}
 Block = {n, n_scored, mean, min, max, n_finished, mean_finished, timeouts, errors}
 ```
 `runs` is all runs in the cell (any of those states). `counted`/`provisional` cover the runs in that state and are
-omitted when there are none. In a block `n` is all the runs in that state, `n_scored` those with a numeric score,
+omitted when there are none. `scored_run` is the run a matrix cell links to (the run page `/run/<uuid>`): the
+cell's **most recent counted run** by `started_at` (ties by `run_uuid`), scored runs first. A cell that aggregates
+repeats shows their mean, never the best or the latest run, so this is the run to open from it, not where its number
+comes from; the cell's other runs are the `siblings` on that run's page. A cell with no counted run (it exists only
+under "+ provisional") falls back to its most recent provisional run; `null` when it has neither. In a block `n` is all the runs in that state, `n_scored` those with a numeric score,
 `mean/min/max` are over the scored runs, `n_finished`/`mean_finished` over scored runs whose outcome is `finished`
 (quality in comparisons), `timeouts`/`errors` count runs (scored or not) by outcome. The page's own counts are
 `n_scored`.
@@ -163,9 +167,33 @@ A key is the subset's tier IDs joined by `+` in suite order, then `:p0` (provisi
 Format `"cells"` (more than 5 tiers): `{format, tiers, by_setup: {<setup id>: {<task id>: {counted?: [[elapsed_s, tps, cost]],
 provisional?: [[...]]}}}}`: one triple per scored run; the page computes medians and means itself.
 
-A setup's stats pool all its tasks, whatever their mode. Setups seldom span modes (a harness serves one), and the
-Combined view's pooled median across paired setups can't be derived from medians: it needs the per-run values
-(a known limit, see the stage 2b report).
+A setup's stats pool all its tasks, whatever their mode. Setups seldom span modes (a harness serves one).
+
+### `combined`
+The Combined view (the dashboard's default) pairs a chat setup with an agentic one, and its time, tok/s and cost are over
+**both setups' runs pooled**, which can't be derived from the members' medians. The pairing is done here, once
+(it reproduces `buildCombinedView` in the old page's `crucible-core.js`):
+
+`{entities: {<combined id>: Entity}, stats: <same shape as setup_stats>}`
+
+- A **candidate** is a setup with at least one scored counted or provisional run, in the section of its tasks' mode
+  (the suite's `catalog.modes`, in order: chat, agentic).
+- Setups **pair** when they agree on every identity field except the harness: the same artifact (model, packager,
+  format, quant), reasoning level and deployment (hardware class, or cloud provider). That is the old page's pair key
+  (model, endpoint kind, requested-default, packager, format, quant, reasoning, provider, hardware key) on the
+  registry's identities; the old key's machine and runtime are display-only now and no longer split setups.
+- A pairing takes **one setup per section**. A section with no candidate for a key leaves that section out (a setup
+  with no partner is still a candidate, alone). A section with several candidates for one key (agentic's `opencode`
+  and `pi`, say) multiplies out: **every combination** is its own pairing (`combos` in the page), so a chat setup with
+  both agentic ones yields two combined entries.
+- `Entity = {id, members: [setup id, in section order], model, maker, artifact, deployment, packager, format, quant,
+  reasoning, harness: [member harnesses, in section order], where, hw, provider, modes, runs, labels, unrecorded}`. The
+  facet fields come from the first member; `id` is the members' setup ids **sorted** and joined by `+` (a lone member's
+  id is just its setup id). `runs` is the sum of the members' `runs`, `unrecorded` their union.
+- `stats` has the format and keys of `setup_stats` (every included-tier subset x provisional), `by_setup` keyed by
+  combined id, computed from the **pooled** scored counted (and, with provisional on, provisional) runs of the members
+  with the same rules: median `elapsed_s`, `tps {median, n}`, mean cost, `runs`. The page's Combined rows match
+  these exactly wherever the setups correspond (tests/test_sitedata.py checks them against golden-numbers.json).
 
 ### `other`
 `{<model id>: {<state>: n}}`, runs that don't count, for the "Other runs" notes. States: `older, harness, invalid,
@@ -185,21 +213,26 @@ resolved task id, or the recorded one for `unknown_task`).
 
 ## `runs/<run_uuid>.json`
 ```
-{run_uuid, summary, resolution, setup, validity: {state, reason}, suites: {<suite id>: {state, task, score, score_ref}},
+{run_uuid, summary, resolution, setup, validity: {state, reason},
+ suites: {<suite id>: {state, setup, task, score, score_ref, siblings: [{run_uuid, started_at, state, score, outcome}], scored_run}},
  cost, outcome, scores: [score record], status: [status record], output}
 ```
 - `summary`: the useful part of the record: `format_version, started_at, ended_at, elapsed_s, legacy_run_id,
   task {id, version, rubric_version, alias, content_hash, rubric_hash}, harness, model {id, base, raw_base, maker, packager,
   format, format_source, quant, reasoning, context_loaded}, endpoint {where, provider, served_via, upstream,
-  resolved_model}, hardware {key}, outcome, metrics (all of them), provenance {crucible_version, crucible_commit,
+  resolved_model}, hardware {key, and for format 4 chip, memory_gb, accelerators, served_remotely}, outcome, metrics (all of them), provenance {crucible_version, crucible_commit,
   source, content_hash}`. Host, device and machine fields of the record are not copied.
 - `resolution`: what the registry made of the record: `model, maker, packager, format, quant, where, provider,
   hardware_key, reasoning, harness, artifact, variant, deployment, setup, unrecorded, sources, notes, machine`.
   `sources` says where each field came from (`model_from`: recorded|alias|override|unknown, `hardware_from`, ...);
   `notes` are the "Recorded as ... corrected: <reason>" lines (machine names scrubbed from them); `machine` is the
-  registry label or null.
+  registry label or null; a format-4 run (which names no host) credits its own `hardware.nickname`, display only, and its
+  hardware class comes from `hardware.key`.
 - `suites`: per visible suite, the run's state and chosen score; `score_ref` is `{rubric_version, method}` of the
-  record used.
+  record used. `setup` is the run's setup id. `siblings` are the other runs of the same task x setup in that suite
+  (every state, newest first, the run itself left out), each `{run_uuid, started_at, state, score, outcome}`, and
+  `scored_run` is the run the cell's matrix link opens (see `cells`); both are empty/null for a run with no task in the
+  suite (`retired`, `unknown_task`). The run page shows the cell it belongs to from these without loading anything else.
 - `scores`: every score record for the run, with `items` and `groups`. `status`: every status record, oldest first.
 - `output`: `outputs/<run_uuid>.txt` when the output file exists, else null.
 

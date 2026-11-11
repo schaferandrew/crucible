@@ -61,8 +61,23 @@ here ([docs/versioning.md](docs/versioning.md)).
   The output is deterministic, and the build refuses to finish if it contains an IP address or an IP-derived host
   name. The format is in [docs/site-data-format.md](docs/site-data-format.md), with JSON Schemas in
   `crucible/schemas/site-data/`.
+- `crucible publish --from-bundle` removes IP-derived host names while copying: a run record with an IP-like
+  `hardware.label`, `provenance.machine_label`, `endpoint.device` or any other flagged string gets those values set to
+  null, a `provenance.redacted` note (the fields, the date, the reason, the hash it had before) and a recomputed
+  content hash, and its manifest entry says `redacted`. Nothing else in the record changes, copying again changes
+  nothing, `--check` accepts the result, and a bundle published before the registry gets the registry written in.
+- `crucible site-data` reads format-4 runs: the hardware class from `hardware.key` and the credit label from
+  `hardware.nickname` (display only, never an id), with no host name or machine id needed. Each run file lists the other
+  runs of its task and setup (`siblings`) and the cell's `scored_run` for the new run page; matrix cells carry
+  `scored_run` too; and `index.json` has a `combined` block with the Combined view's pairings and their time, speed and
+  cost over the pooled runs of both setups, computed exactly instead of estimated.
+- Registry: the reviewed `defaults` for five models and five run overrides from `registry suggest` are applied, plus a
+  `{format: gguf}` override for the 40 openai/gpt-oss-20b MXFP4 runs on the RTX 5070 Ti that recorded no format. The
+  published runs now fall into 145 setups instead of 157.
 
 ### Changed
+- One IP detector, `crucible/hostnames.py`, serves the harness, publish, the registry's host alias check,
+  `registry suggest` and the site-data privacy guard.
 - `corrections.yaml` is gone. `corrections.json` is still written for the live page, now generated from
   the registry's aliases and packager spellings (same entries as before).
 
