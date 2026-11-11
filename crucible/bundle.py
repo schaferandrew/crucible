@@ -9,9 +9,10 @@ Format 3 (docs/bundle-format.md) is one file per thing, so publishing only ever 
   <to>/status/<run_uuid>.json                        status records (invalidations), append-only
   <to>/registry/<name>.json                          the registry (registry/*.yaml): makers, models, packagers, machines
   <to>/corrections.json                              the registry's aliases in the shape the legacy page reads
+  <to>/manifest.json                                 generated index of every run (crucible/manifest.py rules)
   <outputs>/<run_uuid>.txt                           the model's full output, outside _data
 
-Publishing twice writes nothing; nothing published is deleted or rewritten, except the latest
+Publishing twice writes nothing; a run already published with a different hash is rejected; nothing published is deleted or rewritten, except the latest
 suite's catalog (task names and summaries may change), status files (only appended to), the
 registry files and corrections.json (reviewed data about how to read recorded model fields). Every
 file is validated before it's written, and `crucible publish --check <to>` validates a folder and
@@ -28,13 +29,13 @@ import re
 import sys
 from pathlib import Path
 
-from crucible import checks, exporter, provenance, registry, runrecord, suites, workspace
+from crucible import checks, exporter, manifest, provenance, registry, runrecord, suites, workspace
 
 SCHEMAS = Path(__file__).parent / "schemas"
 SCHEMA_PATH = SCHEMAS / "results.schema.json"   # format 2 (`crucible export --format 2`)
 REGISTRY_KINDS = tuple(f"registry-{name}" for name in registry.NAMES)
 RECORD_SCHEMAS = {kind: SCHEMAS / f"{kind}.schema.json"
-                  for kind in ("catalog", "run", "score", "status", "corrections") + REGISTRY_KINDS}
+                  for kind in ("catalog", "run", "run.v4", "score", "status", "corrections") + REGISTRY_KINDS}
 # The legacy page reads this, generated from the registry (registry/models.yaml and packagers.yaml)
 CORRECTIONS_FILE = "corrections.json"
 # Counts additive, optional fields across the bundle (docs/versioning.md#bundle-format). 1: model.origin on runs;
@@ -73,8 +74,30 @@ def problems(data, schema: dict | None = None, path: str = "$") -> list[str]:
     return found
 
 
-def record_problems(kind: str, data) -> list[str]:
-    return problems(data, json.loads(RECORD_SCHEMAS[kind].read_text(encoding="utf-8")))
+def record_problems(kind: str, data, strict: bool = False) -> list[str]:
+    """Where a record breaks its schema. Run records switch schema on format_version (3 or 4).
+
+    A `local` key never leaves the machine: it's an error in a format-4 record always, and in a record
+    of either format when `strict` (what publish writes). `--check` isn't strict about format 3, because
+    19 runs were published with one before publish dropped it; those stay as published and are warned about.
+    """
+    version = data.get("format_version") if isinstance(data, dict) else None
+    schema = "run.v4" if kind == "run" and version == 4 else kind
+    found = problems(data, json.loads(RECORD_SCHEMAS[schema].read_text(encoding="utf-8")))
+    if kind == "run" and isinstance(data, dict):
+        if "local" in data and (strict or version == 4):
+            found.append("$.local: a `local` key never leaves the machine and can't be published")
+        if version == 4:
+            for dotted in runrecord.V4_DROPPED:
+                node = data
+                for part in dotted.split("."):
+                    node = node.get(part, _MISSING) if isinstance(node, dict) else _MISSING
+                if node is not _MISSING:
+                    found.append(f"$.{dotted}: not part of format 4")
+    return found
+
+
+_MISSING = object()
 
 
 def machine_name() -> str:
@@ -120,7 +143,8 @@ def published_run(meta: dict, output: str | None) -> dict:
     """The run record as it's published: no local fields, an output reference and its content hash."""
     record = runrecord.published(meta)
     record["output_ref"] = f"outputs/{record['run_uuid']}.txt" if output else None
-    record["provenance"] = {**runrecord.null_provenance(), **(record.get("provenance") or {})}
+    null = runrecord.null_provenance_v4() if record.get("format_version") == 4 else runrecord.null_provenance()
+    record["provenance"] = {**null, **(record.get("provenance") or {})}
     record["provenance"]["content_hash"] = content_hash(record, output)
     return record
 
@@ -210,39 +234,110 @@ def catalog(suite_name: str, suites_dir: Path | None = None) -> dict:
 # Publishing
 # --------------------------------------------------------------------------
 
-class Publisher:
-    """Adds records to a format-3 folder, never rewriting one already there."""
+def _text(data) -> str:
+    # Plain UTF-8, not \u escapes: Jekyll parses data files with a YAML parser that rejects escaped emoji
+    return json.dumps(data, indent=1, ensure_ascii=False) + "\n"
 
-    def __init__(self, to: Path, outputs: Path, dry_run: bool = False):
-        self.to, self.outputs, self.dry_run = to, outputs, dry_run
+
+def scan(to: Path, only: set[str] | None = None) -> dict[str, dict]:
+    """Manifest entries read from the files in a folder: run_uuid -> entry (hash as the run file states it)."""
+    scores: dict[str, list[str]] = {}
+    for p in (to / "scores").glob("*/*.json"):
+        uuid, _, rest = p.name.partition(".")
+        scores.setdefault(uuid, []).append(rest[:-len(".json")])
+    status = {p.stem: len(runrecord.read_json(p) or []) for p in (to / "status").glob("*.json")}
+    found = {}
+    for path in sorted(to.glob("runs/*/*.json")):
+        if only is not None and path.stem not in only:
+            continue
+        run = runrecord.read_json(path)
+        if isinstance(run, dict):
+            found[path.stem] = manifest.entry((run.get("provenance") or {}).get("content_hash"),
+                                              path.relative_to(to).as_posix(), manifest.submitter_of(run),
+                                              scores.get(path.stem), status.get(path.stem, 0))
+    return found
+
+
+def write_manifest(to: Path, known: dict[str, dict] | None = None) -> bool:
+    """Regenerate <to>/manifest.json from the files, keeping the submitter of every entry in `known`
+    (and entries whose run file is gone, so `--check` still reports them). True when the file changed."""
+    known = known or {}
+    runs = dict(known)
+    for uuid, found in scan(to).items():
+        runs[uuid] = {**found, "submitter": (known.get(uuid) or {}).get("submitter") or found["submitter"]}
+    text = manifest.dump({**manifest.empty(), "runs": dict(sorted(runs.items()))})
+    path = to / manifest.FILE
+    if path.exists() and path.read_text(encoding="utf-8") == text:
+        return False
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+    return True
+
+
+def known_entries(to: Path) -> dict[str, dict]:
+    """What's published: the manifest's entries, plus any run file in the folder it doesn't list yet
+    (a folder published before manifests existed)."""
+    listed = runrecord.read_json(to / manifest.FILE)
+    entries = dict(listed["runs"]) if isinstance(listed, dict) and isinstance(listed.get("runs"), dict) else {}
+    on_disk = {p.stem for p in (to / "runs").glob("*/*.json")}
+    entries.update(scan(to, on_disk - set(entries)))
+    return entries
+
+
+class Publisher:
+    """Adds records to a bundle folder, never rewriting one already there (rules: crucible/manifest.py)."""
+
+    def __init__(self, to: Path, outputs: Path, dry_run: bool = False, submitter: str | None = None,
+                 skip_known: bool = False):
+        # skip_known: a run whose uuid is already published is left alone even when this copy hashes
+        # differently, instead of rejected (`crucible migrate --bundle` converting an old bundle)
+        self.to, self.outputs, self.dry_run, self.submitter, self.skip_known = to, outputs, dry_run, submitter, skip_known
         self.counts = {"runs": 0, "scores": 0, "status": 0, "catalogs": 0, "corrections": 0, "registry": 0, "outputs": 0, "invalid": 0}
         self.errors: list[str] = []
         self.skipped: list[str] = []
-        self.runs = {p.stem for p in (to / "runs").glob("*/*.json")}
+        self.rejected: list[str] = []
+        self.entries = known_entries(to)
         self.scores = {p.name for p in (to / "scores").glob("*/*.json")}
 
     def _write(self, kind: str, path: Path, data) -> bool:
-        found = record_problems(kind, data)
+        found = record_problems(kind, data, strict=True)
         if found:
             self.errors.append(f"{path.relative_to(self.to)}: " + "; ".join(found[:5]))
             self.counts["invalid"] += 1
             return False
         if not self.dry_run:
             path.parent.mkdir(parents=True, exist_ok=True)
-            # Plain UTF-8, not \u escapes: Jekyll parses data files with a YAML parser that rejects escaped emoji
-            path.write_text(json.dumps(data, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+            path.write_text(_text(data), encoding="utf-8")
         return True
 
     def add(self, record: dict, output: str | None, score_records: list[dict], status: list[dict]) -> None:
         uuid, folder = record["run_uuid"], month(record)
-        if uuid not in self.runs:
+        path = self.to / "runs" / folder / f"{uuid}.json"
+        rel = path.relative_to(self.to).as_posix()
+        existing = self.entries.get(uuid)
+        new_hash = (record.get("provenance") or {}).get("content_hash")
+        same_bytes = None
+        if existing is not None and existing.get("content_hash") is None and new_hash is None:
+            file = self.to / existing["path"]
+            same_bytes = file.exists() and file.read_text(encoding="utf-8") == _text(record)
+        verdict, why = manifest.decide(existing, new_hash, same_bytes)
+        if verdict == manifest.REJECT and self.skip_known:
+            return
+        if verdict == manifest.REJECT:
+            message = f"{rel}: rejected, run {uuid} is {why}; a published run is never overwritten"
+            self.rejected.append(message)
+            self.errors.append(message)
+            return
+        if verdict == manifest.ADD:
             if output and not self.dry_run:
                 self.outputs.mkdir(parents=True, exist_ok=True)
                 (self.outputs / f"{uuid}.txt").write_text(output, encoding="utf-8")
                 self.counts["outputs"] += 1
-            if self._write("run", self.to / "runs" / folder / f"{uuid}.json", record):
-                self.runs.add(uuid)
+            if self._write("run", path, record):
+                self.entries[uuid] = manifest.entry(new_hash, rel, self.submitter or manifest.submitter_of(record))
                 self.counts["runs"] += 1
+            else:
+                return
         for score in score_records:
             name = score_name(score)
             if name not in self.scores and self._write("score", self.to / "scores" / folder / name, published_score(score)):
@@ -254,6 +349,10 @@ class Publisher:
             # Append-only: only entries past what's published are added
             if len(status) > len(have) and status[:len(have)] == have and self._write("status", path, status):
                 self.counts["status"] += len(status) - len(have)
+
+    def write_manifest(self) -> bool:
+        """Regenerate manifest.json from what's now on disk (nothing in a dry run)."""
+        return False if self.dry_run else write_manifest(self.to, self.entries)
 
     def add_catalogs(self, suites_dir: Path | None = None) -> None:
         names = suites.names(suites_dir)
@@ -308,9 +407,9 @@ def harness_problem(meta: dict) -> str | None:
     return problem(task, (meta.get("harness") or {}).get("id"))
 
 
-def publish(runs_dir: Path, to: Path, outputs: Path, dry_run: bool = False) -> Publisher:
+def publish(runs_dir: Path, to: Path, outputs: Path, dry_run: bool = False, submitter: str | None = None) -> Publisher:
     runrecord.require_migrated(runs_dir)
-    pub = Publisher(to, outputs, dry_run)
+    pub = Publisher(to, outputs, dry_run, submitter)
     for run_dir in runrecord.run_dirs(runs_dir):
         meta = runrecord.read(run_dir)
         if not meta.get("run_uuid"):
@@ -329,10 +428,96 @@ def publish(runs_dir: Path, to: Path, outputs: Path, dry_run: bool = False) -> P
     found = reg.problems()
     if found:
         pub.errors += [f"registry: {p}" for p in found]
-        return pub
-    pub.add_registry(reg)
-    pub.add_corrections(reg)
+    else:
+        pub.add_registry(reg)
+        pub.add_corrections(reg)
+    pub.write_manifest()
     return pub
+
+
+def copy_bundle(old: Path, new: Path, from_outputs: Path, outputs: Path, dry_run: bool = False,
+                submitter: str | None = None) -> dict:
+    """Copy a published bundle into another folder without changing a byte of any record.
+
+    Every run's content hash is verified against its record and output first; a run that fails isn't
+    copied. Runs follow the manifest rules (crucible/manifest.py), so copying twice is a no-op. Scores,
+    status files, catalogs, the registry and corrections.json are copied byte for byte too; one that
+    already exists in `new` with different bytes is an error, never overwritten. Ends by writing
+    <new>/manifest.json. Returns counts, `errors` and `notes`.
+    """
+    report = {"runs": 0, "scores": 0, "status": 0, "catalogs": 0, "registry": 0, "corrections": 0, "outputs": 0,
+              "verified": 0, "unverifiable": 0, "unchanged": 0, "errors": [], "notes": []}
+    errors, rejected = report["errors"], set()
+    known = known_entries(new)
+
+    def put(src: Path, dest: Path, kind: str) -> bool:
+        data = src.read_bytes()
+        if dest.exists():
+            if dest.read_bytes() == data:
+                report["unchanged"] += 1
+            else:
+                errors.append(f"{dest.relative_to(new).as_posix()}: already in {new} with different bytes; not overwritten")
+            return False
+        if not dry_run:
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes(data)
+        if kind:
+            report[kind] += 1
+        return True
+
+    for path in sorted(old.glob("runs/*/*.json")):
+        rel, uuid = path.relative_to(old), path.stem
+        raw = path.read_bytes()
+        data = json.loads(raw.decode("utf-8"))
+        ref, output, source = data.get("output_ref"), None, None
+        if ref:
+            source = from_outputs / Path(ref).name
+            if not source.exists():
+                errors.append(f"{rel.as_posix()}: output {ref} is missing from {from_outputs}")
+                rejected.add(uuid)
+                continue
+            output = source.read_text(encoding="utf-8")
+        stored = (data.get("provenance") or {}).get("content_hash")
+        if unverifiable(data):
+            report["unverifiable"] += 1
+        elif stored != content_hash(data, output):
+            errors.append(f"{rel.as_posix()}: content hash doesn't match (the record or its output was edited); not copied")
+            rejected.add(uuid)
+            continue
+        else:
+            report["verified"] += 1
+        dest = new / rel
+        verdict, why = manifest.decide(known.get(uuid), stored, dest.exists() and dest.read_bytes() == raw)
+        if verdict == manifest.REJECT:
+            errors.append(f"{rel.as_posix()}: rejected, run {uuid} is {why}")
+            rejected.add(uuid)
+            continue
+        put(path, dest, "runs" if verdict == manifest.ADD else "")
+        if source is not None:
+            put(source, outputs / source.name, "outputs")
+        known.setdefault(uuid, manifest.entry(stored, rel.as_posix(), submitter or manifest.submitter_of(data)))
+    for pattern, kind in (("scores/*/*.json", "scores"), ("status/*.json", "status"), ("catalog/*.json", "catalogs"),
+                          ("registry/*.json", "registry")):
+        for path in sorted(old.glob(pattern)):
+            if path.name.partition(".")[0] in rejected or path.stem in rejected:
+                continue
+            put(path, new / path.relative_to(old), kind)
+    if (old / CORRECTIONS_FILE).exists():
+        put(old / CORRECTIONS_FILE, new / CORRECTIONS_FILE, "corrections")
+    handled = {"runs", "scores", "status", "catalog", "registry", CORRECTIONS_FILE, manifest.FILE}
+    left = sorted(p.name for p in old.iterdir() if p.name not in handled and not p.name.startswith("."))
+    if left:
+        report["notes"].append("not copied: " + ", ".join(left))
+    if not dry_run and not errors:
+        write_manifest(new, known)
+    elif not dry_run:
+        report["notes"].append("manifest.json not written: fix the errors and copy again")
+    return report
+
+
+def manifest_problems(to: Path) -> list[str]:
+    path = to / manifest.FILE
+    return manifest.problems(runrecord.read_json(path), scan(to)) if path.exists() else []
 
 
 def check_folder(to: Path, outputs: Path | None = None) -> list[str]:
@@ -381,7 +566,7 @@ def check_folder(to: Path, outputs: Path | None = None) -> list[str]:
 
             elif kind == "score" and path.name != score_name(data):
                 found.append(f"{rel}: file name doesn't match its run_uuid, rubric version and method")
-    return found
+    return found + manifest_problems(to)
 
 
 def unverifiable(run: dict) -> bool:
@@ -498,20 +683,26 @@ def default_outputs(to: Path) -> Path:
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="crucible publish", description=__doc__.splitlines()[0])
-    parser.add_argument("--to", type=Path, help="The page's data folder (default: CRUCIBLE_PUBLISH_DIR, else "
+    parser.add_argument("--to", type=Path, help="The bundle folder (default: CRUCIBLE_PUBLISH_DIR, else "
                                                 "../schaferandrew.github.io/_data/crucible)")
-    parser.add_argument("--outputs", type=Path, help="Where full outputs go (default: <site>/crucible-data/outputs)")
+    parser.add_argument("--outputs", type=Path, help="Where full outputs go (default: <site>/crucible-data/outputs, or <to>/outputs)")
     parser.add_argument("--runs", type=Path, default=Path("runs"))
     parser.add_argument("--dry-run", action="store_true", help="Say what would be added; write nothing")
-    parser.add_argument("--check", type=Path, metavar="DIR", help="Only validate a published folder and its content hashes")
+    parser.add_argument("--check", type=Path, metavar="DIR", help="Only validate a published folder, its content hashes and its manifest")
+    parser.add_argument("--from-bundle", type=Path, metavar="OLD", help="Copy the published bundle OLD into --to byte for byte "
+                                                                      "(verifying every content hash) instead of publishing runs/")
+    parser.add_argument("--from-outputs", type=Path, help="With --from-bundle: where OLD's outputs are (default: next to OLD, like --outputs)")
+    parser.add_argument("--submitter", help="Recorded in the manifest for the runs this call adds")
     args = parser.parse_args()
 
     if args.check:
         found = check_folder(args.check, args.outputs or default_outputs(args.check))
-        print("\n".join(found[:50]) if found else f"{args.check} is a valid format-3 folder.")
+        print("\n".join(found[:50]) if found else f"{args.check} is a valid bundle folder.")
         reg = check_registry(args.check)
         warnings = (unverifiable_warnings(args.check) + base_warnings(args.check, reg) + machine_warnings(args.check, reg)
                     + legacy_warnings(args.check))
+        if not (args.check / manifest.FILE).exists():
+            warnings.append(f"no {manifest.FILE}; `crucible publish` writes it")
         if warnings:
             print("Warnings (not errors):\n  " + "\n  ".join(warnings))
         sys.exit(1 if found else 0)
@@ -519,7 +710,23 @@ def main() -> None:
     folder = args.to or next((d for d in DEFAULT_DIRS if d.parent.exists()), None)
     if folder is None:
         sys.exit("No data folder found; pass --to <portfolio>/_data/crucible (or set CRUCIBLE_PUBLISH_DIR).")
-    pub = publish(args.runs, folder, args.outputs or default_outputs(folder), args.dry_run)
+    if args.from_bundle:
+        if args.to is None:
+            sys.exit("--from-bundle needs --to: the folder to copy into.")
+        report = copy_bundle(args.from_bundle, folder, args.from_outputs or default_outputs(args.from_bundle),
+                             args.outputs or default_outputs(folder), args.dry_run, args.submitter)
+        verb = "Would copy" if args.dry_run else "Copied"
+        print(f"{verb} {report['runs']} runs ({report['verified']} hashes verified, {report['unverifiable']} unverifiable), "
+              f"{report['scores']} scores, {report['status']} status files, {report['catalogs']} catalogs, "
+              f"{report['registry']} registry files, {report['corrections']} corrections files, {report['outputs']} outputs "
+              f"to {folder}; {report['unchanged']} files were already there")
+        for note in report["notes"]:
+            print(note)
+        if report["errors"]:
+            print("Problems:\n  " + "\n  ".join(report["errors"][:30]))
+            sys.exit(1)
+        return
+    pub = publish(args.runs, folder, args.outputs or default_outputs(folder), args.dry_run, args.submitter)
     c = pub.counts
     verb = "Would add" if args.dry_run else "Added"
     print(f"{verb} {c['runs']} runs, {c['scores']} score records, {c['status']} status records, "
@@ -529,7 +736,7 @@ def main() -> None:
         print(f"Skipped {len(pub.skipped)} runs through a harness their mode doesn't use (kept in {args.runs}/):\n  "
               + "\n  ".join(pub.skipped[:30]))
     if pub.errors:
-        print("Not written (invalid):\n  " + "\n  ".join(pub.errors[:30]))
+        print("Not written (invalid or rejected):\n  " + "\n  ".join(pub.errors[:30]))
         sys.exit(1)
 
 

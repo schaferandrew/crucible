@@ -273,9 +273,10 @@ def convert_bundle(path: Path, to: Path, outputs: Path, dry_run: bool = False):
     data = json.loads(path.read_text(encoding="utf-8"))
     if data.get("format_version") != 2:
         raise SystemExit(f"{path} is format {data.get('format_version')}, not 2")
-    pub = publisher.Publisher(to, outputs, dry_run)
+    pub = publisher.Publisher(to, outputs, dry_run, skip_known=True)
     for record, output, scores in bundle_records(data):
         pub.add(publisher.published_run(record, output), output, scores, [])
+    pub.write_manifest()
     return pub
 
 

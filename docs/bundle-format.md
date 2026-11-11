@@ -13,6 +13,7 @@ _data/crucible/
   scores/2026-10/<run_uuid>.r<n>.<method>.json   one per run × rubric version × method
   status/<run_uuid>.json                         status records, only appended to
   corrections.json                               reviewed fixes for badly recorded model fields
+  manifest.json                                  generated index of every run (see The manifest)
 crucible-data/outputs/<run_uuid>.txt             full model output, outside _data
 ```
 
@@ -35,7 +36,8 @@ crucible publish [--to <site>/_data/crucible] [--outputs DIR] [--runs runs] [--d
 5. Writes `corrections.json` from the repo's `corrections.yaml` when it changed (below).
 6. Validates every file before writing it, and prints what it added.
 
-Publishing twice writes nothing. Nothing published is deleted or rewritten: to take a run out,
+Publishing twice writes nothing (the manifest below enforces it: a run already published with a different
+hash is rejected, never overwritten). Nothing published is deleted or rewritten: to take a run out,
 add a status record (`crucible status <run> --withdrawn REASON`) and publish.
 
 **Content hash.** `provenance.content_hash` is SHA-256 over the canonical JSON (sorted keys,
@@ -49,6 +51,73 @@ A hash that doesn't match, or an output with no hash, is always an error. The ex
 verdict: 0 means valid, whatever the warnings. It also prints, as warnings that never fail the check, every published
 `model.base` that doesn't look like `<maker>/<model>` (a packager prefix, a format or quant tag, an
 OpenRouter `~` or `:free`, no maker) and that `corrections.json` doesn't fix.
+
+## The manifest
+
+`crucible publish` generates `<to>/manifest.json`, the index of every run the bundle holds. The bundle
+folder is the source of truth for published results; local `runs/` folders are staging.
+
+```json
+{"record": "manifest", "format_version": 4,
+ "runs": {"<run_uuid>": {"content_hash": "sha256:…", "submitter": null,
+                         "path": "runs/2026-10/<run_uuid>.json",
+                         "scores": ["r1.checks"], "status_count": 0}}}
+```
+
+Runs are sorted by `run_uuid`, scores are `r<rubric_version>.<method>` names, `submitter` is who
+submitted the run (`--submitter`, else the record's own, else null), and the file is written with sorted
+keys, so the same bundle always produces the same bytes. One rule set (`crucible/manifest.py`, pure and
+importable, shared by `publish`, `publish --check` and later by CI and the submission bot) decides what a
+run arriving with a given `run_uuid` does:
+
+| Run in manifest? | Content hash | Result |
+|---|---|---|
+| no | any | **add** the record, its output, scores and status |
+| yes | same | **no-op** for the run; new score records and appended status records are still added |
+| yes | different | **reject** with both hashes; nothing of that run is written, `publish` exits 1 |
+| yes, hash null (19 legacy runs) | null | same only if the file is byte-identical, else reject |
+
+Publishing the same input twice therefore changes nothing. A folder with run files but no manifest
+(published before manifests) is adopted: its files are read into the manifest first.
+`crucible publish --check DIR` also compares the manifest with the files: a run listed but missing, a
+run file not listed, and any content hash, path, score list or status count that differs are errors; a
+missing manifest is a warning.
+
+## Moving a bundle: `--from-bundle`
+
+```
+crucible publish --from-bundle OLD --to NEW [--from-outputs DIR] [--outputs DIR] [--dry-run]
+```
+
+Copies a published bundle (run, score and status records, catalogs, `registry/`, `corrections.json`, and
+the outputs) into NEW without changing a byte of any record, then writes NEW's manifest. Every run's
+content hash is verified against its record and output first; a run that fails (or whose output is
+missing) isn't copied, nothing else is written, and the exit code is 1. The 19 runs without a hash or
+output can't be verified: they're copied as they are and counted as unverifiable. A file that already
+exists in NEW with different bytes is an error, never overwritten, so copying again is safe. OLD's
+outputs default to `<site>/crucible-data/outputs` beside `_data`; NEW's to `<to>/outputs`.
+
+## Format 4
+
+Format 4 is the run record the harness writes when `CRUCIBLE_RECORD_FORMAT=4` is set (default 3). It stays
+opt-in because the live legacy page drops records whose `format_version` is above 3. Scores, status and
+catalogs stay format 3, and format-3 runs are never rewritten; readers handle both. Schema:
+`run.v4.schema.json`; `publish` and `--check` pick the schema by `format_version`.
+
+| Format 3 | Format 4 |
+|---|---|
+| `model.publisher` | `model.packager` (registry id when known) |
+| `model.id` (the provider/model key) | `model.id`: the registry's canonical id, or null when it isn't known |
+| `model.base` | `model.raw_base` (same value: the key as the runtime called it, without provider prefix, format or quant tag) |
+| `model.origin.maker` | `model.maker`: the registry model's maker, else the runtime's (`origin.maker`) |
+| `model.format` (guessed from names) | `model.format` + `model.format_source`: `runtime` (LM Studio, Ollama or a GGUF file said so), `filename` (the key or quant name implies it), `unknown`; null for cloud runs |
+| `endpoint.device`, `hardware.label`, `provenance.machine_label` | `serving_host` (machine that served the weights; null for cloud) and `harness_host` (machine that ran the harness) |
+| `hardware` (key, class, cpu, memory, label, offload) | `hardware: {key}` (null for cloud); the rest lives in `registry/machines.yaml` |
+| `model.variant_key`, `model.display`, `run_path`, `endpoint.app`, `hardware.offload`, `model.origin.base_repo`, `provenance.submitter`, `provenance.verification` | dropped |
+
+The local `meta.json` of a format-4 run keeps `run_path` and `local` for the tools that read the run
+folder; `publish` drops both. A `local` key is rejected by `publish` in either format and is an error in
+`--check` for a format-4 file (format-3 files that have one stay as published and are warned about).
 
 ## Corrections
 

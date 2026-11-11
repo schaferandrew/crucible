@@ -238,6 +238,7 @@ def test_check_lists_unhashed_migrated_runs_as_warnings(tree, tmp_path):
     run["output_ref"] = None
     run["provenance"].update(source="crucible-migrate", content_hash=None)
     p.write_text(json.dumps(run))
+    bundle.write_manifest(to)  # the state an older publish left: no manifest checks against this edit
     assert bundle.check_folder(to, bundle.default_outputs(to)) == []
     (warning,) = bundle.unverifiable_warnings(to)
     assert p.stem[:8] in warning

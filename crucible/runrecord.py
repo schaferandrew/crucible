@@ -13,6 +13,7 @@ See docs/data-model.md.
 from __future__ import annotations
 
 import json
+import os
 import re
 import uuid
 from datetime import datetime, timezone
@@ -261,6 +262,105 @@ def null_provenance() -> dict:
 
 
 # --------------------------------------------------------------------------
+# Format 4 (opt-in: CRUCIBLE_RECORD_FORMAT=4)
+# --------------------------------------------------------------------------
+
+# Fields format 4 drops (docs/bundle-format.md#format-4); a published format-4 record may not carry them
+V4_DROPPED = ("run_path", "variant_key", "display", "model.variant_key", "model.display", "model.publisher",
+              "model.origin.base_repo", "endpoint.app", "endpoint.device", "hardware.offload",
+              "provenance.submitter", "provenance.verification", "provenance.machine_label")
+FORMAT_SOURCES = ("runtime", "filename", "unknown")
+
+
+def record_format() -> int:
+    """The run record format to write: 3 (default) or 4. The live legacy page skips records past format 3,
+    so 4 stays off until the dashboard cuts over; set CRUCIBLE_RECORD_FORMAT=4 to opt in."""
+    value = os.environ.get("CRUCIBLE_RECORD_FORMAT", "").strip()
+    if value in ("", "3"):
+        return 3
+    if value == "4":
+        return 4
+    raise SystemExit(f"CRUCIBLE_RECORD_FORMAT={value!r}: record formats are 3 and 4")
+
+
+def null_provenance_v4() -> dict:
+    return {"crucible_version": None, "crucible_commit": None, "crucible_dirty": None, "machine_id": None,
+            "source": None, "content_hash": None}
+
+
+def format_and_source(model: str | None, inference: dict | None, recorded: str | None = None) -> tuple[str | None, str]:
+    """(weights format, where it came from): `runtime` when the serving runtime said it (LM Studio's
+    compatibility_type, Ollama serving GGUF only, a .gguf file the harness read), `filename` when only the
+    model key or quant name implies it, `unknown` otherwise. A cloud run has no format: (None, "unknown")."""
+    inference = inference or {}
+    if where(model, inference) == "cloud":
+        return None, "unknown"
+    said = inference.get("format")
+    if isinstance(said, str) and said.strip():
+        return said.strip().lower(), "runtime"
+    if str(inference.get("model_path") or "").lower().endswith(".gguf"):
+        return "gguf", "runtime"
+    implied = implied_variant(model, inference.get("quantization"))["format"] or (recorded.lower() if recorded else None)
+    return (implied, "filename") if implied else (None, "unknown")
+
+
+def record_v4(meta: dict, reg=None, inference: dict | None = None) -> dict:
+    """A format-3 run record rewritten as format 4 (docs/bundle-format.md#format-4).
+
+    `reg` is the registry (crucible.registry.Registry): with it the record carries the canonical
+    `model.id`, the maker and the packager's id; without, `model.id` is null and the maker is only what
+    the runtime told. `inference` is what the harness captured of the serving runtime (default: the
+    record's local.environment.inference). run_path and `local` stay in the local meta.json for the
+    tools that read it; `published()` drops both.
+    """
+    env = (meta.get("local") or {}).get("environment") or {}
+    inference = inference if inference is not None else env.get("inference") or {}
+    model, endpoint, hardware = meta.get("model") or {}, meta.get("endpoint") or {}, meta.get("hardware")
+    prov = meta.get("provenance") or {}
+    raw = model.get("base")
+    found = reg.model_for_base(raw) if reg is not None else None
+    origin = {k: v for k, v in (model.get("origin") or {}).items() if k != "base_repo"}
+    maker = reg.models[found[0]]["maker"] if found else origin.get("maker")
+    is_local = endpoint.get("where") == "local"
+    fmt, fmt_source = format_and_source(model.get("id"), inference, model.get("format"))
+    packager = model.get("publisher")
+    if reg is not None and packager:
+        packager = reg.packager_id(packager)
+    serving = ((hardware or {}).get("label") or endpoint.get("device")) if is_local else None
+    harness_host = prov.get("machine_label") or (env.get("machine") or {}).get("hostname")
+    out = {k: v for k, v in meta.items() if k not in ("model", "endpoint", "hardware", "provenance", "local")}
+    out.update({
+        "format_version": 4,
+        "model": {
+            "id": found[0] if found else None,
+            "raw_base": raw,
+            "maker": maker,
+            "packager": packager,
+            "artifact": model.get("artifact"),
+            "format": fmt,
+            "format_source": fmt_source if is_local else None,
+            "quant": model.get("quant"),
+            "reasoning": model.get("reasoning"),
+            "context_loaded": model.get("context_loaded"),
+            **({"origin": origin} if origin else {}),
+        },
+        "serving_host": serving,
+        "harness_host": harness_host,
+        "endpoint": {k: v for k, v in endpoint.items() if k not in ("app", "device")},
+        "hardware": {"key": hardware.get("key")} if hardware is not None else None,
+        "provenance": {k: v for k, v in prov.items() if k in null_provenance_v4()},
+    })
+    order = ["record", "format_version", "run_uuid", "run_path", "legacy_run_id", "started_at", "ended_at", "elapsed_s",
+             "task", "harness", "model", "serving_host", "harness_host", "endpoint", "hardware", "outcome", "metrics",
+             "output_ref", "provenance"]
+    result = {k: out[k] for k in order if k in out}
+    result.update({k: v for k, v in out.items() if k not in order})
+    if "local" in meta:
+        result["local"] = meta["local"]
+    return result
+
+
+# --------------------------------------------------------------------------
 # Reading
 # --------------------------------------------------------------------------
 
@@ -388,8 +488,10 @@ def add_status(run_dir: Path, run_uuid: str, by: str = "maintainer", **change) -
 
 
 def published(meta: dict) -> dict:
-    """The run record as published: everything but what stays on this machine."""
-    return {k: v for k, v in meta.items() if k != "local"}
+    """The run record as published: everything but what stays on this machine (`local`, and in format 4
+    the run's local path)."""
+    left = ("local", "run_path") if meta.get("format_version") == 4 else ("local",)
+    return {k: v for k, v in meta.items() if k not in left}
 
 
 def status_main() -> None:

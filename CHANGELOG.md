@@ -12,6 +12,21 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## 3.10.0 (2026-11-11)
+
+### Added
+- `crucible publish` maintains a generated `manifest.json` in the bundle (`run_uuid` to content hash,
+  submitter, path, score records, status count) and applies one rule set to it (`crucible/manifest.py`):
+  an unknown run is added, the same run with the same hash is a no-op, the same run with a different hash
+  is rejected and never overwritten. Publishing twice changes nothing; `publish --check` also verifies the
+  manifest against the files. `crucible migrate --bundle` still skips runs that are already there.
+- `crucible publish --from-bundle OLD --to NEW` copies a published bundle byte for byte, verifying every
+  content hash, and writes its manifest. It moves the bundle between repos.
+- Run record format 4, off by default (set `CRUCIBLE_RECORD_FORMAT=4`): `model.packager`, `model.maker`,
+  canonical `model.id`, `model.raw_base`, `model.format` with `format_source`, `serving_host` and
+  `harness_host`, `hardware: {key}`, and none of the dead fields. `publish` and `--check` validate both
+  formats (`run.v4.schema.json`) and reject a `local` key. See docs/bundle-format.md.
+
 ## 3.9.0 (2026-11-10)
 
 ### Added
