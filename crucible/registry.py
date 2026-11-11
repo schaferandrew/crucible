@@ -389,10 +389,9 @@ class Registry:
             if override.get("machine") in self.machines:
                 machine, machine_from = override["machine"], "override"
                 notes.append(f"machine set to {machine} by an override: {override_reason}")
-            elif version >= 4:
-                # Format 4 names the hardware class (hardware.key), never the host: no host or machine_id to look up
-                machine_from = "none"
             else:
+                # Format 4 names the hardware class (hardware.key) and needs none of these: they only matter to
+                # format-3 records and the earlier draft of format 4, and find nothing in a current one
                 for source, host in (("serving_host", run.get("serving_host")), ("device", endpoint.get("device")),
                                      ("label", hardware.get("label"))):
                     machine = self.machine_for_host(host)
