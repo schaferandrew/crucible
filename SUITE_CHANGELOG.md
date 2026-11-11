@@ -10,6 +10,10 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
 
 ## Unreleased
 
+- **New, provisional: sports-fan-from-photo** (version 2, rubric 1, spark, general). The first image task: a
+  photo of a baby in a team onesie is attached and the model names the college team, in an `ANSWERS:` block. The
+  answer is Michigan State; the trap is the University of Michigan, which small models tend to answer. Direct
+  harness only, and a vision model is needed. Version 2 blurs the adult's face in the photo. No runs yet.
 - **river-haiku-banned-words rubric 3.** "Evokes a river" now accepts indirect river imagery (canyon, carving,
   rapids, sea, roar, meander...), not just the words the old list named; a haiku about a river carving a canyon
   to the sea scored 0/3 there. Stored runs are rescored by the next suite patch. An LLM judge for this check is

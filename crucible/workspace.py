@@ -80,6 +80,12 @@ def fixture_names(prompt_def: dict) -> list[str]:
     return [fixtures] if isinstance(fixtures, str) else list(fixtures)
 
 
+def image_names(prompt_def: dict) -> list[str]:
+    """Images attached to the prompt (paths under fixtures/), sent alongside it, never inlined as text."""
+    images = prompt_def.get("images") or []
+    return [images] if isinstance(images, str) else list(images)
+
+
 @dataclass
 class RunDir:
     run_path: str  # <model_slug>/<task>/<timestamp>
@@ -204,6 +210,11 @@ def _install_dependencies(workspace: Path) -> None:
                        capture_output=True, text=True)
     except FileNotFoundError as exc:
         print(f"  Warning: {exc}; skipping dependency install")
+
+
+def missing_images(images: list[str]) -> list[str]:
+    """The declared images that aren't files under fixtures/."""
+    return [name for name in images if not (FIXTURES_DIR / name).is_file()]
 
 
 def inline_fixtures(prompt_text: str, fixtures: list[str]) -> str:

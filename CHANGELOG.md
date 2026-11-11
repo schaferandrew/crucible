@@ -12,6 +12,15 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## 3.9.0 (2026-11-10)
+
+### Added
+- Tasks can attach images: `images:` lists files under `fixtures/` that the direct harness sends with
+  the prompt (an `image_url` part on OpenAI-compatible APIs, `images` on Ollama), so a vision model can
+  be asked about a photo. The images are task content (their bytes are in the content hash; tasks without
+  images keep their hashes). Agent harnesses refuse such tasks, and the direct harness refuses one whose
+  image is missing.
+
 ## 3.8.1 (2026-11-10)
 
 ### Fixed

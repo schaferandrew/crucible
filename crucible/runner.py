@@ -61,7 +61,7 @@ def _build_context(agent: Agent, task_id: str, prompt_def: dict, model: str | No
         task_id=task_id, run_path=run.run_path, run_dir=run.path, prompt_file=prompt_file,
         model=model, watch=watch, timeout=timeout, title=run.title, workspace=work_dir,
         mcp_servers=list(prompt_def.get("mcp_servers") or []),
-        fixtures=workspace.fixture_names(prompt_def), reasoning=reasoning, run_uuid=run.run_uuid,
+        fixtures=workspace.fixture_names(prompt_def), images=workspace.image_names(prompt_def), reasoning=reasoning, run_uuid=run.run_uuid,
     )
 
 

@@ -6,13 +6,16 @@ backs both model resolution (crucible.models) and --agent direct.
 """
 from __future__ import annotations
 
+import base64
 import contextvars
 import json
+import mimetypes
 import os
 import time
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Callable
 
 LMSTUDIO_BASE_URL = os.environ.get("LMSTUDIO_BASE_URL", "http://127.0.0.1:1234/v1")
@@ -224,11 +227,25 @@ def _check_deadline(deadline: float, timer: "_StreamTimer", parts: list[str]) ->
         raise StreamTimeout(timer.result("".join(parts), None, None))
 
 
-def _call_ollama(model_id: str, prompt: str, timeout: int = 300, extra: dict | None = None) -> dict:
+def _image_b64(path: Path) -> str:
+    return base64.b64encode(Path(path).read_bytes()).decode("ascii")
+
+
+def _image_part(path: Path) -> dict:
+    """An OpenAI-style image content part, the image inlined as a data URL."""
+    mime = mimetypes.guess_type(str(path))[0] or "image/png"
+    return {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{_image_b64(path)}"}}
+
+
+def _call_ollama(model_id: str, prompt: str, timeout: int = 300, extra: dict | None = None,
+                 images: list[Path] | None = None) -> dict:
     """Streams /api/generate (NDJSON); the final chunk carries token counts."""
+    body = {"model": model_id, "prompt": prompt, "stream": True, **(extra or {})}
+    if images:
+        body["images"] = [_image_b64(p) for p in images]
     req = urllib.request.Request(
         f"{OLLAMA_BASE_URL}/api/generate",
-        data=json.dumps({"model": model_id, "prompt": prompt, "stream": True, **(extra or {})}).encode(),
+        data=json.dumps(body).encode(),
         headers={"Content-Type": "application/json"},
         method="POST",
     )
@@ -253,11 +270,13 @@ def _call_ollama(model_id: str, prompt: str, timeout: int = 300, extra: dict | N
 
 
 def _call_openai_compatible(url: str, model_id: str, prompt: str, timeout: int,
-                            headers: dict | None = None, extra: dict | None = None) -> dict:
+                            headers: dict | None = None, extra: dict | None = None,
+                            images: list[Path] | None = None) -> dict:
     """Streams /chat/completions (SSE), asking for usage in the final chunk."""
+    content = ([{"type": "text", "text": prompt}, *(_image_part(p) for p in images)] if images else prompt)
     body = {
         "model": model_id,
-        "messages": [{"role": "user", "content": prompt}],
+        "messages": [{"role": "user", "content": content}],
         "stream": True,
         "stream_options": {"include_usage": True},
         **(extra or {}),
@@ -305,17 +324,19 @@ def _call_openai_compatible(url: str, model_id: str, prompt: str, timeout: int,
     return timer.result("".join(parts), tokens_in, tokens_out)
 
 
-def _call_lmstudio(model_id: str, prompt: str, timeout: int = 300, extra: dict | None = None) -> dict:
+def _call_lmstudio(model_id: str, prompt: str, timeout: int = 300, extra: dict | None = None,
+                   images: list[Path] | None = None) -> dict:
     return _call_openai_compatible(LMSTUDIO_BASE_URL, model_id, prompt, timeout,
-                                   extra={"temperature": 0.2, **(extra or {})})
+                                   extra={"temperature": 0.2, **(extra or {})}, images=images)
 
 
-def _call_openrouter(model_id: str, prompt: str, timeout: int = 300, extra: dict | None = None) -> dict:
+def _call_openrouter(model_id: str, prompt: str, timeout: int = 300, extra: dict | None = None,
+                     images: list[Path] | None = None) -> dict:
     api_key = os.environ.get("OPENROUTER_API_KEY")
     if not api_key:
         raise RuntimeError("OPENROUTER_API_KEY env var required for openrouter direct mode")
     return _call_openai_compatible(OPENROUTER_BASE_URL, model_id, prompt, timeout,
-                                   headers={"Authorization": f"Bearer {api_key}"}, extra=extra)
+                                   headers={"Authorization": f"Bearer {api_key}"}, extra=extra, images=images)
 
 
 # --------------------------------------------------------------------------
@@ -326,7 +347,7 @@ def _call_openrouter(model_id: str, prompt: str, timeout: int = 300, extra: dict
 class Provider:
     name: str
     list_models: Callable[[], list[str]]
-    complete: Callable[[str, str, int], dict]   # (model_id, prompt, timeout)
+    complete: Callable[..., dict]               # (model_id, prompt, timeout, extra, images)
     fuzzy_match: bool                           # False: exact name only
     empty_hint: str
     catalog: Callable[[], list[tuple[str, str]]]   # (model_id, detail) for the picker; raises if unreachable
@@ -379,18 +400,21 @@ def find_model_matches(query: str) -> list[str]:
 
 
 def complete(model: str, prompt: str, timeout: int = 300,
-             on_progress: Callable[[float, int, int], None] | None = None, reasoning: str = "default") -> dict:
+             on_progress: Callable[[float, int, int], None] | None = None, reasoning: str = "default",
+             images: list[Path] | None = None) -> dict:
     """Stream one completion for 'provider/model'.
 
     Returns {"text", "reasoning", "ttft_s", "duration_s", "tokens_in", "tokens_out"};
     timing/token fields are None when the provider does not report them.
     on_progress(elapsed_s, reasoning_chars, answer_chars) is called at most twice a second.
     reasoning: a level from crucible.reasoning, sent the way this provider understands it.
+    images: image files attached to the prompt (a vision model is needed to read them).
     """
     from crucible.reasoning import request_params
     provider, model_id = split_model(model)
     token = _PROGRESS.set(on_progress)
     try:
-        return provider.complete(model_id, prompt, timeout, request_params(provider.name, reasoning) or None)
+        return provider.complete(model_id, prompt, timeout, request_params(provider.name, reasoning) or None,
+                                 images or None)
     finally:
         _PROGRESS.reset(token)

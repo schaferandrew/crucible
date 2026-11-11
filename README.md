@@ -159,12 +159,12 @@ Watch mode opens the agent's TUI in the workspace so you can see the model work 
 
 - **opencode** runs headless with `opencode run`; its session is exported into the run directory. Each run gets its own opencode data directory, so parallel runs don't fight over opencode's database.
 - **pi** runs with `--no-extensions` plus crucible's per-run extension, and writes its session into the run directory, so `~/.pi/agent` is never modified. `ollama/` and `lmstudio/` models are registered with pi for the run; anything else is handed to pi as-is with its usual API-key env vars.
-- **direct** streams one completion from the provider and records tokens, time to first token and cost.
+- **direct** streams one completion from the provider and records tokens, time to first token and cost. A task's `images:` (files under `fixtures/`) are attached to the prompt as image parts; only direct sends them, and the model needs vision to read them.
 
 ### Task versions and suites
 Tasks declare `version`, `rubric_version` and `status` (`provisional`, `active` or `retired`). Each run records the version it used, so scores only compare within a version:
 
-- Changing a task's prompt, its repo or its fixtures means bumping `version`; older runs stop counting until rerun.
+- Changing a task's prompt, its repo, its fixtures or its images means bumping `version`; older runs stop counting until rerun.
 - Changing only the rubric, checks or grader means bumping `rubric_version` and re-scoring the stored outputs.
 
 `tasks/versions.lock.json` records the hashes each version was cut from, and CI fails on an undeclared change. A **suite** (`suites/v1.yaml`) pins which tasks are scored, at which versions, with which weights; a run counts in every suite that pins its task at the version it ran. New tasks start provisional and only `crucible suite cut` makes them active. The rules: [docs/versioning.md](docs/versioning.md).

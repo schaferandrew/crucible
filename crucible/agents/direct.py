@@ -3,6 +3,7 @@
 Only for prompts declaring needs_tools: false, on a provider crucible can call
 itself (crucible.providers). Fixture contents are inlined into the prompt,
 since there are no file tools; the exact prompt sent is kept in prompt.txt.
+A task's images are attached to the prompt as image parts (base64).
 The response is streamed, so tokens and time to first token are recorded.
 """
 from __future__ import annotations
@@ -13,7 +14,7 @@ from pathlib import Path
 
 from crucible import providers
 from crucible.agents.base import Agent, RunContext
-from crucible.workspace import inline_fixtures
+from crucible.workspace import FIXTURES_DIR, image_names, inline_fixtures, missing_images
 
 RESPONSE_FILENAME = "direct-response.json"  # timing + usage of the one response
 
@@ -46,6 +47,7 @@ class DirectAgent(Agent):
     uses_workspace = False
     builtin_web_tools: list[str] = []
     reasoning_levels = ("default", "off", "low", "medium", "high")
+    supports_images = True
 
     def validate(self, model: str | None, prompt_def: dict) -> str | None:
         if prompt_def.get("needs_tools", True):
@@ -55,6 +57,9 @@ class DirectAgent(Agent):
             providers.split_model(model or "")
         except ValueError as exc:
             return f"direct mode needs a provider crucible can call: {exc}"
+        missing = missing_images(image_names(prompt_def))
+        if missing:
+            return "image not found under fixtures/: " + ", ".join(missing)
         return None
 
     def run(self, ctx: RunContext) -> dict:
@@ -64,7 +69,8 @@ class DirectAgent(Agent):
         progress = _Progress()
         try:
             response = providers.complete(ctx.model, prompt, ctx.timeout, on_progress=progress.show,
-                                          reasoning=ctx.reasoning)
+                                          reasoning=ctx.reasoning,
+                                          images=[FIXTURES_DIR / name for name in ctx.images])
         except providers.StreamTimeout as exc:
             # Keep what streamed: a runaway answer is itself the result
             response, timed_out = exc.partial, True
