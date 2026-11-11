@@ -27,6 +27,7 @@ import os
 import platform
 import re
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 from crucible import checks, exporter, hostnames, manifest, provenance, registry, runrecord, suites, workspace
@@ -271,7 +272,8 @@ def scan(to: Path, only: set[str] | None = None) -> dict[str, dict]:
         if isinstance(run, dict):
             found[path.stem] = manifest.entry((run.get("provenance") or {}).get("content_hash"),
                                               path.relative_to(to).as_posix(), manifest.submitter_of(run),
-                                              scores.get(path.stem), status.get(path.stem, 0))
+                                              scores.get(path.stem), status.get(path.stem, 0),
+                                              manifest.redaction_of(run) is not None)
     return found
 
 
@@ -337,7 +339,8 @@ class Publisher:
         if existing is not None and existing.get("content_hash") is None and new_hash is None:
             file = self.to / existing["path"]
             same_bytes = file.exists() and file.read_text(encoding="utf-8") == _text(record)
-        verdict, why = manifest.decide(existing, new_hash, same_bytes)
+        redaction = manifest.redaction_of(record) or {}
+        verdict, why = manifest.decide(existing, new_hash, same_bytes, redaction.get("original_content_hash"))
         if verdict == manifest.REJECT and self.skip_known:
             return
         if verdict == manifest.REJECT:
@@ -351,7 +354,8 @@ class Publisher:
                 (self.outputs / f"{uuid}.txt").write_text(output, encoding="utf-8")
                 self.counts["outputs"] += 1
             if self._write("run", path, record):
-                self.entries[uuid] = manifest.entry(new_hash, rel, self.submitter or manifest.submitter_of(record))
+                self.entries[uuid] = manifest.entry(new_hash, rel, self.submitter or manifest.submitter_of(record),
+                                                    redacted=bool(redaction))
                 self.counts["runs"] += 1
             else:
                 return
@@ -452,9 +456,54 @@ def publish(runs_dir: Path, to: Path, outputs: Path, dry_run: bool = False, subm
     return pub
 
 
+REDACTED_REASON = "IP-derived host name removed before publishing"
+
+
+# Fields that hold a host or machine name: there, a value that merely starts like an address (`10-0-1`) goes too
+HOST_FIELDS = ("$.hardware.label", "$.provenance.machine_label", "$.endpoint.device", "$.serving_host", "$.harness_host",
+               "$.hardware.nickname")
+
+
+def _redact_walk(value, path: str, fields: list[str]):
+    """`value` with every string the IP detector flags set to None; their JSON paths are appended to `fields`."""
+    if isinstance(value, str):
+        if hostnames.contains_ip(value) or (path in HOST_FIELDS and hostnames.looks_like_ip(value)):
+            fields.append(path)
+            return None
+        return value
+    if isinstance(value, dict):
+        return {k: (v if path == "$.provenance" and k in ("redacted", "content_hash") else _redact_walk(v, f"{path}.{k}", fields))
+                for k, v in value.items()}
+    if isinstance(value, list):
+        return [_redact_walk(v, f"{path}[{i}]", fields) for i, v in enumerate(value)]
+    return value
+
+
+def redact_record(record: dict, output: str | None, today: str | None = None) -> tuple[dict, list[str]] | None:
+    """A run record with its IP-like host values set to null, or None when it has none (so it's idempotent).
+
+    Every other byte is unchanged. The copy gets provenance.redacted {fields, at, reason,
+    original_content_hash} and a recomputed provenance.content_hash. A host field is any string value the
+    detector (crucible/hostnames.py) flags: hardware.label, provenance.machine_label, endpoint.device and
+    any other. Only `publish --from-bundle` does this; a new record with an IP in it is refused instead.
+    """
+    fields: list[str] = []
+    copy = _redact_walk(record, "$", fields)
+    if not fields:
+        return None
+    prov = dict(copy.get("provenance") or {})
+    original = (record.get("provenance") or {}).get("content_hash")
+    prov["redacted"] = {"fields": sorted(fields), "at": today or datetime.now(timezone.utc).date().isoformat(),
+                        "reason": REDACTED_REASON, "original_content_hash": original}
+    copy["provenance"] = prov
+    prov["content_hash"] = content_hash(copy, output)
+    return copy, sorted(fields)
+
+
 def copy_bundle(old: Path, new: Path, from_outputs: Path, outputs: Path, dry_run: bool = False,
-                submitter: str | None = None) -> dict:
-    """Copy a published bundle into another folder without changing a byte of any record.
+                submitter: str | None = None, today: str | None = None) -> dict:
+    """Copy a published bundle into another folder without changing a byte of any record, except that a run
+    record with an IP-like host value gets it set to null (`redact_record`; flagged `redacted` in the manifest).
 
     Every run's content hash is verified against its record and output first; a run that fails isn't
     copied. Runs follow the manifest rules (crucible/manifest.py), so copying twice is a no-op. Scores,
@@ -463,12 +512,12 @@ def copy_bundle(old: Path, new: Path, from_outputs: Path, outputs: Path, dry_run
     <new>/manifest.json. Returns counts, `errors` and `notes`.
     """
     report = {"runs": 0, "scores": 0, "status": 0, "catalogs": 0, "registry": 0, "corrections": 0, "outputs": 0,
-              "verified": 0, "unverifiable": 0, "unchanged": 0, "errors": [], "notes": []}
+              "verified": 0, "unverifiable": 0, "unchanged": 0, "redacted": 0, "errors": [], "notes": []}
     errors, rejected = report["errors"], set()
     known = known_entries(new)
 
-    def put(src: Path, dest: Path, kind: str) -> bool:
-        data = src.read_bytes()
+    def put(src: Path, dest: Path, kind: str, data: bytes | None = None) -> bool:
+        data = src.read_bytes() if data is None else data
         if dest.exists():
             if dest.read_bytes() == data:
                 report["unchanged"] += 1
@@ -504,15 +553,33 @@ def copy_bundle(old: Path, new: Path, from_outputs: Path, outputs: Path, dry_run
         else:
             report["verified"] += 1
         dest = new / rel
-        verdict, why = manifest.decide(known.get(uuid), stored, dest.exists() and dest.read_bytes() == raw)
+        # IP-like host values are removed from the copy; the day it was done is kept when it's copied again
+        published = runrecord.read_json(dest) if dest.exists() else None
+        day = (manifest.redaction_of(published or {}) or {}).get("at") or today
+        redacted = redact_record(data, output, day)
+        out_bytes, new_hash, original = raw, stored, None
+        if redacted is not None:
+            record, fields = redacted
+            if hostnames.ip_strings(record):
+                errors.append(f"{rel.as_posix()}: still has an IP-like value after redaction; not copied")
+                rejected.add(uuid)
+                continue
+            out_bytes = _text(record).encode("utf-8")
+            new_hash = record["provenance"]["content_hash"]
+            original = record["provenance"]["redacted"]["original_content_hash"]
+        published_original = (manifest.redaction_of(published or {}) or {}).get("original_content_hash")
+        verdict, why = manifest.decide(known.get(uuid), new_hash, dest.exists() and dest.read_bytes() == out_bytes,
+                                       original, published_original)
         if verdict == manifest.REJECT:
             errors.append(f"{rel.as_posix()}: rejected, run {uuid} is {why}")
             rejected.add(uuid)
             continue
-        put(path, dest, "runs" if verdict == manifest.ADD else "")
+        if put(path, dest, "runs" if verdict == manifest.ADD else "", out_bytes) and redacted is not None:
+            report["redacted"] += 1
         if source is not None:
             put(source, outputs / source.name, "outputs")
-        known.setdefault(uuid, manifest.entry(stored, rel.as_posix(), submitter or manifest.submitter_of(data)))
+        known.setdefault(uuid, manifest.entry(new_hash, rel.as_posix(), submitter or manifest.submitter_of(data),
+                                              redacted=redacted is not None))
     for pattern, kind in (("scores/*/*.json", "scores"), ("status/*.json", "status"), ("catalog/*.json", "catalogs"),
                           ("registry/*.json", "registry")):
         for path in sorted(old.glob(pattern)):
@@ -521,6 +588,12 @@ def copy_bundle(old: Path, new: Path, from_outputs: Path, outputs: Path, dry_run
             put(path, new / path.relative_to(old), kind)
     if (old / CORRECTIONS_FILE).exists():
         put(old / CORRECTIONS_FILE, new / CORRECTIONS_FILE, "corrections")
+    if not (new / "registry").is_dir() and not dry_run:
+        # A bundle published before the registry existed: the new bundle carries the repo's reviewed registry
+        sink = Publisher(new, outputs)
+        sink.add_registry()
+        report["registry"] += sink.counts["registry"]
+        errors += sink.errors
     handled = {"runs", "scores", "status", "catalog", "registry", CORRECTIONS_FILE, manifest.FILE}
     left = sorted(p.name for p in old.iterdir() if p.name not in handled and not p.name.startswith("."))
     if left:
@@ -563,6 +636,8 @@ def check_folder(to: Path, outputs: Path | None = None) -> list[str]:
                 # Published before every record was hashed, without an output: nothing to check it against
                 problems_here = [p for p in problems_here if not p.startswith("$.provenance.content_hash:")]
             found += [f"{rel}: {p}" for p in problems_here]
+            if kind == "run":
+                found += [f"{rel}: {p}" for p in redaction_problems(data)]
             if kind == "run" and unverifiable(data):
                 if data.get("run_uuid") != path.stem:
                     found.append(f"{rel}: file name isn't its run_uuid")
@@ -584,6 +659,33 @@ def check_folder(to: Path, outputs: Path | None = None) -> list[str]:
             elif kind == "score" and path.name != score_name(data):
                 found.append(f"{rel}: file name doesn't match its run_uuid, rubric version and method")
     return found + manifest_problems(to)
+
+
+def _at_path(record, path: str):
+    """The value at a "$.a.b[0]" path as ip_strings writes it; (found, value)."""
+    value = record
+    for key, index in re.findall(r"\.([^.\[\]]+)|\[(\d+)\]", path):
+        try:
+            value = value[int(index)] if index else value[key]
+        except (KeyError, IndexError, TypeError):
+            return False, None
+    return True, value
+
+
+def redaction_problems(record) -> list[str]:
+    """What's wrong with a record's provenance.redacted block: the fields it lists must be null in the record.
+    (The content hash is checked as for any record: it's recomputed over the redacted copy.)"""
+    block = manifest.redaction_of(record) if isinstance(record, dict) else None
+    if block is None:
+        return []
+    found = []
+    for path in block.get("fields") or []:
+        ok, value = _at_path(record, path)
+        if ok and value is not None:
+            found.append(f"provenance.redacted lists {path} but it isn't null")
+    if hostnames.ip_strings(record):
+        found.append("a redacted record still contains an IP address or IP-derived host name")
+    return found
 
 
 def unverifiable(run: dict) -> bool:
@@ -740,7 +842,8 @@ def main() -> None:
         report = copy_bundle(args.from_bundle, folder, args.from_outputs or default_outputs(args.from_bundle),
                              args.outputs or default_outputs(folder), args.dry_run, args.submitter)
         verb = "Would copy" if args.dry_run else "Copied"
-        print(f"{verb} {report['runs']} runs ({report['verified']} hashes verified, {report['unverifiable']} unverifiable), "
+        print(f"{verb} {report['runs']} runs ({report['verified']} hashes verified, {report['unverifiable']} unverifiable, "
+              f"{report['redacted']} redacted of IP-derived host names), "
               f"{report['scores']} scores, {report['status']} status files, {report['catalogs']} catalogs, "
               f"{report['registry']} registry files, {report['corrections']} corrections files, {report['outputs']} outputs "
               f"to {folder}; {report['unchanged']} files were already there")

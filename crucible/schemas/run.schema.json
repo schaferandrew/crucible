@@ -196,7 +196,14 @@
                 "string",
                 "null"
               ],
-              "enum": ["server", "template", "inferred", "requested", "unknown", null]
+              "enum": [
+                "server",
+                "template",
+                "inferred",
+                "requested",
+                "unknown",
+                null
+              ]
             }
           }
         },
@@ -460,6 +467,39 @@
             "object",
             "null"
           ]
+        },
+        "redacted": {
+          "description": "Set only by `publish --from-bundle` when it removed IP-derived host names before publishing: the JSON paths set to null, when, why, and the content hash the record had before (null for a legacy run that had none).",
+          "type": [
+            "object",
+            "null"
+          ],
+          "required": [
+            "fields",
+            "at",
+            "reason",
+            "original_content_hash"
+          ],
+          "properties": {
+            "fields": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "at": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "original_content_hash": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
         }
       }
     }

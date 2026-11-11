@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from crucible import bundle, manifest, registry, runrecord, workspace
+from crucible import bundle, hostnames, manifest, registry, runrecord, workspace
 from tests.records import run_meta, write_run
 from tests.test_bundle import _runs, _tree
 
@@ -176,9 +176,15 @@ def test_from_bundle_on_the_real_bundle(tmp_path):
     run_files = sorted((REAL_BUNDLE / "runs").glob("*/*.json"))
     assert report["errors"] == [] and report["runs"] == len(run_files)
     assert report["verified"] + report["unverifiable"] == len(run_files)
+    # Byte for byte, except the runs with an IP-derived host name: those 33 are redacted (and flagged)
+    with_ip = {p.stem for p in run_files if hostnames.ip_strings(json.loads(p.read_text()))}
+    assert report["redacted"] == len(with_ip) == 33
     for path in REAL_BUNDLE.rglob("*.json"):
-        assert (new / path.relative_to(REAL_BUNDLE)).read_bytes() == path.read_bytes()
+        if path.stem not in with_ip:
+            assert (new / path.relative_to(REAL_BUNDLE)).read_bytes() == path.read_bytes()
+    assert not [p for p in new.rglob("*.json") if hostnames.ip_strings(json.loads(p.read_text()))]
     listed = json.loads((new / manifest.FILE).read_text())["runs"]
+    assert {u for u, e in listed.items() if e.get("redacted")} == with_ip
     assert set(listed) == {p.stem for p in run_files}
     assert {u for u, e in listed.items() if e["content_hash"] is None} == {
         p.stem for p in run_files if bundle.unverifiable(json.loads(p.read_text()))}
@@ -383,3 +389,143 @@ def test_format_4_end_to_end_write_publish_site_data(tmp_path, monkeypatch):
     assert setup["labels"]["machines"] == ["Pocket Rocket"] and setup["deployment"] == res.deployment_id
     assert index["entities"]["deployments"][res.deployment_id]["machines"] == [{"label": "Pocket Rocket", "runs": 1}]
     assert "Ironwood" not in "".join(p.read_text(errors="replace") for p in out.rglob("*.json"))
+
+
+# --------------------------------------------------------------------------
+# Redaction in publish --from-bundle
+# --------------------------------------------------------------------------
+
+def _old_bundle_with_ips(tmp_path, legacy_null_hash=False):
+    """A published bundle (2 runs) where run 0 carries IP-derived host names, as 33 old runs do. The record is
+    rewritten the way an old publish would have left it: its hash covers the IP values."""
+    runs, old = _runs(tmp_path), tmp_path / "site" / "_data" / "crucible"
+    outputs = bundle.default_outputs(old)
+    bundle.publish(runs, old, outputs)
+    first = sorted(old.glob("runs/*/*.json"))[0]
+    record = json.loads(first.read_text())
+    record["hardware"]["label"] = "ip-192-168-1-162"
+    record["endpoint"]["device"] = "192.168.1.162"
+    record["provenance"]["machine_label"] = "ip-192-168-1-162"
+    record["metrics"]["note"] = "served from 10.0.0.7:1234"
+    output = None
+    if legacy_null_hash:
+        record["output_ref"], record["provenance"]["content_hash"] = None, None
+        (outputs / f"{record['run_uuid']}.txt").unlink()
+    else:
+        output = (outputs / f"{record['run_uuid']}.txt").read_text(encoding="utf-8")
+        record["provenance"]["content_hash"] = bundle.content_hash(record, output)
+    first.write_text(bundle._text(record), encoding="utf-8")
+    (old / manifest.FILE).unlink()
+    return old, outputs, record, output
+
+
+def test_redact_record_nulls_ip_host_fields_and_nothing_else():
+    meta = run_meta("capitals-not-largest-city")
+    record = bundle.published_run(meta, "out")
+    assert bundle.redact_record(record, "out") is None            # nothing to redact: idempotent
+    record["hardware"]["label"] = "ip-192-168-1-162"
+    record["endpoint"]["device"] = "192.168.1.162"
+    record["provenance"]["machine_label"] = "ip-192-168-1-162"
+    record["metrics"]["note"] = "peer fe80::1"
+    copy, fields = bundle.redact_record(record, "out", "2026-11-11")
+    assert fields == ["$.endpoint.device", "$.hardware.label", "$.metrics.note", "$.provenance.machine_label"]
+    assert copy["hardware"]["label"] is None and copy["endpoint"]["device"] is None
+    assert copy["provenance"]["machine_label"] is None and copy["metrics"]["note"] is None
+    block = copy["provenance"]["redacted"]
+    assert block == {"fields": fields, "at": "2026-11-11", "reason": "IP-derived host name removed before publishing",
+                     "original_content_hash": record["provenance"]["content_hash"]}
+    assert copy["provenance"]["content_hash"] == bundle.content_hash(copy, "out") != record["provenance"]["content_hash"]
+    changed = {k for k in copy if copy[k] != record[k]}
+    assert changed == {"hardware", "endpoint", "metrics", "provenance"}
+    assert copy["model"] == record["model"] and copy["hardware"]["key"] == record["hardware"]["key"]
+    assert hostnames.ip_strings(copy) == []
+    assert bundle.redact_record(copy, "out") is None              # a redacted copy has nothing left to redact
+    assert bundle.redaction_problems(copy) == []
+
+
+def test_from_bundle_redacts_flags_the_manifest_and_check_accepts_it(tmp_path):
+    old, outputs, record, output = _old_bundle_with_ips(tmp_path)
+    new = tmp_path / "dash" / "bundle"
+    report = bundle.copy_bundle(old, new, outputs, bundle.default_outputs(new), today="2026-11-11")
+    assert report["errors"] == [] and report["redacted"] == 1 and report["runs"] == 2
+    copy = json.loads((new / "runs" / "2026-01" / f"{record['run_uuid']}.json").read_text())
+    assert copy["hardware"]["label"] is None and copy["provenance"]["redacted"]["original_content_hash"] \
+        == record["provenance"]["content_hash"]
+    listed = json.loads((new / manifest.FILE).read_text())["runs"]
+    assert listed[record["run_uuid"]]["redacted"] is True
+    assert listed[record["run_uuid"]]["content_hash"] == copy["provenance"]["content_hash"]
+    assert [u for u, e in listed.items() if e.get("redacted")] == [record["run_uuid"]]   # the other run is untouched
+    other = next(p for p in old.glob("runs/*/*.json") if p.stem != record["run_uuid"])
+    assert (new / other.relative_to(old)).read_bytes() == other.read_bytes()
+    assert bundle.check_folder(new, bundle.default_outputs(new)) == []
+    assert not any(p.read_text(errors="replace").count("192.168") for p in new.rglob("*") if p.is_file())
+    # the schemas allow provenance.redacted
+    assert bundle.record_problems("run", copy) == []
+
+
+def test_from_bundle_redaction_is_idempotent(tmp_path):
+    old, outputs, record, output = _old_bundle_with_ips(tmp_path)
+    new = tmp_path / "dash" / "bundle"
+    bundle.copy_bundle(old, new, outputs, bundle.default_outputs(new), today="2026-11-11")
+    before = _tree(tmp_path / "dash")
+    again = bundle.copy_bundle(old, new, outputs, bundle.default_outputs(new), today="2027-01-01")   # a later day
+    assert again["errors"] == [] and again["runs"] == 0 and again["redacted"] == 0 and _tree(tmp_path / "dash") == before
+    # copying the redacted bundle onward changes nothing either
+    third = tmp_path / "third" / "bundle"
+    report = bundle.copy_bundle(new, third, bundle.default_outputs(new), bundle.default_outputs(third))
+    assert report["errors"] == [] and report["redacted"] == 0
+    assert (third / "runs" / "2026-01" / f"{record['run_uuid']}.json").read_bytes() == \
+        (new / "runs" / "2026-01" / f"{record['run_uuid']}.json").read_bytes()
+
+
+def test_redacted_legacy_run_without_a_hash(tmp_path):
+    old, outputs, record, _ = _old_bundle_with_ips(tmp_path, legacy_null_hash=True)
+    assert bundle.unverifiable(json.loads((old / "runs" / "2026-01" / f"{record['run_uuid']}.json").read_text()))
+    new = tmp_path / "dash" / "bundle"
+    report = bundle.copy_bundle(old, new, outputs, bundle.default_outputs(new), today="2026-11-11")
+    assert report["errors"] == [] and report["unverifiable"] == 1 and report["redacted"] == 1
+    copy = json.loads((new / "runs" / "2026-01" / f"{record['run_uuid']}.json").read_text())
+    assert copy["provenance"]["redacted"]["original_content_hash"] is None
+    assert copy["provenance"]["content_hash"] == bundle.content_hash(copy, None)     # it has a hash now
+    assert bundle.check_folder(new, bundle.default_outputs(new)) == []
+    before = _tree(tmp_path / "dash")
+    assert bundle.copy_bundle(old, new, outputs, bundle.default_outputs(new), today="2030-01-01")["errors"] == []
+    assert _tree(tmp_path / "dash") == before
+
+
+def test_check_rejects_a_redacted_record_that_was_edited_or_lies(tmp_path):
+    old, outputs, record, _ = _old_bundle_with_ips(tmp_path)
+    new = tmp_path / "dash" / "bundle"
+    bundle.copy_bundle(old, new, outputs, bundle.default_outputs(new))
+    path = new / "runs" / "2026-01" / f"{record['run_uuid']}.json"
+    good = json.loads(path.read_text())
+    path.write_text(json.dumps({**good, "elapsed_s": 99.0}))
+    assert any("content hash doesn't match" in p for p in bundle.check_folder(new, bundle.default_outputs(new)))
+    lie = json.loads(json.dumps(good))
+    lie["hardware"]["label"] = "Whitehall"          # listed in provenance.redacted.fields, but not null
+    lie["provenance"]["content_hash"] = bundle.content_hash(lie, (bundle.default_outputs(new) / f"{record['run_uuid']}.txt").read_text(encoding="utf-8"))
+    path.write_text(json.dumps(lie))
+    assert any("isn't null" in p for p in bundle.check_folder(new, bundle.default_outputs(new)))
+
+
+def test_manifest_treats_a_redacted_copy_as_the_same_run_as_its_source():
+    source = manifest.entry("sha256:a", "runs/2026-01/x.json")
+    # a redacted copy arriving where the source is published
+    assert manifest.decide(source, "sha256:b", original_hash="sha256:a") == (manifest.NOOP, None)
+    assert manifest.decide(source, "sha256:b", original_hash="sha256:other")[0] == manifest.REJECT
+    assert manifest.decide(source, "sha256:b")[0] == manifest.REJECT
+    # the source arriving where its redacted copy is published
+    published = manifest.entry("sha256:b", "runs/2026-01/x.json", redacted=True)
+    assert manifest.decide(published, "sha256:a", published_original_hash="sha256:a") == (manifest.NOOP, None)
+    assert manifest.decide(published, "sha256:c", published_original_hash="sha256:a")[0] == manifest.REJECT
+    assert "redacted" in published and "redacted" not in source
+
+
+def test_publish_still_refuses_a_new_record_with_an_ip(tmp_path):
+    runs, to = _runs(tmp_path, 1), tmp_path / "bundle"
+    (run_dir,) = runrecord.run_dirs(runs)
+    meta = json.loads((run_dir / "meta.json").read_text())
+    meta["hardware"]["label"] = "ip-192-168-1-162"
+    (run_dir / "meta.json").write_text(json.dumps(meta))
+    pub = bundle.publish(runs, to, bundle.default_outputs(to))
+    assert pub.errors and "IP" in pub.errors[0] and not list(to.rglob("runs/*/*.json"))

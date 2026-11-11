@@ -8,6 +8,8 @@ of them apply the same rules:
   same run_uuid, same content_hash    -> no-op
   same run_uuid, different hash       -> reject (a published run is never overwritten)
   null hashes (legacy runs)           -> "same" only when the files are byte-identical
+  a redacted copy                     -> the same run as its source when its provenance.redacted
+                                         original_content_hash is the source's hash
 
 New score records and appended status records for a run already in the manifest stay allowed; they are
 not part of the run's identity. See docs/bundle-format.md#the-manifest.
@@ -27,9 +29,18 @@ def empty() -> dict:
 
 
 def entry(content_hash: str | None, path: str, submitter: str | None = None,
-          scores: list[str] | None = None, status_count: int = 0) -> dict:
-    return {"content_hash": content_hash, "submitter": submitter, "path": path,
-            "scores": sorted(scores or []), "status_count": status_count}
+          scores: list[str] | None = None, status_count: int = 0, redacted: bool = False) -> dict:
+    out = {"content_hash": content_hash, "submitter": submitter, "path": path,
+           "scores": sorted(scores or []), "status_count": status_count}
+    if redacted:
+        out["redacted"] = True   # present only when true: `publish --from-bundle` removed IP-derived host names
+    return out
+
+
+def redaction_of(record: dict) -> dict | None:
+    """A record's provenance.redacted block, or None."""
+    block = (record.get("provenance") or {}).get("redacted")
+    return block if isinstance(block, dict) else None
 
 
 def submitter_of(record: dict) -> str | None:
@@ -40,16 +51,24 @@ def submitter_of(record: dict) -> str | None:
     return sub if isinstance(sub, str) and sub else None
 
 
-def decide(existing: dict | None, content_hash: str | None, identical_bytes: bool | None = None) -> tuple[str, str | None]:
+def decide(existing: dict | None, content_hash: str | None, identical_bytes: bool | None = None,
+           original_hash: str | None = None, published_original_hash: str | None = None) -> tuple[str, str | None]:
     """(ADD | NOOP | REJECT, why) for a run arriving with `content_hash`, against its manifest entry (or None).
 
     `identical_bytes` says whether the incoming file equals the published one byte for byte; it only
-    matters when both hashes are null.
+    matters when both hashes are null. `original_hash` is the incoming record's
+    provenance.redacted.original_content_hash: a redacted copy of what's published is the same run.
+    `published_original_hash` is the same for the published record: the incoming (unredacted) run is the
+    source of what's published.
     """
     if existing is None:
         return ADD, None
     old = existing.get("content_hash")
     if old is not None and old == content_hash:
+        return NOOP, None
+    if old is not None and original_hash is not None and original_hash == old:
+        return NOOP, None
+    if content_hash is not None and published_original_hash is not None and published_original_hash == content_hash:
         return NOOP, None
     if old is None and content_hash is None:
         if identical_bytes:
@@ -80,6 +99,8 @@ def problems(manifest, found: dict[str, dict]) -> list[str]:
         want, have = runs[uuid], found[uuid]
         if want.get("content_hash") != have.get("content_hash"):
             out.append(f"manifest.json: {uuid} content hash {want.get('content_hash')} doesn't match its file's {have.get('content_hash')}")
+        if bool(want.get("redacted")) != bool(have.get("redacted")):
+            out.append(f"manifest.json: {uuid} redacted flag {bool(want.get('redacted'))} but its file says {bool(have.get('redacted'))}")
         if want.get("path") != have.get("path"):
             out.append(f"manifest.json: {uuid} path {want.get('path')} isn't where it is ({have.get('path')})")
         if sorted(want.get("scores") or []) != sorted(have.get("scores") or []):
