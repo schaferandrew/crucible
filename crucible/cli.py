@@ -10,8 +10,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from crucible import (bundle, checks, coverage, exporter, graders, judge, migrate, reporter, runner, runrecord, scorer, suites,
-                      tasks, versioning)
+from crucible import (bundle, checks, coverage, exporter, graders, judge, migrate, reporter, runner, runrecord, scorer, sitedata,
+                      suites, tasks, versioning)
 
 
 def _get_version() -> str:
@@ -37,6 +37,7 @@ Commands:
   versions Check task versions against the lock; --update rewrites it
   suite    List, verify, cut or patch suites (which tasks are scored, at which versions)
   publish  Add this machine's results to the dashboard's data folder (bundle format 3, validated)
+  site-data Turn the published bundle into the dashboard's static JSON
   export   Write the old single-file bundle (--format 2) the dashboard reads until it switches
   migrate  Bring runs from before Crucible 3.0.0 into the new layout (--dry-run first)
   status   Mark a run invalid or withdrawn after the fact (a status record), or show its status
@@ -73,7 +74,7 @@ COMMANDS = {
     "run": runner.main, "score": scorer.main, "report": reporter.main,
     "judge": judge.main, "versions": versioning.main, "export": exporter.main, "publish": bundle.main, "checks": checks.main,
     "grader": graders.main, "task": tasks.main, "suite": suites.main, "migrate": migrate.main,
-    "status": runrecord.status_main, "coverage": coverage.main,
+    "status": runrecord.status_main, "coverage": coverage.main, "site-data": sitedata.main,
 }
 
 
