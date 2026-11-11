@@ -24,6 +24,11 @@ here ([docs/versioning.md](docs/versioning.md)).
   restaurant, distance and travel-time tools over fictional data, for travel-planning tasks. Its script and
   data are task content; the README of ground truth beside them isn't.
 
+### Fixed
+- `tool_calls` checks count the MCP calls opencode makes from its `execute` tool (code mode), read from
+  that call's metadata. Before, a model that called the tools only from a script was scored as not
+  calling them, which failed the grounded checks of the calendar and travel tasks.
+
 ## 3.8.1 (2026-11-10)
 
 ### Fixed

@@ -335,6 +335,19 @@ def test_opencode_session_tool_calls(tmp_path):
     assert checks.session_tool_calls(tmp_path) == [{"name": "mock-calendar_list_events", "args": {"calendarId": "primary"}}]
 
 
+def test_opencode_code_mode_tool_calls(tmp_path):
+    """opencode's `execute` runs a script; the MCP calls it made count as calls of their own."""
+    (tmp_path / "session.json").write_text(json.dumps({"messages": [{"type": "assistant", "content": [
+        {"type": "tool", "tool": "execute", "state": {"input": {"code": "..."}, "metadata": {"toolCalls": [
+            {"tool": "mock-travel.search_flights", "status": "completed", "input": {"origin": "HBR"}},
+            {"tool": "mock-travel.get_travel_time", "status": "completed", "input": {"mode": "taxi"}}]}}}]}]}))
+    calls = checks.session_tool_calls(tmp_path)
+    assert [c["name"] for c in calls] == ["execute", "mock-travel.search_flights", "mock-travel.get_travel_time"]
+    check = {"id": "g", "type": "tool_calls", "items": [
+        {"id": "f", "tool": "search_flights"}, {"id": "t", "tool": "get_travel_time"}]}
+    assert checks.run_checks({"checks": [check]}, "x", tool_calls=calls)[0]["passed"]
+
+
 def _capped(task_id, text, tool_calls=()):
     from crucible import workspace
     task = workspace.load_task(task_id)
