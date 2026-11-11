@@ -430,8 +430,8 @@ def test_b03_delta_is_small_and_listed(real_build):
         r = json.loads(p.read_text())
         pairs[r["run_uuid"]] = r["setup"]
     delta = golden_compare.delta(SITE / "_data" / "crucible", pairs)
-    assert delta["legacy"] == 144 and delta["setups"] == 157
-    assert len(delta["split"]) == 14 and len(delta["merged"]) == 2
+    assert delta["legacy"] == 144 and delta["setups"] == 145
+    assert len(delta["split"]) == 4 and len(delta["merged"]) == 3
 
 
 def test_machine_names_are_display_only(real_build):

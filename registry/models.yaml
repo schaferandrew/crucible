@@ -33,10 +33,26 @@ models:
     maker: google
   - id: google/gemma-4-26b-a4b-qat
     maker: google
+    defaults:
+    - match:
+        quant: q4_0
+      packager: google
+      reasoning: 'on'
+      reason: all 26 runs of google/gemma-4-26b-a4b-qat at q4_0 that recorded packager say google; 51 runs
+        recorded none; all 25 runs of google/gemma-4-26b-a4b-qat at q4_0 that recorded a resolved reasoning
+        level say on; 51 runs recorded none
   - id: google/gemma-4-31b
     maker: google
   - id: google/gemma-4-e4b
     maker: google
+    defaults:
+    - match:
+        quant: 4bit
+      packager: google
+      reasoning: 'on'
+      reason: all 26 runs of google/gemma-4-e4b at 4bit that recorded packager say google; 65 runs recorded
+        none; all 26 runs of google/gemma-4-e4b at 4bit that recorded a resolved reasoning level say on; 44
+        runs recorded none
   - id: ibm-granite/granite-4.2-3b
     maker: ibm-granite
     aliases:
@@ -86,6 +102,14 @@ models:
         reason: OpenRouter's ~ latest alias prefix
   - id: openai/gpt-oss-20b
     maker: openai
+    defaults:
+    - match:
+        quant: mxfp4
+      packager: openai
+      reasoning: low
+      reason: all 106 runs of openai/gpt-oss-20b at mxfp4 that recorded packager say openai; 40 runs recorded
+        none; all 25 runs of openai/gpt-oss-20b at mxfp4 that recorded a resolved reasoning level say low;
+        41 runs recorded none
   - id: ornith-ai/ornith-1.5-35b-a3b
     maker: ornith-ai
     aliases:
@@ -97,6 +121,12 @@ models:
           publish, and the field would only fill a blank run — keeping all of them as recorded
   - id: ornith-ai/ornith-1.5-9b
     maker: ornith-ai
+    defaults:
+    - match:
+        quant: q6_k
+      reasoning: 'on'
+      reason: all 42 runs of ornith-ai/ornith-1.5-9b at q6_k that recorded a resolved reasoning level say
+        on; 8 runs recorded none
     aliases:
       - base: ornith-1.5-9b
         legacy_to_base: ornith-ai/Ornith-1.5-9B
@@ -124,6 +154,14 @@ models:
     maker: qwen
   - id: qwen/qwen3.5-9b
     maker: qwen
+    defaults:
+    - match:
+        quant: 8bit
+      packager: qwen
+      reasoning: 'on'
+      reason: all 13 runs of qwen/qwen3.5-9b at 8bit that recorded packager say qwen; 6 runs recorded none;
+        all 8 runs of qwen/qwen3.5-9b at 8bit that recorded a resolved reasoning level say on; 5 runs recorded
+        none
   - id: qwen/qwen3.6-35b-a3b
     maker: qwen
   - id: qwen/qwen3.8-27b
