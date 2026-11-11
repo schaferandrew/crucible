@@ -219,9 +219,10 @@ def test_machine_id_only_names_the_serving_machine_when_it_served_itself():
 def test_the_hardware_key_is_recorded_else_the_machines():
     res = REG.resolve_run(run(key=None))
     assert (res.hardware_key, res.sources["hardware_from"]) == ("m5-pro-48gb", "machine")
-    # Eclipse has no hardware in the registry, so it stays unrecorded
+    # Eclipse recorded no hardware; its key comes from the registry
     eclipse = REG.resolve_run(run(device="Eclipse", label="Eclipse", key=None))
-    assert (eclipse.machine, eclipse.hardware_key) == ("eclipse", None)
+    assert (eclipse.machine, eclipse.hardware_key) == ("eclipse", "m5-pro-48gb")
+    assert eclipse.sources["hardware_from"] == "machine"
     clash = REG.resolve_run(run(device="Duskfall", key="m1-pro-32gb"))
     assert clash.hardware_key == "m1-pro-32gb" and any("differs from duskfall's" in n for n in clash.notes)
 
@@ -308,7 +309,8 @@ def test_energy_cost_rules():
     assert REG.energy_cost(r) == pytest.approx(60 * 3600 / 3.6e6 * 0.183)
     # A local run's recorded cost (0) is ignored; a missing key is read from the machine
     assert REG.energy_cost(run(key=None)) == pytest.approx(60 * 3600 / 3.6e6 * 0.183)
-    assert REG.energy_cost(run(device="Eclipse", label="Eclipse", key=None)) is None
+    assert REG.energy_cost(run(device="Eclipse", label="Eclipse", key=None)) is not None
+    assert REG.energy_cost(run(device="ip-10-0-0-1", label="ip-10-0-0-1", key=None)) is None
     assert REG.energy_cost(run(where="cloud", fmt=None, quant=None)) == 0.5
     cloud = run(where="cloud")
     cloud["metrics"] = {}
@@ -345,8 +347,8 @@ def test_publish_check_reports_registry_gaps(tmp_path):
     assert "model.base 'mystery/model-1' (1 runs) isn't a registry model" in bundle.base_warnings(site)[0]
     assert len(bundle.base_warnings(site)) == 1
     machines = " ".join(bundle.machine_warnings(site))
-    assert "2 local runs resolve to no hardware key" in machines and "1 local runs resolve to no machine" in machines
-    assert "Eclipse (1)" in machines and "ip-10-0-0-1 (1)" in machines
+    assert "1 local runs resolve to no hardware key" in machines and "1 local runs resolve to no machine" in machines
+    assert "Eclipse" not in machines and "ip-10-0-0-1 (1)" in machines
     legacy = " ".join(bundle.legacy_warnings(site))
     assert "1 runs carry a `local` key" in legacy and "3 runs have a null content_hash" in legacy
 
