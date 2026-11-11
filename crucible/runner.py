@@ -24,7 +24,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from crucible import (checks, console, environment, graders, origin, provenance, providers, runrecord, scorer,
+from crucible import (checks, console, environment, graders, hardware, origin, provenance, providers, runrecord, scorer,
                       versioning, workspace)
 from crucible.agents import AGENTS, DEFAULT_AGENT, Agent, RunContext
 from crucible.agents.base import available_mcp_servers
@@ -95,6 +95,30 @@ def _context_problem(agent: Agent, model: str | None, reasoning: str = "default"
             + ("" if agent.uses_workspace or reasoning == "off" else ", or run with --reasoning off") + ".")
 
 
+_DEVICES_CHECKED: set = set()
+
+
+def _check_device(inference: dict, ask: bool) -> None:
+    """Point out, once per device, an LM Link device the devices file doesn't list (and offer to add it)."""
+    device = hardware.unlisted(inference)
+    if device and device not in _DEVICES_CHECKED:
+        _DEVICES_CHECKED.add(device)
+        hardware.ask_to_add(device, ask=ask)
+
+
+def preflight_device(model: str | None) -> None:
+    """Before the first run: ask about the device serving a loaded LM Studio model if it isn't listed.
+
+    An unloaded model's device isn't known yet; the first run's record points it out instead.
+    """
+    try:
+        provider = providers.split_model(model or "")[0].name
+    except ValueError:
+        return
+    if provider == "lmstudio":
+        _check_device(environment.inference(model), ask=True)
+
+
 def _write_meta(ctx: RunContext, agent: Agent, prompt_def: dict, result: dict,
                 started_at: str, elapsed: float, billed_usd: float | None = None) -> dict:
     """The run record (see crucible/runrecord.py and docs/data-model.md)."""
@@ -102,6 +126,8 @@ def _write_meta(ctx: RunContext, agent: Agent, prompt_def: dict, result: dict,
     for name in ("stdout.txt", "stderr.txt"):
         (ctx.run_dir / name).touch()
     env = environment.capture(ctx.model, agent.executable)
+    # Never asks here: a prompt mid-suite would stall an unattended run
+    _check_device(env["inference"], ask=False)
     resolved, resolved_source = environment.reasoning_resolved(ctx.model, ctx.reasoning)
     inference = env["inference"]
     identity = versioning.task_identity(prompt_def)
@@ -453,6 +479,7 @@ def main() -> None:
     if args.watch and not any(s.mode == "agentic" for s in plan.steps):
         print("Note: --watch opens an agent's TUI, so it only applies to agentic tests; "
               "chat tests show a live progress line instead.")
+    preflight_device(plan.model)
     run_paths = run_plan(plan, args.watch, args.output)
 
     summary = []

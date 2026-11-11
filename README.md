@@ -42,6 +42,26 @@ Models are named `provider/model`. Crucible talks to three providers itself, for
 | Ollama | `ollama/qwen3:30b-a3b` | Run Ollama (default `http://localhost:11434`; override with `OLLAMA_BASE_URL`). |
 | OpenRouter | `openrouter/moonshotai/kimi-k2.6` | Set `OPENROUTER_API_KEY`. Billed cost is read from the key's usage, so don't share the key with other jobs while a run is going. |
 
+### Hardware and LM Link devices
+
+Every local run records the hardware that ran the weights, so results can be grouped by it. A model served
+by this machine needs no setup: its CPU, GPU and memory are read from the machine. A model served over
+LM Link from another machine is different: LM Link names the peer but not its hardware, so Crucible looks
+the peer up in a devices file that's local to you, `~/.crucible/devices.yaml` (override with
+`CRUCIBLE_DEVICES_FILE`). It's never part of the repo, since everyone's machines differ:
+
+```bash
+crucible devices                                  # what's listed
+crucible devices add gpu-box --cpu "AMD Ryzen 9 7950X" --gpu "NVIDIA RTX 4090 24GB" --ram-gb 64 \
+    --alias desktop-a1b2c3                        # another name LM Link reports for it
+crucible devices this                             # on the serving machine: its entry, to paste
+```
+
+Use the name `lms link status` reports for the peer. When `crucible run` finds a loaded model served by a
+peer the file doesn't list, it offers to add it before the first run; if it only finds out afterwards
+(the model wasn't loaded yet), it says so and the run records the peer's name without specs. Runs record
+their hardware when they're made, so add a peer before running on it.
+
 Agentic tasks hand the model name to the harness, so anything the harness supports also works there, such as opencode's own `opencode/<model>` free models.
 
 Load local models with **at least 32k context** (8k is enough for chat tasks with `--reasoning off`); crucible refuses the run otherwise. Agents compact or fail with less, and a thinking model can reason for thousands of tokens before it answers, filling a small context with no answer at all.

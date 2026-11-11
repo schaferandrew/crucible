@@ -12,6 +12,23 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## 3.10.0 (2026-11-11)
+
+### Added
+- `crucible devices` lists, adds (`add NAME --cpu --gpu --ram-gb --alias`) and prints (`this`) the
+  machines that serve models to this one over LM Link, in a devices file local to each person:
+  `~/.crucible/devices.yaml`, or `CRUCIBLE_DEVICES_FILE`.
+- `crucible run` points out an LM Link peer the devices file doesn't list, since its runs record no
+  hardware. Before the first run, when the model is already loaded, it offers to add the peer (on a
+  terminal); otherwise it prints how. It never stops mid-suite to ask.
+
+### Changed
+- The table of serving machines is no longer built into Crucible: the specs of LM Link peers come only
+  from your devices file, so a contributor's clone doesn't carry someone else's machines. If your runs
+  are served over LM Link, add your peers with `crucible devices add` before your next run, and before
+  `crucible export --format 2` or `crucible migrate`, which read the peers' specs for older runs too.
+  Runs served by the machine running Crucible need nothing.
+
 ## 3.9.0 (2026-11-10)
 
 ### Added
