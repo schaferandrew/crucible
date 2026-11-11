@@ -53,6 +53,14 @@ here ([docs/versioning.md](docs/versioning.md)).
   names pass through `crucible/hostnames.py`, an IP host in a base URL is dropped, and `crucible publish`
   refuses a new run record with an IP-like string in it. `--check` warns about runs already published
   with one.
+- `crucible site-data --bundle DIR --outputs DIR --out DIR`: turns the published bundle (format 3 and 4 run
+  records) into the static JSON the new dashboard loads: a per-suite `index.json` (catalog, entities, one cell per
+  setup and task, precomputed time, speed and cost per setup), per-task and per-model run lists, one file per run,
+  monthly run lists and the copied outputs. It applies the page's run-state rules (withdrawn, unknown or retired task,
+  invalid, older version, harness not allowed, counted or provisional) and resolves every run through the registry.
+  The output is deterministic, and the build refuses to finish if it contains an IP address or an IP-derived host
+  name. The format is in [docs/site-data-format.md](docs/site-data-format.md), with JSON Schemas in
+  `crucible/schemas/site-data/`.
 
 ### Changed
 - `corrections.yaml` is gone. `corrections.json` is still written for the live page, now generated from

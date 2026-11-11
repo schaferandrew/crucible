@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "site-data <suite>/models/<model>.json",
+  "description": "Slim runs of one model in one suite, every state, each with its task. See docs/site-data-format.md.",
+  "type": "object",
+  "required": ["suite", "model", "runs"],
+  "properties": {
+    "suite": {"type": "string"},
+    "model": {"type": "string"},
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["run_uuid", "setup", "state", "score", "outcome", "elapsed_s", "tps", "cost", "started_at", "tool_calls", "task"],
+        "properties": {
+          "run_uuid": {"type": "string"}, "setup": {"type": "string"},
+          "state": {"type": "string", "enum": ["counted", "provisional", "older", "harness", "invalid", "retired", "unknown_task", "withdrawn"]},
+          "score": {"type": ["number", "null"]}, "outcome": {"type": "string", "enum": ["finished", "timed_out", "error"]},
+          "elapsed_s": {"type": ["number", "null"]}, "tps": {"type": ["number", "null"]}, "cost": {"type": ["number", "null"]},
+          "started_at": {"type": ["string", "null"]}, "tool_calls": {"type": ["number", "null"]}, "machine": {"type": ["string", "null"]}, "task": {"type": ["string", "null"]}
+        }
+      }
+    }
+  }
+}

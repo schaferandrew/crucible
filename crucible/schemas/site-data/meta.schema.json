@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "site-data meta.json",
+  "description": "What was built and which suites exist (hidden suites omitted). See docs/site-data-format.md.",
+  "type": "object",
+  "required": ["site_data_format", "built_at", "crucible_version", "bundle_hash", "current_suite", "suites"],
+  "properties": {
+    "site_data_format": {"type": "integer"},
+    "built_at": {"type": "string"},
+    "crucible_version": {"type": "string"},
+    "bundle_hash": {"type": "string"},
+    "current_suite": {"type": ["string", "null"]},
+    "suites": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "version", "label", "status", "cut_at"],
+        "properties": {
+          "id": {"type": "string"},
+          "version": {"type": ["string", "null"]},
+          "label": {"type": "string"},
+          "status": {"type": ["string", "null"]},
+          "cut_at": {"type": ["string", "null"]}
+        }
+      }
+    }
+  }
+}
