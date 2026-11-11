@@ -32,9 +32,10 @@ machines:
   - id: duskfall
     label: Duskfall
     hardware: m5-pro-48gb
-    # Mac-168 and ip-192-168-1-162/163 are this machine's DHCP host names on runs it served itself:
-    # each carries hardware key m5-pro-48gb and machine_id m_9482e089d1c3, the id of the runs labelled Duskfall
-    host_aliases: [Duskfall, Mac-168, ip-192-168-1-162, ip-192-168-1-163]
+    # Mac-168 is this machine's DHCP host name on runs it served itself: they carry hardware key m5-pro-48gb
+    # and machine_id m_9482e089d1c3, the id of the runs labelled Duskfall. IP-style host names are never listed
+    # here (the registry is published); runs that recorded one resolve through endpoint.device instead.
+    host_aliases: [Duskfall, Mac-168]
     machine_ids: [m_9482e089d1c3]
   - id: ironwood
     label: Ironwood

@@ -29,6 +29,11 @@ MLX_QUANT = re.compile(r"^(mlx-)?\d+bit$", re.IGNORECASE)
 LOCAL_PROVIDERS = ("lmstudio", "ollama")
 
 
+# An IPv4/IPv6 address or a host name derived from one (ip-192-168-1-5, 192-168-1-5)
+IP_LIKE = re.compile(r"(?<![\w.])(?:\d{1,3}[.-]){3}\d{1,3}(?![\w])|(?:^|[^\w])ip-\d{1,3}-\d{1,3}-\d{1,3}-\d{1,3}"
+                     r"|(?:[0-9a-f]{1,4}:){2,7}[0-9a-f]{1,4}", re.I)
+
+
 def slug(text, keep_slash: bool = False) -> str:
     """Lowercase, URL-safe (a-z0-9._-, and / when asked); anything else becomes a hyphen."""
     pattern = r"[^a-z0-9._/-]+" if keep_slash else r"[^a-z0-9._-]+"
@@ -199,6 +204,10 @@ class Registry:
             if m.get("hardware") is not None and m["hardware"] not in self.hardware:
                 found.append(f"machine {m['id']}: hardware {m['hardware']!r} isn't in the hardware list")
             hosts += [h.strip().lower() for h in m.get("host_aliases") or []]
+            for h in m.get("host_aliases") or []:
+                if IP_LIKE.search(str(h)):
+                    found.append(f"machine {m.get('id')}: host alias {h!r} looks like an IP address; "
+                                 "the registry is published, so never list one")
             ids += list(m.get("machine_ids") or [])
         dupes("host alias", hosts)
         dupes("machine_id", ids)

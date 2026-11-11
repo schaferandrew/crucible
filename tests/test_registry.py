@@ -393,3 +393,16 @@ def test_every_published_run_resolves():
           f"{sum(1 for x in local if x.hardware_key)}/{len(local)}"
           f"\n{len(setups)} setups; {len(loose)} runs in {len({x.setup_id for x in loose})} setups with an unrecorded part")
     assert dist("model_from").get("unknown", 0) == 0
+
+
+def test_an_ip_like_host_alias_is_a_registry_problem():
+    import copy
+    reg = copy.deepcopy(REG)
+    reg.machines["duskfall"] = dict(reg.machines["duskfall"], host_aliases=["Duskfall", "ip-192-168-1-9"])
+    assert any("looks like an IP address" in p for p in reg.problems())
+    assert not any("looks like an IP address" in p for p in REG.problems())
+    from crucible.registry import IP_LIKE
+    for bad in ["ip-10-0-0-1", "192.168.1.5", "10-0-0-7", "fe80::1:2:3", "x ip-172-16-0-1"]:
+        assert IP_LIKE.search(bad), bad
+    for ok in ["Duskfall", "Mac-168", "m5-pro-48gb", "rtx-5070-ti-16gb", "qwen3.5-9b", "v2.1.4"]:
+        assert not IP_LIKE.search(ok), ok
