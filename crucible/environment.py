@@ -116,9 +116,13 @@ def lmstudio_device(model_id: str, loaded: list | None, link: dict | None,
         return {}
     (device,) = devices
     if device in (None, link.get("deviceIdentifier")):
-        return {"device": hardware.canonical(link.get("deviceName")), "same_machine": True}
+        ref = hardware.lmlink_id(link.get("deviceIdentifier"))
+        return {"device": hardware.canonical(link.get("deviceName"), [ref]), "same_machine": True,
+                "device_id": ref, "device_reported": link.get("deviceName")}
     peer = next((p for p in link.get("peers") or [] if p.get("deviceIdentifier") == device), {})
-    return {"device": hardware.canonical(peer.get("deviceName")), "same_machine": False, "served_via": "LM Link"}
+    ref = hardware.lmlink_id(device)
+    return {"device": hardware.canonical(peer.get("deviceName"), [ref]), "same_machine": False, "served_via": "LM Link",
+            "device_id": ref, "device_reported": peer.get("deviceName")}
 
 
 def quant_name(entry: dict) -> str | None:
@@ -237,8 +241,9 @@ def lmstudio_expected_variant(model_id: str, available: list | None, link: dict 
                                                             if len(resolved_devices) == 1 else None)
     if resolved_device:
         peer = peers.get(resolved_device) or {}
+        resolved["device_id"] = hardware.lmlink_id(resolved_device)
         resolved["device_name"] = hardware.canonical(
-            link.get("deviceName") if resolved_device == local_id else peer.get("deviceName"))
+            link.get("deviceName") if resolved_device == local_id else peer.get("deviceName"), [resolved["device_id"]])
     return resolved
 
 
@@ -448,4 +453,82 @@ def harness_version(executable: str | None) -> str | None:
 
 
 def capture(model: str | None, executable: str | None = None) -> dict:
-    return {"machine": machine(), "inference": inference(model), "harness_version": harness_version(executable)}
+    found = inference(model)
+    here = machine()
+    here["name"] = this_machine_name(found, here.get("hostname"))
+    return {"machine": here, "inference": found, "harness_version": harness_version(executable)}
+
+
+# --------------------------------------------------------------------------
+# Which devices a run would record, and whether the devices file knows them
+# --------------------------------------------------------------------------
+
+def this_machine_ids(link: dict | None = None) -> list[str]:
+    """How this machine is recognized: its Crucible machine ID, and its LM Link ID when it has one."""
+    from crucible import provenance
+    return [i for i in (hardware.machine_ref(provenance.machine_id()),
+                        hardware.lmlink_id((link or {}).get("deviceIdentifier"))) if i]
+
+
+def this_machine_name(found: dict, hostname: str | None = None) -> str | None:
+    """The name this machine was given in the devices file, if any."""
+    ids = this_machine_ids()
+    reported = hostname
+    if found.get("same_machine") and found.get("device_id"):
+        ids.append(found["device_id"])
+        reported = found.get("device_reported") or hostname
+    return hardware.resolve(reported, ids)
+
+
+def _link() -> dict | None:
+    link = _lms_json("link", "status")
+    return link if isinstance(link, dict) and link.get("deviceIdentifier") else None
+
+
+def known_devices(model: str | None = None) -> list[dict]:
+    """The devices that would run `model` (every device this machine can use when None), each as
+    {ids, reported, this_machine, specs, name}: `name` is its name in the devices file, or None.
+
+    The serving device is the loaded instance's, else LM Link's preferred device for an unloaded model;
+    when neither says, every connected device could serve it. A device found by name has its IDs
+    remembered, so it's recognized by ID from then on. A server on another host (OLLAMA_BASE_URL)
+    isn't identifiable and gives nothing.
+    """
+    if model is not None:
+        try:
+            provider = providers.split_model(model)[0].name
+        except ValueError:
+            return []
+        if provider not in PROVIDER_DETAILS:
+            return []
+        host = urlparse(PROVIDER_BASE_URLS[provider]() or "").hostname
+        if host and host not in LOCAL_HOSTS:
+            return []
+        link = _link() if provider == "lmstudio" else None
+    else:
+        link = _link()
+    here_specs = machine()
+    devices = [{"ids": this_machine_ids(link), "this_machine": True, "specs": here_specs,
+                "reported": (link or {}).get("deviceName") or here_specs.get("hostname")}]
+    peers = [{"ids": [hardware.lmlink_id(p.get("deviceIdentifier"))], "this_machine": False, "specs": None,
+              "reported": p.get("deviceName"), "connected": p.get("status") in (None, "connected")}
+             for p in (link or {}).get("peers") or [] if isinstance(p, dict) and p.get("deviceIdentifier")]
+    if model is None:
+        devices += peers
+    elif link:
+        found = inference(model)
+        serving = found.get("device_id") or (found.get("expected_variant") or {}).get("device_id")
+        if serving:
+            devices = [d for d in devices + peers if serving in d["ids"]] or devices
+        else:
+            devices += [p for p in peers if p["connected"]]
+    for device in devices:
+        device["name"] = hardware.resolve(device["reported"], device["ids"])
+        if device["name"]:
+            hardware.remember(device["name"], device["ids"], device["reported"])
+    return devices
+
+
+def needs_naming(device: dict) -> bool:
+    """Not in the devices file, or a peer listed without hardware (this machine's is read from it)."""
+    return not device["name"] or (not device["this_machine"] and not hardware.specs(device["name"]))

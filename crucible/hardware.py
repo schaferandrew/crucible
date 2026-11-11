@@ -1,17 +1,22 @@
-"""The machines that serve inference, by the name LM Link reports for them.
+"""The machines that run inference: what each is called and what hardware it has.
 
-LM Link names a peer but doesn't report its hardware, so a run served by another machine gets
-its specs from the devices file: `~/.crucible/devices.yaml` (or `CRUCIBLE_DEVICES_FILE`). It's
-local to each person running Crucible, never part of the repo, since everyone's machines differ.
-A run on this machine needs no entry: its specs are read from the machine itself.
-`crucible devices` lists and adds entries; the format is
+A run records the device that ran the weights, under the name you gave it. That's this machine, or
+an LM Link peer serving the model to it. LM Link names each device and gives it a stable identifier
+but reports no hardware, so Crucible keeps a devices file, local to each person and never part of the
+repo: `~/.crucible/devices.yaml` (or `CRUCIBLE_DEVICES_FILE`).
 
     devices:
-      gpu-box:
+      gpu-box:                      # the name runs are stamped with
         cpu: AMD Ryzen 9 7950X
-        gpu: NVIDIA RTX 4090 24GB
+        gpu: NVIDIA RTX 4090 24GB   # discrete GPU with its memory; null on Apple silicon
         ram_gb: 64
-        aliases: [desktop-a1b2c3]   # other names LM Link reports for it
+        ids: [lmlink:6f2c...]       # how Crucible recognizes it (LM Link device ID, this machine's ID)
+        aliases: [desktop-a1b2c3]   # other names LM Link has reported for it
+
+A device is recognized by its ID first, then by name or alias (and then its ID is remembered).
+`crucible run` asks about a serving device it doesn't recognize before the first run, and
+`crucible devices setup` names every device up front. This machine's own hardware is always read from
+the machine; a peer's comes from the file.
 """
 from __future__ import annotations
 
@@ -25,8 +30,9 @@ import yaml
 
 FIELDS = ("cpu", "gpu", "ram_gb")
 HEADER = """\
-# Machines that serve models to this one over LM Link, so runs they serve record their hardware.
-# Local to this machine; Crucible never commits or publishes it. Edit it, or `crucible devices add`.
+# The machines that run models for Crucible here: this one and its LM Link peers. Runs are stamped
+# with these names and specs. Local to this machine; never committed or published.
+# Edit it, or use `crucible devices setup` / `crucible devices add`.
 """
 
 _cache: dict = {}
@@ -36,8 +42,16 @@ def devices_file() -> Path:
     return Path(os.environ.get("CRUCIBLE_DEVICES_FILE") or Path.home() / ".crucible" / "devices.yaml")
 
 
+def lmlink_id(identifier: str | None) -> str | None:
+    return f"lmlink:{identifier}" if identifier else None
+
+
+def machine_ref(machine_id: str | None) -> str | None:
+    return f"machine:{machine_id}" if machine_id else None
+
+
 def devices() -> dict[str, dict]:
-    """name -> {cpu, gpu, ram_gb, aliases} from the devices file; empty when there is none.
+    """name -> {cpu, gpu, ram_gb, ids, aliases} from the devices file; empty when there is none.
 
     A malformed file reads as empty with a warning, never failing a run.
     """
@@ -49,6 +63,10 @@ def devices() -> dict[str, dict]:
     if _cache.get("stamp") != stamp:
         _cache.update(stamp=stamp, devices=_parse(path))
     return _cache["devices"]
+
+
+def _strings(value) -> list[str]:
+    return [str(v) for v in ([value] if isinstance(value, str) else value or [])]
 
 
 def _parse(path: Path) -> dict[str, dict]:
@@ -63,71 +81,118 @@ def _parse(path: Path) -> dict[str, dict]:
             if not isinstance(entry, dict):
                 raise ValueError(f"{name}: expected cpu, gpu, ram_gb")
             ram = entry.get("ram_gb")
-            aliases = entry.get("aliases") or []
             parsed[str(name)] = {"cpu": entry.get("cpu") or None, "gpu": entry.get("gpu") or None,
                                  "ram_gb": float(ram) if ram is not None else None,
-                                 "aliases": [str(a) for a in ([aliases] if isinstance(aliases, str) else aliases)]}
+                                 "ids": _strings(entry.get("ids")), "aliases": _strings(entry.get("aliases"))}
         return parsed
     except (OSError, ValueError, TypeError, AttributeError, yaml.YAMLError) as exc:
         print(f"Warning: ignoring {path}: {exc}", file=sys.stderr)
         return {}
 
 
-def canonical(name: str | None) -> str | None:
-    """The machine's name in the devices file, or the reported name when it isn't listed."""
+def _short(name: str) -> str:
+    return name.split(".")[0]
+
+
+def resolve(name: str | None = None, ids: list[str | None] | tuple = ()) -> str | None:
+    """The listed device with one of these IDs, else the one with this name or alias; None if neither."""
+    listed = devices()
+    for ref in filter(None, ids):
+        found = next((device for device, entry in listed.items() if ref in entry["ids"]), None)
+        if found:
+            return found
     if not name:
         return None
-    short = name.split(".")[0]
-    key = short.lower()
-    for device, entry in devices().items():
-        if key == device.lower() or key in (a.lower() for a in entry["aliases"]):
-            return device
-    return short
+    key = _short(name).lower()
+    return next((device for device, entry in listed.items()
+                 if key == device.lower() or key in (_short(a).lower() for a in entry["aliases"])), None)
 
 
-def specs(name: str | None) -> dict | None:
-    """hostname, cpu, gpu, ram_gb for a listed machine; None for one that isn't."""
-    device = canonical(name)
+def canonical(name: str | None, ids: list[str | None] | tuple = ()) -> str | None:
+    """The device's name in the devices file, or the reported short name when it isn't listed."""
+    found = resolve(name, ids)
+    return found or (_short(name) if name else None)
+
+
+def specs(name: str | None, ids: list[str | None] | tuple = ()) -> dict | None:
+    """hostname, cpu, gpu, ram_gb for a listed device with specs; None otherwise."""
+    device = resolve(name, ids)
     entry = devices().get(device) if device else None
-    return {"hostname": device, **{k: entry[k] for k in FIELDS}} if entry else None
+    if not entry or not (entry["cpu"] or entry["gpu"]):
+        return None
+    return {"hostname": device, **{k: entry[k] for k in FIELDS}}
 
 
 def unlisted(inference: dict) -> str | None:
-    """The LM Link device that served (or will serve) a model when the devices file doesn't list it."""
+    """The LM Link peer that served a run when the devices file has no specs for it."""
     if inference.get("same_machine") is not False or inference.get("served_via") != "LM Link":
         return None
     device = inference.get("device")
-    return device if device and not specs(device) else None
+    return device if device and not specs(device, [inference.get("device_id")]) else None
 
 
-def add_device(name: str, cpu: str | None, gpu: str | None, ram_gb: float | None,
-               aliases: list[str] | None = None) -> Path:
-    """Add or replace a machine in the devices file; returns the file's path."""
-    path = devices_file()
+def _load_raw() -> dict:
     try:
-        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        data = yaml.safe_load(devices_file().read_text(encoding="utf-8")) or {}
     except FileNotFoundError:
         data = {}
-    entries = data.setdefault("devices", {}) or {}
-    data["devices"] = entries
-    entry = {"cpu": cpu or None, "gpu": gpu or None, "ram_gb": ram_gb}
-    if aliases:
-        entry["aliases"] = list(aliases)
-    entries[name] = entry
+    if not isinstance(data.get("devices"), dict):
+        data["devices"] = {}
+    return data
+
+
+def _save_raw(data: dict) -> Path:
+    path = devices_file()
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(HEADER + yaml.safe_dump(data, sort_keys=False, allow_unicode=True), encoding="utf-8")
     _cache.clear()
     return path
 
 
+def add_device(name: str, cpu: str | None = None, gpu: str | None = None, ram_gb: float | None = None,
+               aliases: list[str | None] | None = None, ids: list[str | None] | None = None,
+               keep_specs: bool = False) -> Path:
+    """Add a device, or update it: new specs replace old ones (unless `keep_specs` and none are
+    given), and IDs and aliases are added to the ones it has. Returns the file's path."""
+    data = _load_raw()
+    entry = data["devices"].get(name) or {}
+    if not (keep_specs and not (cpu or gpu or ram_gb)):
+        entry.update(cpu=cpu or None, gpu=gpu or None, ram_gb=float(ram_gb) if ram_gb else None)
+    for field, new in (("ids", ids), ("aliases", aliases)):
+        merged = _strings(entry.get(field))
+        merged += [v for v in dict.fromkeys(filter(None, new or [])) if v not in merged and v != name]
+        if merged:
+            entry[field] = merged
+    data["devices"][name] = {k: entry.get(k) for k in (*FIELDS, "ids", "aliases") if k in entry}
+    return _save_raw(data)
+
+
+def remember(name: str, ids: list[str | None], reported: str | None = None) -> None:
+    """Link IDs (and the name LM Link reported) to a device found by name, so it's found by ID next time."""
+    entry = devices().get(name)
+    if entry is None:
+        return
+    new_ids = [i for i in filter(None, ids) if i not in entry["ids"]]
+    alias = _short(reported) if reported and _short(reported).lower() != name.lower() else None
+    new_alias = [alias] if alias and alias.lower() not in (a.lower() for a in entry["aliases"]) else []
+    if new_ids or new_alias:
+        try:
+            add_device(name, ids=new_ids, aliases=new_alias, keep_specs=True)
+        except OSError:
+            pass
+
+
 def serving(machine: dict, inference: dict) -> dict | None:
-    """hostname, cpu, gpu, ram_gb of the machine that ran inference: this one, or the LM Link
-    device that served the model. Hostname is the machine's short name, never the endpoint address."""
+    """hostname, cpu, gpu, ram_gb of the device that ran inference: this machine (its specs read from
+    it, under the name it was given if any), or the LM Link peer that served the model (its specs from
+    the devices file). Hostname is the device's name, never the endpoint address."""
     if inference.get("same_machine") is False:
         device = inference.get("device")
-        return specs(device) or ({"hostname": device, "cpu": None, "gpu": None, "ram_gb": None}
-                                 if device else None)
-    return {k: machine.get(k) for k in ("hostname", "cpu", "gpu", "ram_gb")} if machine else None
+        return specs(device, [inference.get("device_id")]) or (
+            {"hostname": device, "cpu": None, "gpu": None, "ram_gb": None} if device else None)
+    if not machine:
+        return None
+    return {"hostname": machine.get("name") or machine.get("hostname"), **{k: machine.get(k) for k in FIELDS}}
 
 
 # --------------------------------------------------------------------------
@@ -195,8 +260,22 @@ def key(cpu: str | None, gpu: str | None = None, ram_gb: float | None = None) ->
 
 
 # --------------------------------------------------------------------------
-# Asking for a device that isn't listed, and `crucible devices`
+# Naming devices, and `crucible devices`
 # --------------------------------------------------------------------------
+
+def describe(found: dict | None) -> str:
+    """"Apple M5 Pro, 48 GB unified memory" or "AMD Ryzen 7 7700, NVIDIA RTX 5070 Ti 16GB, 32 GB RAM"."""
+    if not found or not (found.get("cpu") or found.get("gpu")):
+        return "unknown hardware"
+    ram = found.get("ram_gb")
+    apple = bool(found.get("cpu") and APPLE_SILICON.match(_slug(found["cpu"])) and not found.get("gpu"))
+    memory = f"{ram:g} GB {'unified memory' if apple else 'RAM'}" if ram else None
+    gpu = ", ".join(f"{n.strip()} {round(m)}GB" if m and not IN_NAME_MEMORY.search(n.lower()) else n.strip()
+                    for n, m in _gpus(found["gpu"])) if found.get("gpu") else None
+    text = ", ".join(p for p in (found.get("cpu"), gpu, memory) if p)
+    k = key(found.get("cpu"), found.get("gpu"), ram)
+    return f"{text} ({k})" if k else text
+
 
 def _ram(text: str) -> float | None:
     text = text.strip().lower().removesuffix("gb").strip()
@@ -206,69 +285,127 @@ def _ram(text: str) -> float | None:
         return None
 
 
-def ask_to_add(device: str, ask: bool = True) -> bool:
-    """Offer to add an unlisted LM Link device before runs it serves are recorded without specs.
+def _interactive() -> bool:
+    return sys.stdin.isatty() and sys.stdout.isatty()
 
-    Asks only when `ask` and on a terminal; otherwise prints how to add it. True when it was added.
+
+def _label(device: dict) -> str:
+    return device.get("name") or _short(device.get("reported") or "") or "this machine"
+
+
+def hint(device: dict) -> None:
+    """Off a terminal (or mid-suite): say what's missing and how to fix it, without asking."""
+    if device["this_machine"]:
+        print(f"Note: this machine ({describe(device['specs'])}) has no name in {devices_file()}; runs are "
+              "stamped with its hostname. Name it with `crucible devices setup`.")
+    else:
+        print(f"Note: {_label(device)} serves models over LM Link but has no hardware listed in {devices_file()}, "
+              "so its runs record no CPU, GPU or memory. Add it with `crucible devices setup`.")
+
+
+def ask_to_name(device: dict, for_run: bool = True) -> str | None:
+    """Ask for a device's name (and a peer's hardware, which LM Link doesn't report) and save it.
+
+    Returns the name saved, or None when skipped. Only call on a terminal.
     """
-    print(f"\n{device} serves this model over LM Link, but it isn't in {devices_file()}, so runs "
-          "record no hardware for it (no CPU, GPU or memory, so no hardware key).")
-    if not (ask and sys.stdin.isatty() and sys.stdout.isatty()):
-        print(f"Add it with: crucible devices add {device} --cpu ... --gpu ... --ram-gb ...")
-        return False
+    default = _label(device)
+    reported = _short(device["reported"]) if device.get("reported") else None
     try:
-        if input(f"Add {device} now? [Y/n] ").strip().lower() in ("n", "no"):
-            print("Running without its hardware.")
-            return False
-        cpu = input("  CPU (e.g. AMD Ryzen 7 7700, Apple M1 Pro): ").strip()
-        gpu = input("  Discrete GPU with its memory (e.g. NVIDIA RTX 5070 Ti 16GB; blank for none): ").strip()
-        ram = _ram(input("  System RAM in GB (unified memory on Apple silicon): "))
+        if device["this_machine"]:
+            print(f"\n{'This model runs on this machine' if for_run else 'This machine'}: {describe(device['specs'])}.")
+            name = input(f"Give it a name for your results [{default}]: ").strip() or default
+            found = device["specs"] or {}
+            cpu, gpu, ram = found.get("cpu"), found.get("gpu"), found.get("ram_gb")
+        else:
+            where = f"{reported} (LM Link)" if reported else "An LM Link peer"
+            print(f"\n{where} {'serves this model' if for_run else 'is an LM Link peer'}. LM Link doesn't report a machine's hardware, so tell Crucible "
+                  "once (or run `crucible devices this` on that machine and paste its entry into "
+                  f"{devices_file()}).")
+            name = device.get("name") or input(f"  Name for your results [{default}]: ").strip() or default
+            cpu = input("  CPU (e.g. AMD Ryzen 7 7700, Apple M5 Pro): ").strip()
+            gpu = input("  Discrete GPU with its memory (e.g. NVIDIA RTX 5070 Ti 16GB; blank for none): ").strip()
+            ram = _ram(input("  System RAM in GB (unified memory on Apple silicon): "))
     except (EOFError, KeyboardInterrupt):
-        print("\nRunning without its hardware.")
-        return False
-    if not (cpu or gpu):
-        print("No CPU or GPU given; running without its hardware.")
-        return False
-    path = add_device(device, cpu, gpu, ram)
-    print(f"Added {device} ({key(cpu, gpu, ram) or 'no key'}) to {path}.")
-    return True
+        print("\nSkipped; runs record it without a name or hardware.")
+        return None
+    add_device(name, cpu, gpu, ram, aliases=[reported], ids=device["ids"], keep_specs=not (cpu or gpu))
+    print(f"Saved {name}: {describe({'cpu': cpu, 'gpu': gpu, 'ram_gb': ram})}."
+          + ("" if (cpu or gpu) else " No hardware given; you'll be asked again."))
+    return name
+
+
+def check_devices(found: list[dict], ask: bool = True, seen: set | None = None) -> None:
+    """Ask about (or point out) each device the devices file doesn't fully know, once per `seen`."""
+    from crucible import environment
+    for device in found:
+        token = tuple(device["ids"])
+        if not environment.needs_naming(device) or (seen is not None and token in seen):
+            continue
+        if seen is not None:
+            seen.add(token)
+        ask_to_name(device) if ask and _interactive() else hint(device)
 
 
 def devices_main() -> None:
     parser = argparse.ArgumentParser(
         prog="crucible devices",
-        description="The machines that serve models to this one over LM Link, from this machine's "
-                    "devices file (local, never committed). With no command, lists them.",
+        description="The machines that run models for Crucible here (this one and its LM Link peers), "
+                    "from this machine's devices file: local, never committed. With no command, lists them.",
     )
     sub = parser.add_subparsers(dest="command")
-    add = sub.add_parser("add", help="Add or replace a machine")
-    add.add_argument("name", help="The name LM Link reports for it (lms link status)")
-    add.add_argument("--cpu", help="CPU, e.g. 'AMD Ryzen 7 7700' or 'Apple M1 Pro'")
+    sub.add_parser("setup", help="Name this machine and every LM Link peer (asks for each one not known yet)")
+    add = sub.add_parser("add", help="Add or update a device by hand")
+    add.add_argument("name", help="The name runs are stamped with")
+    add.add_argument("--cpu", help="CPU, e.g. 'AMD Ryzen 7 7700' or 'Apple M5 Pro'")
     add.add_argument("--gpu", help="Discrete GPU with its memory, e.g. 'NVIDIA RTX 5070 Ti 16GB'")
     add.add_argument("--ram-gb", type=float, help="System RAM in GB (unified memory on Apple silicon)")
     add.add_argument("--alias", action="append", default=[], help="Another name LM Link reports for it")
+    add.add_argument("--id", action="append", default=[], dest="ids",
+                     help="An ID to recognize it by (lmlink:<deviceIdentifier> from `lms link status --json`)")
     sub.add_parser("this", help="Print this machine's entry, to paste into the devices file of a machine it serves")
     args = parser.parse_args()
+    from crucible import environment
 
     if args.command == "add":
-        if not (args.cpu or args.gpu):
-            parser.error("give at least --cpu or --gpu")
-        path = add_device(args.name, args.cpu, args.gpu, args.ram_gb, args.alias)
-        print(f"Added {args.name} ({key(args.cpu, args.gpu, args.ram_gb) or 'no key'}) to {path}.")
+        if not (args.cpu or args.gpu or args.ids or args.alias):
+            parser.error("give --cpu or --gpu (or --id/--alias to link an existing device)")
+        path = add_device(args.name, args.cpu, args.gpu, args.ram_gb, args.alias, args.ids,
+                          keep_specs=not (args.cpu or args.gpu))
+        print(f"Saved {args.name}: {describe(specs(args.name))} in {path}.")
     elif args.command == "this":
-        from crucible import environment
         here = environment.machine()
+        link = environment._link()
+        name = environment.this_machine_name({}, here.get("hostname")) or here.get("hostname") or "this-machine"
         entry = {k: here.get(k) for k in FIELDS}
-        print(yaml.safe_dump({"devices": {here.get("hostname") or "this-machine": entry}}, sort_keys=False), end="")
+        if link:
+            entry["ids"] = [lmlink_id(link["deviceIdentifier"])]
+        print(f"# {describe(here)}; paste under `devices:` in the other machine's {devices_file().name}")
+        print(yaml.safe_dump({name: entry}, sort_keys=False), end="")
+    elif args.command == "setup":
+        found = environment.known_devices()
+        todo = [d for d in found if environment.needs_naming(d)]
+        if not todo:
+            print(f"Every device is named in {devices_file()}:")
+        elif not _interactive():
+            parser.error("setup asks questions; run it in a terminal")
+        for device in todo:
+            ask_to_name(device, for_run=False)
+        _list(environment.known_devices() if todo else found)
     else:
-        path, listed = devices_file(), devices()
-        if not listed:
-            print(f"No devices listed in {path}. Runs served by this machine record its hardware on their own;\n"
-                  "add the machines that serve models to it over LM Link with `crucible devices add`.")
-            return
-        print(f"{path}:")
-        for name, entry in listed.items():
-            parts = [entry["cpu"], entry["gpu"], f"{entry['ram_gb']:g} GB" if entry["ram_gb"] else None]
-            aliases = f"  (also {', '.join(entry['aliases'])})" if entry["aliases"] else ""
-            print(f"  {name}: {key(entry['cpu'], entry['gpu'], entry['ram_gb']) or 'no key'}  "
-                  f"[{', '.join(p for p in parts if p)}]{aliases}")
+        _list(environment.known_devices())
+
+
+def _list(found: list[dict]) -> None:
+    from crucible import environment
+    listed = devices()
+    print(f"{devices_file()}:" if listed else f"No devices in {devices_file()} yet.")
+    for name, entry in listed.items():
+        here = next((d for d in found if d.get("name") == name and d["this_machine"]), None)
+        hw = describe(here["specs"]) if here else describe(entry)
+        print(f"  {name}{' (this machine)' if here else ''}: {hw}")
+    missing = [d for d in found if environment.needs_naming(d)]
+    for device in missing:
+        what = "this machine" if device["this_machine"] else f"LM Link peer {_label(device)}"
+        print(f"  Not set up: {what}" + ("" if device["this_machine"] else " (no hardware listed)"))
+    if missing:
+        print("Run `crucible devices setup` to name them.")

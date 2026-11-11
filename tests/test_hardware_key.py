@@ -61,12 +61,33 @@ def test_malformed_file_reads_as_empty(tmp_path, monkeypatch, capsys):
 def test_add_device_writes_and_rereads(tmp_path, monkeypatch):
     path = tmp_path / "sub" / "devices.yaml"
     monkeypatch.setenv("CRUCIBLE_DEVICES_FILE", str(path))
-    hardware.add_device("Bigbox", "AMD Ryzen 9", "NVIDIA GeForce RTX 3090, 24576 MiB", 64, ["bigbox-lan"])
+    hardware.add_device("Bigbox", "AMD Ryzen 9", "NVIDIA GeForce RTX 3090, 24576 MiB", 64, ["bigbox-lan"], ["lmlink:abc"])
     assert hardware.specs("bigbox-lan") == {"hostname": "Bigbox", "cpu": "AMD Ryzen 9",
                                             "gpu": "NVIDIA GeForce RTX 3090, 24576 MiB", "ram_gb": 64.0}
+    # Found by ID whatever LM Link calls it now
+    assert hardware.resolve("renamed-in-lm-link", ["lmlink:abc"]) == "Bigbox"
+    # Updating keeps specs when none are given, and adds IDs instead of replacing them
+    hardware.add_device("Bigbox", ids=["machine:m_1"], keep_specs=True)
+    assert hardware.devices()["Bigbox"]["ids"] == ["lmlink:abc", "machine:m_1"]
+    assert hardware.devices()["Bigbox"]["cpu"] == "AMD Ryzen 9"
     hardware.add_device("Mini", "Apple M4", None, 16)
     assert set(hardware.devices()) == {"Bigbox", "Mini"}
-    assert path.read_text().startswith("# Machines")
+    assert path.read_text().startswith("# The machines")
+
+
+def test_a_device_found_by_name_has_its_id_remembered():
+    assert hardware.resolve("DESKTOP-D2J5PM9", ["lmlink:far"]) == "Whitehall"     # by alias
+    hardware.remember("Whitehall", ["lmlink:far"], "DESKTOP-D2J5PM9")
+    assert hardware.devices()["Whitehall"]["ids"] == ["lmlink:far"]
+    assert hardware.resolve("anything", ["lmlink:far"]) == "Whitehall"            # now by ID
+
+
+def test_a_peer_listed_without_hardware_has_no_specs(tmp_path, monkeypatch):
+    monkeypatch.setenv("CRUCIBLE_DEVICES_FILE", str(tmp_path / "d.yaml"))
+    hardware.add_device("Peer", ids=["lmlink:p"], keep_specs=True)
+    assert hardware.resolve(None, ["lmlink:p"]) == "Peer" and hardware.specs("Peer") is None
+    assert hardware.unlisted({"same_machine": False, "served_via": "LM Link", "device": "Peer",
+                              "device_id": "lmlink:p"}) == "Peer"
 
 
 def test_unlisted_names_only_an_unknown_link_peer():
@@ -76,17 +97,16 @@ def test_unlisted_names_only_an_unknown_link_peer():
     assert hardware.unlisted({"same_machine": False, "served_via": "LM Link", "device": None}) is None
 
 
-def test_ask_to_add_off_a_terminal_only_explains(capsys):
-    assert hardware.ask_to_add("Elsewhere") is False
-    out = capsys.readouterr().out
-    assert "crucible devices add Elsewhere" in out and hardware.specs("Elsewhere") is None
+def test_this_machine_is_stamped_with_its_name():
+    here = {"hostname": "mbp-2024", "name": "Duskfall", "cpu": "Apple M5 Pro", "gpu": None, "ram_gb": 48.0}
+    assert hardware.serving(here, {"same_machine": True})["hostname"] == "Duskfall"
+    assert hardware.serving({**here, "name": None}, {"same_machine": True})["hostname"] == "mbp-2024"
 
 
-def test_ask_to_add_on_a_terminal_adds(monkeypatch, capsys):
-    monkeypatch.setattr("sys.stdin.isatty", lambda: True, raising=False)
-    monkeypatch.setattr("sys.stdout.isatty", lambda: True, raising=False)
-    answers = iter(["", "AMD Ryzen 9 7950X", "NVIDIA RTX 4090 24GB", "64 GB"])
-    monkeypatch.setattr("builtins.input", lambda prompt="": next(answers))
-    assert hardware.ask_to_add("Elsewhere") is True
-    found = hardware.specs("Elsewhere")
-    assert hardware.key(found["cpu"], found["gpu"], found["ram_gb"]) == "rtx-4090-24gb"
+def test_describe_reads_like_the_machine():
+    assert hardware.describe({"cpu": "Apple M5 Pro", "gpu": None, "ram_gb": 48.0}) == \
+        "Apple M5 Pro, 48 GB unified memory (m5-pro-48gb)"
+    assert hardware.describe({"cpu": "AMD Ryzen 7 7700", "gpu": "NVIDIA GeForce RTX 5070 Ti, 16303 MiB",
+                              "ram_gb": 32.0}) == \
+        "AMD Ryzen 7 7700, NVIDIA GeForce RTX 5070 Ti 16GB, 32 GB RAM (rtx-5070-ti-16gb)"
+    assert hardware.describe(None) == "unknown hardware"

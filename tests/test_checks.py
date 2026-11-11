@@ -72,8 +72,10 @@ def test_lm_link_device_comes_from_the_cli():
     remote = [{"identifier": "qwen/qwen3.5-9b", "modelKey": "qwen/qwen3.5-9b", "deviceIdentifier": "far"}]
     local = [{"identifier": "gemma", "modelKey": "gemma", "deviceIdentifier": "here"}]
     assert environment.lmstudio_device("qwen/qwen3.5-9b", remote, link) == {
-        "device": "Whitehall", "same_machine": False, "served_via": "LM Link"}
-    assert environment.lmstudio_device("gemma", local, link) == {"device": "Ironwood", "same_machine": True}
+        "device": "Whitehall", "same_machine": False, "served_via": "LM Link",
+        "device_id": "lmlink:far", "device_reported": "DESKTOP-D2J5PM9"}
+    assert environment.lmstudio_device("gemma", local, link) == {
+        "device": "Ironwood", "same_machine": True, "device_id": "lmlink:here", "device_reported": "Ironwood.local"}
     # Not loaded, loaded on both devices, or no CLI: unknown, never a guess
     assert environment.lmstudio_device("other", remote, link) == {}
     both = remote + [{**remote[0], "deviceIdentifier": "here"}]

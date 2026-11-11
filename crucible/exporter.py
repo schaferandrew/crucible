@@ -116,15 +116,24 @@ def _hidden_tests(run_dir: Path) -> dict | None:
     }
 
 
-def _hardware(machine: dict, inference: dict) -> dict | None:
+def _hardware(machine: dict, inference: dict, recorded: dict | None = None) -> dict | None:
     """The machine that ran inference: this one, or the LM Link device that served the model.
 
-    Hostname is the machine's short name (e.g. Ironwood); never the endpoint address. A cloud
-    run has none: the machine that sent the request didn't run the model.
+    Hostname is the machine's name (e.g. Ironwood); never the endpoint address. A cloud run has none:
+    the machine that sent the request didn't run the model. A peer's specs come from the devices file;
+    when it has none (a fresh install, a peer not added yet), the specs the run recorded are used.
     """
     if inference.get("local") is False:
         return None
-    return hardware.serving(machine, inference)
+    found = hardware.serving(machine, inference)
+    if found and any(found.get(k) for k in ("cpu", "gpu", "ram_gb")):
+        return found
+    if recorded and (recorded.get("cpu") or recorded.get("accelerators")):
+        gpu = "\n".join(f"{a['name']} {a['memory_gb']}GB" if a.get("memory_gb") and not hardware.IN_NAME_MEMORY.search(
+            str(a.get("name")).lower()) else str(a.get("name")) for a in recorded.get("accelerators") or []) or None
+        return {"hostname": (found or {}).get("hostname") or recorded.get("label"), "cpu": recorded.get("cpu"),
+                "gpu": gpu, "ram_gb": recorded.get("system_memory_gb")}
+    return found
 
 
 def export_run(run_dir: Path, tests: dict[str, dict]) -> dict | None:
@@ -181,7 +190,7 @@ def export_run(run_dir: Path, tests: dict[str, dict]) -> dict | None:
         "hidden_tests": _hidden_tests(run_dir),
         # Whether this run belongs in aggregates under the current task set
         "counts": current and test["status"] == "active",
-        "hardware": _hardware(machine, inference),
+        "hardware": _hardware(machine, inference, meta.get("hardware")),
         "inference": {k: inference.get(k) for k in ("provider", "local", "same_machine", "served_via",
                                                      "device", "quantization", "context_length")} if inference else None,
         **{key: metrics.get(key) for key in METRIC_KEYS},

@@ -15,19 +15,27 @@ here ([docs/versioning.md](docs/versioning.md)).
 ## 3.10.0 (2026-11-11)
 
 ### Added
-- `crucible devices` lists, adds (`add NAME --cpu --gpu --ram-gb --alias`) and prints (`this`) the
-  machines that serve models to this one over LM Link, in a devices file local to each person:
-  `~/.crucible/devices.yaml`, or `CRUCIBLE_DEVICES_FILE`.
-- `crucible run` points out an LM Link peer the devices file doesn't list, since its runs record no
-  hardware. Before the first run, when the model is already loaded, it offers to add the peer (on a
-  terminal); otherwise it prints how. It never stops mid-suite to ask.
+- Devices have names you choose, kept in a devices file local to each person (`~/.crucible/devices.yaml`,
+  or `CRUCIBLE_DEVICES_FILE`) and never committed. Each run is stamped with the name of the device that
+  ran the weights (`hardware.label`, `provenance.machine_label`) along with its CPU, GPU and memory.
+- Before the first run of a local model, `crucible run` finds the device that will serve it (this machine,
+  or the LM Link peer from LM Studio's loaded instance or preferred device). If the devices file doesn't
+  know that device, it asks: for this machine just a name, shown with the hardware it detected; for a peer
+  also its CPU, GPU and RAM, which LM Link doesn't report. Devices are recognized by their LM Link
+  device ID (or this machine's Crucible machine ID), then by name, so renaming one in LM Studio keeps it.
+  Off a terminal, and after runs have started, it only says what's missing.
+- `crucible devices` lists named devices and the ones not set up yet; `setup` names this machine and every
+  LM Link peer; `this` prints this machine's entry with its LM Link ID, to paste on a machine it serves;
+  `add` adds one by hand.
+- The local part of the run record notes the serving device's ID and the name LM Link reported for it
+  (`local.environment.inference.device_id`, `device_reported`).
 
 ### Changed
-- The table of serving machines is no longer built into Crucible: the specs of LM Link peers come only
-  from your devices file, so a contributor's clone doesn't carry someone else's machines. If your runs
-  are served over LM Link, add your peers with `crucible devices add` before your next run, and before
-  `crucible export --format 2` or `crucible migrate`, which read the peers' specs for older runs too.
-  Runs served by the machine running Crucible need nothing.
+- The table of serving machines is no longer built into Crucible, so a contributor's clone doesn't carry
+  someone else's machines. Peers' specs come from your devices file. If your runs are served over LM Link,
+  run `crucible devices setup` (or just your next `crucible run`) before running again.
+- `crucible export --format 2` uses the hardware a run recorded when the devices file has none for its
+  device, so past runs keep their specs on a machine with no devices file.
 
 ## 3.9.0 (2026-11-10)
 

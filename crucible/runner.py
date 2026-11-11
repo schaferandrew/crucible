@@ -98,25 +98,18 @@ def _context_problem(agent: Agent, model: str | None, reasoning: str = "default"
 _DEVICES_CHECKED: set = set()
 
 
-def _check_device(inference: dict, ask: bool) -> None:
-    """Point out, once per device, an LM Link device the devices file doesn't list (and offer to add it)."""
-    device = hardware.unlisted(inference)
-    if device and device not in _DEVICES_CHECKED:
-        _DEVICES_CHECKED.add(device)
-        hardware.ask_to_add(device, ask=ask)
+def preflight_devices(model: str | None) -> None:
+    """Before the first run: name the device that will run the model, if the devices file doesn't know it.
 
-
-def preflight_device(model: str | None) -> None:
-    """Before the first run: ask about the device serving a loaded LM Studio model if it isn't listed.
-
-    An unloaded model's device isn't known yet; the first run's record points it out instead.
+    This machine is shown with the hardware read from it and asked only for a name; an LM Link peer is
+    also asked for its hardware, which LM Link doesn't report. Off a terminal it only says what's missing.
     """
     try:
-        provider = providers.split_model(model or "")[0].name
-    except ValueError:
+        found = environment.known_devices(model)
+    except Exception as exc:  # never block a run on device discovery
+        print(f"Note: couldn't check which device runs {model}: {exc}")
         return
-    if provider == "lmstudio":
-        _check_device(environment.inference(model), ask=True)
+    hardware.check_devices(found, ask=True, seen=_DEVICES_CHECKED)
 
 
 def _write_meta(ctx: RunContext, agent: Agent, prompt_def: dict, result: dict,
@@ -126,8 +119,12 @@ def _write_meta(ctx: RunContext, agent: Agent, prompt_def: dict, result: dict,
     for name in ("stdout.txt", "stderr.txt"):
         (ctx.run_dir / name).touch()
     env = environment.capture(ctx.model, agent.executable)
-    # Never asks here: a prompt mid-suite would stall an unattended run
-    _check_device(env["inference"], ask=False)
+    # A peer only known once the model loaded: point it out, never ask (a prompt mid-suite would stall it)
+    peer = hardware.unlisted(env["inference"])
+    if peer and (env["inference"].get("device_id"),) not in _DEVICES_CHECKED:
+        _DEVICES_CHECKED.add((env["inference"].get("device_id"),))
+        hardware.hint({"this_machine": False, "name": peer, "reported": env["inference"].get("device_reported"),
+                       "ids": [env["inference"].get("device_id")]})
     resolved, resolved_source = environment.reasoning_resolved(ctx.model, ctx.reasoning)
     inference = env["inference"]
     identity = versioning.task_identity(prompt_def)
@@ -160,7 +157,8 @@ def _write_meta(ctx: RunContext, agent: Agent, prompt_def: dict, result: dict,
         "output_ref": None,
         # Which crucible produced this run, from which checkout, on which machine
         "provenance": {**runrecord.null_provenance(), **provenance.capture(),
-                       "machine_label": (env.get("machine") or {}).get("hostname"), "source": "crucible-run"},
+                       "machine_label": (env.get("machine") or {}).get("name") or (env.get("machine") or {}).get("hostname"),
+                       "source": "crucible-run"},
         # Stays on this machine: never published
         "local": {
             # Captured after the run, when a local server has the model loaded
@@ -479,7 +477,8 @@ def main() -> None:
     if args.watch and not any(s.mode == "agentic" for s in plan.steps):
         print("Note: --watch opens an agent's TUI, so it only applies to agentic tests; "
               "chat tests show a live progress line instead.")
-    preflight_device(plan.model)
+    if plan.steps:
+        preflight_devices(plan.model)
     run_paths = run_plan(plan, args.watch, args.output)
 
     summary = []

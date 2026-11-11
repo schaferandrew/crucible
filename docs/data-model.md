@@ -36,11 +36,11 @@ published; `local` stays on the machine.
 | `harness` | `id` (direct, opencode, pi), `version` |
 | `model` | `id` (provider/model as run), `base`, `publisher` (who packaged the weights), `artifact` (the packaged repo they were downloaded from, when the source names it), `format`, `quant`, `reasoning` (`requested`, `resolved`, `resolved_source`), `context_loaded`, `variant_key`, `display`, and since 3.6.0 `origin` (who trained them, below) |
 | `endpoint` | `where` (local or cloud), `provider`, `app`, `served_via` (LM Link), `device`, `upstream` (OpenRouter's provider), `resolved_model` |
-| `hardware` | The device that ran the weights: `key`, `class`, `accelerators`, `system_memory_gb`, `cpu`, `offload`, `label`. Null for cloud runs |
+| `hardware` | The device that ran the weights: `key`, `class`, `accelerators`, `system_memory_gb`, `cpu`, `offload`, `label` (the device's name from the local devices file, else its hostname or LM Link name). Null for cloud runs |
 | `outcome` | `status` (completed, timeout, no_answer, context_limit, failed, harness_error), `harness_status`, `returncode`, `timed_out`, `invalid` (set at run time), `leaks` |
 | `metrics` | Tokens, tool calls, responses, TTFT, response time, cost, reasoning characters |
 | `output_ref` | Set when published: `outputs/<run_uuid>.txt` |
-| `provenance` | `crucible_version`, `crucible_commit`, `crucible_dirty`, `machine_id`, `machine_label`, `source` (`crucible-run`, `crucible-migrate`, `bundle-format-2`), `content_hash` (set when published), `submitter` and `verification` (reserved, null) |
+| `provenance` | `crucible_version`, `crucible_commit`, `crucible_dirty`, `machine_id`, `machine_label` (this machine's name from the devices file, else its hostname), `source` (`crucible-run`, `crucible-migrate`, `bundle-format-2`), `content_hash` (set when published), `submitter` and `verification` (reserved, null) |
 | `local` | Never published: the raw `environment` capture, `tools`, `watch`, `platform`, the check results, and for migrated runs `legacy_meta` (the 2.x meta.json as it was) |
 
 ## Model origin

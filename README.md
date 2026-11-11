@@ -44,23 +44,33 @@ Models are named `provider/model`. Crucible talks to three providers itself, for
 
 ### Hardware and LM Link devices
 
-Every local run records the hardware that ran the weights, so results can be grouped by it. A model served
-by this machine needs no setup: its CPU, GPU and memory are read from the machine. A model served over
-LM Link from another machine is different: LM Link names the peer but not its hardware, so Crucible looks
-the peer up in a devices file that's local to you, `~/.crucible/devices.yaml` (override with
-`CRUCIBLE_DEVICES_FILE`). It's never part of the repo, since everyone's machines differ:
+Every local run is stamped with the device that ran the weights: the name you gave it and its CPU, GPU
+and memory, so results can be grouped by hardware. Crucible keeps those names in a devices file local to
+you, `~/.crucible/devices.yaml` (override with `CRUCIBLE_DEVICES_FILE`). It's never part of the repo.
 
-```bash
-crucible devices                                  # what's listed
-crucible devices add gpu-box --cpu "AMD Ryzen 9 7950X" --gpu "NVIDIA RTX 4090 24GB" --ram-gb 64 \
-    --alias desktop-a1b2c3                        # another name LM Link reports for it
-crucible devices this                             # on the serving machine: its entry, to paste
+The first time you run a local model, `crucible run` asks before the first task:
+
+```
+This model runs on this machine: Apple M5 Pro, 48 GB unified memory (m5-pro-48gb).
+Give it a name for your results [mbp]: Duskfall
 ```
 
-Use the name `lms link status` reports for the peer. When `crucible run` finds a loaded model served by a
-peer the file doesn't list, it offers to add it before the first run; if it only finds out afterwards
-(the model wasn't loaded yet), it says so and the run records the peer's name without specs. Runs record
-their hardware when they're made, so add a peer before running on it.
+This machine's hardware is read from the machine, so it only needs a name. A model served over **LM Link**
+works the same way: Crucible reads which device serves it from LM Studio (the loaded instance's device,
+or LM Link's preferred device for a model that isn't loaded yet). LM Link reports each device's name and
+a stable ID, but not its hardware, so for a peer it also asks for the CPU, GPU and RAM, once. Devices are
+remembered by their LM Link ID, so renaming one in LM Studio doesn't lose it. Off a terminal it never
+asks; it says what's missing instead.
+
+```bash
+crucible devices          # what's named, and what isn't yet
+crucible devices setup    # name this machine and every LM Link peer up front
+crucible devices this     # on a peer: its entry with its LM Link ID, to paste into your file
+crucible devices add gpu-box --cpu "AMD Ryzen 9 7950X" --gpu "NVIDIA RTX 4090 24GB" --ram-gb 64
+```
+
+Runs record their hardware when they're made, so name a device before running on it. Exports of runs made
+before you had a devices file use the hardware those runs recorded.
 
 Agentic tasks hand the model name to the harness, so anything the harness supports also works there, such as opencode's own `opencode/<model>` free models.
 
