@@ -405,16 +405,26 @@ def read(run_dir: Path) -> dict:
     return meta if is_record(meta) else {}
 
 
+def mark(run_dir: Path, meta: dict | None = None) -> tuple[str, dict] | None:
+    """("invalid" | "withdrawn", {"reason": ...}) when the run doesn't count (marked at run time, or by the
+    latest status record), else None."""
+    meta = meta if meta is not None else read(run_dir)
+    marked = ("invalid", meta["outcome"]["invalid"]) if (meta.get("outcome") or {}).get("invalid") else None
+    for entry in statuses(run_dir):
+        for kind in ("invalid", "withdrawn"):
+            if entry.get(kind):
+                marked = (kind, entry[kind])
+                break
+        else:
+            if entry.get("valid"):
+                marked = None
+    return marked
+
+
 def invalid(run_dir: Path, meta: dict | None = None) -> dict | None:
     """Why the run doesn't count: marked at run time, or by a later status record."""
-    meta = meta if meta is not None else read(run_dir)
-    marked = (meta.get("outcome") or {}).get("invalid")
-    for entry in statuses(run_dir):
-        if entry.get("invalid") or entry.get("withdrawn"):
-            marked = entry.get("invalid") or entry.get("withdrawn")
-        elif entry.get("valid"):
-            marked = None
-    return marked
+    marked = mark(run_dir, meta)
+    return marked[1] if marked else None
 
 
 def output_text(run_dir: Path) -> str:
@@ -550,5 +560,5 @@ def status_main() -> None:
         change = ({"invalid": {"reason": args.invalid}} if args.invalid else
                   {"withdrawn": {"reason": args.withdrawn}} if args.withdrawn else {"valid": True})
         add_status(run_dir, meta["run_uuid"], args.by, **change)
-    marked = invalid(run_dir, meta)
-    print(f"{meta['run_path']}: {'invalid: ' + marked.get('reason', '') if marked else 'valid'}")
+    marked = mark(run_dir, meta)
+    print(f"{meta['run_path']}: {marked[0] + ': ' + str(marked[1].get('reason', '')) if marked else 'valid'}")
