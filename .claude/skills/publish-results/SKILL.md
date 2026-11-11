@@ -79,8 +79,9 @@ uv run crucible publish --check ../schaferandrew.github.io/_data/crucible   # sc
 ```
 
 `--check` must exit 0 before anything is committed. Its warnings aren't failures: list them for the
-user. A model name it flags gets an entry in `corrections.yaml` (then publish again, which sends the
-file along as `corrections.json`); never edit a published run.
+user. A model name it flags gets an alias in `registry/models.yaml` (then publish again, which sends the
+registry along as `registry/*.json` and `corrections.json`); never edit a published run. Host names
+it can't map to a machine go in `registry/machines.yaml` only when provable.
 
 - Publishing twice adds nothing. A rescore under a new rubric version adds a score record; a run marked with
   `crucible status <run> --invalid REASON` (or `--withdrawn`) adds a status record. Nothing else changes.
@@ -111,7 +112,7 @@ find "$USB" -type f -size 0 -print   # a zero-byte record is a failed write; del
 
 1. Check the source bundle and the site's `_data/crucible/` with `crucible publish --check`. The exit
    code is the verdict: 0 is valid. Report its warnings (unverifiable pre-hash runs, model names that
-   need a `corrections.yaml` entry) but don't treat them as failures. A non-zero exit means stop: show
+   need a registry alias, unmapped host names) but don't treat them as failures. A non-zero exit means stop: show
    the errors and import nothing from that bundle until they're understood. After the cleanup above,
    re-run `--check` — most sidecar failures vanish, and whatever is left is the real verdict.
 2. For `catalog/`, `runs/`, `scores/` and `status/`, compare relative paths. Copy a source file only
@@ -141,7 +142,8 @@ find "$USB" -type f -size 0 -print   # a zero-byte record is a failed write; del
    `_data/crucible/runs/`; the `runs` key inside `data.json` holds only the pre-hash handful.
 
 5. If the bundle's `corrections.json` differs from the site's, copy the newer one over (the source of
-   truth is the Crucible repo's `corrections.yaml`, which `crucible publish` writes out). Importing
+   truth is the Crucible repo's `registry/`, which `crucible publish` writes out as `registry/*.json` and
+   `corrections.json`; copy the `registry/` folder too). Importing
    records that a correction names without importing the correction leaves those runs mislabeled.
 
 ## 3. Check and ship

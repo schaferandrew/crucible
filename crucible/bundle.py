@@ -7,12 +7,14 @@ Format 3 (docs/bundle-format.md) is one file per thing, so publishing only ever 
   <to>/runs/<yyyy-mm>/<run_uuid>.json                one run record, never edited
   <to>/scores/<yyyy-mm>/<run_uuid>.r<n>.<method>.json one score record per rubric version and method
   <to>/status/<run_uuid>.json                        status records (invalidations), append-only
-  <to>/corrections.json                              model fields the page reads differently
+  <to>/registry/<name>.json                          the registry (registry/*.yaml): makers, models, packagers, machines
+  <to>/corrections.json                              the registry's aliases in the shape the legacy page reads
+  <to>/manifest.json                                 generated index of every run (crucible/manifest.py rules)
   <outputs>/<run_uuid>.txt                           the model's full output, outside _data
 
-Publishing twice writes nothing; nothing published is deleted or rewritten, except the latest
-suite's catalog (task names and summaries may change), status files (only appended to) and
-corrections.json (corrections.yaml, the reviewed fixes for badly recorded model fields). Every
+Publishing twice writes nothing; a run already published with a different hash is rejected; nothing published is deleted or rewritten, except the latest
+suite's catalog (task names and summaries may change), status files (only appended to), the
+registry files and corrections.json (reviewed data about how to read recorded model fields). Every
 file is validated before it's written, and `crucible publish --check <to>` validates a folder and
 recomputes every run's content hash.
 """
@@ -25,19 +27,21 @@ import os
 import platform
 import re
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
-from crucible import checks, exporter, provenance, runrecord, suites, workspace
+from crucible import checks, exporter, hostnames, manifest, provenance, registry, runrecord, suites, workspace
 
 SCHEMAS = Path(__file__).parent / "schemas"
 SCHEMA_PATH = SCHEMAS / "results.schema.json"   # format 2 (`crucible export --format 2`)
-RECORD_SCHEMAS = {kind: SCHEMAS / f"{kind}.schema.json" for kind in ("catalog", "run", "score", "status", "corrections")}
-# Reviewed fixes for badly recorded model fields (corrections.yaml), published whole on every publish
-CORRECTIONS_SOURCE = Path(__file__).resolve().parents[1] / "corrections.yaml"
+REGISTRY_KINDS = tuple(f"registry-{name}" for name in registry.NAMES)
+RECORD_SCHEMAS = {kind: SCHEMAS / f"{kind}.schema.json"
+                  for kind in ("catalog", "run", "run.v4", "score", "status", "corrections") + REGISTRY_KINDS}
+# The legacy page reads this, generated from the registry (registry/models.yaml and packagers.yaml)
 CORRECTIONS_FILE = "corrections.json"
 # Counts additive, optional fields across the bundle (docs/versioning.md#bundle-format). 1: model.origin on runs;
-# 2: corrections.json and model.reasoning.resolved_source
-FORMAT_REVISION = 2
+# 2: corrections.json and model.reasoning.resolved_source; 3: registry/*.json
+FORMAT_REVISION = 3
 # Where publish writes when --to isn't given: the portfolio checkout next to this one
 DEFAULT_DIRS = [Path(os.environ["CRUCIBLE_PUBLISH_DIR"])] if os.environ.get("CRUCIBLE_PUBLISH_DIR") else []
 DEFAULT_DIRS.append(Path(__file__).resolve().parents[2] / "schaferandrew.github.io" / "_data" / "crucible")
@@ -71,12 +75,51 @@ def problems(data, schema: dict | None = None, path: str = "$") -> list[str]:
     return found
 
 
-def record_problems(kind: str, data) -> list[str]:
-    return problems(data, json.loads(RECORD_SCHEMAS[kind].read_text(encoding="utf-8")))
+def record_problems(kind: str, data, strict: bool = False) -> list[str]:
+    """Where a record breaks its schema. Run records switch schema on format_version (3 or 4).
+
+    A `local` key never leaves the machine: it's an error in a format-4 record always, and in a record
+    of either format when `strict` (what publish writes). `--check` isn't strict about format 3, because
+    19 runs were published with one before publish dropped it; those stay as published and are warned about.
+    """
+    version = data.get("format_version") if isinstance(data, dict) else None
+    schema = "run.v4" if kind == "run" and version == 4 else kind
+    found = problems(data, json.loads(RECORD_SCHEMAS[schema].read_text(encoding="utf-8")))
+    if kind == "run" and isinstance(data, dict):
+        if "local" in data and (strict or version == 4):
+            found.append("$.local: a `local` key never leaves the machine and can't be published")
+        if strict or version == 4:
+            ips = hostnames.ip_strings(data)
+            if ips:
+                found.append("contains an IP address or an IP-derived host name, which are never published "
+                             "(the harness drops them at capture; this record predates that or was edited): "
+                             + "; ".join(ips[:3]))
+        if version == 4:
+            hardware = data.get("hardware")
+            if isinstance(hardware, dict):
+                found += [f"$.hardware.{k}: not part of format 4 (hardware describes the machine's class, never its name)"
+                          for k in hardware if k not in runrecord.V4_HARDWARE]
+                if "nickname" in hardware:
+                    why = runrecord.nickname_problem(hardware["nickname"])
+                    if why:
+                        found.append(f"$.hardware.nickname: {why}")
+                if "served_remotely" in hardware and not isinstance(hardware["served_remotely"], bool):
+                    found.append("$.hardware.served_remotely: expected boolean")
+            for dotted in runrecord.V4_DROPPED:
+                node = data
+                for part in dotted.split("."):
+                    node = node.get(part, _MISSING) if isinstance(node, dict) else _MISSING
+                if node is not _MISSING:
+                    found.append(f"$.{dotted}: not part of format 4")
+    return found
+
+
+_MISSING = object()
 
 
 def machine_name() -> str:
-    return re.sub(r"[^a-z0-9-]+", "-", platform.node().split(".")[0].lower()).strip("-") or "machine"
+    label = hostnames.public_label(platform.node().split(".")[0]) or ""
+    return re.sub(r"[^a-z0-9-]+", "-", label.lower()).strip("-") or "machine"
 
 
 # --------------------------------------------------------------------------
@@ -118,7 +161,8 @@ def published_run(meta: dict, output: str | None) -> dict:
     """The run record as it's published: no local fields, an output reference and its content hash."""
     record = runrecord.published(meta)
     record["output_ref"] = f"outputs/{record['run_uuid']}.txt" if output else None
-    record["provenance"] = {**runrecord.null_provenance(), **(record.get("provenance") or {})}
+    null = runrecord.null_provenance_v4() if record.get("format_version") == 4 else runrecord.null_provenance()
+    record["provenance"] = {**null, **(record.get("provenance") or {})}
     record["provenance"]["content_hash"] = content_hash(record, output)
     return record
 
@@ -208,39 +252,113 @@ def catalog(suite_name: str, suites_dir: Path | None = None) -> dict:
 # Publishing
 # --------------------------------------------------------------------------
 
-class Publisher:
-    """Adds records to a format-3 folder, never rewriting one already there."""
+def _text(data) -> str:
+    # Plain UTF-8, not \u escapes: Jekyll parses data files with a YAML parser that rejects escaped emoji
+    return json.dumps(data, indent=1, ensure_ascii=False) + "\n"
 
-    def __init__(self, to: Path, outputs: Path, dry_run: bool = False):
-        self.to, self.outputs, self.dry_run = to, outputs, dry_run
-        self.counts = {"runs": 0, "scores": 0, "status": 0, "catalogs": 0, "corrections": 0, "outputs": 0, "invalid": 0}
+
+def scan(to: Path, only: set[str] | None = None) -> dict[str, dict]:
+    """Manifest entries read from the files in a folder: run_uuid -> entry (hash as the run file states it)."""
+    scores: dict[str, list[str]] = {}
+    for p in (to / "scores").glob("*/*.json"):
+        uuid, _, rest = p.name.partition(".")
+        scores.setdefault(uuid, []).append(rest[:-len(".json")])
+    status = {p.stem: len(runrecord.read_json(p) or []) for p in (to / "status").glob("*.json")}
+    found = {}
+    for path in sorted(to.glob("runs/*/*.json")):
+        if only is not None and path.stem not in only:
+            continue
+        run = runrecord.read_json(path)
+        if isinstance(run, dict):
+            found[path.stem] = manifest.entry((run.get("provenance") or {}).get("content_hash"),
+                                              path.relative_to(to).as_posix(), manifest.submitter_of(run),
+                                              scores.get(path.stem), status.get(path.stem, 0),
+                                              manifest.redaction_of(run) is not None)
+    return found
+
+
+def write_manifest(to: Path, known: dict[str, dict] | None = None) -> bool:
+    """Regenerate <to>/manifest.json from the files, keeping the submitter of every entry in `known`
+    (and entries whose run file is gone, so `--check` still reports them). True when the file changed."""
+    known = known or {}
+    runs = dict(known)
+    for uuid, found in scan(to).items():
+        runs[uuid] = {**found, "submitter": (known.get(uuid) or {}).get("submitter") or found["submitter"]}
+    text = manifest.dump({**manifest.empty(), "runs": dict(sorted(runs.items()))})
+    path = to / manifest.FILE
+    if path.exists() and path.read_text(encoding="utf-8") == text:
+        return False
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+    return True
+
+
+def known_entries(to: Path) -> dict[str, dict]:
+    """What's published: the manifest's entries, plus any run file in the folder it doesn't list yet
+    (a folder published before manifests existed)."""
+    listed = runrecord.read_json(to / manifest.FILE)
+    entries = dict(listed["runs"]) if isinstance(listed, dict) and isinstance(listed.get("runs"), dict) else {}
+    on_disk = {p.stem for p in (to / "runs").glob("*/*.json")}
+    entries.update(scan(to, on_disk - set(entries)))
+    return entries
+
+
+class Publisher:
+    """Adds records to a bundle folder, never rewriting one already there (rules: crucible/manifest.py)."""
+
+    def __init__(self, to: Path, outputs: Path, dry_run: bool = False, submitter: str | None = None,
+                 skip_known: bool = False):
+        # skip_known: a run whose uuid is already published is left alone even when this copy hashes
+        # differently, instead of rejected (`crucible migrate --bundle` converting an old bundle)
+        self.to, self.outputs, self.dry_run, self.submitter, self.skip_known = to, outputs, dry_run, submitter, skip_known
+        self.counts = {"runs": 0, "scores": 0, "status": 0, "catalogs": 0, "corrections": 0, "registry": 0, "outputs": 0, "invalid": 0}
         self.errors: list[str] = []
         self.skipped: list[str] = []
-        self.runs = {p.stem for p in (to / "runs").glob("*/*.json")}
+        self.rejected: list[str] = []
+        self.entries = known_entries(to)
         self.scores = {p.name for p in (to / "scores").glob("*/*.json")}
 
     def _write(self, kind: str, path: Path, data) -> bool:
-        found = record_problems(kind, data)
+        found = record_problems(kind, data, strict=True)
         if found:
             self.errors.append(f"{path.relative_to(self.to)}: " + "; ".join(found[:5]))
             self.counts["invalid"] += 1
             return False
         if not self.dry_run:
             path.parent.mkdir(parents=True, exist_ok=True)
-            # Plain UTF-8, not \u escapes: Jekyll parses data files with a YAML parser that rejects escaped emoji
-            path.write_text(json.dumps(data, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+            path.write_text(_text(data), encoding="utf-8")
         return True
 
     def add(self, record: dict, output: str | None, score_records: list[dict], status: list[dict]) -> None:
         uuid, folder = record["run_uuid"], month(record)
-        if uuid not in self.runs:
+        path = self.to / "runs" / folder / f"{uuid}.json"
+        rel = path.relative_to(self.to).as_posix()
+        existing = self.entries.get(uuid)
+        new_hash = (record.get("provenance") or {}).get("content_hash")
+        same_bytes = None
+        if existing is not None and existing.get("content_hash") is None and new_hash is None:
+            file = self.to / existing["path"]
+            same_bytes = file.exists() and file.read_text(encoding="utf-8") == _text(record)
+        redaction = manifest.redaction_of(record) or {}
+        verdict, why = manifest.decide(existing, new_hash, same_bytes, redaction.get("original_content_hash"))
+        if verdict == manifest.REJECT and self.skip_known:
+            return
+        if verdict == manifest.REJECT:
+            message = f"{rel}: rejected, run {uuid} is {why}; a published run is never overwritten"
+            self.rejected.append(message)
+            self.errors.append(message)
+            return
+        if verdict == manifest.ADD:
             if output and not self.dry_run:
                 self.outputs.mkdir(parents=True, exist_ok=True)
                 (self.outputs / f"{uuid}.txt").write_text(output, encoding="utf-8")
                 self.counts["outputs"] += 1
-            if self._write("run", self.to / "runs" / folder / f"{uuid}.json", record):
-                self.runs.add(uuid)
+            if self._write("run", path, record):
+                self.entries[uuid] = manifest.entry(new_hash, rel, self.submitter or manifest.submitter_of(record),
+                                                    redacted=bool(redaction))
                 self.counts["runs"] += 1
+            else:
+                return
         for score in score_records:
             name = score_name(score)
             if name not in self.scores and self._write("score", self.to / "scores" / folder / name, published_score(score)):
@@ -253,6 +371,10 @@ class Publisher:
             if len(status) > len(have) and status[:len(have)] == have and self._write("status", path, status):
                 self.counts["status"] += len(status) - len(have)
 
+    def write_manifest(self) -> bool:
+        """Regenerate manifest.json from what's now on disk (nothing in a dry run)."""
+        return False if self.dry_run else write_manifest(self.to, self.entries)
+
     def add_catalogs(self, suites_dir: Path | None = None) -> None:
         names = suites.names(suites_dir)
         for name in names:
@@ -264,19 +386,36 @@ class Publisher:
                 if self._write("catalog", path, data):
                     self.counts["catalogs"] += 1
 
-    def add_corrections(self, source: Path | None = None) -> None:
-        """The one file publish rewrites whole: it's a reviewed list, never a run."""
-        path, data = self.to / CORRECTIONS_FILE, corrections(source)
+    def add_corrections(self, reg: registry.Registry | None = None) -> None:
+        """Rewritten whole, like the registry: it's reviewed data generated from it, never a run."""
+        path, data = self.to / CORRECTIONS_FILE, corrections(reg)
         if runrecord.read_json(path) != data and self._write("corrections", path, data):
             self.counts["corrections"] += 1
 
+    def add_registry(self, reg: registry.Registry | None = None) -> None:
+        """The registry (registry/*.yaml) as registry/<name>.json, rewritten whole when it changed."""
+        reg = reg or registry.load()
+        for name, data in reg.files().items():
+            path = self.to / "registry" / f"{name}.json"
+            if runrecord.read_json(path) != data and self._write(f"registry-{name}", path, data):
+                self.counts["registry"] += 1
 
-def corrections(source: Path | None = None) -> dict:
-    """The corrections record: corrections.yaml as published (docs/bundle-format.md#corrections)."""
-    import yaml
-    data = yaml.safe_load((source or CORRECTIONS_SOURCE).read_text(encoding="utf-8")) or {}
-    return {"record": "corrections", "format_version": runrecord.FORMAT_VERSION,
-            "models": data.get("models") or [], "publishers": data.get("publishers") or []}
+
+def corrections(reg: registry.Registry | None = None) -> dict:
+    """The legacy corrections record, generated from the registry: every model alias is a correction
+    (to its id, or its `legacy_to_base` spelling), every packager spelling a publisher fix
+    (docs/bundle-format.md#corrections)."""
+    reg = reg or registry.load()
+    models, publishers = [], []
+    for model in reg.models.values():
+        for alias in model.get("aliases") or []:
+            entry = {"base": alias["base"], "to_base": alias.get("legacy_to_base") or model["id"], "maker": model["maker"]}
+            if alias.get("packager"):
+                entry["publisher"] = alias["packager"]
+            models.append({**entry, "reason": alias["reason"].strip()})
+    for packager in reg.packagers.values():
+        publishers += [{"from": s, "to": packager["id"]} for s in packager.get("spellings") or []]
+    return {"record": "corrections", "format_version": runrecord.FORMAT_VERSION, "models": models, "publishers": publishers}
 
 
 def harness_problem(meta: dict) -> str | None:
@@ -289,9 +428,9 @@ def harness_problem(meta: dict) -> str | None:
     return problem(task, (meta.get("harness") or {}).get("id"))
 
 
-def publish(runs_dir: Path, to: Path, outputs: Path, dry_run: bool = False) -> Publisher:
+def publish(runs_dir: Path, to: Path, outputs: Path, dry_run: bool = False, submitter: str | None = None) -> Publisher:
     runrecord.require_migrated(runs_dir)
-    pub = Publisher(to, outputs, dry_run)
+    pub = Publisher(to, outputs, dry_run, submitter)
     for run_dir in runrecord.run_dirs(runs_dir):
         meta = runrecord.read(run_dir)
         if not meta.get("run_uuid"):
@@ -306,8 +445,169 @@ def publish(runs_dir: Path, to: Path, outputs: Path, dry_run: bool = False) -> P
         meta = {**meta, "metrics": {**(meta.get("metrics") or {}), **derived_metrics(run_dir, meta)}}
         pub.add(published_run(meta, output), output, runrecord.scores(run_dir), runrecord.statuses(run_dir))
     pub.add_catalogs()
-    pub.add_corrections()
+    reg = registry.load()
+    found = reg.problems()
+    if found:
+        pub.errors += [f"registry: {p}" for p in found]
+    else:
+        pub.add_registry(reg)
+        pub.add_corrections(reg)
+    pub.write_manifest()
     return pub
+
+
+REDACTED_REASON = "IP-derived host name removed before publishing"
+
+
+# Fields that hold a host or machine name: there, a value that merely starts like an address (`10-0-1`) goes too
+HOST_FIELDS = ("$.hardware.label", "$.provenance.machine_label", "$.endpoint.device", "$.serving_host", "$.harness_host",
+               "$.hardware.nickname")
+
+
+def _redact_walk(value, path: str, fields: list[str]):
+    """`value` with every string the IP detector flags set to None; their JSON paths are appended to `fields`."""
+    if isinstance(value, str):
+        if hostnames.contains_ip(value) or (path in HOST_FIELDS and hostnames.looks_like_ip(value)):
+            fields.append(path)
+            return None
+        return value
+    if isinstance(value, dict):
+        return {k: (v if path == "$.provenance" and k in ("redacted", "content_hash") else _redact_walk(v, f"{path}.{k}", fields))
+                for k, v in value.items()}
+    if isinstance(value, list):
+        return [_redact_walk(v, f"{path}[{i}]", fields) for i, v in enumerate(value)]
+    return value
+
+
+def redact_record(record: dict, output: str | None, today: str | None = None) -> tuple[dict, list[str]] | None:
+    """A run record with its IP-like host values set to null, or None when it has none (so it's idempotent).
+
+    Every other byte is unchanged. The copy gets provenance.redacted {fields, at, reason,
+    original_content_hash} and a recomputed provenance.content_hash. A host field is any string value the
+    detector (crucible/hostnames.py) flags: hardware.label, provenance.machine_label, endpoint.device and
+    any other. Only `publish --from-bundle` does this; a new record with an IP in it is refused instead.
+    """
+    fields: list[str] = []
+    copy = _redact_walk(record, "$", fields)
+    if not fields:
+        return None
+    prov = dict(copy.get("provenance") or {})
+    original = (record.get("provenance") or {}).get("content_hash")
+    prov["redacted"] = {"fields": sorted(fields), "at": today or datetime.now(timezone.utc).date().isoformat(),
+                        "reason": REDACTED_REASON, "original_content_hash": original}
+    copy["provenance"] = prov
+    prov["content_hash"] = content_hash(copy, output)
+    return copy, sorted(fields)
+
+
+def copy_bundle(old: Path, new: Path, from_outputs: Path, outputs: Path, dry_run: bool = False,
+                submitter: str | None = None, today: str | None = None) -> dict:
+    """Copy a published bundle into another folder without changing a byte of any record, except that a run
+    record with an IP-like host value gets it set to null (`redact_record`; flagged `redacted` in the manifest).
+
+    Every run's content hash is verified against its record and output first; a run that fails isn't
+    copied. Runs follow the manifest rules (crucible/manifest.py), so copying twice is a no-op. Scores,
+    status files, catalogs, the registry and corrections.json are copied byte for byte too; one that
+    already exists in `new` with different bytes is an error, never overwritten. Ends by writing
+    <new>/manifest.json. Returns counts, `errors` and `notes`.
+    """
+    report = {"runs": 0, "scores": 0, "status": 0, "catalogs": 0, "registry": 0, "corrections": 0, "outputs": 0,
+              "verified": 0, "unverifiable": 0, "unchanged": 0, "redacted": 0, "errors": [], "notes": []}
+    errors, rejected = report["errors"], set()
+    known = known_entries(new)
+
+    def put(src: Path, dest: Path, kind: str, data: bytes | None = None) -> bool:
+        data = src.read_bytes() if data is None else data
+        if dest.exists():
+            if dest.read_bytes() == data:
+                report["unchanged"] += 1
+            else:
+                errors.append(f"{dest.relative_to(new).as_posix()}: already in {new} with different bytes; not overwritten")
+            return False
+        if not dry_run:
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes(data)
+        if kind:
+            report[kind] += 1
+        return True
+
+    for path in sorted(old.glob("runs/*/*.json")):
+        rel, uuid = path.relative_to(old), path.stem
+        raw = path.read_bytes()
+        data = json.loads(raw.decode("utf-8"))
+        ref, output, source = data.get("output_ref"), None, None
+        if ref:
+            source = from_outputs / Path(ref).name
+            if not source.exists():
+                errors.append(f"{rel.as_posix()}: output {ref} is missing from {from_outputs}")
+                rejected.add(uuid)
+                continue
+            output = source.read_text(encoding="utf-8")
+        stored = (data.get("provenance") or {}).get("content_hash")
+        if unverifiable(data):
+            report["unverifiable"] += 1
+        elif stored != content_hash(data, output):
+            errors.append(f"{rel.as_posix()}: content hash doesn't match (the record or its output was edited); not copied")
+            rejected.add(uuid)
+            continue
+        else:
+            report["verified"] += 1
+        dest = new / rel
+        # IP-like host values are removed from the copy; the day it was done is kept when it's copied again
+        published = runrecord.read_json(dest) if dest.exists() else None
+        day = (manifest.redaction_of(published or {}) or {}).get("at") or today
+        redacted = redact_record(data, output, day)
+        out_bytes, new_hash, original = raw, stored, None
+        if redacted is not None:
+            record, fields = redacted
+            if hostnames.ip_strings(record):
+                errors.append(f"{rel.as_posix()}: still has an IP-like value after redaction; not copied")
+                rejected.add(uuid)
+                continue
+            out_bytes = _text(record).encode("utf-8")
+            new_hash = record["provenance"]["content_hash"]
+            original = record["provenance"]["redacted"]["original_content_hash"]
+        published_original = (manifest.redaction_of(published or {}) or {}).get("original_content_hash")
+        verdict, why = manifest.decide(known.get(uuid), new_hash, dest.exists() and dest.read_bytes() == out_bytes,
+                                       original, published_original)
+        if verdict == manifest.REJECT:
+            errors.append(f"{rel.as_posix()}: rejected, run {uuid} is {why}")
+            rejected.add(uuid)
+            continue
+        if put(path, dest, "runs" if verdict == manifest.ADD else "", out_bytes) and redacted is not None:
+            report["redacted"] += 1
+        if source is not None:
+            put(source, outputs / source.name, "outputs")
+        known.setdefault(uuid, manifest.entry(new_hash, rel.as_posix(), submitter or manifest.submitter_of(data),
+                                              redacted=redacted is not None))
+    for pattern, kind in (("scores/*/*.json", "scores"), ("status/*.json", "status"), ("catalog/*.json", "catalogs"),
+                          ("registry/*.json", "registry")):
+        for path in sorted(old.glob(pattern)):
+            if path.name.partition(".")[0] in rejected or path.stem in rejected:
+                continue
+            put(path, new / path.relative_to(old), kind)
+    if (old / CORRECTIONS_FILE).exists():
+        put(old / CORRECTIONS_FILE, new / CORRECTIONS_FILE, "corrections")
+    if not (new / "registry").is_dir() and not dry_run:
+        # A bundle published before the registry existed: the new bundle carries the repo's reviewed registry
+        sink = Publisher(new, outputs)
+        sink.add_registry()
+        report["registry"] += sink.counts["registry"]
+        errors += sink.errors
+    handled = {"runs", "scores", "status", "catalog", "registry", CORRECTIONS_FILE, manifest.FILE}
+    left = sorted(p.name for p in old.iterdir() if p.name not in handled and not p.name.startswith("."))
+    if left:
+        report["notes"].append("not copied: " + ", ".join(left))
+    if not dry_run and not errors:
+        write_manifest(new, known)
+    elif not dry_run:
+        report["notes"].append("manifest.json not written: fix the errors and copy again")
+    return report
+
+
+def manifest_problems(to: Path) -> list[str]:
+    path = to / manifest.FILE
+    return manifest.problems(runrecord.read_json(path), scan(to)) if path.exists() else []
 
 
 def check_folder(to: Path, outputs: Path | None = None) -> list[str]:
@@ -316,6 +616,13 @@ def check_folder(to: Path, outputs: Path | None = None) -> list[str]:
     corrections = to / CORRECTIONS_FILE
     if corrections.exists():
         found += [f"{CORRECTIONS_FILE}: {p}" for p in record_problems("corrections", runrecord.read_json(corrections))]
+    for name in registry.NAMES:
+        path = to / "registry" / f"{name}.json"
+        if path.exists():
+            found += [f"registry/{name}.json: {p}" for p in record_problems(f"registry-{name}", runrecord.read_json(path))]
+    reg = check_registry(to)
+    if reg is not None:
+        found += [f"registry: {p}" for p in reg.problems()]
     for kind, pattern in (("catalog", "catalog/*.json"), ("run", "runs/*/*.json"), ("score", "scores/*/*.json"),
                           ("status", "status/*.json")):
         for path in sorted(to.glob(pattern)):
@@ -329,6 +636,8 @@ def check_folder(to: Path, outputs: Path | None = None) -> list[str]:
                 # Published before every record was hashed, without an output: nothing to check it against
                 problems_here = [p for p in problems_here if not p.startswith("$.provenance.content_hash:")]
             found += [f"{rel}: {p}" for p in problems_here]
+            if kind == "run":
+                found += [f"{rel}: {p}" for p in redaction_problems(data)]
             if kind == "run" and unverifiable(data):
                 if data.get("run_uuid") != path.stem:
                     found.append(f"{rel}: file name isn't its run_uuid")
@@ -349,6 +658,33 @@ def check_folder(to: Path, outputs: Path | None = None) -> list[str]:
 
             elif kind == "score" and path.name != score_name(data):
                 found.append(f"{rel}: file name doesn't match its run_uuid, rubric version and method")
+    return found + manifest_problems(to)
+
+
+def _at_path(record, path: str):
+    """The value at a "$.a.b[0]" path as ip_strings writes it; (found, value)."""
+    value = record
+    for key, index in re.findall(r"\.([^.\[\]]+)|\[(\d+)\]", path):
+        try:
+            value = value[int(index)] if index else value[key]
+        except (KeyError, IndexError, TypeError):
+            return False, None
+    return True, value
+
+
+def redaction_problems(record) -> list[str]:
+    """What's wrong with a record's provenance.redacted block: the fields it lists must be null in the record.
+    (The content hash is checked as for any record: it's recomputed over the redacted copy.)"""
+    block = manifest.redaction_of(record) if isinstance(record, dict) else None
+    if block is None:
+        return []
+    found = []
+    for path in block.get("fields") or []:
+        ok, value = _at_path(record, path)
+        if ok and value is not None:
+            found.append(f"provenance.redacted lists {path} but it isn't null")
+    if hostnames.ip_strings(record):
+        found.append("a redacted record still contains an IP address or IP-derived host name")
     return found
 
 
@@ -369,17 +705,84 @@ def unverifiable_warnings(to: Path) -> list[str]:
             + ", ".join(Path(f).stem[:8] for f in found)] if found else []
 
 
-def base_warnings(to: Path) -> list[str]:
-    """Published bases that look unnormalized and that the corrections file doesn't fix: one line per
-    base, with how many runs carry it. Warnings, never errors: published runs can't be edited."""
-    fixed = {m["base"] for m in (runrecord.read_json(to / CORRECTIONS_FILE) or {}).get("models", [])}
+def check_registry(to: Path) -> registry.Registry | None:
+    """The registry a folder is checked against: the repo's (what the next publish sends), else the
+    folder's own registry/ copy, else None."""
+    if registry.REGISTRY_DIR.joinpath("makers.yaml").exists():
+        return registry.load()
+    try:
+        return registry.load(to)
+    except (FileNotFoundError, OSError):
+        return None
+
+
+def published_runs(to: Path):
+    for path in sorted(to.glob("runs/*/*.json")):
+        run = runrecord.read_json(path)
+        if isinstance(run, dict):
+            yield run
+
+
+def base_warnings(to: Path, reg: registry.Registry | None = None) -> list[str]:
+    """Published bases the registry doesn't resolve to a model: one line per base, with how many runs
+    carry it. Warnings, never errors: published runs can't be edited."""
+    reg = reg or check_registry(to)
+    if reg is None:
+        return []
     seen: dict[str, int] = {}
-    for path in to.glob("runs/*/*.json"):
-        base = ((runrecord.read_json(path) or {}).get("model") or {}).get("base")
-        if base and base not in fixed and unnormalized(base):
+    for run in published_runs(to):
+        base = (run.get("model") or {}).get("base")
+        if base and reg.model_for_base(base) is None:
             seen[base] = seen.get(base, 0) + 1
-    return [f"model.base {b!r} ({n} runs): {', '.join(unnormalized(b))}; add it to corrections.yaml"
-            for b, n in sorted(seen.items())]
+    return [f"model.base {b!r} ({n} runs) isn't a registry model" + (f" ({', '.join(unnormalized(b))})" if unnormalized(b) else "")
+            + "; add the model, or an alias with a reason, to registry/models.yaml" for b, n in sorted(seen.items())]
+
+
+def machine_warnings(to: Path, reg: registry.Registry | None = None) -> list[str]:
+    """Local runs that don't resolve to a machine or a hardware key, with the host names they carry."""
+    reg = reg or check_registry(to)
+    if reg is None:
+        return []
+    no_machine: dict[str, int] = {}
+    no_key: dict[str, int] = {}
+    for run in published_runs(to):
+        res = reg.resolve_run(run)
+        if res.where != "local":
+            continue
+        hosts = ", ".join(sorted({h for h in ((run.get("endpoint") or {}).get("device"), (run.get("hardware") or {}).get("label")) if h})) or "no host recorded"
+        if res.machine is None:
+            no_machine[hosts] = no_machine.get(hosts, 0) + 1
+        if res.hardware_key is None:
+            no_key[hosts] = no_key.get(hosts, 0) + 1
+    found = []
+    if no_machine:
+        found.append(f"{sum(no_machine.values())} local runs resolve to no machine: "
+                     + "; ".join(f"{h} ({n})" for h, n in sorted(no_machine.items())) + "; add the host name to registry/machines.yaml")
+    if no_key:
+        found.append(f"{sum(no_key.values())} local runs resolve to no hardware key: "
+                     + "; ".join(f"{h} ({n})" for h, n in sorted(no_key.items())))
+    return found
+
+
+def legacy_warnings(to: Path) -> list[str]:
+    """Runs already published with a leaked `local` key or a null content hash. Never edited, only listed."""
+    local = hashless = 0
+    with_ip: list[str] = []
+    for run in published_runs(to):
+        local += "local" in run
+        hashless += not (run.get("provenance") or {}).get("content_hash")
+        if run.get("format_version") != 4 and hostnames.ip_strings(run):
+            with_ip.append(str(run.get("run_uuid"))[:8])
+    found = []
+    if with_ip:
+        found.append(f"{len(with_ip)} runs contain an IP address or an IP-derived host name (published before "
+                     "the harness dropped them at capture; they stay as published, new ones are refused): "
+                     + ", ".join(sorted(with_ip)))
+    if local:
+        found.append(f"{local} runs carry a `local` key (published before publish dropped it); they stay as published")
+    if hashless:
+        found.append(f"{hashless} runs have a null content_hash; they stay as published")
+    return found
 
 
 def unnormalized(base: str) -> list[str]:
@@ -406,18 +809,26 @@ def default_outputs(to: Path) -> Path:
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="crucible publish", description=__doc__.splitlines()[0])
-    parser.add_argument("--to", type=Path, help="The page's data folder (default: CRUCIBLE_PUBLISH_DIR, else "
+    parser.add_argument("--to", type=Path, help="The bundle folder (default: CRUCIBLE_PUBLISH_DIR, else "
                                                 "../schaferandrew.github.io/_data/crucible)")
-    parser.add_argument("--outputs", type=Path, help="Where full outputs go (default: <site>/crucible-data/outputs)")
+    parser.add_argument("--outputs", type=Path, help="Where full outputs go (default: <site>/crucible-data/outputs, or <to>/outputs)")
     parser.add_argument("--runs", type=Path, default=Path("runs"))
     parser.add_argument("--dry-run", action="store_true", help="Say what would be added; write nothing")
-    parser.add_argument("--check", type=Path, metavar="DIR", help="Only validate a published folder and its content hashes")
+    parser.add_argument("--check", type=Path, metavar="DIR", help="Only validate a published folder, its content hashes and its manifest")
+    parser.add_argument("--from-bundle", type=Path, metavar="OLD", help="Copy the published bundle OLD into --to byte for byte "
+                                                                      "(verifying every content hash) instead of publishing runs/")
+    parser.add_argument("--from-outputs", type=Path, help="With --from-bundle: where OLD's outputs are (default: next to OLD, like --outputs)")
+    parser.add_argument("--submitter", help="Recorded in the manifest for the runs this call adds")
     args = parser.parse_args()
 
     if args.check:
         found = check_folder(args.check, args.outputs or default_outputs(args.check))
-        print("\n".join(found[:50]) if found else f"{args.check} is a valid format-3 folder.")
-        warnings = unverifiable_warnings(args.check) + base_warnings(args.check)
+        print("\n".join(found[:50]) if found else f"{args.check} is a valid bundle folder.")
+        reg = check_registry(args.check)
+        warnings = (unverifiable_warnings(args.check) + base_warnings(args.check, reg) + machine_warnings(args.check, reg)
+                    + legacy_warnings(args.check))
+        if not (args.check / manifest.FILE).exists():
+            warnings.append(f"no {manifest.FILE}; `crucible publish` writes it")
         if warnings:
             print("Warnings (not errors):\n  " + "\n  ".join(warnings))
         sys.exit(1 if found else 0)
@@ -425,16 +836,34 @@ def main() -> None:
     folder = args.to or next((d for d in DEFAULT_DIRS if d.parent.exists()), None)
     if folder is None:
         sys.exit("No data folder found; pass --to <portfolio>/_data/crucible (or set CRUCIBLE_PUBLISH_DIR).")
-    pub = publish(args.runs, folder, args.outputs or default_outputs(folder), args.dry_run)
+    if args.from_bundle:
+        if args.to is None:
+            sys.exit("--from-bundle needs --to: the folder to copy into.")
+        report = copy_bundle(args.from_bundle, folder, args.from_outputs or default_outputs(args.from_bundle),
+                             args.outputs or default_outputs(folder), args.dry_run, args.submitter)
+        verb = "Would copy" if args.dry_run else "Copied"
+        print(f"{verb} {report['runs']} runs ({report['verified']} hashes verified, {report['unverifiable']} unverifiable, "
+              f"{report['redacted']} redacted of IP-derived host names), "
+              f"{report['scores']} scores, {report['status']} status files, {report['catalogs']} catalogs, "
+              f"{report['registry']} registry files, {report['corrections']} corrections files, {report['outputs']} outputs "
+              f"to {folder}; {report['unchanged']} files were already there")
+        for note in report["notes"]:
+            print(note)
+        if report["errors"]:
+            print("Problems:\n  " + "\n  ".join(report["errors"][:30]))
+            sys.exit(1)
+        return
+    pub = publish(args.runs, folder, args.outputs or default_outputs(folder), args.dry_run, args.submitter)
     c = pub.counts
     verb = "Would add" if args.dry_run else "Added"
     print(f"{verb} {c['runs']} runs, {c['scores']} score records, {c['status']} status records, "
-          f"{c['catalogs']} catalogs, {c['corrections']} corrections files to {folder}; {c['outputs']} outputs")
+          f"{c['catalogs']} catalogs, {c['registry']} registry files, {c['corrections']} corrections files "
+          f"to {folder}; {c['outputs']} outputs")
     if pub.skipped:
         print(f"Skipped {len(pub.skipped)} runs through a harness their mode doesn't use (kept in {args.runs}/):\n  "
               + "\n  ".join(pub.skipped[:30]))
     if pub.errors:
-        print("Not written (invalid):\n  " + "\n  ".join(pub.errors[:30]))
+        print("Not written (invalid or rejected):\n  " + "\n  ".join(pub.errors[:30]))
         sys.exit(1)
 
 

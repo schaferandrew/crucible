@@ -1,0 +1,23 @@
+# Makers: the labs that trained the weights. A maker's id is its lowercase slug and the part before the
+# slash in every model id. A packager namespace (bartowski, mlx-community) is never a maker.
+# Hand-reviewed; `crucible publish --check` lists published runs whose model isn't in models.yaml.
+makers:
+  - {id: allenai, label: Allen Institute for AI}
+  - {id: anthropic, label: Anthropic}
+  - {id: deepseek, label: DeepSeek}
+  - {id: essentialai, label: Essential AI}
+  - {id: google, label: Google}
+  - {id: ibm-granite, label: IBM Granite}
+  - {id: liquid, label: Liquid AI}
+  - {id: meta, label: Meta}
+  - {id: mistralai, label: Mistral AI}
+  - {id: moonshotai, label: Moonshot AI}
+  - {id: nvidia, label: NVIDIA}
+  - {id: openai, label: OpenAI}
+  - {id: ornith-ai, label: Ornith AI}
+  - {id: poolside, label: Poolside}
+  - {id: prism-ml, label: Prism ML}
+  - {id: qwen, label: Qwen}
+  # OpenRouter files Z.ai's models under z-ai and LM Studio under zai-org; the two ids are never merged
+  - {id: z-ai, label: Z.ai (OpenRouter)}
+  - {id: zai-org, label: Z.ai (Hugging Face)}

@@ -1,0 +1,181 @@
+# Models: every canonical model the results mention. The id is <maker>/<name> (lowercase) and is the one
+# model identity everywhere. A run's recorded model.base resolves to a model when it equals the id
+# (case-insensitively) or one of its aliases; an unknown base is shown as unknown/<base>, never guessed.
+#
+# aliases: raw model.base values that mean this model. Each needs a reason a reader can check.
+#   packager: the packager for runs that matched this alias and recorded none (model-level `packager`
+#     does the same for any run of the model; leave it off when it varies by run).
+#   legacy_to_base: how the page-facing corrections.json spells the model for this alias, when that
+#     isn't the id (the live page reads it until the new dashboard replaces it).
+# Fields label, family, params, active_params are optional and only filled where a source states them.
+# Never edit a published run; add the alias here.
+models:
+  - id: allenai/olmo-3-32b-think
+    maker: allenai
+  - id: anthropic/claude-opus-5.5
+    maker: anthropic
+  - id: anthropic/claude-sonnet-5.5
+    maker: anthropic
+  - id: deepseek/deepseek-v4-flash
+    maker: deepseek
+  - id: deepseek/deepseek-v4.1-flash
+    maker: deepseek
+    aliases:
+      - base: deepseek-v4.1-flash-free
+        reason: the free tier of deepseek/deepseek-v4.1-flash, recorded without the maker
+  - id: essentialai/rnj-1
+    maker: essentialai
+  - id: google/gemma-4-12b
+    maker: google
+  - id: google/gemma-4-12b-qat
+    maker: google
+  - id: google/gemma-4-26b-a4b
+    maker: google
+  - id: google/gemma-4-26b-a4b-qat
+    maker: google
+    defaults:
+    - match:
+        quant: q4_0
+      packager: google
+      reasoning: 'on'
+      reason: all 26 runs of google/gemma-4-26b-a4b-qat at q4_0 that recorded packager say google; 51 runs
+        recorded none; all 25 runs of google/gemma-4-26b-a4b-qat at q4_0 that recorded a resolved reasoning
+        level say on; 51 runs recorded none
+  - id: google/gemma-4-31b
+    maker: google
+  - id: google/gemma-4-e4b
+    maker: google
+    defaults:
+    - match:
+        quant: 4bit
+      packager: google
+      reasoning: 'on'
+      reason: all 26 runs of google/gemma-4-e4b at 4bit that recorded packager say google; 65 runs recorded
+        none; all 26 runs of google/gemma-4-e4b at 4bit that recorded a resolved reasoning level say on; 44
+        runs recorded none
+  - id: ibm-granite/granite-4.2-3b
+    maker: ibm-granite
+    aliases:
+      - base: granite-4.2-3b-mlx@4bit
+        reason: LM Studio key with the format and quant tags; IBM's Granite 4.2 3B (ibm-granite/granite-4.2-3b)
+  - id: liquid/lfm2-1.2b
+    maker: liquid
+  - id: liquid/lfm2-24b-a2b
+    maker: liquid
+  - id: liquid/lfm2.5-24b-a2b
+    maker: liquid
+    aliases:
+      - base: lfm2.5:24b
+        reason: >-
+          Ollama's lfm2.5:24b is Liquid AI's LFM2.5-24B-A2B (LiquidAI/LFM2.5-24B-A2B); not the older
+          LFM2-24B-A2B (liquid/lfm2-24b-a2b, Ollama lfm2:24b-a2b)
+  - id: meta/muse-glimmer
+    maker: meta
+    aliases:
+      - base: mlx-community/muse-glimmer-30b
+        packager: mlx-community
+        reason: >-
+          mlx-community's conversion of Meta's Muse Glimmer (one size, 29.6B, released as
+          meta-models/Muse-Glimmer-30B), recorded under the packager's namespace
+  - id: mistralai/ministral-3-14b-reasoning
+    maker: mistralai
+  - id: moonshotai/kimi-k2.6
+    maker: moonshotai
+  - id: nvidia/nemotron-3-nano-4b
+    maker: nvidia
+  - id: nvidia/nemotron-3-nano-omni
+    maker: nvidia
+  - id: nvidia/nemotron-3-ultra-550b-a55b
+    maker: nvidia
+    aliases:
+      - base: nvidia/nemotron-3-ultra-550b-a55b:free
+        reason: OpenRouter's :free tier suffix
+  - id: openai/gpt-6-luna
+    maker: openai
+  - id: openai/gpt-6.1-sol
+    maker: openai
+  - id: openai/gpt-luna-latest
+    maker: openai
+    aliases:
+      - base: ~openai/gpt-luna-latest
+        packager: openai
+        reason: OpenRouter's ~ latest alias prefix
+  - id: openai/gpt-oss-20b
+    maker: openai
+    defaults:
+    - match:
+        quant: mxfp4
+      packager: openai
+      reasoning: low
+      reason: all 106 runs of openai/gpt-oss-20b at mxfp4 that recorded packager say openai; 40 runs recorded
+        none; all 25 runs of openai/gpt-oss-20b at mxfp4 that recorded a resolved reasoning level say low;
+        41 runs recorded none
+  - id: ornith-ai/ornith-1.5-35b-a3b
+    maker: ornith-ai
+    aliases:
+      - base: ornith-1.5-35b-a3b
+        legacy_to_base: ornith-ai/Ornith-1.5-35B-A3B
+        reason: >-
+          local key without the maker; the 35B-A3B size of ornith-ai/Ornith-1.5. Publisher is left
+          unset on purpose: most runs recorded the bartowski GGUF repack, some recorded ornith-ai's own
+          publish, and the field would only fill a blank run — keeping all of them as recorded
+  - id: ornith-ai/ornith-1.5-9b
+    maker: ornith-ai
+    defaults:
+    - match:
+        quant: q6_k
+      reasoning: 'on'
+      reason: all 42 runs of ornith-ai/ornith-1.5-9b at q6_k that recorded a resolved reasoning level say
+        on; 8 runs recorded none
+    aliases:
+      - base: ornith-1.5-9b
+        legacy_to_base: ornith-ai/Ornith-1.5-9B
+        reason: local key without the maker; artifact ornith-ai/Ornith-1.5-9B-GGUF
+  - id: poolside/laguna-xs-2.1
+    maker: poolside
+    aliases:
+      - base: laguna-xs-2.1
+        reason: local key without the maker; the same model as the poolside/laguna-xs-2.1 cloud runs
+  - id: prism-ml/bonsai-27b
+    maker: prism-ml
+  - id: qwen/qwen2.5-0.5b-instruct
+    maker: qwen
+    aliases:
+      - base: qwen2.5-0.5b-instruct
+        reason: local key without the maker
+  - id: qwen/qwen2.5-1.5b-instruct
+    maker: qwen
+    aliases:
+      - base: qwen2.5-1.5b-instruct
+        reason: local key without the maker
+  - id: qwen/qwen3-coder-30b
+    maker: qwen
+  - id: qwen/qwen3.5-35b-a3b
+    maker: qwen
+  - id: qwen/qwen3.5-9b
+    maker: qwen
+    defaults:
+    - match:
+        quant: 8bit
+      packager: qwen
+      reasoning: 'on'
+      reason: all 13 runs of qwen/qwen3.5-9b at 8bit that recorded packager say qwen; 6 runs recorded none;
+        all 8 runs of qwen/qwen3.5-9b at 8bit that recorded a resolved reasoning level say on; 5 runs recorded
+        none
+  - id: qwen/qwen3.6-35b-a3b
+    maker: qwen
+  - id: qwen/qwen3.8-27b
+    maker: qwen
+    aliases:
+      - base: qwen3.8-27b-splash
+        packager: incoai
+        reason: >-
+          incoai's Splash-runtime repack of Qwen3.8-27B (incoai/Qwen3.8-27B-Splash, format "splash",
+          not mlx); the same model as the qwen/qwen3.8-27b runs, grouped under qwen and distinguished by
+          the run's format/variant_key
+  - id: qwen/qwen3.8-flash
+    maker: qwen
+  - id: z-ai/glm-5.3-flash
+    maker: z-ai
+  - id: zai-org/glm-4.7-flash
+    maker: zai-org

@@ -82,8 +82,8 @@ Then publish (the usual steps, with the resolved path):
    warnings to the user without treating them as failures:
    - "runs have no output and no content hash": records from before every record was hashed (old
      `crucible migrate` conversions, early 3.x publishes). Expected; they can't be verified.
-   - "model.base ... add it to corrections.yaml": a model recorded under a bad name. Say which; the fix
-     is an entry in `corrections.yaml`, never an edit to the run.
+   - "model.base ... isn't a registry model": a model recorded under a bad name. Say which; the fix
+     is an alias (with a reason) in `registry/models.yaml`, never an edit to the run.
 
    A non-zero exit is real trouble: a hash that doesn't match (a record or output edited after
    publishing), a schema error, or a missing output. Stop, show the user the lines, and don't copy

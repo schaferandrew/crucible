@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/schaferandrew/crucible/blob/main/crucible/schemas/registry-overrides.schema.json",
+  "title": "Crucible registry: overrides (bundle format 3)",
+  "description": "registry/overrides.json in a bundle, from the repo's registry/overrides.yaml: rare per-run fixes the registry's rules can't express, each with a reason.",
+  "type": "object",
+  "required": ["record", "format_version", "name", "runs"],
+  "properties": {
+    "record": {"type": "string", "enum": ["registry"]},
+    "format_version": {"type": "integer"},
+    "name": {"type": "string", "enum": ["overrides"]},
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["run_uuids", "set", "reason"],
+        "properties": {
+          "run_uuids": {"type": "array", "items": {"type": "string"}},
+          "set": {
+            "type": "object",
+            "properties": {
+              "model": {"type": "string"},
+              "packager": {"type": "string"},
+              "format": {"type": "string"},
+              "quant": {"type": "string"},
+              "machine": {"type": "string"},
+              "reasoning": {"type": "string"}
+            }
+          },
+          "reason": {"type": "string"}
+        }
+      }
+    }
+  }
+}

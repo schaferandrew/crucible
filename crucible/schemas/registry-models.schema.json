@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/schaferandrew/crucible/blob/main/crucible/schemas/registry-models.schema.json",
+  "title": "Crucible registry: models (bundle format 3)",
+  "description": "registry/models.json in a bundle, from the repo's registry/models.yaml: every canonical model (id <maker>/<name>) and the raw model.base values that mean it.",
+  "type": "object",
+  "required": ["record", "format_version", "name", "models"],
+  "properties": {
+    "record": {"type": "string", "enum": ["registry"]},
+    "format_version": {"type": "integer"},
+    "name": {"type": "string", "enum": ["models"]},
+    "models": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "maker"],
+        "properties": {
+          "id": {"type": "string"},
+          "maker": {"type": "string"},
+          "label": {"type": ["string", "null"]},
+          "family": {"type": ["string", "null"]},
+          "params": {"type": ["integer", "null"]},
+          "active_params": {"type": ["integer", "null"]},
+          "packager": {"type": ["string", "null"]},
+          "defaults": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["match", "reason"],
+              "properties": {
+                "match": {"type": "object"},
+                "packager": {"type": ["string", "null"]},
+                "format": {"type": ["string", "null"]},
+                "reasoning": {"type": ["string", "null"]},
+                "reason": {"type": "string"}
+              }
+            }
+          },
+          "aliases": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["base", "reason"],
+              "properties": {
+                "base": {"type": "string"},
+                "reason": {"type": "string"},
+                "packager": {"type": ["string", "null"]},
+                "legacy_to_base": {"type": ["string", "null"]}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

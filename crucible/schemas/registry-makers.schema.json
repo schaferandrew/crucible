@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/schaferandrew/crucible/blob/main/crucible/schemas/registry-makers.schema.json",
+  "title": "Crucible registry: makers (bundle format 3)",
+  "description": "registry/makers.json in a bundle, from the repo's registry/makers.yaml: the labs that trained models.",
+  "type": "object",
+  "required": ["record", "format_version", "name", "makers"],
+  "properties": {
+    "record": {"type": "string", "enum": ["registry"]},
+    "format_version": {"type": "integer"},
+    "name": {"type": "string", "enum": ["makers"]},
+    "makers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label"],
+        "properties": {
+          "id": {"type": "string"},
+          "label": {"type": "string"},
+          "url": {"type": ["string", "null"]}
+        }
+      }
+    }
+  }
+}

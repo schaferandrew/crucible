@@ -1,0 +1,531 @@
+"""The bundle manifest and its rules, `publish --from-bundle`, and format-4 run records."""
+import json
+import shutil
+from pathlib import Path
+
+import pytest
+
+from crucible import bundle, hostnames, manifest, registry, runrecord, workspace
+from tests.records import run_meta, write_run
+from tests.test_bundle import _runs, _tree
+
+# The published bundle, read only: next to this checkout (or its worktree), else under ~/Developer
+_HERE = Path(__file__).resolve()
+REAL_BUNDLE = next((d / "schaferandrew.github.io" / "_data" / "crucible"
+                    for d in [*_HERE.parents, Path.home() / "Developer"]
+                    if (d / "schaferandrew.github.io" / "_data" / "crucible" / "runs").is_dir()),
+                   _HERE.parents[2] / "schaferandrew.github.io" / "_data" / "crucible")
+REAL_OUTPUTS = REAL_BUNDLE.parents[1] / "crucible-data" / "outputs"
+
+
+# --------------------------------------------------------------------------
+# The rules (pure)
+# --------------------------------------------------------------------------
+
+def test_decide_rules():
+    known = manifest.entry("sha256:a", "runs/2026-01/x.json")
+    assert manifest.decide(None, "sha256:a")[0] == manifest.ADD
+    assert manifest.decide(known, "sha256:a") == (manifest.NOOP, None)
+    verdict, why = manifest.decide(known, "sha256:b")
+    assert verdict == manifest.REJECT and "sha256:a" in why and "sha256:b" in why
+    assert manifest.decide(known, None)[0] == manifest.REJECT
+
+
+def test_decide_null_hash_is_the_same_only_by_bytes():
+    legacy = manifest.entry(None, "runs/2026-01/x.json")
+    assert manifest.decide(legacy, None, identical_bytes=True)[0] == manifest.NOOP
+    assert manifest.decide(legacy, None, identical_bytes=False)[0] == manifest.REJECT
+    assert manifest.decide(legacy, None)[0] == manifest.REJECT
+    assert manifest.decide(legacy, "sha256:a", identical_bytes=True)[0] == manifest.REJECT
+
+
+def test_dump_is_sorted_and_stable():
+    a = {**manifest.empty(), "runs": {"b": manifest.entry("h", "p", scores=["r2.checks", "r1.checks"]), "a": manifest.entry(None, "q")}}
+    b = {**manifest.empty(), "runs": {"a": manifest.entry(None, "q"), "b": manifest.entry("h", "p", scores=["r1.checks", "r2.checks"])}}
+    assert manifest.dump(a) == manifest.dump(b)
+    assert list(json.loads(manifest.dump(a))["runs"]) == ["a", "b"]
+
+
+def test_problems_names_missing_extra_and_mismatched_runs():
+    listed = {**manifest.empty(), "runs": {"a": manifest.entry("h1", "runs/a.json"), "b": manifest.entry("h2", "runs/b.json"),
+                                          "c": manifest.entry("h3", "runs/c.json", scores=["r1.checks"])}}
+    found = {"a": manifest.entry("h1", "runs/a.json"), "c": manifest.entry("hX", "runs/c.json"), "d": manifest.entry("h4", "runs/d.json")}
+    text = "\n".join(manifest.problems(listed, found))
+    assert "b is listed but its run file is missing" in text
+    assert "d has a run file but isn't listed" in text
+    assert "c content hash" in text and "c score records differ" in text
+    assert manifest.problems(listed, {k: v for k, v in listed["runs"].items()}) == []
+
+
+# --------------------------------------------------------------------------
+# publish writes and keeps the manifest
+# --------------------------------------------------------------------------
+
+def test_publish_writes_a_manifest_and_republishing_changes_nothing(tmp_path):
+    runs, to = _runs(tmp_path), tmp_path / "bundle"
+    outputs = bundle.default_outputs(to)
+    first = bundle.publish(runs, to, outputs, submitter="andrew")
+    assert first.errors == []
+    data = json.loads((to / manifest.FILE).read_text(encoding="utf-8"))
+    assert data["record"] == "manifest" and list(data["runs"]) == sorted(data["runs"]) and len(data["runs"]) == 2
+    entry = data["runs"]["00000000-0000-4000-8000-000000000000"]
+    assert entry["path"] == "runs/2026-01/00000000-0000-4000-8000-000000000000.json" and entry["submitter"] == "andrew"
+    assert entry["content_hash"].startswith("sha256:") and len(entry["scores"]) == 1 and entry["status_count"] == 0
+    before = _tree(tmp_path)
+    second = bundle.publish(runs, to, outputs, submitter="someone-else")
+    assert second.errors == [] and second.rejected == [] and not any(second.counts.values())
+    assert _tree(tmp_path) == before
+    assert bundle.check_folder(to, outputs) == []
+
+
+def test_rescoring_and_status_update_the_manifest_without_touching_the_run(tmp_path):
+    runs, to = _runs(tmp_path, 1), tmp_path / "bundle"
+    outputs = bundle.default_outputs(to)
+    bundle.publish(runs, to, outputs)
+    (run_dir,) = runrecord.run_dirs(runs)
+    score = runrecord.scores(run_dir)[0]
+    runrecord.write_score(run_dir, {**score, "rubric_version": score["rubric_version"] + 1})
+    runrecord.add_status(run_dir, score["run_uuid"], invalid={"reason": "stale"})
+    run_file = next((to / "runs").rglob("*.json"))
+    run_bytes = run_file.read_bytes()
+    pub = bundle.publish(runs, to, outputs)
+    assert pub.errors == [] and (pub.counts["scores"], pub.counts["status"]) == (1, 1)
+    assert run_file.read_bytes() == run_bytes
+    (entry,) = json.loads((to / manifest.FILE).read_text())["runs"].values()
+    assert len(entry["scores"]) == 2 and entry["status_count"] == 1
+    assert bundle.check_folder(to, outputs) == []
+
+
+def test_a_changed_run_is_rejected_with_the_hash_in_the_message(tmp_path):
+    runs, to = _runs(tmp_path, 1), tmp_path / "bundle"
+    outputs = bundle.default_outputs(to)
+    bundle.publish(runs, to, outputs)
+    before = _tree(tmp_path / "bundle")
+    (run_dir,) = runrecord.run_dirs(runs)
+    (run_dir / "stdout.txt").write_text("a different answer", encoding="utf-8")
+    pub = bundle.publish(runs, to, outputs)
+    assert len(pub.rejected) == 1 and "sha256:" in pub.rejected[0] and "never overwritten" in pub.rejected[0]
+    assert _tree(tmp_path / "bundle") == before
+
+
+def test_publish_adopts_a_folder_that_has_no_manifest_yet(tmp_path):
+    runs, to = _runs(tmp_path), tmp_path / "bundle"
+    outputs = bundle.default_outputs(to)
+    bundle.publish(runs, to, outputs)
+    (to / manifest.FILE).unlink()
+    pub = bundle.publish(runs, to, outputs)
+    assert pub.errors == [] and not any(pub.counts.values()) and (to / manifest.FILE).exists()
+
+
+def test_check_reports_manifest_drift(tmp_path):
+    runs, to = _runs(tmp_path), tmp_path / "bundle"
+    outputs = bundle.default_outputs(to)
+    bundle.publish(runs, to, outputs)
+    path = to / manifest.FILE
+    data = json.loads(path.read_text())
+    gone, kept = sorted(data["runs"])
+    data["runs"]["ffffffff-0000-4000-8000-000000000000"] = data["runs"][gone]      # listed, no file
+    data["runs"][kept]["content_hash"] = "sha256:" + "0" * 64                        # hash differs from its file
+    del data["runs"][gone]                                                          # file, but unlisted
+    path.write_text(json.dumps(data))
+    text = "\n".join(bundle.check_folder(to, outputs))
+    assert "ffffffff-0000-4000-8000-000000000000 is listed but its run file is missing" in text
+    assert f"{gone} has a run file but isn't listed" in text
+    assert f"{kept} content hash" in text
+
+
+# --------------------------------------------------------------------------
+# publish --from-bundle
+# --------------------------------------------------------------------------
+
+def test_from_bundle_copies_byte_for_byte(tmp_path):
+    runs, old = _runs(tmp_path), tmp_path / "site" / "_data" / "crucible"
+    bundle.publish(runs, old, bundle.default_outputs(old))
+    (old / manifest.FILE).unlink()
+    new = tmp_path / "dash" / "bundle"
+    report = bundle.copy_bundle(old, new, bundle.default_outputs(old), bundle.default_outputs(new))
+    assert report["errors"] == [] and report["runs"] == 2 and report["verified"] == 2 and report["outputs"] == 2
+    for path in old.rglob("*.json"):
+        assert (new / path.relative_to(old)).read_bytes() == path.read_bytes()
+    assert set(json.loads((new / manifest.FILE).read_text())["runs"]) == {p.stem for p in (old / "runs").rglob("*.json")}
+    assert bundle.check_folder(new, bundle.default_outputs(new)) == []
+    before = _tree(tmp_path / "dash")
+    again = bundle.copy_bundle(old, new, bundle.default_outputs(old), bundle.default_outputs(new))
+    assert again["errors"] == [] and again["runs"] == 0 and _tree(tmp_path / "dash") == before
+
+
+def test_from_bundle_refuses_an_edited_run_and_a_missing_output(tmp_path):
+    runs, old = _runs(tmp_path), tmp_path / "site" / "_data" / "crucible"
+    outputs = bundle.default_outputs(old)
+    bundle.publish(runs, old, outputs)
+    first, second = sorted(old.rglob("runs/*/*.json"))
+    record = json.loads(first.read_text())
+    record["elapsed_s"] = 77.0
+    first.write_text(json.dumps(record))
+    (outputs / f"{second.stem}.txt").unlink()
+    new = tmp_path / "dash" / "bundle"
+    report = bundle.copy_bundle(old, new, outputs, bundle.default_outputs(new))
+    assert len(report["errors"]) == 2 and report["runs"] == 0
+    assert not (new / manifest.FILE).exists() and not list(new.rglob("runs/*/*.json"))
+
+
+@pytest.mark.skipif(not (REAL_BUNDLE / "runs").is_dir(), reason="the published bundle isn't checked out next to this repo")
+def test_from_bundle_on_the_real_bundle(tmp_path):
+    new = tmp_path / "bundle"
+    report = bundle.copy_bundle(REAL_BUNDLE, new, REAL_OUTPUTS, new / "outputs")
+    run_files = sorted((REAL_BUNDLE / "runs").glob("*/*.json"))
+    assert report["errors"] == [] and report["runs"] == len(run_files)
+    assert report["verified"] + report["unverifiable"] == len(run_files)
+    # Byte for byte, except the runs with an IP-derived host name: those 33 are redacted (and flagged)
+    with_ip = {p.stem for p in run_files if hostnames.ip_strings(json.loads(p.read_text()))}
+    assert report["redacted"] == len(with_ip) == 33
+    for path in REAL_BUNDLE.rglob("*.json"):
+        if path.stem not in with_ip:
+            assert (new / path.relative_to(REAL_BUNDLE)).read_bytes() == path.read_bytes()
+    assert not [p for p in new.rglob("*.json") if hostnames.ip_strings(json.loads(p.read_text()))]
+    listed = json.loads((new / manifest.FILE).read_text())["runs"]
+    assert {u for u, e in listed.items() if e.get("redacted")} == with_ip
+    assert set(listed) == {p.stem for p in run_files}
+    assert {u for u, e in listed.items() if e["content_hash"] is None} == {
+        p.stem for p in run_files if bundle.unverifiable(json.loads(p.read_text()))}
+    assert bundle.check_folder(new, new / "outputs") == []
+
+
+# --------------------------------------------------------------------------
+# Format 4
+# --------------------------------------------------------------------------
+
+INFERENCE = {"provider": "lmstudio", "local": True, "same_machine": True, "quantization": "Q4_K_M",
+             "format": "gguf", "publisher": "lmstudio-community"}
+
+
+def _v4_runs(tmp_path, inference=INFERENCE):
+    p = workspace.load_task("capitals-not-largest-city")
+    meta = run_meta(p["id"], p["version"], p["rubric_version"], model="lmstudio/qwen/qwen3.5-9b", inference=inference,
+                    run_uuid="00000000-0000-4000-8000-0000000000a4")
+    meta["model"] = runrecord.model_record("lmstudio/qwen/qwen3.5-9b", "default", None, inference)
+    meta["provenance"]["machine_label"] = "Ironwood"
+    v4 = runrecord.record_v4(meta, registry.default())
+    runs = tmp_path / "runs"
+    write_run(runs / v4["run_path"], v4, "Australia: Canberra")
+    return runs, v4
+
+
+def test_record_format_is_3_unless_opted_in(monkeypatch):
+    monkeypatch.delenv("CRUCIBLE_RECORD_FORMAT", raising=False)
+    assert runrecord.record_format() == 3
+    monkeypatch.setenv("CRUCIBLE_RECORD_FORMAT", "4")
+    assert runrecord.record_format() == 4
+    monkeypatch.setenv("CRUCIBLE_RECORD_FORMAT", "5")
+    with pytest.raises(SystemExit):
+        runrecord.record_format()
+
+
+def test_format_4_record_fields(tmp_path):
+    _, v4 = _v4_runs(tmp_path)
+    assert v4["format_version"] == 4 and "serving_host" not in v4 and "harness_host" not in v4
+    model = v4["model"]
+    assert (model["id"], model["maker"], model["packager"]) == ("qwen/qwen3.5-9b", "qwen", "lmstudio-community")
+    assert (model["raw_base"], model["format"], model["format_source"], model["quant"]) == ("qwen/qwen3.5-9b", "gguf", "runtime", "Q4_K_M")
+    assert v4["hardware"] == {"key": "m1-pro-32gb", "chip": "Apple M1 Pro", "memory_gb": 32.0, "accelerators": [],
+                              "served_remotely": False}
+    assert "app" not in v4["endpoint"] and "device" not in v4["endpoint"]
+    for gone in ("variant_key", "display", "publisher"):
+        assert gone not in model
+    assert not {"submitter", "verification", "machine_label", "machine_id"} & set(v4["provenance"])
+    assert "local" in v4  # in the local meta.json only
+
+
+def test_format_source_says_where_the_format_came_from():
+    assert runrecord.format_and_source("lmstudio/x", {"provider": "lmstudio", "local": True, "format": "MLX"}) == ("mlx", "runtime")
+    assert runrecord.format_and_source("lmstudio/x", {"provider": "lmstudio", "local": True,
+                                                      "model_path": "/m/x-Q4.gguf"}) == ("gguf", "runtime")
+    assert runrecord.format_and_source("lmstudio/mlx-community/x", {"provider": "lmstudio", "local": True}) == ("mlx", "filename")
+    assert runrecord.format_and_source("lmstudio/qwen/x", {"provider": "lmstudio", "local": True}) == (None, "unknown")
+    assert runrecord.format_and_source("openrouter/a/b", {"provider": "openrouter", "local": False}) == (None, "unknown")
+
+
+def test_format_4_end_to_end_write_publish_check(tmp_path):
+    runs, v4 = _v4_runs(tmp_path)
+    to = tmp_path / "bundle"
+    outputs = bundle.default_outputs(to)
+    pub = bundle.publish(runs, to, outputs)
+    assert pub.errors == [] and pub.counts["runs"] == 1
+    (path,) = (to / "runs").rglob("*.json")
+    record = json.loads(path.read_text(encoding="utf-8"))
+    assert record["format_version"] == 4 and "local" not in record and "run_path" not in record
+    assert record["provenance"]["content_hash"].startswith("sha256:") and "submitter" not in record["provenance"]
+    assert bundle.record_problems("run", record) == []
+    assert bundle.check_folder(to, outputs) == []
+    resolved = registry.default().resolve_run(record)
+    assert (resolved.model_id, resolved.maker, resolved.packager, resolved.format, resolved.hardware_key) == (
+        "qwen/qwen3.5-9b", "qwen", "lmstudio-community", "gguf", "m1-pro-32gb")
+    assert "Ironwood" not in path.read_text(encoding="utf-8")
+    again = bundle.publish(runs, to, outputs)
+    assert again.errors == [] and not any(again.counts.values())
+
+
+def test_format_4_cloud_run(tmp_path):
+    p = workspace.load_task("capitals-not-largest-city")
+    inference = {"provider": "openrouter", "local": False}
+    meta = run_meta(p["id"], p["version"], p["rubric_version"], model="openrouter/qwen/qwen3.5-9b", inference=inference)
+    v4 = runrecord.record_v4(meta, registry.default())
+    assert v4["hardware"] is None and v4["model"]["format_source"] is None
+    assert v4["model"]["id"] == "qwen/qwen3.5-9b"
+    write_run(tmp_path / "runs" / v4["run_path"], v4, "ok")
+    to = tmp_path / "bundle"
+    assert bundle.publish(tmp_path / "runs", to, bundle.default_outputs(to)).errors == []
+
+
+def test_a_local_key_is_rejected_in_either_format(tmp_path):
+    runs, v4 = _v4_runs(tmp_path)
+    leaked = {**v4, "local": {"x": 1}, "run_path": None}
+    assert any("local" in p for p in bundle.record_problems("run", leaked, strict=True))
+    assert any("local" in p for p in bundle.record_problems("run", leaked))        # format 4: always
+    v3 = run_meta("capitals-not-largest-city")
+    assert bundle.record_problems("run", {**bundle.published_run(v3, None), "local": {}}) == []   # legacy bundle runs
+    assert any("local" in p for p in bundle.record_problems("run", {**bundle.published_run(v3, None), "local": {}}, strict=True))
+    # and --check fails a format-4 file that carries one
+    to = tmp_path / "bundle"
+    bundle.publish(runs, to, bundle.default_outputs(to))
+    (path,) = (to / "runs").rglob("*.json")
+    record = json.loads(path.read_text())
+    path.write_text(json.dumps({**record, "local": {}}))
+    assert any("local" in p for p in bundle.check_folder(to, bundle.default_outputs(to)))
+
+
+def test_format_4_schema_rejects_dropped_fields():
+    v3 = run_meta("capitals-not-largest-city")
+    v4 = bundle.published_run(runrecord.record_v4(v3, registry.default()), None)
+    assert bundle.record_problems("run", v4) == []
+    leaked = {**v4, "model": {**v4["model"], "variant_key": "a|b"}, "endpoint": {**v4["endpoint"], "app": None}}
+    found = "\n".join(bundle.record_problems("run", leaked))
+    assert "model.variant_key" in found and "endpoint.app" in found
+    for field in ("serving_host", "harness_host"):
+        assert any(field in p for p in bundle.record_problems("run", {**v4, field: "Ironwood"}))
+    hw = v4["hardware"]
+    assert any("hardware.label" in p for p in bundle.record_problems("run", {**v4, "hardware": {**hw, "label": "Ironwood"}}))
+    assert any("machine_id" in p for p in bundle.record_problems(
+        "run", {**v4, "provenance": {**v4["provenance"], "machine_id": "m_1234"}}))
+    assert any("format_source" in p for p in bundle.record_problems("run", {**v4, "model": {**v4["model"], "format_source": "guess"}}))
+
+
+def test_the_nickname_is_optional_chosen_and_display_only(tmp_path, monkeypatch):
+    monkeypatch.delenv("CRUCIBLE_MACHINE_NAME", raising=False)
+    _, plain = _v4_runs(tmp_path)
+    assert "nickname" not in plain["hardware"]            # never the OS hostname by default
+    monkeypatch.setenv("CRUCIBLE_MACHINE_NAME", "Basement Box")
+    _, named = _v4_runs(tmp_path / "named")
+    assert named["hardware"]["nickname"] == "Basement Box"
+    assert {k: v for k, v in named["hardware"].items() if k != "nickname"} == plain["hardware"]   # not part of the key
+    published = bundle.published_run(named, None)
+    assert bundle.record_problems("run", published) == []
+    for bad in ("192.168.1.5", "ip-192-168-1-5", "fe80::1", "", "x" * 41, "two\nlines"):
+        assert any("nickname" in p for p in bundle.record_problems(
+            "run", {**published, "hardware": {**published["hardware"], "nickname": bad}})), bad
+    monkeypatch.setenv("CRUCIBLE_MACHINE_NAME", "ip-10-0-0-1")
+    with pytest.raises(SystemExit):
+        runrecord.machine_nickname()
+
+
+# --------------------------------------------------------------------------
+# No IP addresses in records
+# --------------------------------------------------------------------------
+
+def test_publish_refuses_a_new_run_with_an_ip_in_it(tmp_path):
+    runs, to = _runs(tmp_path, 1), tmp_path / "bundle"
+    (run_dir,) = runrecord.run_dirs(runs)
+    meta = json.loads((run_dir / "meta.json").read_text())
+    meta["provenance"]["machine_label"] = "ip-192-168-1-162"
+    (run_dir / "meta.json").write_text(json.dumps(meta))
+    pub = bundle.publish(runs, to, bundle.default_outputs(to))
+    assert pub.counts["runs"] == 0 and not list(to.glob("runs/*/*.json"))
+    assert "IP address" in pub.errors[0] and "provenance.machine_label" in pub.errors[0] and "ip-192-168-1-162" in pub.errors[0]
+
+
+def test_check_warns_about_published_runs_with_an_ip_but_does_not_fail(tmp_path):
+    runs, to = _runs(tmp_path, 1), tmp_path / "bundle"
+    bundle.publish(runs, to, bundle.default_outputs(to))
+    (path,) = to.glob("runs/*/*.json")
+    record = json.loads(path.read_text())
+    record["hardware"]["label"] = "ip-192-168-1-162"
+    path.write_text(json.dumps(record))
+    bundle.write_manifest(to)
+    assert not any("IP address" in p for p in bundle.check_folder(to, bundle.default_outputs(to)))  # format 3: a warning only
+    (warning,) = [w for w in bundle.legacy_warnings(to) if "IP" in w]
+    assert record["run_uuid"][:8] in warning
+
+
+def test_format_4_end_to_end_write_publish_site_data(tmp_path, monkeypatch):
+    """A synthetic format-4 run, written, published, then built into site data: the hardware class comes from
+    hardware.key and the credit label from hardware.nickname, with no host name or machine id anywhere."""
+    from crucible.sitedata.build import build as build_site_data
+    monkeypatch.setenv("CRUCIBLE_MACHINE_NAME", "Pocket Rocket")
+    runs, v4 = _v4_runs(tmp_path)
+    assert v4["hardware"]["nickname"] == "Pocket Rocket"
+    to = tmp_path / "bundle"
+    outputs = bundle.default_outputs(to)
+    assert bundle.publish(runs, to, outputs).errors == []
+    (path,) = (to / "runs").rglob("*.json")
+    record = json.loads(path.read_text(encoding="utf-8"))
+    assert not {"serving_host", "harness_host"} & set(record) and "machine_id" not in record["provenance"]
+    # The resolver: hardware from the key, nickname display-only, nothing looked up from a host
+    res = registry.default().resolve_run(record)
+    assert res.hardware_key == "m1-pro-32gb" and res.machine is None and res.nickname == "Pocket Rocket"
+    assert "Pocket Rocket" not in res.setup_id and "Pocket Rocket" not in res.deployment_id
+    assert res.deployment_id == "local~m1-pro-32gb"
+    assert res.setup_id == "qwen/qwen3.5-9b~lmstudio-community~gguf~q4_k_m~r-default~direct@local~m1-pro-32gb"
+    # Site data
+    out = tmp_path / "site"
+    build_site_data(to, outputs, out)
+    uuid = record["run_uuid"]
+    detail = json.loads((out / "runs" / f"{uuid}.json").read_text())
+    assert detail["setup"] == res.setup_id and detail["resolution"]["deployment"] == res.deployment_id
+    assert detail["resolution"]["machine"] == "Pocket Rocket"
+    assert detail["summary"]["hardware"]["key"] == "m1-pro-32gb" and detail["summary"]["hardware"]["chip"] == "Apple M1 Pro"
+    suite = next(iter(detail["suites"]))
+    index = json.loads((out / suite / "index.json").read_text())
+    setup = index["entities"]["setups"][res.setup_id]
+    assert setup["labels"]["machines"] == ["Pocket Rocket"] and setup["deployment"] == res.deployment_id
+    assert index["entities"]["deployments"][res.deployment_id]["machines"] == [{"label": "Pocket Rocket", "runs": 1}]
+    assert "Ironwood" not in "".join(p.read_text(errors="replace") for p in out.rglob("*.json"))
+
+
+# --------------------------------------------------------------------------
+# Redaction in publish --from-bundle
+# --------------------------------------------------------------------------
+
+def _old_bundle_with_ips(tmp_path, legacy_null_hash=False):
+    """A published bundle (2 runs) where run 0 carries IP-derived host names, as 33 old runs do. The record is
+    rewritten the way an old publish would have left it: its hash covers the IP values."""
+    runs, old = _runs(tmp_path), tmp_path / "site" / "_data" / "crucible"
+    outputs = bundle.default_outputs(old)
+    bundle.publish(runs, old, outputs)
+    first = sorted(old.glob("runs/*/*.json"))[0]
+    record = json.loads(first.read_text())
+    record["hardware"]["label"] = "ip-192-168-1-162"
+    record["endpoint"]["device"] = "192.168.1.162"
+    record["provenance"]["machine_label"] = "ip-192-168-1-162"
+    record["metrics"]["note"] = "served from 10.0.0.7:1234"
+    output = None
+    if legacy_null_hash:
+        record["output_ref"], record["provenance"]["content_hash"] = None, None
+        (outputs / f"{record['run_uuid']}.txt").unlink()
+    else:
+        output = (outputs / f"{record['run_uuid']}.txt").read_text(encoding="utf-8")
+        record["provenance"]["content_hash"] = bundle.content_hash(record, output)
+    first.write_text(bundle._text(record), encoding="utf-8")
+    (old / manifest.FILE).unlink()
+    return old, outputs, record, output
+
+
+def test_redact_record_nulls_ip_host_fields_and_nothing_else():
+    meta = run_meta("capitals-not-largest-city")
+    record = bundle.published_run(meta, "out")
+    assert bundle.redact_record(record, "out") is None            # nothing to redact: idempotent
+    record["hardware"]["label"] = "ip-192-168-1-162"
+    record["endpoint"]["device"] = "192.168.1.162"
+    record["provenance"]["machine_label"] = "ip-192-168-1-162"
+    record["metrics"]["note"] = "peer fe80::1"
+    copy, fields = bundle.redact_record(record, "out", "2026-11-11")
+    assert fields == ["$.endpoint.device", "$.hardware.label", "$.metrics.note", "$.provenance.machine_label"]
+    assert copy["hardware"]["label"] is None and copy["endpoint"]["device"] is None
+    assert copy["provenance"]["machine_label"] is None and copy["metrics"]["note"] is None
+    block = copy["provenance"]["redacted"]
+    assert block == {"fields": fields, "at": "2026-11-11", "reason": "IP-derived host name removed before publishing",
+                     "original_content_hash": record["provenance"]["content_hash"]}
+    assert copy["provenance"]["content_hash"] == bundle.content_hash(copy, "out") != record["provenance"]["content_hash"]
+    changed = {k for k in copy if copy[k] != record[k]}
+    assert changed == {"hardware", "endpoint", "metrics", "provenance"}
+    assert copy["model"] == record["model"] and copy["hardware"]["key"] == record["hardware"]["key"]
+    assert hostnames.ip_strings(copy) == []
+    assert bundle.redact_record(copy, "out") is None              # a redacted copy has nothing left to redact
+    assert bundle.redaction_problems(copy) == []
+
+
+def test_from_bundle_redacts_flags_the_manifest_and_check_accepts_it(tmp_path):
+    old, outputs, record, output = _old_bundle_with_ips(tmp_path)
+    new = tmp_path / "dash" / "bundle"
+    report = bundle.copy_bundle(old, new, outputs, bundle.default_outputs(new), today="2026-11-11")
+    assert report["errors"] == [] and report["redacted"] == 1 and report["runs"] == 2
+    copy = json.loads((new / "runs" / "2026-01" / f"{record['run_uuid']}.json").read_text())
+    assert copy["hardware"]["label"] is None and copy["provenance"]["redacted"]["original_content_hash"] \
+        == record["provenance"]["content_hash"]
+    listed = json.loads((new / manifest.FILE).read_text())["runs"]
+    assert listed[record["run_uuid"]]["redacted"] is True
+    assert listed[record["run_uuid"]]["content_hash"] == copy["provenance"]["content_hash"]
+    assert [u for u, e in listed.items() if e.get("redacted")] == [record["run_uuid"]]   # the other run is untouched
+    other = next(p for p in old.glob("runs/*/*.json") if p.stem != record["run_uuid"])
+    assert (new / other.relative_to(old)).read_bytes() == other.read_bytes()
+    assert bundle.check_folder(new, bundle.default_outputs(new)) == []
+    assert not any(p.read_text(errors="replace").count("192.168") for p in new.rglob("*") if p.is_file())
+    # the schemas allow provenance.redacted
+    assert bundle.record_problems("run", copy) == []
+
+
+def test_from_bundle_redaction_is_idempotent(tmp_path):
+    old, outputs, record, output = _old_bundle_with_ips(tmp_path)
+    new = tmp_path / "dash" / "bundle"
+    bundle.copy_bundle(old, new, outputs, bundle.default_outputs(new), today="2026-11-11")
+    before = _tree(tmp_path / "dash")
+    again = bundle.copy_bundle(old, new, outputs, bundle.default_outputs(new), today="2027-01-01")   # a later day
+    assert again["errors"] == [] and again["runs"] == 0 and again["redacted"] == 0 and _tree(tmp_path / "dash") == before
+    # copying the redacted bundle onward changes nothing either
+    third = tmp_path / "third" / "bundle"
+    report = bundle.copy_bundle(new, third, bundle.default_outputs(new), bundle.default_outputs(third))
+    assert report["errors"] == [] and report["redacted"] == 0
+    assert (third / "runs" / "2026-01" / f"{record['run_uuid']}.json").read_bytes() == \
+        (new / "runs" / "2026-01" / f"{record['run_uuid']}.json").read_bytes()
+
+
+def test_redacted_legacy_run_without_a_hash(tmp_path):
+    old, outputs, record, _ = _old_bundle_with_ips(tmp_path, legacy_null_hash=True)
+    assert bundle.unverifiable(json.loads((old / "runs" / "2026-01" / f"{record['run_uuid']}.json").read_text()))
+    new = tmp_path / "dash" / "bundle"
+    report = bundle.copy_bundle(old, new, outputs, bundle.default_outputs(new), today="2026-11-11")
+    assert report["errors"] == [] and report["unverifiable"] == 1 and report["redacted"] == 1
+    copy = json.loads((new / "runs" / "2026-01" / f"{record['run_uuid']}.json").read_text())
+    assert copy["provenance"]["redacted"]["original_content_hash"] is None
+    assert copy["provenance"]["content_hash"] == bundle.content_hash(copy, None)     # it has a hash now
+    assert bundle.check_folder(new, bundle.default_outputs(new)) == []
+    before = _tree(tmp_path / "dash")
+    assert bundle.copy_bundle(old, new, outputs, bundle.default_outputs(new), today="2030-01-01")["errors"] == []
+    assert _tree(tmp_path / "dash") == before
+
+
+def test_check_rejects_a_redacted_record_that_was_edited_or_lies(tmp_path):
+    old, outputs, record, _ = _old_bundle_with_ips(tmp_path)
+    new = tmp_path / "dash" / "bundle"
+    bundle.copy_bundle(old, new, outputs, bundle.default_outputs(new))
+    path = new / "runs" / "2026-01" / f"{record['run_uuid']}.json"
+    good = json.loads(path.read_text())
+    path.write_text(json.dumps({**good, "elapsed_s": 99.0}))
+    assert any("content hash doesn't match" in p for p in bundle.check_folder(new, bundle.default_outputs(new)))
+    lie = json.loads(json.dumps(good))
+    lie["hardware"]["label"] = "Whitehall"          # listed in provenance.redacted.fields, but not null
+    lie["provenance"]["content_hash"] = bundle.content_hash(lie, (bundle.default_outputs(new) / f"{record['run_uuid']}.txt").read_text(encoding="utf-8"))
+    path.write_text(json.dumps(lie))
+    assert any("isn't null" in p for p in bundle.check_folder(new, bundle.default_outputs(new)))
+
+
+def test_manifest_treats_a_redacted_copy_as_the_same_run_as_its_source():
+    source = manifest.entry("sha256:a", "runs/2026-01/x.json")
+    # a redacted copy arriving where the source is published
+    assert manifest.decide(source, "sha256:b", original_hash="sha256:a") == (manifest.NOOP, None)
+    assert manifest.decide(source, "sha256:b", original_hash="sha256:other")[0] == manifest.REJECT
+    assert manifest.decide(source, "sha256:b")[0] == manifest.REJECT
+    # the source arriving where its redacted copy is published
+    published = manifest.entry("sha256:b", "runs/2026-01/x.json", redacted=True)
+    assert manifest.decide(published, "sha256:a", published_original_hash="sha256:a") == (manifest.NOOP, None)
+    assert manifest.decide(published, "sha256:c", published_original_hash="sha256:a")[0] == manifest.REJECT
+    assert "redacted" in published and "redacted" not in source
+
+
+def test_publish_still_refuses_a_new_record_with_an_ip(tmp_path):
+    runs, to = _runs(tmp_path, 1), tmp_path / "bundle"
+    (run_dir,) = runrecord.run_dirs(runs)
+    meta = json.loads((run_dir / "meta.json").read_text())
+    meta["hardware"]["label"] = "ip-192-168-1-162"
+    (run_dir / "meta.json").write_text(json.dumps(meta))
+    pub = bundle.publish(runs, to, bundle.default_outputs(to))
+    assert pub.errors and "IP" in pub.errors[0] and not list(to.rglob("runs/*/*.json"))

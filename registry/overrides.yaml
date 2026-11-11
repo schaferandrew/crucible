@@ -1,0 +1,88 @@
+# Per-run fixes the rules can't express, keyed by run_uuid, each with a reason. Allowed keys in `set`:
+# model, packager, format, quant, machine. Prefer a registry alias or a machine entry; Keep each reason specific.
+runs:
+- run_uuids:
+  - 0dfbb189-230d-4b75-bec3-436f1e26e2d6
+  set:
+    format: mlx
+    packager: liquid
+    quant: 6bit
+  reason: recorded no weights; the only artifact of liquid/lfm2-24b-a2b that ran on m5-pro-48gb with pi
+    is liquid mlx 6bit
+- run_uuids:
+  - c7c0f145-9561-4045-85c4-84c272f97fb3
+  set:
+    format: gguf
+    packager: bartowski
+    quant: q4_k_s
+  reason: recorded no weights; the only artifact of ornith-ai/ornith-1.5-35b-a3b that ran on m1-pro-32gb
+    with direct is bartowski gguf q4_k_s
+- run_uuids:
+  - 16853fd6-dd2c-4b72-83f8-41eedfd30b94
+  set:
+    format: gguf
+    packager: ornith-ai
+    quant: q4_k_m
+  reason: recorded no weights; the only artifact of ornith-ai/ornith-1.5-9b that ran on m1-pro-32gb with
+    direct is ornith-ai gguf q4_k_m
+- run_uuids:
+  - 21c33dd9-c251-45cc-b376-3d5fa06eb0a6
+  set:
+    format: gguf
+    packager: qwen
+    quant: q6_k
+  reason: recorded no weights; the only artifact of qwen/qwen3.5-35b-a3b that ran on rtx-5070-ti-16gb
+    with direct is qwen gguf q6_k
+- run_uuids:
+  - 1783490b-d64a-557a-8da1-08b224235522
+  set:
+    format: gguf
+    packager: qwen
+    quant: q4_k_m
+  reason: recorded no weights; the only artifact of qwen/qwen3.6-35b-a3b that ran on rtx-5070-ti-16gb
+    with pi is qwen gguf q4_k_m
+- run_uuids:
+  - 050e9e5e-98a8-57e7-95c3-e02a132f604b
+  - 13d7e417-709a-59a3-a870-457e798f32d9
+  - 1b40f87a-d3a8-5f98-b419-ec79d25939d1
+  - 2b73368c-bb01-5480-9a25-7fe677bc059a
+  - 35a64cb1-192e-5df9-9327-244d3ae0afa0
+  - 3cc1d269-9937-5bc0-bb6d-9a79f3a82b0a
+  - 42f0376a-2d0e-566f-844e-24c5c6fd30c9
+  - 474453f0-3ba1-5a0f-ac27-4c128e84f6e5
+  - 4e5a63ef-266e-567d-8c88-4de54a434ab1
+  - 5ac61d77-5f5b-5ef6-8eab-f7fb937a62ee
+  - 5f175282-f832-57af-b5a2-ac60597966e6
+  - 63a49693-a8fa-5dbb-9f7f-8640261332fe
+  - 67617586-6676-5bfc-b8f7-62d8f3c46977
+  - 7495206f-1900-5889-a128-4caaea52574e
+  - 7520348f-b938-5132-93fd-5c76bd9470d2
+  - 80d2b6c9-2c02-5949-918b-cb481a197f64
+  - 934cc67e-7310-5a79-82f7-8da0928cc675
+  - 941db7d7-37ec-5249-b049-976ef77c8302
+  - 9a0ed06a-fae4-52d7-be42-25f5ce82c7f1
+  - 9c7f6d11-a223-534b-ab81-344e2e9ed98f
+  - a0d623e3-9f0f-5e8f-8710-3ab1ffefe0ce
+  - a482fced-e520-59ba-a0eb-e1d590e8e6c1
+  - acc32a32-b0f3-57d0-bdbd-bf9785194f00
+  - b0fb3743-fdde-5407-804c-1f70b05a53bd
+  - b36d2e61-3dbb-56ce-bbc8-d16008737501
+  - b6809091-bf59-5ace-863a-dc3b21eae11b
+  - bc8999fb-93a9-5003-9aa1-8f14d4e6ef08
+  - c9bbd9e8-f947-5a30-af07-c5b9e74cde5c
+  - cd2e4692-e4cc-5807-973b-1460c6badcb9
+  - de06cb7f-4e08-52ab-838f-282a8b4d5423
+  - e09f3ac7-01b5-5873-bd1c-74ed38702a8c
+  - e2aa7bf1-8a97-50e1-beeb-18ce57e6cbd6
+  - e626b397-cc9c-50c1-855a-0f07016bafcd
+  - e67ed983-2101-5bef-a0c7-72eda71a4076
+  - e6fbebf9-559d-5cad-a6a0-0cf6c3aa5888
+  - e7ed7557-32e1-5ba3-925f-c85ae595ecdb
+  - e814f4be-1aa3-5269-aeed-d340122ca5ff
+  - e9520132-29a5-57d6-89c8-aaf5e819cd3b
+  - f4d0b624-84ca-5abe-847e-13e5d5e48383
+  - fb025b61-e746-53c7-a326-c789edf4db0e
+  set:
+    format: gguf
+  reason: served on an RTX 5070 Ti (Whitehall), which can't run MLX; every gpt-oss MXFP4 run on it that
+    recorded a format says gguf

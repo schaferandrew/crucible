@@ -12,6 +12,78 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## 3.10.0 (2026-11-11)
+
+### Added
+- The registry, `registry/*.yaml`: hand-reviewed makers, models (canonical `<maker>/<name>` ids with
+  aliases for the raw names runs recorded, each with a reason), packagers, machines (host names,
+  hardware, watts) and per-run overrides. `crucible/registry.py` loads it (from the repo or from a
+  published bundle) and resolves any published run to its canonical model, maker, packager, format,
+  quant, machine and hardware key, plus stable artifact, variant, deployment and setup IDs. It reads
+  format 3 records and the planned format 4 shape.
+- `crucible publish` writes `registry/<name>.json` into the bundle (bundle format revision 3) and
+  refuses to publish when the registry has problems (duplicate ids or aliases, an alias without a
+  reason, a reference to something that doesn't exist).
+- `crucible publish --check` also reports registry problems and warns, without failing, about
+  published model names the registry doesn't resolve, local runs with no machine or hardware key (with
+  their host names), and runs already published with a `local` key or a null content hash.
+- New runs fill a missing `model.origin.maker` from the registry when it knows the model.
+- Registry `defaults` on a model entry (`match` on the run's recorded quant, format, packager or
+  harness; sets `packager`, `format` or `reasoning`, with a reason), applied only to a field the run
+  recorded nothing for, and a `reasoning` key in overrides. Every application is noted in the
+  resolution, with its source `registry`.
+- `crucible registry suggest --bundle DIR` prints candidate `defaults` and `overrides` YAML for
+  published runs with gaps (unanimous evidence only), to review and paste. It writes nothing.
+- `crucible publish` maintains a generated `manifest.json` in the bundle (`run_uuid` to content hash,
+  submitter, path, score records, status count) and applies one rule set to it (`crucible/manifest.py`):
+  an unknown run is added, the same run with the same hash is a no-op, the same run with a different hash
+  is rejected and never overwritten. Publishing twice changes nothing; `publish --check` also verifies the
+  manifest against the files. `crucible migrate --bundle` still skips runs that are already there.
+- `crucible publish --from-bundle OLD --to NEW` copies a published bundle byte for byte, verifying every
+  content hash, and writes its manifest. It moves the bundle between repos.
+- Run record format 4, off by default (set `CRUCIBLE_RECORD_FORMAT=4`): `model.packager`, `model.maker`,
+  canonical `model.id`, `model.raw_base`, `model.format` with `format_source`, the serving machine's
+  `hardware` (below), and none of the dead fields. `publish` and `--check` validate both
+  formats (`run.v4.schema.json`) and reject a `local` key. See docs/bundle-format.md.
+- Format 4 describes the machine that served the weights by class, never by name:
+  `hardware: {key, chip, memory_gb, accelerators, served_remotely}` (the key by the same rule for every
+  submitter) plus an optional display-only `hardware.nickname` from `CRUCIBLE_MACHINE_NAME`. No host names,
+  machine labels or machine ids are recorded.
+- IP addresses and IP-derived host names (`ip-192-168-1-162`) are no longer recorded in any format: host
+  names pass through `crucible/hostnames.py`, an IP host in a base URL is dropped, and `crucible publish`
+  refuses a new run record with an IP-like string in it. `--check` warns about runs already published
+  with one.
+- `crucible site-data --bundle DIR --outputs DIR --out DIR`: turns the published bundle (format 3 and 4 run
+  records) into the static JSON the new dashboard loads: a per-suite `index.json` (catalog, entities, one cell per
+  setup and task, precomputed time, speed and cost per setup), per-task and per-model run lists, one file per run,
+  monthly run lists and the copied outputs. It applies the page's run-state rules (withdrawn, unknown or retired task,
+  invalid, older version, harness not allowed, counted or provisional) and resolves every run through the registry.
+  The output is deterministic, and the build refuses to finish if it contains an IP address or an IP-derived host
+  name. The format is in [docs/site-data-format.md](docs/site-data-format.md), with JSON Schemas in
+  `crucible/schemas/site-data/`.
+- `crucible publish --from-bundle` removes IP-derived host names while copying: a run record with an IP-like
+  `hardware.label`, `provenance.machine_label`, `endpoint.device` or any other flagged string gets those values set to
+  null, a `provenance.redacted` note (the fields, the date, the reason, the hash it had before) and a recomputed
+  content hash, and its manifest entry says `redacted`. Nothing else in the record changes, copying again changes
+  nothing, `--check` accepts the result, and a bundle published before the registry gets the registry written in.
+- `crucible site-data` reads format-4 runs: the hardware class from `hardware.key` and the credit label from
+  `hardware.nickname` (display only, never an id), with no host name or machine id needed. Each run file lists the other
+  runs of its task and setup (`siblings`) and the cell's `scored_run` for the new run page; a lazily fetched
+  `<suite>/cell-runs.json` maps each matrix cell to its scored run; `index.json` stores cells and the Combined
+  pairings as compact index tables (about 47 KB gzipped); catalog tasks carry their summary and typical time, task
+  files carry each run's output tokens and group results, run files carry display labels, and `recent/index.json` lists
+  the months, so pages stop fetching many files after load; and `index.json` has a `combined` block with the Combined view's pairings and their time, speed and
+  cost over the pooled runs of both setups, computed exactly instead of estimated.
+- Registry: the reviewed `defaults` for five models and five run overrides from `registry suggest` are applied, plus a
+  `{format: gguf}` override for the 40 openai/gpt-oss-20b MXFP4 runs on the RTX 5070 Ti that recorded no format. The
+  published runs now fall into 145 setups instead of 157.
+
+### Changed
+- One IP detector, `crucible/hostnames.py`, serves the harness, publish, the registry's host alias check,
+  `registry suggest` and the site-data privacy guard.
+- `corrections.yaml` is gone. `corrections.json` is still written for the live page, now generated from
+  the registry's aliases and packager spellings (same entries as before).
+
 ## 3.9.0 (2026-11-10)
 
 ### Added

@@ -82,3 +82,7 @@ Docs-only PRs (README, AGENTS.md, `docs/`) need neither.
 ever adds files, keyed by `run_uuid`, and validates everything it writes. Until the dashboard
 switches to format 3, the live page reads the single format-2 file from `crucible export --format 2`.
 Deploying is a commit and push in `schaferandrew.github.io`; see the `publish-results` skill.
+
+How recorded model fields are read (canonical model, maker, packager, machine, hardware key) lives in
+`registry/*.yaml`, hand-reviewed and resolved by `crucible/registry.py`; it replaced `corrections.yaml`.
+A badly recorded model gets an alias with a reason there, never an edit to the run.

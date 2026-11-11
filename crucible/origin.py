@@ -254,4 +254,19 @@ def capture(model: str | None, inference: dict | None, openrouter_entry: dict | 
         answers.append(("openrouter", from_openrouter(model_id, openrouter_entry)))
     if provider == "lmstudio" and model_id:
         answers.append(("lmstudio-key", from_lmstudio_key(model_id)))
-    return merge(answers)
+    result = merge(answers)
+    if result["maker"] is None:
+        result = from_registry(model, result)
+    return result
+
+
+def from_registry(model: str | None, result: dict) -> dict:
+    """Fill a missing maker from the registry when it knows the run's raw base (registry/models.yaml).
+    The source is the last to answer, so `source` ends in "registry". Nothing happens without a registry."""
+    from crucible import registry, runrecord
+    reg = registry.default()
+    maker = reg.maker_for_base(runrecord.clean_base_model(model)[0]) if reg and model else None
+    if maker is None:
+        return result
+    source = "registry" if result["source"] == "none" else f"{result['source']}+registry"
+    return {**result, "maker": maker, "source": source}

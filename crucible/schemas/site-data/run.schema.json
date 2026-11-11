@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "site-data runs/<run_uuid>.json",
+  "description": "One run: record summary, resolution, validity, per-suite state, score records, status history, output. See docs/site-data-format.md.",
+  "type": "object",
+  "required": ["run_uuid", "summary", "resolution", "setup", "labels", "validity", "suites", "cost", "outcome", "scores", "status", "output"],
+  "properties": {
+    "run_uuid": {"type": "string"},
+    "summary": {"type": "object", "required": ["format_version", "started_at", "elapsed_s", "task", "harness", "model", "endpoint", "outcome", "metrics", "provenance"],
+                "properties": {"task": {"type": "object"}, "harness": {"type": "object"}, "model": {"type": "object"},
+                               "endpoint": {"type": "object"}, "hardware": {"type": "object"}, "outcome": {"type": "object"},
+                               "metrics": {"type": "object"}, "provenance": {"type": "object"}}},
+    "resolution": {
+      "type": "object",
+      "required": ["model", "maker", "packager", "format", "quant", "where", "provider", "hardware_key", "reasoning",
+                   "harness", "artifact", "variant", "deployment", "setup", "unrecorded", "sources", "notes"],
+      "properties": {"model": {"type": "string"}, "machine": {"type": ["string", "null"]}, "artifact": {"type": "string"}, "variant": {"type": "string"},
+                     "deployment": {"type": "string"}, "setup": {"type": "string"}, "reasoning": {"type": "string"},
+                     "unrecorded": {"type": "array", "items": {"type": "string"}}, "sources": {"type": "object"},
+                     "notes": {"type": "array", "items": {"type": "string"}}}
+    },
+    "setup": {"type": "string"},
+    "labels": {"type": "object", "description": "display labels of the run's setup, as in index.json's entities, for a run page opened directly",
+               "required": ["hw", "model", "maker", "packager", "machines"],
+               "properties": {"hw": {"type": ["string", "null"]}, "model": {"type": "string"}, "maker": {"type": "string"},
+                              "packager": {"type": ["string", "null"]}, "machines": {"type": "array", "items": {"type": "string"}}}},
+    "validity": {"type": "object", "required": ["state", "reason"],
+                 "properties": {"state": {"type": "string", "enum": ["valid", "invalid", "withdrawn"]}, "reason": {"type": ["string", "null"]}}},
+    "suites": {"type": "object", "additionalProperties": {
+      "type": "object", "required": ["state", "setup", "task", "score", "score_ref", "siblings", "scored_run"],
+      "properties": {"state": {"type": "string", "enum": ["counted", "provisional", "older", "harness", "invalid", "retired", "unknown_task", "withdrawn"]},
+                     "setup": {"type": "string"},
+                     "task": {"type": ["string", "null"]}, "score": {"type": ["number", "null"]}, "score_ref": {"type": ["object", "null"]},
+                     "siblings": {"type": "array", "description": "the other runs of the same task x setup in this suite, newest first, whatever their state",
+                                  "items": {"type": "object", "required": ["run_uuid", "started_at", "state", "score", "outcome"],
+                                            "properties": {"run_uuid": {"type": "string"}, "started_at": {"type": ["string", "null"]},
+                                                           "state": {"type": "string"}, "score": {"type": ["number", "null"]},
+                                                           "outcome": {"type": "string"}}}},
+                     "scored_run": {"type": ["string", "null"], "description": "run_uuid of this cell's scored run (the index.json cell's scored_run); null when the run has no task here"}}}},
+    "cost": {"type": ["number", "null"]},
+    "outcome": {"type": "string", "enum": ["finished", "timed_out", "error"]},
+    "scores": {"type": "array", "items": {"type": "object"}},
+    "status": {"type": "array", "items": {"type": "object"}},
+    "output": {"type": ["string", "null"]}
+  }
+}

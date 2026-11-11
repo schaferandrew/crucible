@@ -1,0 +1,56 @@
+# Machines that served the weights of local runs, and what they are. A run's machine comes from
+# endpoint.device, then hardware.label (the serving machine; never provenance.machine_label, which
+# is the machine that ran the harness). Host names are matched case-insensitively.
+#
+# machine_ids: provenance.machine_id values proven to be that machine. The id names the machine that
+# ran the harness, so it only identifies the serving machine for a run with no device and no
+# served_via (served by the machine that ran it). Proof, from the published runs: an id shows up on runs
+# whose hardware.label and endpoint.device name the machine and whose hardware key is its key.
+energy:
+  usd_per_kwh: 0.183   # US residential average, EIA Short-Term Energy Outlook 2026 forecast
+hardware:
+  # watts: the whole machine's draw at the wall while it serves a model (an estimate of electricity used)
+  - key: m1-pro-32gb
+    class: apple_silicon
+    label: Apple M1 Pro, 32 GB
+    cpu: Apple M1 Pro
+    system_memory_gb: 32
+    watts: 40
+  - key: m5-pro-48gb
+    class: apple_silicon
+    label: Apple M5 Pro, 48 GB
+    cpu: Apple M5 Pro
+    system_memory_gb: 48
+    watts: 60
+  - key: rtx-5070-ti-16gb
+    class: discrete_gpu
+    label: AMD Ryzen 7 7700, NVIDIA RTX 5070 Ti 16 GB, 32 GB
+    cpu: AMD Ryzen 7 7700
+    system_memory_gb: 32
+    watts: 350
+machines:
+  - id: duskfall
+    label: Duskfall
+    hardware: m5-pro-48gb
+    # Mac-168 is this machine's DHCP host name on runs it served itself: they carry hardware key m5-pro-48gb
+    # and machine_id m_9482e089d1c3, the id of the runs labelled Duskfall. IP-style host names are never listed
+    # here (the registry is published); runs that recorded one resolve through endpoint.device instead.
+    host_aliases: [Duskfall, Mac-168]
+    machine_ids: [m_9482e089d1c3]
+  - id: ironwood
+    label: Ironwood
+    hardware: m1-pro-32gb
+    host_aliases: [Ironwood]
+    # two ids: both only ever appear with machine_label Ironwood and, when it served itself, key m1-pro-32gb
+    machine_ids: [m_09df208c24c5, m_f554f42a74a5]
+  - id: whitehall
+    label: Whitehall
+    hardware: rtx-5070-ti-16gb
+    host_aliases: [Whitehall]
+    machine_ids: []
+  - id: eclipse
+    label: Eclipse
+    # Its runs recorded no hardware; the maintainer confirmed it is a MacBook Pro, M5 Pro, 48 GB (2026-11-11)
+    hardware: m5-pro-48gb
+    host_aliases: [Eclipse]
+    machine_ids: []

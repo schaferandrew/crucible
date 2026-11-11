@@ -69,7 +69,7 @@ def test_publish_twice_adds_nothing_the_second_time(tmp_path):
     assert first.errors == [] and first.counts["runs"] == 2 and first.counts["scores"] == 2 and first.counts["catalogs"] >= 1
     before = _tree(tmp_path / "site")
     second = bundle.publish(runs, to, outputs)
-    assert second.counts == {"runs": 0, "scores": 0, "status": 0, "catalogs": 0, "corrections": 0, "outputs": 0, "invalid": 0}
+    assert second.counts == {"runs": 0, "scores": 0, "status": 0, "catalogs": 0, "corrections": 0, "registry": 0, "outputs": 0, "invalid": 0}
     assert _tree(tmp_path / "site") == before
     assert sorted(p.name for p in (to / "runs" / "2026-01").iterdir()) == [
         "00000000-0000-4000-8000-000000000000.json", "00000000-0000-4000-8000-000000000001.json"]
@@ -102,11 +102,15 @@ def test_publish_adds_new_runs_and_scores_but_never_rewrites(tmp_path):
     score = runrecord.scores(run_dir)[0]
     runrecord.write_score(run_dir, {**score, "rubric_version": score["rubric_version"] + 1, "score": 10.0})
     runrecord.add_status(run_dir, score["run_uuid"], invalid={"reason": "stale server"})
+    pub = bundle.publish(runs, to, outputs)
+    assert (pub.counts["runs"], pub.counts["scores"], pub.counts["status"]) == (0, 1, 1) and pub.errors == []
+    # An edited local record is rejected, never republished
     meta = json.loads((run_dir / "meta.json").read_text())
-    meta["elapsed_s"] = 99.0  # an edited local record is not republished
+    meta["elapsed_s"] = 99.0
     (run_dir / "meta.json").write_text(json.dumps(meta))
     pub = bundle.publish(runs, to, outputs)
-    assert (pub.counts["runs"], pub.counts["scores"], pub.counts["status"]) == (0, 1, 1)
+    assert (pub.counts["runs"], pub.counts["scores"], pub.counts["status"]) == (0, 0, 0)
+    assert len(pub.rejected) == 1 and "never overwritten" in pub.errors[0]
     (published,) = (to / "runs" / "2026-01").iterdir()
     assert json.loads(published.read_text())["elapsed_s"] == 1.0
     assert len(json.loads((to / "status" / f"{score['run_uuid']}.json").read_text())) == 1

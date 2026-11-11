@@ -18,7 +18,7 @@ import urllib.request
 from pathlib import Path
 from urllib.parse import urlparse
 
-from crucible import hardware, providers
+from crucible import hardware, hostnames, providers
 
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1", "0.0.0.0"}
 
@@ -63,7 +63,7 @@ def _gpu() -> str | None:
 
 def machine() -> dict:
     return {
-        "hostname": socket.gethostname().split(".")[0],
+        "hostname": hostnames.public_label(socket.gethostname().split(".")[0]),
         "os": f"{platform.system()} {platform.release()}",
         "arch": platform.machine(),
         "cpu": _cpu(),
@@ -373,7 +373,8 @@ def inference(model: str | None, device: bool = True) -> dict:
         # Local providers can serve from another box (OLLAMA_BASE_URL); then this machine isn't the hardware
         "local": provider in PROVIDER_DETAILS,
         "same_machine": host in LOCAL_HOSTS if host else None,
-        "endpoint_host": None if host in LOCAL_HOSTS else host,
+        # An IP host is never recorded (crucible/hostnames.py)
+        "endpoint_host": None if host in LOCAL_HOSTS else hostnames.public_label(host),
     }
     if provider in PROVIDER_DETAILS:
         record.update(PROVIDER_DETAILS[provider](model_id, device=device))

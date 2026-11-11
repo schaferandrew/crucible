@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "site-data <suite>/tasks/<task>.json",
+  "description": "A full task (prompt, rules, criteria, scoring) and the slim runs of it. See docs/site-data-format.md.",
+  "type": "object",
+  "required": ["suite", "task", "runs"],
+  "$defs": {
+    "slim_run": {
+      "type": "object",
+      "required": ["run_uuid", "setup", "state", "score", "outcome", "elapsed_s", "tps", "cost", "started_at", "tool_calls"],
+      "properties": {
+        "run_uuid": {"type": "string"}, "setup": {"type": "string"},
+        "state": {"type": "string", "enum": ["counted", "provisional", "older", "harness", "invalid", "retired", "unknown_task", "withdrawn"]},
+        "score": {"type": ["number", "null"]}, "outcome": {"type": "string", "enum": ["finished", "timed_out", "error"]},
+        "elapsed_s": {"type": ["number", "null"]}, "tps": {"type": ["number", "null"]}, "cost": {"type": ["number", "null"]},
+        "started_at": {"type": ["string", "null"]}, "tool_calls": {"type": ["number", "null"]}, "machine": {"type": ["string", "null"]}, "task": {"type": ["string", "null"]},
+        "tokens_out": {"type": ["number", "null"], "description": "output tokens (task files only)"},
+        "groups": {"type": ["array", "null"], "description": "task files only: the score record's groups as [group id, passed, total]; null when the score has none",
+                   "items": {"type": "array", "minItems": 3, "maxItems": 3,
+                             "prefixItems": [{"type": ["string", "null"]}, {"type": ["number", "null"]}, {"type": ["number", "null"]}]}}
+      }
+    }
+  },
+  "properties": {
+    "suite": {"type": "string"},
+    "task": {"type": "object", "required": ["id", "scoring", "aliases"],
+             "properties": {"id": {"type": "string"}, "aliases": {"type": "array", "items": {"type": "string"}},
+                            "scoring": {"type": "object"}}},
+    "runs": {"type": "array", "items": {"$ref": "#/$defs/slim_run"}}
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "site-data <suite>/cell-runs.json",
+  "description": "Lazily fetched: the run each matrix cell links to. setups and tasks are the same tables as index.json's cells; runs are [setup index, task index, scored run_uuid] for every cell that has one. See docs/site-data-format.md.",
+  "type": "object",
+  "required": [
+    "suite",
+    "setups",
+    "tasks",
+    "runs"
+  ],
+  "properties": {
+    "suite": {
+      "type": "string"
+    },
+    "setups": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "minItems": 3,
+        "maxItems": 3,
+        "prefixItems": [
+          {
+            "type": "integer",
+            "minimum": 0
+          },
+          {
+            "type": "integer",
+            "minimum": 0
+          },
+          {
+            "type": "string"
+          }
+        ]
+      }
+    }
+  }
+}
