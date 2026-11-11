@@ -348,3 +348,38 @@ def test_check_warns_about_published_runs_with_an_ip_but_does_not_fail(tmp_path)
     assert not any("IP address" in p for p in bundle.check_folder(to, bundle.default_outputs(to)))  # format 3: a warning only
     (warning,) = [w for w in bundle.legacy_warnings(to) if "IP" in w]
     assert record["run_uuid"][:8] in warning
+
+
+def test_format_4_end_to_end_write_publish_site_data(tmp_path, monkeypatch):
+    """A synthetic format-4 run, written, published, then built into site data: the hardware class comes from
+    hardware.key and the credit label from hardware.nickname, with no host name or machine id anywhere."""
+    from crucible.sitedata.build import build as build_site_data
+    monkeypatch.setenv("CRUCIBLE_MACHINE_NAME", "Pocket Rocket")
+    runs, v4 = _v4_runs(tmp_path)
+    assert v4["hardware"]["nickname"] == "Pocket Rocket"
+    to = tmp_path / "bundle"
+    outputs = bundle.default_outputs(to)
+    assert bundle.publish(runs, to, outputs).errors == []
+    (path,) = (to / "runs").rglob("*.json")
+    record = json.loads(path.read_text(encoding="utf-8"))
+    assert not {"serving_host", "harness_host"} & set(record) and "machine_id" not in record["provenance"]
+    # The resolver: hardware from the key, nickname display-only, nothing looked up from a host
+    res = registry.default().resolve_run(record)
+    assert res.hardware_key == "m1-pro-32gb" and res.machine is None and res.nickname == "Pocket Rocket"
+    assert "Pocket Rocket" not in res.setup_id and "Pocket Rocket" not in res.deployment_id
+    assert res.deployment_id == "local~m1-pro-32gb"
+    assert res.setup_id == "qwen/qwen3.5-9b~lmstudio-community~gguf~q4_k_m~r-default~direct@local~m1-pro-32gb"
+    # Site data
+    out = tmp_path / "site"
+    build_site_data(to, outputs, out)
+    uuid = record["run_uuid"]
+    detail = json.loads((out / "runs" / f"{uuid}.json").read_text())
+    assert detail["setup"] == res.setup_id and detail["resolution"]["deployment"] == res.deployment_id
+    assert detail["resolution"]["machine"] == "Pocket Rocket"
+    assert detail["summary"]["hardware"]["key"] == "m1-pro-32gb" and detail["summary"]["hardware"]["chip"] == "Apple M1 Pro"
+    suite = next(iter(detail["suites"]))
+    index = json.loads((out / suite / "index.json").read_text())
+    setup = index["entities"]["setups"][res.setup_id]
+    assert setup["labels"]["machines"] == ["Pocket Rocket"] and setup["deployment"] == res.deployment_id
+    assert index["entities"]["deployments"][res.deployment_id]["machines"] == [{"label": "Pocket Rocket", "runs": 1}]
+    assert "Ironwood" not in "".join(p.read_text(errors="replace") for p in out.rglob("*.json"))

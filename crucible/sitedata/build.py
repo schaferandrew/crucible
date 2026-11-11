@@ -68,8 +68,11 @@ def safe_resolve(reg, run: dict):
 
 def machine_label(reg, res):
     """The registry label of the machine that served a local run (display only: never an ID, filter or grouping key).
-    None unless the host resolved to a registry machine; raw host names are never emitted."""
-    return (reg.machines.get(res.machine) or {}).get("label") if res.machine else None
+    A format-4 run credits its own `hardware.nickname`; an older run, the registry machine its host resolved to.
+    None otherwise; raw host names are never emitted."""
+    if res.machine:
+        return (reg.machines.get(res.machine) or {}).get("label")
+    return res.nickname
 
 
 def safe_cost(reg, run: dict, res):
@@ -140,7 +143,8 @@ def run_summary(run: dict) -> dict:
                   "format_source": m.get("format_source"), "quant": m.get("quant"), "reasoning": d(m.get("reasoning")),
                   "context_loaded": m.get("context_loaded")},
         "endpoint": {k: e.get(k) for k in ("where", "provider", "served_via", "upstream", "resolved_model")},
-        "hardware": {"key": hw.get("key")},
+        "hardware": {"key": hw.get("key"),
+                     **{k: hw[k] for k in ("chip", "memory_gb", "accelerators", "served_remotely") if k in hw}},
         "outcome": {k: o.get(k) for k in ("status", "harness_status", "returncode", "timed_out", "invalid")},
         "metrics": d(run.get("metrics")),
         "provenance": {k: prov.get(k) for k in ("crucible_version", "crucible_commit", "source", "content_hash")},

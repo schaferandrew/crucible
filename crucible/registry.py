@@ -67,6 +67,8 @@ class Resolution:
     harness: str | None
     sources: dict = field(default_factory=dict)
     notes: list = field(default_factory=list)
+    # Format 4's hardware.nickname: the credit label the user chose. Display only, never part of an id.
+    nickname: str | None = None
 
     @property
     def artifact_id(self) -> str:
@@ -387,6 +389,9 @@ class Registry:
             if override.get("machine") in self.machines:
                 machine, machine_from = override["machine"], "override"
                 notes.append(f"machine set to {machine} by an override: {override_reason}")
+            elif version >= 4:
+                # Format 4 names the hardware class (hardware.key), never the host: no host or machine_id to look up
+                machine_from = "none"
             else:
                 for source, host in (("serving_host", run.get("serving_host")), ("device", endpoint.get("device")),
                                      ("label", hardware.get("label"))):
@@ -412,6 +417,8 @@ class Registry:
                 hardware_key, hardware_from = machine_key, "machine"
                 notes.append(f"hardware key not recorded; read as {machine_key} from machine {machine}")
         sources["machine_from"], sources["hardware_from"] = machine_from, hardware_from
+        nickname = hardware.get("nickname") if version >= 4 else None
+        nickname = nickname.strip() if isinstance(nickname, str) and nickname.strip() and not hostnames.looks_like_ip(nickname) else None
 
         reasoning = model.get("reasoning") or {}
         requested, resolved = reasoning.get("requested"), reasoning.get("resolved")
@@ -427,7 +434,8 @@ class Registry:
 
         return Resolution(run_uuid=uuid, model_id=model_id, maker=maker, packager=packager, format=fmt, quant=quant,
                           where=where, provider=provider, machine=machine, hardware_key=hardware_key,
-                          reasoning_level=level, harness=harness.get("id"), sources=sources, notes=notes)
+                          reasoning_level=level, harness=harness.get("id"), sources=sources, notes=notes,
+                          nickname=nickname)
 
     def energy_cost(self, run: dict, resolution: Resolution | None = None) -> float | None:
         """What a run cost in USD: a local run's time x its machine's watts x the price per kWh (an estimate
