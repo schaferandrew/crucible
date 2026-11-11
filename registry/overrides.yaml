@@ -1,0 +1,3 @@
+# Per-run fixes the rules can't express, keyed by run_uuid, each with a reason. Allowed keys in `set`:
+# model, packager, format, quant, machine. Prefer a registry alias or a machine entry; none are needed today.
+runs: []

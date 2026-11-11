@@ -1,0 +1,27 @@
+# Packagers: whoever the weights were downloaded from, as recorded in model.publisher.
+# kind repackager: converts other labs' weights (GGUF, MLX, other runtimes); never a maker.
+# kind maker: the maker's own namespace (qwen), so a run packaged by its maker says so.
+# spellings: recorded values that mean this id (compared case-insensitively, a leading ~ dropped).
+packagers:
+  - {id: mlx-community, label: mlx-community, kind: repackager}
+  - {id: lmstudio-community, label: lmstudio-community, kind: repackager}
+  - {id: unsloth, label: unsloth, kind: repackager}
+  - {id: bartowski, label: bartowski, kind: repackager}
+  - {id: incoai, label: incoai, kind: repackager}
+  - {id: allenai, label: allenai, kind: maker}
+  - {id: anthropic, label: anthropic, kind: maker}
+  - {id: deepseek, label: deepseek, kind: maker}
+  - {id: essentialai, label: essentialai, kind: maker}
+  - {id: google, label: google, kind: maker}
+  - {id: liquid, label: liquid, kind: maker}
+  - {id: meta, label: meta, kind: maker}
+  - {id: mistralai, label: mistralai, kind: maker}
+  - {id: moonshotai, label: moonshotai, kind: maker}
+  - {id: nvidia, label: nvidia, kind: maker}
+  - {id: openai, label: openai, kind: maker, spellings: ["~openai"]}
+  - {id: ornith-ai, label: ornith-ai, kind: maker}
+  - {id: poolside, label: poolside, kind: maker}
+  - {id: prism-ml, label: prism-ml, kind: maker}
+  - {id: qwen, label: qwen, kind: maker, spellings: [Qwen]}
+  - {id: z-ai, label: z-ai, kind: maker}
+  - {id: zai-org, label: zai-org, kind: maker}

@@ -69,7 +69,7 @@ def test_publish_twice_adds_nothing_the_second_time(tmp_path):
     assert first.errors == [] and first.counts["runs"] == 2 and first.counts["scores"] == 2 and first.counts["catalogs"] >= 1
     before = _tree(tmp_path / "site")
     second = bundle.publish(runs, to, outputs)
-    assert second.counts == {"runs": 0, "scores": 0, "status": 0, "catalogs": 0, "corrections": 0, "outputs": 0, "invalid": 0}
+    assert second.counts == {"runs": 0, "scores": 0, "status": 0, "catalogs": 0, "corrections": 0, "registry": 0, "outputs": 0, "invalid": 0}
     assert _tree(tmp_path / "site") == before
     assert sorted(p.name for p in (to / "runs" / "2026-01").iterdir()) == [
         "00000000-0000-4000-8000-000000000000.json", "00000000-0000-4000-8000-000000000001.json"]

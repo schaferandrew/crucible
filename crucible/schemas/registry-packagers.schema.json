@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/schaferandrew/crucible/blob/main/crucible/schemas/registry-packagers.schema.json",
+  "title": "Crucible registry: packagers (bundle format 3)",
+  "description": "registry/packagers.json in a bundle, from the repo's registry/packagers.yaml: who the weights were downloaded from, and the recorded spellings that mean each.",
+  "type": "object",
+  "required": ["record", "format_version", "name", "packagers"],
+  "properties": {
+    "record": {"type": "string", "enum": ["registry"]},
+    "format_version": {"type": "integer"},
+    "name": {"type": "string", "enum": ["packagers"]},
+    "packagers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind"],
+        "properties": {
+          "id": {"type": "string"},
+          "label": {"type": ["string", "null"]},
+          "kind": {"type": "string", "enum": ["repackager", "maker"]},
+          "spellings": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    }
+  }
+}

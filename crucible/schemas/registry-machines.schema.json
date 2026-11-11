@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/schaferandrew/crucible/blob/main/crucible/schemas/registry-machines.schema.json",
+  "title": "Crucible registry: machines (bundle format 3)",
+  "description": "registry/machines.json in a bundle, from the repo's registry/machines.yaml: the energy price, the hardware (with its draw in watts) and the machines that served local runs, with the host names they appear under.",
+  "type": "object",
+  "required": ["record", "format_version", "name", "energy", "hardware", "machines"],
+  "properties": {
+    "record": {"type": "string", "enum": ["registry"]},
+    "format_version": {"type": "integer"},
+    "name": {"type": "string", "enum": ["machines"]},
+    "energy": {
+      "type": "object",
+      "required": ["usd_per_kwh"],
+      "properties": {"usd_per_kwh": {"type": "number"}}
+    },
+    "hardware": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["key", "class", "watts"],
+        "properties": {
+          "key": {"type": "string"},
+          "class": {"type": "string"},
+          "label": {"type": ["string", "null"]},
+          "cpu": {"type": ["string", "null"]},
+          "system_memory_gb": {"type": ["number", "null"]},
+          "watts": {"type": "number"}
+        }
+      }
+    },
+    "machines": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "hardware", "host_aliases"],
+        "properties": {
+          "id": {"type": "string"},
+          "label": {"type": "string"},
+          "hardware": {"type": ["string", "null"]},
+          "host_aliases": {"type": "array", "items": {"type": "string"}},
+          "machine_ids": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    }
+  }
+}
