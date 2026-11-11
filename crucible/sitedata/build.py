@@ -224,6 +224,30 @@ def setup_stats(infos_by_setup: dict, tier_ids: list) -> dict:
     return {"format": "subsets", "tiers": tier_ids, "keys": [k for k, _, _ in keys], "by_setup": by_setup}
 
 
+CELL_FIELDS = ["n", "n_scored", "mean", "min", "max", "n_finished", "mean_finished", "timeouts", "errors"]
+
+
+def encode_cells(cells: list, setup_ids: list, task_ids: list) -> dict:
+    """Cells as a table: names once, rows of numbers (docs/site-data-format.md: cells). Each row is
+    [setup index, task index, runs, counted block or 0, provisional block or 0]; a block is a list in `fields` order."""
+    si, ti = {x: i for i, x in enumerate(setup_ids)}, {x: i for i, x in enumerate(task_ids)}
+    rows = [[si[c["setup"]], ti[c["task"]], c["runs"]]
+            + [[c[name][f] for f in CELL_FIELDS] if name in c else 0 for name in ("counted", "provisional")] for c in cells]
+    return {"setups": setup_ids, "tasks": task_ids, "fields": CELL_FIELDS, "rows": rows}
+
+
+def decode_cells(table: dict) -> list:
+    """The cells of an index.json as dicts {setup, task, runs, counted?, provisional?}: the inverse of encode_cells."""
+    out = []
+    for si, ti, runs, counted, provisional in table["rows"]:
+        cell = {"setup": table["setups"][si], "task": table["tasks"][ti], "runs": runs}
+        for name, block in (("counted", counted), ("provisional", provisional)):
+            if block:
+                cell[name] = dict(zip(table["fields"], block))
+        out.append(cell)
+    return out
+
+
 def newest(infos: list):
     """The most recent run of a list (by started_at, ties by run_uuid), or None."""
     return max(infos, key=lambda i: (str(i.started or ""), i.uuid)) if infos else None
@@ -262,7 +286,7 @@ def combined_view(setups: dict, mode_ids: list, pooled: dict, tier_ids: list) ->
         for i, m in enumerate(mode_ids):
             if m in e["modes"]:
                 groups[key][i].append(sid)
-    entities, runs = {}, {}
+    entities, runs, table = {}, {}, {sid: i for i, sid in enumerate(setups)}
     for key in sorted(order):
         combos = [[]]
         for candidates in groups[key]:
@@ -274,15 +298,16 @@ def combined_view(setups: dict, mode_ids: list, pooled: dict, tier_ids: list) ->
             cid = "+".join(sorted(ids))
             first = setups[ids[0]]
             entities[cid] = {
-                "id": cid, "members": ids, "model": first["model"], "maker": first["maker"], "artifact": first["artifact"],
-                "deployment": first["deployment"], "packager": first["packager"], "format": first["format"],
-                "quant": first["quant"], "reasoning": first["reasoning"], "where": first["where"], "hw": first["hw"],
-                "provider": first["provider"], "harness": [setups[m]["harness"] for m in ids],
-                "modes": sorted({x for m in ids for x in setups[m]["modes"]}),
-                "runs": sum(setups[m]["runs"] for m in ids),
-                "labels": first["labels"], "unrecorded": sorted({u for m in ids for u in setups[m]["unrecorded"]})}
+                "members": [table[m] for m in ids], "model": first["model"], "maker": first["maker"],
+                "packager": first["packager"], "format": first["format"], "quant": first["quant"],
+                "reasoning": first["reasoning"], "where": first["where"], "hw": first["hw"], "provider": first["provider"],
+                "harness": [setups[m]["harness"] for m in ids], "runs": sum(setups[m]["runs"] for m in ids)}
             runs[cid] = [i for m in ids for i in pooled[m]]
-    return {"entities": entities, "stats": setup_stats(runs, tier_ids)}
+    stats = setup_stats(runs, tier_ids)
+    order_ids = sorted(entities)
+    by = stats.pop("by_setup")
+    stats["by_entity"] = [by[cid] for cid in order_ids]
+    return {"entities": [entities[cid] for cid in order_ids], "stats": stats}
 
 
 def build_suite(sid, catalog, resolved, rules_for, facts, bundle, reg) -> dict:
@@ -499,11 +524,17 @@ def build(bundle_dir, outputs_dir, out_dir, display=None, fallbacks=None, built_
                     by[facts[uuid]["machine"]] = by.get(facts[uuid]["machine"], 0) + 1
         entities = entities_for(setup_res, set(result["other"]), result["modes"], per_setup_runs, credit, reg)
         mode_ids = [m["id"] for m in cat.get("modes") or [] if isinstance(m, dict) and s(m.get("id"))]
-        index = {"suite": sid, "counts": result["counts"], "catalog": resolved, "entities": entities, "cells": result["cells"],
+        setup_ids, task_ids = list(entities["setups"]), [t["id"] for t in resolved["tasks"]]
+        index = {"suite": sid, "counts": result["counts"], "catalog": resolved, "entities": entities,
+                 "cells": encode_cells(result["cells"], setup_ids, task_ids),
                  "setup_stats": result["stats"],
                  "combined": combined_view(entities["setups"], mode_ids, result["pooled"], [t["id"] for t in resolved["tiers"]]),
                  "other": result["other"]}
         sizes[f"{sid}/index.json"] = dump(out / sid / "index.json", index)
+        si, ti = {x: i for i, x in enumerate(setup_ids)}, {x: i for i, x in enumerate(task_ids)}
+        cell_runs = {"suite": sid, "setups": setup_ids, "tasks": task_ids,
+                     "runs": [[si[c["setup"]], ti[c["task"]], c["scored_run"]] for c in result["cells"] if c["scored_run"]]}
+        sizes[f"{sid}/cell-runs.json"] = dump(out / sid / "cell-runs.json", cell_runs)
 
         by_task, by_model = {}, {}
         for info in infos.values():

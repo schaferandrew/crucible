@@ -7,7 +7,7 @@ import pytest
 
 from crucible import registry
 from crucible.sitedata import build as sd_build, rules, schema
-from crucible.sitedata.build import build
+from crucible.sitedata.build import build, decode_cells
 from crucible.sitedata.reader import read_bundle
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -187,7 +187,7 @@ def test_unscored_counted_run_is_counted_not_scored(tmp_path):
     result, out, index = states(tmp_path, [run("a"), run("b")], [score("a", 10.0), score("b", None)])
     assert result["counts"]["v9"]["counted"] == 2
     assert result["counts"]["v9"]["counted_scored"] == 1 and result["counts"]["v9"]["unscored"] == 1
-    cell = [c for c in index["cells"] if c["task"] == "t-active"][0]
+    cell = [c for c in decode_cells(index["cells"]) if c["task"] == "t-active"][0]
     assert cell["counted"]["n"] == 2 and cell["counted"]["n_scored"] == 1 and cell["counted"]["mean"] == 10.0
     assert sum(m.get("unscored", 0) for m in index["other"].values()) == 1
 
@@ -202,7 +202,7 @@ def test_cells_stats_and_other(tmp_path):
     c = result["counts"]["v9"]
     assert (c["counted"], c["provisional"], c["older"], c["retired"], c["unknown_task"], c["invalid"]) == (2, 1, 1, 1, 1, 1)
     direct = [s for s in index["entities"]["setups"] if s.endswith("direct@local~m5-pro-48gb")][0]
-    cells = {x["task"]: x for x in index["cells"] if x["setup"] == direct}
+    cells = {x["task"]: x for x in decode_cells(index["cells"]) if x["setup"] == direct}
     counted = cells["t-active"]["counted"]
     assert counted["n"] == 2 and counted["mean"] == 7.0 and (counted["min"], counted["max"]) == (4.0, 10.0)
     assert counted["timeouts"] == 1 and counted["n_finished"] == 1 and counted["mean_finished"] == 10.0
@@ -351,7 +351,7 @@ def test_rebuild_removes_stale_files(tmp_path):
 def test_every_file_matches_its_schema(tmp_path):
     runs = [run("a"), run("b", "t-prov"), run("c", "nope"), run("d", version=0)]
     result, out, index = states(tmp_path, runs, [score("a", 10.0), score("b", 5.0)])
-    kinds = {"meta.json": "meta", "v9/index.json": "index"}
+    kinds = {"meta.json": "meta", "v9/index.json": "index", "v9/cell-runs.json": "cell-runs"}
     for rel in result["sizes"]:
         parts = rel.split("/")
         kind = kinds.get(rel) or {"tasks": "task", "models": "model"}.get(parts[1] if len(parts) > 2 else "") \
@@ -370,7 +370,8 @@ def test_real_bundle_files_match_their_schemas(tmp_path):
     out = tmp_path / "out"
     build(SITE / "_data" / "crucible", SITE / "crucible-data" / "outputs", out, SITE / "_data" / "crucible_display.yml",
           SITE / "_data" / "crucible_fallbacks.yml")
-    for rel, kind in (("meta.json", "meta"), ("v4/index.json", "index"), ("v3/index.json", "index")):
+    for rel, kind in (("meta.json", "meta"), ("v4/index.json", "index"), ("v3/index.json", "index"),
+                      ("v4/cell-runs.json", "cell-runs"), ("v3/cell-runs.json", "cell-runs")):
         assert schema.check(kind, json.loads((out / rel).read_text())) == [], rel
     for folder, kind in (("v4/tasks", "task"), ("v4/models", "model"), ("recent", "recent")):
         for p in sorted((out / folder).glob("*.json"))[:5]:
@@ -489,6 +490,24 @@ def test_build_refuses_to_finish_when_output_has_an_ip(tmp_path):
 CAT_TWO_AGENTS = dict(CATALOG, harnesses=CATALOG["harnesses"] + [{"id": "opencode", "modes": ["agentic"]}])
 
 
+def _combined_id(index, entity):
+    return "+".join(sorted(index["cells"]["setups"][m] for m in entity["members"]))
+
+
+def _combined(index):
+    """index.json's combined block with entities keyed by their id (the members' setup ids, sorted, joined by '+')."""
+    block = index["combined"]
+    return {"entities": {_combined_id(index, e): dict(e, id=_combined_id(index, e)) for e in block["entities"]}}
+
+
+def _combined_stats(index):
+    """combined.stats with by_setup keyed by combined id."""
+    block = index["combined"]
+    stats = dict(block["stats"])
+    stats["by_setup"] = {_combined_id(index, e): b for e, b in zip(block["entities"], stats.pop("by_entity"))}
+    return stats
+
+
 def _paired_bundle(tmp_path):
     runs = [run("c1", elapsed=10.0, started="2026-01-02T00:00:00+00:00"), run("c2", elapsed=20.0, started="2026-01-03T00:00:00+00:00"),
             run("c3", elapsed=40.0, started="2026-01-04T00:00:00+00:00"),
@@ -509,8 +528,26 @@ def test_each_run_lists_its_siblings_and_the_scored_run_per_suite(tmp_path):
     assert detail["scored_run"] == "c3"                                           # the most recent counted run
     assert state_of(out, "c3")["scored_run"] == "c3" and "c3" not in [s["run_uuid"] for s in state_of(out, "c3")["siblings"]]
     assert state_of(out, "a1")["siblings"] == [] and state_of(out, "a1")["scored_run"] == "a1"
-    cell = next(c for c in index["cells"] if c["task"] == "t-active")
-    assert cell["scored_run"] == "c3" and cell["runs"] == 3
+    cell = next(c for c in decode_cells(index["cells"]) if c["task"] == "t-active")
+    assert "scored_run" not in cell and cell["runs"] == 3
+    # the cell's scored run is in the lazily loaded cell-runs.json, by the same setup and task tables as index.json
+    cell_runs = json.loads((out / "v9" / "cell-runs.json").read_text())
+    assert cell_runs["setups"] == index["cells"]["setups"] and cell_runs["tasks"] == index["cells"]["tasks"]
+    found = {(cell_runs["setups"][si], cell_runs["tasks"][ti]): uuid for si, ti, uuid in cell_runs["runs"]}
+    assert found[(cell["setup"], "t-active")] == "c3" and len(found) == len(index["cells"]["rows"])
+
+
+def test_cells_are_a_table_of_indices_into_the_setup_and_task_tables(tmp_path):
+    result, out, index = _paired_bundle(tmp_path)
+    t = index["cells"]
+    assert t["setups"] == list(index["entities"]["setups"]) and t["tasks"] == [x["id"] for x in index["catalog"]["tasks"]]
+    assert t["fields"] == ["n", "n_scored", "mean", "min", "max", "n_finished", "mean_finished", "timeouts", "errors"]
+    for si, ti, runs, counted, provisional in t["rows"]:
+        assert 0 <= si < len(t["setups"]) and 0 <= ti < len(t["tasks"]) and runs >= 1
+        assert counted == 0 or (isinstance(counted, list) and len(counted) == len(t["fields"]))
+        assert provisional == 0 or len(provisional) == len(t["fields"])
+    first = next(c for c in decode_cells(t) if c["task"] == "t-active")
+    assert first["counted"]["n"] == 3 and first["counted"]["mean"] == 8.0 and "provisional" not in first
 
 
 def test_scored_run_ignores_runs_that_do_not_count(tmp_path):
@@ -525,7 +562,7 @@ def test_scored_run_ignores_runs_that_do_not_count(tmp_path):
 
 def test_combined_pairs_setups_that_differ_only_in_harness(tmp_path):
     result, out, index = _paired_bundle(tmp_path)
-    combined = index["combined"]
+    combined = _combined(index)
     chat = next(s for s in index["entities"]["setups"].values() if s["harness"] == "direct")
     pi = next(s for s in index["entities"]["setups"].values() if s["harness"] == "pi" and s["model"] == chat["model"])
     opencode = next(s for s in index["entities"]["setups"].values() if s["harness"] == "opencode")
@@ -533,17 +570,18 @@ def test_combined_pairs_setups_that_differ_only_in_harness(tmp_path):
     paired = {cid: e for cid, e in combined["entities"].items() if len(e["members"]) == 2}
     assert set(paired) == {"+".join(sorted([chat["id"], pi["id"]])), "+".join(sorted([chat["id"], opencode["id"]]))}
     for cid, e in paired.items():
-        assert e["id"] == cid and cid == "+".join(sorted(e["members"]))
-        assert e["harness"] == ["direct", "pi" if pi["id"] in e["members"] else "opencode"]
-        assert e["model"] == chat["model"] and e["quant"] == chat["quant"] and e["deployment"] == chat["deployment"]
+        assert e["id"] == cid
+        members = [index["cells"]["setups"][m] for m in e["members"]]
+        assert e["harness"] == ["direct", "pi" if pi["id"] in members else "opencode"]
+        assert e["model"] == chat["model"] and e["quant"] == chat["quant"] and e["hw"] == chat["hw"]
     # the other model's pi setup has no chat partner and stays a candidate on its own
     (alone,) = [e for e in combined["entities"].values() if len(e["members"]) == 1 and e["model"] != chat["model"]]
-    assert alone["harness"] == ["pi"] and alone["id"] == alone["members"][0]
+    assert alone["harness"] == ["pi"] and alone["id"] == index["cells"]["setups"][alone["members"][0]]
 
 
 def test_combined_stats_are_over_the_pooled_runs_of_the_members(tmp_path):
     result, out, index = _paired_bundle(tmp_path)
-    st = index["combined"]["stats"]
+    st = _combined_stats(index)
     assert st["keys"] == index["setup_stats"]["keys"]                               # keyed exactly like setup_stats
     chat = next(s for s in index["entities"]["setups"].values() if s["harness"] == "direct")
     pi = next(s for s in index["entities"]["setups"].values() if s["harness"] == "pi" and s["model"] == chat["model"])
@@ -569,7 +607,7 @@ def test_combined_stats_match_the_page_where_the_setups_correspond(real_build):
     result, out = real_build
     golden = json.loads(GOLDEN.read_text())["suites"]["v4"]["modes"]["combined"]
     index = json.loads((out / "v4" / "index.json").read_text())
-    ents, st = index["combined"]["entities"], index["combined"]["stats"]
+    ents, st = _combined(index)["entities"], _combined_stats(index)
     tiers = [t["id"] for t in index["catalog"]["tiers"]]
 
     def find(best):
@@ -605,3 +643,14 @@ def test_combined_stats_match_the_page_where_the_setups_correspond(real_build):
                 differing.add(row["rowKey"])
     assert compared >= 70
     assert differing == {"openai/gpt-oss-20b#low", "qwen/qwen3.5-9b#default", "qwen/qwen3.6-35b-a3b#on", "qwen/qwen3.8-27b#xhigh"}
+
+
+def test_v4_index_stays_small(real_build):
+    """index.json is the first load of the dashboard: 60 KB gzipped on the real bundle leaves headroom under the
+    100 KB budget. The run UUIDs that don't compress live in cell-runs.json, which is fetched lazily."""
+    import gzip
+    result, out = real_build
+    gz = len(gzip.compress((out / "v4" / "index.json").read_bytes(), 9))
+    assert gz <= 60 * 1024, f"v4/index.json is {gz} bytes gzipped"
+    assert "scored_run" not in (out / "v4" / "index.json").read_text()
+    assert (out / "v4" / "cell-runs.json").is_file()

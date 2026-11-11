@@ -114,10 +114,21 @@
         "setups": {"type": "object", "additionalProperties": {"$ref": "#/$defs/setup"}}
       }
     },
-    "cells": {"type": "array", "items": {"type": "object", "required": ["setup", "task", "runs", "scored_run"],
-              "properties": {"setup": {"type": "string"}, "task": {"type": "string"}, "runs": {"type": "integer"},
-                             "scored_run": {"type": ["string", "null"], "description": "run_uuid of the cell's most recent counted run (scored first); the run a matrix cell links to. Under + provisional only, its most recent provisional run. Null when the cell has neither."},
-                             "counted": {"$ref": "#/$defs/block"}, "provisional": {"$ref": "#/$defs/block"}}}},
+    "cells": {
+      "type": "object",
+      "description": "Cells as a table. setups and tasks are the id tables the rows index into (setups: the entities.setups ids in order; tasks: the catalog's task ids in order). A row is [setup index, task index, runs, counted block or 0, provisional block or 0]; a block is an array in `fields` order. A cell's scored run is in cell-runs.json.",
+      "required": ["setups", "tasks", "fields", "rows"],
+      "properties": {
+        "setups": {"type": "array", "items": {"type": "string"}},
+        "tasks": {"type": "array", "items": {"type": "string"}},
+        "fields": {"type": "array", "items": {"type": "string"}},
+        "rows": {"type": "array", "items": {
+          "type": "array", "minItems": 5, "maxItems": 5,
+          "prefixItems": [{"type": "integer", "minimum": 0}, {"type": "integer", "minimum": 0}, {"type": "integer"},
+                          {"oneOf": [{"const": 0}, {"type": "array", "items": {"type": ["number", "null"]}}]},
+                          {"oneOf": [{"const": 0}, {"type": "array", "items": {"type": ["number", "null"]}}]}]}}
+      }
+    },
     "setup_stats": {
       "type": "object",
       "required": ["format", "tiers", "by_setup"],
@@ -130,31 +141,29 @@
     },
     "combined": {
       "type": "object",
-      "description": "The Combined view's pairings (docs/site-data-format.md: Combined). entities: one per pairing of setups that differ only in harness, keyed by id (the members' setup ids sorted and joined by '+'); stats: the same shape as setup_stats, keyed by combined id, over the members' pooled counted runs.",
+      "description": "The Combined view's pairings (docs/site-data-format.md: Combined). entities: an array, one per pairing of setups that differ only in harness, sorted by id (the members' setup ids sorted and joined by '+'); members are indices into cells.setups. stats: the shape of setup_stats, with by_entity (an array parallel to entities) in place of by_setup.",
       "required": ["entities", "stats"],
       "properties": {
-        "entities": {"type": "object", "additionalProperties": {
+        "entities": {"type": "array", "items": {
           "type": "object",
-          "required": ["id", "members", "model", "maker", "artifact", "deployment", "packager", "format", "quant", "reasoning",
-                       "harness", "where", "hw", "provider", "modes", "runs", "labels", "unrecorded"],
+          "required": ["members", "model", "maker", "packager", "format", "quant", "reasoning", "harness", "where", "hw", "provider", "runs"],
           "properties": {
-            "id": {"type": "string"}, "members": {"type": "array", "minItems": 1, "items": {"type": "string"}},
-            "model": {"type": "string"}, "maker": {"type": "string"}, "artifact": {"type": "string"}, "deployment": {"type": "string"},
+            "members": {"type": "array", "minItems": 1, "items": {"type": "integer", "minimum": 0}},
+            "model": {"type": "string"}, "maker": {"type": "string"},
             "packager": {"$ref": "#/$defs/nullable_string"}, "format": {"$ref": "#/$defs/nullable_string"},
             "quant": {"$ref": "#/$defs/nullable_string"}, "reasoning": {"type": "string"},
             "harness": {"type": "array", "items": {"type": "string"}, "description": "the members' harnesses, in member (section) order"},
             "where": {"type": "string"}, "hw": {"$ref": "#/$defs/nullable_string"}, "provider": {"$ref": "#/$defs/nullable_string"},
-            "modes": {"type": "array", "items": {"type": "string"}}, "runs": {"type": "integer"},
-            "labels": {"type": "object"}, "unrecorded": {"type": "array", "items": {"type": "string"}}
+            "runs": {"type": "integer"}
           }}},
         "stats": {
           "type": "object",
-          "required": ["format", "tiers", "by_setup"],
+          "required": ["format", "tiers", "by_entity"],
           "properties": {
             "format": {"type": "string", "enum": ["subsets", "cells"]},
             "tiers": {"type": "array", "items": {"type": "string"}},
             "keys": {"type": "array", "items": {"type": "string"}},
-            "by_setup": {"type": "object", "description": "keyed by combined id"}
+            "by_entity": {"type": "array", "description": "parallel to entities"}
           }
         }
       }

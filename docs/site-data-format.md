@@ -29,6 +29,7 @@ Principles the files follow:
 ```
 meta.json
 <suite>/index.json
+<suite>/cell-runs.json         (fetched lazily: the run each matrix cell links to)
 <suite>/tasks/<task>.json
 <suite>/models/<model id with "/" replaced by "__">.json
 runs/<run_uuid>.json
@@ -89,7 +90,9 @@ Records with `format_version` above 4 are skipped. A duplicate `run_uuid` keeps 
 
 ## `<suite>/index.json`
 
-The first-load file. Keys: `suite`, `counts`, `catalog`, `entities`, `cells`, `setup_stats`, `combined`, `other`.
+The first-load file. Keys: `suite`, `counts`, `catalog`, `entities`, `cells`, `setup_stats`, `combined`, `other`. It is the page's first
+load, so it stays small (about 47 KB gzipped for the real bundle; a test holds it under 60 KB): cells and combined are tables
+of indices, and the run UUIDs, which don't compress, are in `cell-runs.json`.
 
 ### `counts`
 `{runs, counted, counted_scored, unscored, provisional, older, harness, invalid, retired, unknown_task, withdrawn}`:
@@ -133,22 +136,31 @@ in `other`).
   `labels`: `{model, maker, packager, hw, machines: [label], provider}` display strings.
 
 ### `cells`
-One entry per setup x task with at least one run in the suite that reached the task (states counted, provisional,
-older, harness, invalid), sorted by (setup, task):
+One row per setup x task with at least one run in the suite that reached the task (states counted, provisional,
+older, harness, invalid), as a table:
 
 ```
-{setup, task, runs, scored_run, counted?: Block, provisional?: Block}
-Block = {n, n_scored, mean, min, max, n_finished, mean_finished, timeouts, errors}
+{setups: [setup id], tasks: [task id], fields: [name], rows: [[setup_idx, task_idx, runs, counted, provisional]]}
 ```
-`runs` is all runs in the cell (any of those states). `counted`/`provisional` cover the runs in that state and are
-omitted when there are none. `scored_run` is the run a matrix cell links to (the run page `/run/<uuid>`): the
-cell's **most recent counted run** by `started_at` (ties by `run_uuid`), scored runs first. A cell that aggregates
-repeats shows their mean, never the best or the latest run, so this is the run to open from it, not where its number
-comes from; the cell's other runs are the `siblings` on that run's page. A cell with no counted run (it exists only
-under "+ provisional") falls back to its most recent provisional run; `null` when it has neither. In a block `n` is all the runs in that state, `n_scored` those with a numeric score,
-`mean/min/max` are over the scored runs, `n_finished`/`mean_finished` over scored runs whose outcome is `finished`
-(quality in comparisons), `timeouts`/`errors` count runs (scored or not) by outcome. The page's own counts are
-`n_scored`.
+- `setups` are the ids of `entities.setups` (same order); `tasks` are the ids of `catalog.tasks` (same order). A row's
+  first two numbers index into them. Rows are sorted by (setup id, task id).
+- `runs` is all runs in the cell (any of those states). `counted` and `provisional` are the aggregate over the runs in that
+  state, as an array in `fields` order, or `0` when there are none. `fields` is always
+  `[n, n_scored, mean, min, max, n_finished, mean_finished, timeouts, errors]`: `n` is all the runs in that state, `n_scored` those
+  with a numeric score, `mean/min/max` are over the scored runs, `n_finished`/`mean_finished` over scored runs whose outcome is
+  `finished` (quality in comparisons), `timeouts`/`errors` count runs (scored or not) by outcome. The page's own counts are
+  `n_scored`.
+
+A consumer can expand a row with `dict(zip(fields, block))`; `crucible.sitedata.build.decode_cells` does it for Python.
+
+### `<suite>/cell-runs.json`
+Fetched lazily, when a cell is clicked or linked: `{suite, setups, tasks, runs: [[setup_idx, task_idx, run_uuid]]}`, with
+`setups` and `tasks` the same tables as `index.json`'s `cells` (so an index is valid in both). `run_uuid` is the cell's
+**scored run**: its most recent counted run by `started_at` (ties by `run_uuid`), scored runs first. A cell that aggregates
+repeats shows their mean, never the best or the latest run, so this is the run to open from it (`/run/<uuid>`), not where its
+number comes from; the cell's other runs are the `siblings` on that run's page. A cell with no counted run (it exists only
+under "+ provisional") falls back to its most recent provisional run. A cell with neither has no entry. The same value is
+`scored_run` in the run files.
 
 ### `setup_stats`
 Time, speed and cost per setup for every included-tier subset x provisional on/off. These are the numbers the
@@ -174,7 +186,7 @@ The Combined view (the dashboard's default) pairs a chat setup with an agentic o
 **both setups' runs pooled**, which can't be derived from the members' medians. The pairing is done here, once
 (it reproduces `buildCombinedView` in the old page's `crucible-core.js`):
 
-`{entities: {<combined id>: Entity}, stats: <same shape as setup_stats>}`
+`{entities: [Entity], stats: {format, tiers, keys, by_entity}}`
 
 - A **candidate** is a setup with at least one scored counted or provisional run, in the section of its tasks' mode
   (the suite's `catalog.modes`, in order: chat, agentic).
@@ -186,14 +198,16 @@ The Combined view (the dashboard's default) pairs a chat setup with an agentic o
   with no partner is still a candidate, alone). A section with several candidates for one key (agentic's `opencode`
   and `pi`, say) multiplies out: **every combination** is its own pairing (`combos` in the page), so a chat setup with
   both agentic ones yields two combined entries.
-- `Entity = {id, members: [setup id, in section order], model, maker, artifact, deployment, packager, format, quant,
-  reasoning, harness: [member harnesses, in section order], where, hw, provider, modes, runs, labels, unrecorded}`. The
-  facet fields come from the first member; `id` is the members' setup ids **sorted** and joined by `+` (a lone member's
-  id is just its setup id). `runs` is the sum of the members' `runs`, `unrecorded` their union.
-- `stats` has the format and keys of `setup_stats` (every included-tier subset x provisional), `by_setup` keyed by
-  combined id, computed from the **pooled** scored counted (and, with provisional on, provisional) runs of the members
-  with the same rules: median `elapsed_s`, `tps {median, n}`, mean cost, `runs`. The page's Combined rows match
-  these exactly wherever the setups correspond (tests/test_sitedata.py checks them against golden-numbers.json).
+- `Entity = {members: [index into cells.setups, in section order], model, maker, packager, format, quant, reasoning, where,
+  hw, provider, harness: [member harnesses, in section order], runs}`. The facet fields come from the first member (anything
+  else, such as labels or the artifact id, is that member's `entities.setups` entry). `runs` is the sum of the members'
+  `runs`. An entity's **id** is its members' setup ids sorted and joined by `+` (a lone member's id is just its setup id);
+  it isn't stored. `entities` is sorted by id.
+- `stats` has the format, `tiers` and `keys` of `setup_stats` (every included-tier subset x provisional) and `by_entity`, an
+  array **parallel to `entities`**, in the shape of a `by_setup` value. It is computed from the **pooled** scored counted (and,
+  with provisional on, provisional) runs of the members with the same rules: median `elapsed_s`, `tps {median, n}`, mean cost,
+  `runs`. The page's Combined rows match these exactly wherever the setups correspond (tests/test_sitedata.py checks them
+  against golden-numbers.json).
 
 ### `other`
 `{<model id>: {<state>: n}}`, runs that don't count, for the "Other runs" notes. States: `older, harness, invalid,
@@ -231,7 +245,7 @@ resolved task id, or the recorded one for `unknown_task`).
 - `suites`: per visible suite, the run's state and chosen score; `score_ref` is `{rubric_version, method}` of the
   record used. `setup` is the run's setup id. `siblings` are the other runs of the same task x setup in that suite
   (every state, newest first, the run itself left out), each `{run_uuid, started_at, state, score, outcome}`, and
-  `scored_run` is the run the cell's matrix link opens (see `cells`); both are empty/null for a run with no task in the
+  `scored_run` is the run the cell's matrix link opens (see `cell-runs.json`); both are empty/null for a run with no task in the
   suite (`retired`, `unknown_task`). The run page shows the cell it belongs to from these without loading anything else.
 - `scores`: every score record for the run, with `items` and `groups`. `status`: every status record, oldest first.
 - `output`: `outputs/<run_uuid>.txt` when the output file exists, else null.

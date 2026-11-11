@@ -56,7 +56,8 @@ def compare(bundle: Path, out: Path, golden: dict, suite: str, resolve_pairs: di
         setup_to_legacy[resolve_pairs[uuid]][key] += 1
     stats = index["setup_stats"]
     cells = defaultdict(dict)
-    for c in index["cells"]:
+    from crucible.sitedata.build import decode_cells
+    for c in decode_cells(index["cells"]):
         cells[c["setup"]][c["task"]] = c
 
     def stat(setup, prov):
