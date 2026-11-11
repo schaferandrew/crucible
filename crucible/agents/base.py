@@ -28,6 +28,7 @@ BUILTIN_MCP_SERVERS = {
     "mock-data": REPO_ROOT / "fixtures" / "mock-mcp-server" / "mock_server.py",
     "mock-calendar": REPO_ROOT / "crucible" / "mcp_servers" / "calendar_server.py",
     "web": REPO_ROOT / "crucible" / "mcp_servers" / "web_server.py",
+    "mock-travel": REPO_ROOT / "fixtures" / "mock-travel" / "travel_server.py",
 }
 # Servers that serve one of several datasets: "mock-calendar:forge" in a prompt
 # launches the server with --dataset forge. The model sees only the server name.

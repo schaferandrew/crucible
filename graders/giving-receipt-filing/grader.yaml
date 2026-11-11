@@ -1,0 +1,17 @@
+# Hidden tests for giving-receipt-filing; see crucible/graders.py.
+# Python, graded with pytest in a fresh, empty copy that takes only the model's giving-log.csv, records/
+# and inbox/ (the repo is null, so the copy is empty). Receipts are recognised by their bytes (sha256),
+# wherever they were filed and whatever they were renamed to. support.py holds the ground truth.
+isolated: true
+runner: pytest
+artifacts: [giving-log.csv, records, inbox]
+timeout: 120
+# `crucible grader giving-receipt-filing` grades each of these and checks the score lands in its range
+oracle:
+  solution: [10, 10]
+  seeded: [0, 0]
+  calibration:
+    filed-by-letter-date: [6, 6]    # the pantry gift filed by its January 4 letter date: wrong year in four places, capped at 6
+    filed-by-todays-date: [6, 6]    # everything filed and logged under the day of processing (2026-11-08), capped at 6
+    log-only: [4.5, 4.6]         # rows are right, PDFs left in inbox/
+    files-only: [4.5, 4.6]            # PDFs filed correctly, giving-log.csv untouched

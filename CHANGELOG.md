@@ -20,6 +20,9 @@ here ([docs/versioning.md](docs/versioning.md)).
   be asked about a photo. The images are task content (their bytes are in the content hash; tasks without
   images keep their hashes). Agent harnesses refuse such tasks, and the direct harness refuses one whose
   image is missing.
+- A mock travel MCP server, `mock-travel` (`fixtures/mock-travel/travel_server.py`), with flight,
+  restaurant, distance and travel-time tools over fictional data, for travel-planning tasks. Its script and
+  data are task content; the README of ground truth beside them isn't.
 
 ## 3.8.1 (2026-11-10)
 

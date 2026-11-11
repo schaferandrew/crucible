@@ -37,6 +37,9 @@ MCP_SERVER_DATA = {
     "mock-data": [workspace.FIXTURES_DIR / "mock-mcp-server", workspace.FIXTURES_DIR / "mock-data"],
     # "mock-calendar:<dataset>": the server, plus the dataset it serves (added in content_hash)
     "mock-calendar": [workspace.REPO_ROOT / "crucible" / "mcp_servers" / "calendar_server.py"],
+    # The server and its data; README.md there is ground truth notes and stays out of the hash
+    "mock-travel": [workspace.FIXTURES_DIR / "mock-travel" / "travel_server.py",
+                    workspace.FIXTURES_DIR / "mock-travel" / "world.json"],
 }
 
 # Never part of a seeded repo's content (installed or generated on the fly)

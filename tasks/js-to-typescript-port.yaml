@@ -1,0 +1,45 @@
+id: js-to-typescript-port
+name: Port a JavaScript app to strict TypeScript
+aliases: []
+needs_tools: true
+category: coding_repo
+area: coding
+tier: forge
+version: 1
+rubric_version: 1
+status: provisional
+auto_grade: true
+repo: js-to-typescript-port
+grader: js-to-typescript-port
+# Every hidden test weighs the same: the score is tests passed / all tests x 10. Three groups:
+# the toolchain (a real strict port), the types (the data is modelled honestly) and the behavior
+# (output identical to the JavaScript, recorded from the seeded code). Seeded tests only cap.
+scoring: per_test
+prompt: |
+  This is Toolshed, a small inventory and lending tracker for a community tool library, written in plain JavaScript (ES modules, Node 18+). Read README.md first.
+
+  Port it to TypeScript with strict typing, without changing what it does.
+
+  What to do:
+  1. Convert every module in `src/` to TypeScript (`.ts`) and remove the `.js` originals. Keep the module names, the exported names and the call signatures, so `import { main } from "./cli"` still works.
+  2. Add a `tsconfig.json` at the project root that turns on `strict`, covers `src/`, and makes `npx tsc -p tsconfig.json` pass with no errors. Don't switch off any strict option, don't use `// @ts-ignore`, `// @ts-nocheck` or `// @ts-expect-error`, and don't write `any`.
+  3. Type the data as it really is. A tool's status is one of its three values, not a string; the fields that can hold `null` are typed as nullable; the events the store announces are a union you can narrow on its `type`; data read from the JSON file is untrusted until it has been checked.
+  4. Behavior stays identical: the same command output, error messages, exit codes, saved JSON and audit lines for the same input. Fix nothing and improve nothing while you are in there; if something looks odd, port it as it is.
+  5. The tests in `test/` must keep passing as they are (`npm test`). They are plain JavaScript and import the modules without a file extension; don't weaken or delete any of them.
+
+  `package.json` and the lockfile stay as they are: `typescript`, `@types/node` and `vitest` are already installed. Only `src/` and `tsconfig.json` count. Run `npx tsc -p tsconfig.json` and `npm test` before you finish, and end with a short summary of the places where the types were not obvious.
+rubric:
+- criterion: A real TypeScript port
+  hidden_tests: toolchain
+  description: 'Hidden tests: every module is .ts, tsconfig is strict, the project type-checks (also under our own strict settings), no explicit any, no suppression comments.'
+- criterion: Types model the data
+  hidden_tests: types
+  description: 'Hidden tests: status is a three-value union, nullable fields are nullable, lookups can be undefined, store events are a narrowable union, no exported type is any.'
+- criterion: Behavior unchanged
+  hidden_tests: behavior
+  description: 'Hidden tests: same output, errors, exit codes, saved JSON and audit lines as the JavaScript for a fixed set of inputs.'
+- criterion: Existing tests still pass
+  hidden_tests: existing
+  cap_if_failed: 5
+  description: 'The seeded test suite passes on the ported sources; a cap, not points.'
+critical_failure: Every hidden test weighs the same; the score is tests passed / all tests x 10.

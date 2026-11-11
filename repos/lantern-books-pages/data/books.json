@@ -1,0 +1,62 @@
+[
+  {
+    "slug": "the-salt-cartographer",
+    "title": "The Salt Cartographer",
+    "author": "Mara Venn",
+    "genre": "fiction",
+    "price": 1499,
+    "year": 2019,
+    "inStock": true,
+    "summary": "A mapmaker charts a coastline that rearranges itself with every tide."
+  },
+  {
+    "slug": "quiet-engines",
+    "title": "Quiet Engines",
+    "author": "Tobias Rahn",
+    "genre": "science",
+    "price": 1899,
+    "year": 2021,
+    "inStock": true,
+    "summary": "How electric motors learned to disappear into everyday machines."
+  },
+  {
+    "slug": "rivers-of-glass",
+    "title": "Rivers of Glass",
+    "author": "Ines Okafor",
+    "genre": "fiction",
+    "price": 1299,
+    "year": 2016,
+    "inStock": true,
+    "summary": "Three sisters inherit a glassworks and the debts that come with it."
+  },
+  {
+    "slug": "a-short-history-of-lanterns",
+    "title": "A Short History of Lanterns",
+    "author": "Peter Holm",
+    "genre": "history",
+    "price": 2199,
+    "year": 2012,
+    "inStock": true,
+    "summary": "From oil and horn to LEDs: five thousand years of carrying light."
+  },
+  {
+    "slug": "the-mycelium-question",
+    "title": "The Mycelium Question",
+    "author": "Lena Aaltonen",
+    "genre": "science",
+    "price": 1699,
+    "year": 2023,
+    "inStock": false,
+    "summary": "Do forests talk through fungal networks, or do we only want them to?"
+  },
+  {
+    "slug": "harbor-towns-of-the-north",
+    "title": "Harbor Towns of the North",
+    "author": "Gustav Reyes",
+    "genre": "history",
+    "price": 2499,
+    "year": 2018,
+    "inStock": true,
+    "summary": "A travelogue through eleven fishing towns and the people who stayed."
+  }
+]

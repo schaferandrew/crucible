@@ -1,0 +1,7 @@
+[
+  {"id": "101", "name": "Garden Single", "rate": "89.00", "max_guests": 1, "cleaning_fee": 20, "extra_guest_fee": "15"},
+  {"id": "102", "name": "Harbor Double", "rate": "124.50", "max_guests": "3", "cleaning_fee": "30.00", "extra_guest_fee": "15"},
+  {"id": "201", "name": "Loft Suite", "rate": "210", "max_guests": 4, "cleaning_fee": "0", "extra_guest_fee": 20},
+  {"id": "301", "name": "Bunk & Breakfast Room", "rate": "38.75", "max_guests": "12", "cleaning_fee": 15, "extra_guest_fee": "5"},
+  {"id": "401", "name": "Lighthouse Cottage", "rate": "1150", "max_guests": 6, "cleaning_fee": "60", "extra_guest_fee": "25"}
+]

@@ -1,0 +1,85 @@
+id: travel-planning-agent
+name: Plan a trip with travel tools
+needs_tools: true
+mcp_servers:
+  - mock-travel
+category: long_agent
+area: everyday
+tier: temper
+version: 1
+rubric_version: 1
+status: provisional
+auto_grade: true
+repo: null
+prompt: |
+  I'm flying from Harbor City (HBR) to Larkspur (LKS) on 2026-10-14 and staying at the Larkspur Inn. Use the travel tools to answer three questions. Don't guess; the tools are the only source of fares, menus and distances.
+
+  1. Find the cheapest flight that fits all of this: total cost for one checked bag (fare plus bag fee) at most $300, departs 07:00 or later, arrives in Larkspur by 12:00 noon, at most one stop, and any layover at least 60 minutes. Give the flight number and the total cost.
+  2. I have a severe peanut allergy and a sesame allergy. Find a restaurant for dinner that is safe for both, within 1.5 miles walking distance of the hotel (walking distance, not as the crow flies). Give the restaurant and its walking distance in miles.
+  3. How far is the Larkspur Inn from Larkspur Airport by road, and how many minutes would a taxi take if I left the airport at 17:15?
+
+  Explain your reasoning first if it helps. Then end your reply with this block, and nothing after it:
+
+  ANSWERS:
+  Flight: <flight number>
+  Total: <dollars>
+  Restaurant: <name>
+  Walk: <miles>
+  Distance: <miles>
+  Taxi: <minutes>
+
+  One value per line, with no units or extra words after the colon.
+checks:
+- id: flight
+  type: items
+  header: ANSWERS
+  normalize: name
+  items:
+  - {id: flight, key: Flight, expect: SL114, label: 'Flight is SL114'}
+  rule: 'Flight is SL114 (cheapest that meets every constraint: NW201 departs 06:10, CJ550 has two stops, TA77 layover is 50 minutes, NW318 lands 12:30).'
+- id: total
+  type: items
+  header: ANSWERS
+  items:
+  - {id: total, key: Total, expect: 279, normalize: money, label: 'Total is $279'}
+  rule: 'Total is $279 (fare 279, first bag included).'
+- id: restaurant
+  type: items
+  header: ANSWERS
+  normalize: name
+  items:
+  - {id: restaurant, key: Restaurant, expect: Harbor Grill, label: 'Restaurant is Harbor Grill'}
+  rule: 'Restaurant is Harbor Grill (the only peanut- and sesame-free kitchen within 1.5 miles on foot; Fennel & Fig is 1.9 on foot, Saffron Table and Tidewater Bistro have cross-contact).'
+- id: walk
+  type: items
+  header: ANSWERS
+  items:
+  - {id: walk, key: Walk, expect: 1.3, normalize: number, tolerance: 0.05, label: 'Walk is 1.3 miles'}
+  rule: 'Walk is 1.3 miles.'
+- id: distance
+  type: items
+  header: ANSWERS
+  items:
+  - {id: distance, key: Distance, expect: 14.2, normalize: number, tolerance: 0.05, label: 'Distance is 14.2 miles'}
+  rule: 'Distance is 14.2 miles by road.'
+- id: taxi
+  type: items
+  header: ANSWERS
+  items:
+  - {id: taxi, key: Taxi, expect: 41, normalize: number, label: 'Taxi is 41 minutes'}
+  rule: 'Taxi is 41 minutes (17:15 is peak traffic; off-peak is 26).'
+- id: grounded
+  type: tool_calls
+  items:
+  - {id: flights, tool: search_flights, label: 'Called search_flights'}
+  - {id: menus, tool: get_restaurant, label: 'Called get_restaurant'}
+  - {id: time, tool: get_travel_time, label: 'Called get_travel_time'}
+  rule: 'The run called search_flights, get_restaurant and get_travel_time (read from the session, not the reply).'
+rubric:
+- {criterion: Best flight, max_score: 3, cap_if_failed: 5, check: flight, description: 'Flight is SL114; the cheaper NW201, CJ550, TA77 and NW318 each break a stated constraint. A wrong flight caps the score at 5.'}
+- {criterion: Flight total, max_score: 1, check: total, description: 'Total is $279.'}
+- {criterion: Allergy-safe restaurant, max_score: 3, cap_if_failed: 5, check: restaurant, description: 'Restaurant is Harbor Grill; a place that looks close or has a safe dish but a cross-contact kitchen fails. A wrong restaurant caps the score at 5.'}
+- {criterion: Walking distance, max_score: 1, check: walk, description: 'Walk is 1.3 miles.'}
+- {criterion: Road distance, max_score: 1, check: distance, description: 'Distance is 14.2 miles.'}
+- {criterion: Peak taxi time, max_score: 2, check: taxi, description: 'Taxi is 41 minutes (peak traffic).'}
+- {criterion: Grounded in the tools, max_score: 1, check: grounded, description: 'Called search_flights, get_restaurant and get_travel_time.'}

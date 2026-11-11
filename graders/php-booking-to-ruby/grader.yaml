@@ -1,0 +1,16 @@
+# Hidden tests for php-booking-to-ruby; see crucible/graders.py.
+# Ruby, graded with pytest in a fresh copy of repos/php-booking-to-ruby that takes only the model's Ruby
+# port (app.rb, lib/, test/). data/ and tests/fixtures/ stay as seeded. The hidden tests run
+# `ruby app.rb '<request>'` there and compare with expected_outputs.py, the PHP app's answers to the same
+# requests (captured by capture_expected.php). Only `ruby` is needed to grade; PHP is not.
+isolated: true
+runner: pytest
+artifacts: [app.rb, lib, test]
+timeout: 600
+# `crucible grader php-booking-to-ruby` grades each of these and checks the score lands in its range
+oracle:
+  solution: [10, 10]
+  seeded: [0, 0]
+  calibration:
+    format-rounding: [8.5, 9.5]   # the full port, but money is rounded with format("%.2f"): ties go to even
+    happy-path-only: [4.5, 6.5]   # an idiomatic Ruby port that follows the README, not PHP's value rules

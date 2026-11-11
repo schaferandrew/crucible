@@ -1,0 +1,92 @@
+{
+  "name": "larkspur-trip",
+  "note": "Entirely fictional: no real airlines, airports, hotels or restaurants. Times are local; Harbor City and Larkspur share a time zone.",
+  "locations": [
+    {"id": "lks-airport", "name": "Larkspur Airport", "city": "Larkspur", "kind": "airport"},
+    {"id": "larkspur-inn", "name": "Larkspur Inn", "city": "Larkspur", "kind": "hotel"}
+  ],
+  "flights": [
+    {"flight": "NW201", "airline": "Northwind", "origin": "HBR", "destination": "LKS", "date": "2026-10-14", "depart": "06:10", "arrive": "09:50", "stops": 1, "layover_minutes": [95], "base_fare": 189, "checked_bag_fee": 45, "currency": "USD"},
+    {"flight": "CJ550", "airline": "Cirrus Jet", "origin": "HBR", "destination": "LKS", "date": "2026-10-14", "depart": "07:05", "arrive": "11:50", "stops": 2, "layover_minutes": [70, 80], "base_fare": 215, "checked_bag_fee": 40, "currency": "USD"},
+    {"flight": "TA77", "airline": "Tern Air", "origin": "HBR", "destination": "LKS", "date": "2026-10-14", "depart": "08:00", "arrive": "11:35", "stops": 1, "layover_minutes": [50], "base_fare": 229, "checked_bag_fee": 45, "currency": "USD"},
+    {"flight": "NW318", "airline": "Northwind", "origin": "HBR", "destination": "LKS", "date": "2026-10-14", "depart": "07:45", "arrive": "12:30", "stops": 1, "layover_minutes": [105], "base_fare": 240, "checked_bag_fee": 35, "currency": "USD"},
+    {"flight": "PL09", "airline": "Plover Air", "origin": "HBR", "destination": "LKS", "date": "2026-10-14", "depart": "07:20", "arrive": "11:10", "stops": 1, "layover_minutes": [75], "base_fare": 262, "checked_bag_fee": 25, "currency": "USD"},
+    {"flight": "SL114", "airline": "Skylark", "origin": "HBR", "destination": "LKS", "date": "2026-10-14", "depart": "08:15", "arrive": "10:40", "stops": 0, "layover_minutes": [], "base_fare": 279, "checked_bag_fee": 0, "currency": "USD", "notes": "First checked bag included in fare."},
+    {"flight": "SL330", "airline": "Skylark", "origin": "HBR", "destination": "LKS", "date": "2026-10-14", "depart": "09:30", "arrive": "11:55", "stops": 0, "layover_minutes": [], "base_fare": 349, "checked_bag_fee": 0, "currency": "USD", "notes": "First checked bag included in fare."},
+    {"flight": "NW205", "airline": "Northwind", "origin": "HBR", "destination": "LKS", "date": "2026-10-15", "depart": "07:30", "arrive": "11:15", "stops": 1, "layover_minutes": [90], "base_fare": 199, "checked_bag_fee": 35, "currency": "USD"},
+    {"flight": "SL114", "airline": "Skylark", "origin": "HBR", "destination": "LKS", "date": "2026-10-15", "depart": "08:15", "arrive": "10:40", "stops": 0, "layover_minutes": [], "base_fare": 249, "checked_bag_fee": 0, "currency": "USD", "notes": "First checked bag included in fare."},
+    {"flight": "SL115", "airline": "Skylark", "origin": "LKS", "destination": "HBR", "date": "2026-10-14", "depart": "18:00", "arrive": "20:20", "stops": 0, "layover_minutes": [], "base_fare": 301, "checked_bag_fee": 0, "currency": "USD"}
+  ],
+  "restaurants": [
+    {
+      "id": "saffron-table", "name": "Saffron Table", "city": "Larkspur", "cuisine": "Thai", "rating": 4.5, "price": "$$",
+      "straight_line_miles_from_hotel": 0.4,
+      "kitchen": {"peanut_free": false, "sesame_free": false, "notes": "All frying is done in shared peanut oil; sesame oil used across the menu."},
+      "menu": [
+        {"dish": "Lemon chicken", "contains": [], "notes": "Fried in the shared peanut-oil fryer."},
+        {"dish": "Pad see ew", "contains": ["soy", "sesame", "egg"]},
+        {"dish": "Peanut satay", "contains": ["peanut"]}
+      ]
+    },
+    {
+      "id": "golden-noodle", "name": "Golden Noodle", "city": "Larkspur", "cuisine": "Chinese", "rating": 4.2, "price": "$",
+      "straight_line_miles_from_hotel": 0.9,
+      "kitchen": {"peanut_free": true, "sesame_free": false, "notes": "Sesame oil is in nearly every dish and shared across stations."},
+      "menu": [
+        {"dish": "Dan dan noodles", "contains": ["sesame", "soy", "wheat"]},
+        {"dish": "Steamed dumplings", "contains": ["sesame", "wheat"]},
+        {"dish": "Plain rice", "contains": [], "notes": "Plated at the sesame-oil station."}
+      ]
+    },
+    {
+      "id": "harbor-grill", "name": "Harbor Grill", "city": "Larkspur", "cuisine": "Seafood grill", "rating": 4.4, "price": "$$",
+      "straight_line_miles_from_hotel": 1.0,
+      "kitchen": {"peanut_free": true, "sesame_free": true, "notes": "No peanuts or sesame are stocked or used anywhere in the kitchen."},
+      "menu": [
+        {"dish": "Grilled salmon", "contains": ["fish"]},
+        {"dish": "Herb roast chicken", "contains": []},
+        {"dish": "Walnut and pear salad", "contains": ["tree nuts"]}
+      ]
+    },
+    {
+      "id": "tidewater-bistro", "name": "Tidewater Bistro", "city": "Larkspur", "cuisine": "Modern American", "rating": 4.3, "price": "$$",
+      "straight_line_miles_from_hotel": 1.2,
+      "kitchen": {"peanut_free": true, "sesame_free": false, "notes": "Bakes sesame buns in house; shares prep surfaces and fryers with sesame items."},
+      "menu": [
+        {"dish": "Garden salad", "contains": [], "notes": "Prepared on the shared bun-prep surface."},
+        {"dish": "Burger on sesame bun", "contains": ["sesame", "wheat", "dairy"]},
+        {"dish": "Roast vegetable plate", "contains": []}
+      ]
+    },
+    {
+      "id": "fennel-and-fig", "name": "Fennel & Fig", "city": "Larkspur", "cuisine": "Mediterranean", "rating": 4.7, "price": "$$$",
+      "straight_line_miles_from_hotel": 1.1,
+      "kitchen": {"peanut_free": true, "sesame_free": true, "notes": "No peanuts or sesame in the kitchen."},
+      "menu": [
+        {"dish": "Lamb with fennel", "contains": []},
+        {"dish": "Fig and goat cheese tart", "contains": ["dairy", "wheat"]}
+      ]
+    },
+    {
+      "id": "maple-and-rye", "name": "Maple & Rye", "city": "Larkspur", "cuisine": "Farm kitchen", "rating": 4.8, "price": "$$$",
+      "straight_line_miles_from_hotel": 2.3,
+      "kitchen": {"peanut_free": true, "sesame_free": true, "notes": "Dedicated allergy-safe kitchen."},
+      "menu": [
+        {"dish": "Rye-crusted trout", "contains": ["fish", "wheat"]},
+        {"dish": "Maple-glazed squash", "contains": []}
+      ]
+    }
+  ],
+  "distances": [
+    {"from": "larkspur-inn", "to": "saffron-table", "walk_miles": 0.5, "walk_minutes": 10, "drive_miles": 0.7, "drive_minutes_offpeak": 4, "drive_minutes_peak": 6},
+    {"from": "larkspur-inn", "to": "golden-noodle", "walk_miles": 1.0, "walk_minutes": 20, "drive_miles": 1.2, "drive_minutes_offpeak": 6, "drive_minutes_peak": 9},
+    {"from": "larkspur-inn", "to": "harbor-grill", "walk_miles": 1.3, "walk_minutes": 26, "drive_miles": 1.5, "drive_minutes_offpeak": 7, "drive_minutes_peak": 11},
+    {"from": "larkspur-inn", "to": "tidewater-bistro", "walk_miles": 1.4, "walk_minutes": 28, "drive_miles": 1.6, "drive_minutes_offpeak": 8, "drive_minutes_peak": 12},
+    {"from": "larkspur-inn", "to": "fennel-and-fig", "walk_miles": 1.9, "walk_minutes": 38, "drive_miles": 1.4, "drive_minutes_offpeak": 7, "drive_minutes_peak": 10, "notes": "Straight-line distance is short, but the river crossing adds a detour on foot."},
+    {"from": "larkspur-inn", "to": "maple-and-rye", "walk_miles": 2.8, "walk_minutes": 56, "drive_miles": 3.1, "drive_minutes_offpeak": 11, "drive_minutes_peak": 17},
+    {"from": "lks-airport", "to": "larkspur-inn", "walk_miles": null, "walk_minutes": null, "drive_miles": 14.2, "drive_minutes_offpeak": 26, "drive_minutes_peak": 41},
+    {"from": "lks-airport", "to": "harbor-grill", "walk_miles": null, "walk_minutes": null, "drive_miles": 13.1, "drive_minutes_offpeak": 24, "drive_minutes_peak": 37},
+    {"from": "lks-airport", "to": "maple-and-rye", "walk_miles": null, "walk_minutes": null, "drive_miles": 16.0, "drive_minutes_offpeak": 29, "drive_minutes_peak": 46}
+  ],
+  "peak_windows": [["07:00", "09:30"], ["16:00", "18:30"]]
+}

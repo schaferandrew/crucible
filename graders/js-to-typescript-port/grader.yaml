@@ -1,0 +1,14 @@
+# Hidden tests for js-to-typescript-port; see crucible/graders.py.
+# Isolated: the tests run in a fresh copy of repos/js-to-typescript-port that takes only `artifacts`
+# from the model's workspace. package.json, the lockfile, the seeded tests and node_modules stay as
+# seeded; the model's tsconfig.json is taken because the task is to write one.
+isolated: true
+artifacts: [src, tsconfig.json]
+existing_tests: [.]
+timeout: 600
+oracle:
+  solution: [10, 10]
+  seeded: [0, 0]
+  calibration:
+    any-everywhere: [6.4, 7.9]   # typed with `any`, strict switched off; every behavior test passes
+    one-module-left-js: [8, 9.3] # everything ported except report.js, which stays JavaScript
