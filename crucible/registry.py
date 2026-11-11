@@ -21,7 +21,10 @@ from pathlib import Path
 REGISTRY_DIR = Path(__file__).resolve().parents[1] / "registry"
 NAMES = ("makers", "models", "packagers", "machines", "overrides")
 FORMAT_VERSION = 3
-OVERRIDE_KEYS = ("model", "packager", "format", "quant", "machine")
+OVERRIDE_KEYS = ("model", "packager", "format", "quant", "machine", "reasoning")
+# A model default matches on what the run recorded, and fills only a field the run recorded nothing for
+DEFAULT_MATCH_KEYS = ("format", "quant", "packager", "harness")
+DEFAULT_SET_KEYS = ("packager", "format", "reasoning")
 UNRECORDED = "unrecorded"
 
 GGUF_QUANT = re.compile(r"^i?q\d(_[a-z0-9]+)*$", re.IGNORECASE)
@@ -177,6 +180,19 @@ class Registry:
                 found.append(f"model {mid}: the id's maker prefix doesn't match its maker {maker!r}")
             if model.get("packager") and model["packager"] not in self.packagers:
                 found.append(f"model {mid}: packager {model['packager']!r} isn't in packagers.yaml")
+            for i, d in enumerate(model.get("defaults") or []):
+                where = f"model {mid}: default {i}"
+                if not str(d.get("reason") or "").strip():
+                    found.append(f"{where}: no reason")
+                match = d.get("match") or {}
+                if not match:
+                    found.append(f"{where}: no match")
+                found += [f"{where}: can't match on {k!r} (allowed: {', '.join(DEFAULT_MATCH_KEYS)})"
+                          for k in match if k not in DEFAULT_MATCH_KEYS]
+                if not any(d.get(k) for k in DEFAULT_SET_KEYS):
+                    found.append(f"{where}: sets nothing (allowed: {', '.join(DEFAULT_SET_KEYS)})")
+                if d.get("packager") and d["packager"] not in self.packagers:
+                    found.append(f"{where}: packager {d['packager']!r} isn't in packagers.yaml")
             for alias in model.get("aliases") or []:
                 base = alias.get("base") if isinstance(alias, dict) else None
                 if not base:
@@ -312,8 +328,26 @@ class Registry:
         else:
             maker, sources["maker_from"] = None, "unknown"
 
-        # packager
+        # what the run itself recorded, which a model's defaults match on
+        quant = model.get("quant")
+        quant = quant.strip().lower() if isinstance(quant, str) and quant.strip() else None
+        if override.get("quant"):
+            quant = str(override["quant"]).lower()
+        recorded_format = _norm(model.get("format"))
         recorded = model.get("packager") or model.get("publisher")
+        facts = {"format": recorded_format, "quant": quant, "packager": self.packager_id(recorded),
+                 "harness": harness.get("id")}
+
+        def default_for(field):
+            """(value, reason) from the first of the model's defaults that matches the run and sets `field`."""
+            for d in (entry or {}).get("defaults") or []:
+                match = d.get("match") or {}
+                if d.get(field) and all(facts.get(k) == (str(v).lower() if k in ("format", "quant") else v)
+                                        for k, v in match.items()):
+                    return d[field], d.get("reason")
+            return None, None
+
+        # packager
         alias_packager = found[2].get("packager") if found and found[2] else None
         if override.get("packager"):
             packager, sources["packager_from"] = override["packager"], "override"
@@ -325,20 +359,23 @@ class Registry:
         elif alias_packager or (entry or {}).get("packager"):
             packager, sources["packager_from"] = alias_packager or entry["packager"], "registry"
             notes.append(f"no packager recorded; the registry says {packager}")
+        elif default_for("packager")[0]:
+            packager, why = default_for("packager")
+            sources["packager_from"] = "registry"
+            notes.append(f"no packager recorded; the registry's default for this model says {packager}: {why}")
         else:
             packager, sources["packager_from"] = None, "none"
 
         # format and quant
-        quant = model.get("quant")
-        quant = quant.strip().lower() if isinstance(quant, str) and quant.strip() else None
-        if override.get("quant"):
-            quant = str(override["quant"]).lower()
-        recorded_format = _norm(model.get("format"))
         if override.get("format"):
             fmt, sources["format_from"] = str(override["format"]).lower(), "override"
             notes.append(f"format set to {fmt} by an override: {override_reason}")
         elif recorded_format:
             fmt, sources["format_from"] = recorded_format, "recorded"
+        elif where == "local" and default_for("format")[0]:
+            fmt, why = default_for("format")
+            fmt, sources["format_from"] = str(fmt).lower(), "registry"
+            notes.append(f"format not recorded; the registry's default for this model says {fmt}: {why}")
         elif where == "cloud":
             fmt, sources["format_from"] = "api", "cloud"
         else:
@@ -382,6 +419,14 @@ class Registry:
         reasoning = model.get("reasoning") or {}
         requested, resolved = reasoning.get("requested"), reasoning.get("resolved")
         level = requested if requested not in (None, "", "default") else (resolved or "default")
+        sources["reasoning_from"] = "none" if level == "default" and not resolved and requested in (None, "", "default") else "recorded"
+        if override.get("reasoning"):
+            level, sources["reasoning_from"] = str(override["reasoning"]).lower(), "override"
+            notes.append(f"reasoning level set to {level} by an override: {override_reason}")
+        elif sources["reasoning_from"] == "none" and default_for("reasoning")[0]:
+            level, why = default_for("reasoning")
+            level, sources["reasoning_from"] = str(level).lower(), "registry"
+            notes.append(f"no reasoning level recorded; the registry's default for this model says {level}: {why}")
 
         return Resolution(run_uuid=uuid, model_id=model_id, maker=maker, packager=packager, format=fmt, quant=quant,
                           where=where, provider=provider, machine=machine, hardware_key=hardware_key,

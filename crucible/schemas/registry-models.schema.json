@@ -22,6 +22,20 @@
           "params": {"type": ["integer", "null"]},
           "active_params": {"type": ["integer", "null"]},
           "packager": {"type": ["string", "null"]},
+          "defaults": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["match", "reason"],
+              "properties": {
+                "match": {"type": "object"},
+                "packager": {"type": ["string", "null"]},
+                "format": {"type": ["string", "null"]},
+                "reasoning": {"type": ["string", "null"]},
+                "reason": {"type": "string"}
+              }
+            }
+          },
           "aliases": {
             "type": "array",
             "items": {

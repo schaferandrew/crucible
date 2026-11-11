@@ -28,6 +28,12 @@ here ([docs/versioning.md](docs/versioning.md)).
   published model names the registry doesn't resolve, local runs with no machine or hardware key (with
   their host names), and runs already published with a `local` key or a null content hash.
 - New runs fill a missing `model.origin.maker` from the registry when it knows the model.
+- Registry `defaults` on a model entry (`match` on the run's recorded quant, format, packager or
+  harness; sets `packager`, `format` or `reasoning`, with a reason), applied only to a field the run
+  recorded nothing for, and a `reasoning` key in overrides. Every application is noted in the
+  resolution, with its source `registry`.
+- `crucible registry suggest --bundle DIR` prints candidate `defaults` and `overrides` YAML for
+  published runs with gaps (unanimous evidence only), to review and paste. It writes nothing.
 
 ### Changed
 - `corrections.yaml` is gone. `corrections.json` is still written for the live page, now generated from

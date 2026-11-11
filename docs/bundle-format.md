@@ -85,6 +85,15 @@ guessed or merged. The registry also derives the stable IDs (`artifact_id`, `var
 an alias without a reason, a reference to a maker, packager, hardware or machine that doesn't exist,
 and a model id whose prefix isn't its maker.
 
+A model entry may also carry `defaults: [{match: {quant: q4_0}, packager: google, format: gguf, reasoning: on,
+reason: ...}]`: `match` keys are what the run recorded (`format`, `quant`, `packager`, `harness`), and the
+default fills only a field the run recorded nothing for (a `reasoning` default applies to a run that
+requested `default` and recorded no resolved level). Overrides may set `reasoning` too. Each application
+is noted in the resolution, and its `*_from` source is `registry` (or `override`).
+`crucible registry suggest --bundle DIR` prints candidate defaults and overrides derived from published
+runs (a default only when every run that recorded the field agrees, at least two do; a per-run override
+only when exactly one artifact of that model ran on that hardware and harness); it writes nothing.
+
 New runs fill a missing `model.origin.maker` from the registry when it knows the base (a run record
 change that stays inside format 3; `origin.source` ends in `registry`).
 

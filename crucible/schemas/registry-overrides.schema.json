@@ -23,7 +23,8 @@
               "packager": {"type": "string"},
               "format": {"type": "string"},
               "quant": {"type": "string"},
-              "machine": {"type": "string"}
+              "machine": {"type": "string"},
+              "reasoning": {"type": "string"}
             }
           },
           "reason": {"type": "string"}

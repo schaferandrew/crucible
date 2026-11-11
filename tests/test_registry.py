@@ -132,7 +132,8 @@ def test_a_plain_local_run_resolves_from_what_it_recorded():
     assert (res.where, res.provider, res.machine, res.hardware_key, res.harness) == (
         "local", "lmstudio", "duskfall", "m5-pro-48gb", "direct")
     assert res.sources == {"model_from": "recorded", "maker_from": "recorded", "packager_from": "recorded",
-                           "format_from": "recorded", "machine_from": "device", "hardware_from": "recorded"}
+                           "format_from": "recorded", "machine_from": "device", "hardware_from": "recorded",
+                           "reasoning_from": "none"}
     assert res.notes == []
 
 

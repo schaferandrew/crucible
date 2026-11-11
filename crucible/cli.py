@@ -10,7 +10,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from crucible import (bundle, checks, coverage, exporter, graders, judge, migrate, reporter, runner, runrecord, scorer, suites,
+from crucible import (bundle, checks, coverage, exporter, graders, judge, migrate, registry_suggest, reporter, runner, runrecord, scorer, suites,
                       tasks, versioning)
 
 
@@ -36,6 +36,7 @@ Commands:
   grader   Check an isolated grader against its oracle: seeded repo, reference solution, calibration fixtures
   versions Check task versions against the lock; --update rewrites it
   suite    List, verify, cut or patch suites (which tasks are scored, at which versions)
+  registry Suggest registry entries for published runs with gaps (`registry suggest --bundle DIR`; prints only)
   publish  Add this machine's results to the dashboard's data folder (bundle format 3, validated)
   export   Write the old single-file bundle (--format 2) the dashboard reads until it switches
   migrate  Bring runs from before Crucible 3.0.0 into the new layout (--dry-run first)
@@ -73,7 +74,7 @@ COMMANDS = {
     "run": runner.main, "score": scorer.main, "report": reporter.main,
     "judge": judge.main, "versions": versioning.main, "export": exporter.main, "publish": bundle.main, "checks": checks.main,
     "grader": graders.main, "task": tasks.main, "suite": suites.main, "migrate": migrate.main,
-    "status": runrecord.status_main, "coverage": coverage.main,
+    "status": runrecord.status_main, "coverage": coverage.main, "registry": registry_suggest.main,
 }
 
 
