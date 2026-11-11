@@ -1,0 +1,177 @@
+[
+  {
+    "file": "test_receipts.py",
+    "group": "rows",
+    "name": "test_one_new_row[pantry]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "rows",
+    "name": "test_one_new_row[radio]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "rows",
+    "name": "test_one_new_row[church]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "rows",
+    "name": "test_amount[pantry]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "rows",
+    "name": "test_amount[radio]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "rows",
+    "name": "test_amount[church]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "rows",
+    "name": "test_method[pantry]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "rows",
+    "name": "test_method[radio]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "rows",
+    "name": "test_method[church]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "dates",
+    "name": "test_row_date_is_the_gift_date[pantry]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "dates",
+    "name": "test_row_date_is_the_gift_date[radio]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "dates",
+    "name": "test_row_date_is_the_gift_date[church]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "dates",
+    "name": "test_tax_year[pantry]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "dates",
+    "name": "test_tax_year[radio]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "dates",
+    "name": "test_tax_year[church]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "dates",
+    "name": "test_filed_in_the_gift_year_folder[pantry]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "dates",
+    "name": "test_filed_in_the_gift_year_folder[radio]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "dates",
+    "name": "test_filed_in_the_gift_year_folder[church]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "dates",
+    "name": "test_file_name_starts_with_the_gift_date[pantry]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "dates",
+    "name": "test_file_name_starts_with_the_gift_date[radio]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "dates",
+    "name": "test_file_name_starts_with_the_gift_date[church]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "filing",
+    "name": "test_filed_once_as_a_pdf[pantry]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "filing",
+    "name": "test_filed_once_as_a_pdf[radio]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "filing",
+    "name": "test_filed_once_as_a_pdf[church]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "filing",
+    "name": "test_named_like_the_others[pantry]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "filing",
+    "name": "test_named_like_the_others[radio]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "filing",
+    "name": "test_named_like_the_others[church]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "filing",
+    "name": "test_gone_from_the_inbox[pantry]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "filing",
+    "name": "test_gone_from_the_inbox[radio]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "filing",
+    "name": "test_gone_from_the_inbox[church]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "filing",
+    "name": "test_row_points_at_the_file[pantry]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "filing",
+    "name": "test_row_points_at_the_file[radio]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "filing",
+    "name": "test_row_points_at_the_file[church]"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "integrity",
+    "name": "test_log_is_the_five_old_rows_plus_three_new"
+  },
+  {
+    "file": "test_receipts.py",
+    "group": "integrity",
+    "name": "test_records_hold_the_five_old_pdfs_plus_three_new"
+  }
+]

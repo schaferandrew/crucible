@@ -1,0 +1,122 @@
+[
+  {
+    "file": "test_port.py",
+    "group": "routes: whole responses on ordinary requests",
+    "name": "test_rooms_list"
+  },
+  {
+    "file": "test_port.py",
+    "group": "routes: whole responses on ordinary requests",
+    "name": "test_rooms_page_html"
+  },
+  {
+    "file": "test_port.py",
+    "group": "routes: whole responses on ordinary requests",
+    "name": "test_weekday_quote"
+  },
+  {
+    "file": "test_port.py",
+    "group": "routes: whole responses on ordinary requests",
+    "name": "test_quote_with_coupon_and_extra_guests"
+  },
+  {
+    "file": "test_port.py",
+    "group": "routes: whole responses on ordinary requests",
+    "name": "test_unknown_room_is_404"
+  },
+  {
+    "file": "test_port.py",
+    "group": "routes: whole responses on ordinary requests",
+    "name": "test_too_many_guests_is_422"
+  },
+  {
+    "file": "test_port.py",
+    "group": "routes: whole responses on ordinary requests",
+    "name": "test_unknown_route_is_404"
+  },
+  {
+    "file": "test_port.py",
+    "group": "trap: loose comparison",
+    "name": "test_room_id_with_leading_zero_finds_the_room"
+  },
+  {
+    "file": "test_port.py",
+    "group": "trap: loose comparison",
+    "name": "test_unpaid_means_paid_loosely_equals_false"
+  },
+  {
+    "file": "test_port.py",
+    "group": "trap: numeric strings",
+    "name": "test_nine_guests_fit_a_room_for_twelve"
+  },
+  {
+    "file": "test_port.py",
+    "group": "trap: numeric strings",
+    "name": "test_fractional_nights_are_truncated"
+  },
+  {
+    "file": "test_port.py",
+    "group": "trap: empty()",
+    "name": "test_zero_guests_counts_as_one"
+  },
+  {
+    "file": "test_port.py",
+    "group": "trap: empty()",
+    "name": "test_cleaning_fee_of_zero_adds_no_line"
+  },
+  {
+    "file": "test_port.py",
+    "group": "trap: division",
+    "name": "test_average_nights_is_not_integer_division"
+  },
+  {
+    "file": "test_port.py",
+    "group": "trap: rounding",
+    "name": "test_tax_half_cent_rounds_up"
+  },
+  {
+    "file": "test_port.py",
+    "group": "trap: rounding",
+    "name": "test_negative_discount_rounds_away_from_zero"
+  },
+  {
+    "file": "test_port.py",
+    "group": "trap: arrays",
+    "name": "test_filtered_bookings_keep_their_positions_as_keys"
+  },
+  {
+    "file": "test_port.py",
+    "group": "trap: arrays",
+    "name": "test_all_bookings_are_a_list"
+  },
+  {
+    "file": "test_port.py",
+    "group": "trap: dates",
+    "name": "test_sunday_night_is_a_weekend_night"
+  },
+  {
+    "file": "test_port.py",
+    "group": "trap: dates",
+    "name": "test_slash_dates_are_month_first"
+  },
+  {
+    "file": "test_port.py",
+    "group": "trap: dates",
+    "name": "test_labels_have_no_leading_zero"
+  },
+  {
+    "file": "test_port.py",
+    "group": "trap: dates",
+    "name": "test_day_past_month_end_rolls_over"
+  },
+  {
+    "file": "test_ruby_tests.py",
+    "group": "ruby tests",
+    "name": "test_ruby_tests_pass"
+  },
+  {
+    "file": "test_ruby_tests.py",
+    "group": "ruby tests",
+    "name": "test_ruby_tests_read_the_legacy_fixtures"
+  }
+]

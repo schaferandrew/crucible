@@ -1,0 +1,60 @@
+id: migrate-pages-to-app-router
+name: Migrate Pages Router to App Router
+aliases: []
+needs_tools: true
+category: coding_repo
+area: coding
+tier: forge
+version: 1
+rubric_version: 1
+status: provisional
+auto_grade: true
+repo: lantern-books-pages
+grader: migrate-pages-to-app-router
+# Every hidden test weighs the same: the score is tests passed / all tests x 10, graded in a fresh
+# copy of the seeded repo with only the model's pages, app, components, lib and styles
+# (graders/migrate-pages-to-app-router/grader.yaml). One production build serves them all.
+scoring: per_test
+prompt: |
+  This is the website for Lantern Books, a small bookshop, built on Next.js 14 with the Pages Router. Read README.md first.
+
+  Migrate the whole site to the App Router. Everything the site serves today must come from `app/` at the project root, and the `pages/` folder must be gone when you finish.
+
+  Requirements:
+  - Migrate every page and the API route: the home page, the book pages, the genre pages, search, about, the custom not-found page, the shared layout that wraps every page, and `/api/books`.
+  - Keep every URL. Keep the HTTP status codes, including 404 for anything unknown, and the API's status codes for bad requests and unsupported methods.
+  - For the same data, keep the rendered HTML content the same: the same text, links and navigation, including which navigation link is marked as the current page. Each page keeps its title and description.
+  - Keep the rendering behaviour the pages had: pages that were built ahead of time stay built ahead of time, and a page that was rendered on every request keeps being rendered on every request.
+  - Keep the existing tests passing (`npm test`), and make sure `npm run build` succeeds.
+  - Do not add dependencies, and do not change package.json, the lockfile or the config files. You may change files under app/, components/, lib/ and styles/ (and delete pages/).
+
+  End with a short summary of what you changed and anything that behaves differently from before.
+rubric:
+- criterion: Builds, pages/ removed, URLs kept
+  hidden_tests: 'migration: build and structure'
+  cap_if_failed: 6
+  description: 'Hidden tests: the production build succeeds, the pages/ folder is gone, and every URL the old app served still answers 200. A cap too: a site that fails to build, keeps pages/ or loses a URL scores at most 6.'
+- criterion: Same content
+  hidden_tests: 'migration: same content'
+  description: 'Hidden tests: home, about, book, genre and search pages keep their content; the API keeps its JSON and its 400 and 405 answers.'
+- criterion: Shared layout
+  hidden_tests: 'migration: shared layout'
+  description: 'Hidden tests: every page sits in the layout (html lang, header, nav, footer), the stylesheet is linked, and the current nav link is marked as before.'
+- criterion: Not found
+  hidden_tests: 'migration: not found'
+  description: 'Hidden tests: unknown URLs, book slugs and genres answer 404 with the not-found page.'
+- criterion: Rendering semantics
+  hidden_tests: 'migration: rendering semantics'
+  cap_if_failed: 8
+  description: 'Hidden tests: the book page is still rendered on every request; the home, about and genre pages are still prerendered. A cap too: at most 8.'
+- criterion: Metadata
+  hidden_tests: 'migration: metadata'
+  description: 'Hidden tests: each page keeps its title (once) and description, book pages derive theirs from the book, and no next/head or next/router is left.'
+- criterion: Client and server boundaries
+  hidden_tests: 'migration: client and server boundaries'
+  description: 'Hidden tests: hooks and event handlers only in client components, no metadata from a client component, data pages stay Server Components, search still fetches on mount.'
+- criterion: Existing tests still pass
+  hidden_tests: existing
+  cap_if_failed: 5
+  description: 'The repo''s own tests (npm test) still pass. A cap, not points: they pass on the seeded repo.'
+critical_failure: Every hidden test weighs the same; the score is tests passed / all tests x 10.

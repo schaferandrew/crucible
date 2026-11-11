@@ -125,6 +125,13 @@
     "rubric_version": 1,
     "rubric_hash": "5944fb9d7568cdce"
   },
+  "giving-receipt-filing": {
+    "version": 1,
+    "content_hash": "a3eab2ef069f292a",
+    "prompt_hash": "8021b86a744e2ec9",
+    "rubric_version": 1,
+    "rubric_hash": "3dfb5fb6eaa4964f"
+  },
   "grade-binary-search-answer": {
     "version": 1,
     "content_hash": "e914619e43d38223",
@@ -174,6 +181,13 @@
     "rubric_version": 3,
     "rubric_hash": "534a86d7de9cff6b"
   },
+  "js-to-typescript-port": {
+    "version": 1,
+    "content_hash": "8467a4146819d4ec",
+    "prompt_hash": "366a071f19e19b68",
+    "rubric_version": 1,
+    "rubric_hash": "35c748edb2d883b3"
+  },
   "landlocked-countries": {
     "version": 2,
     "content_hash": "7b5379ce8b6a3e04",
@@ -215,6 +229,13 @@
     "prompt_hash": "72ff8c34183a9f5e",
     "rubric_version": 1,
     "rubric_hash": "ad8018cfb54871da"
+  },
+  "migrate-pages-to-app-router": {
+    "version": 1,
+    "content_hash": "6a15e01955042cb5",
+    "prompt_hash": "4ddaa62b68ab4219",
+    "rubric_version": 1,
+    "rubric_hash": "045cbc7ea0a00183"
   },
   "morning-brief-priorities": {
     "version": 3,
@@ -286,6 +307,13 @@
     "rubric_version": 2,
     "rubric_hash": "f66e11cca0e3815d"
   },
+  "php-booking-to-ruby": {
+    "version": 1,
+    "content_hash": "8b3d9456cf4979df",
+    "prompt_hash": "b3ddda6cb67551e0",
+    "rubric_version": 1,
+    "rubric_hash": "a01dd22a30a8b0c8"
+  },
   "proofread-customer-email": {
     "version": 2,
     "content_hash": "c41a36c4fafcbd9f",
@@ -356,6 +384,13 @@
     "rubric_version": 1,
     "rubric_hash": "58c3e214665a719a"
   },
+  "sports-fan-from-photo": {
+    "version": 2,
+    "content_hash": "724fe7efc27c5321",
+    "prompt_hash": "c3b6cf3d5820db69",
+    "rubric_version": 1,
+    "rubric_hash": "e3084c4e34f85e94"
+  },
   "sudoku-variants": {
     "version": 1,
     "content_hash": "400a7ce4b6918400",
@@ -369,6 +404,13 @@
     "prompt_hash": "eba6c341df9b1b6b",
     "rubric_version": 1,
     "rubric_hash": "78a82e60de366899"
+  },
+  "travel-planning-agent": {
+    "version": 1,
+    "content_hash": "0b0723ef8c5ce93f",
+    "prompt_hash": "195a7d7a70fcbbfe",
+    "rubric_version": 1,
+    "rubric_hash": "9d8e0c84768c23b5"
   },
   "two-calendar-slots-json": {
     "version": 3,

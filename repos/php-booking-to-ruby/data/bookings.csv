@@ -1,0 +1,7 @@
+id,room_id,guest,checkin,nights,guests,paid
+B001,101,Ada Park,2024-03-01,2,1,1
+B002,102,Luis Ortega,2024-03-02,3,2,0
+B003,201,Mina Okafor,2024-03-08,4,3,yes
+B004,102,Sam Reed,2024-03-15,1,2,
+B005,301,Priya Nair,2024-03-15,6,9,1
+B006,101,Tom Becker,2024-03-22,1,1,no

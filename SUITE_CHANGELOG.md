@@ -10,6 +10,36 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
 
 ## Unreleased
 
+- **New, provisional: sports-fan-from-photo** (version 2, rubric 1, spark, general). The first image task: a
+  photo of a baby in a team onesie is attached and the model names the college team, in an `ANSWERS:` block. The
+  answer is Michigan State; the trap is the University of Michigan, which small models tend to answer. Direct
+  harness only, and a vision model is needed. Version 2 blurs the adult's face in the photo. No runs yet.
+- **New, provisional: giving-receipt-filing** (version 1, rubric 1, temper, everyday). Three scanned giving
+  receipts in an inbox: the agent adds a row for each to a giving log (CSV) and files each PDF under the right
+  tax year, judged by the gift date rather than the letter date or today's date (a December 31 gift with a
+  January letter, a January gift that needs a new year folder, a reissued statement). Scored by 35 hidden
+  tests (log rows, dates, filing, nothing else disturbed); getting the year wrong caps the score at 6. Fictional
+  organizations and amounts. No runs yet.
+- **New, provisional: travel-planning-agent** (version 1, rubric 1, temper, everyday). Uses the new
+  `mock-travel` MCP server: the cheapest flight that fits a budget with a checked bag, a departure window, an
+  arrival deadline, at most one stop and a minimum layover; a restaurant safe for peanut and sesame allergies
+  within walking distance of the hotel; and the taxi distance and time from the airport at rush hour. Traps
+  include a cheaper flight that leaves too early, a too-short layover, a restaurant that is close in a straight
+  line but not on foot, and one with a safe dish but a shared peanut-oil kitchen. Answers in an `ANSWERS:`
+  block; the wrong flight or restaurant caps the score at 5. No runs yet.
+- **New, provisional: js-to-typescript-port** (version 1, rubric 1, forge, coding). Port "Toolshed", a
+  ~540-line JavaScript tool-lending tracker, to strict TypeScript without changing behavior. 23 hidden tests:
+  the toolchain (strict tsconfig, `tsc` passes, no `any` or ts-ignore), type-level assertions, and outputs
+  that must match the original JavaScript; the seeded tests still passing is a cap. No runs yet.
+- **New, provisional: php-booking-to-ruby** (version 1, rubric 1, forge, coding). Rewrite "Juniper Inn", a
+  small legacy PHP booking app, in plain Ruby with identical behavior. 24 hidden tests, one per PHP trap
+  (loose comparison, numeric strings, `empty("0")`, division and half-cent rounding, arrays that become JSON
+  objects, date parsing and rollover). The expected outputs were checked by hand against PHP 8 rules but not
+  yet produced by running PHP, which isn't installed on the authoring machine. No runs yet.
+- **New, provisional: migrate-pages-to-app-router** (version 1, rubric 1, forge, coding). Migrate "Lantern
+  Books", a Next.js 14 Pages Router shop, to the App Router: every URL, its content and status codes kept,
+  metadata, 404s, layouts, and client/server component boundaries. 34 hidden tests; the existing tests and the
+  old pages/ folder being gone are caps. No runs yet.
 - **river-haiku-banned-words rubric 3.** "Evokes a river" now accepts indirect river imagery (canyon, carving,
   rapids, sea, roar, meander...), not just the words the old list named; a haiku about a river carving a canyon
   to the sea scored 0/3 there. Stored runs are rescored by the next suite patch. An LLM judge for this check is

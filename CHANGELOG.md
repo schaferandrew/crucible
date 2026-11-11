@@ -12,6 +12,23 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## 3.9.0 (2026-11-10)
+
+### Added
+- Tasks can attach images: `images:` lists files under `fixtures/` that the direct harness sends with
+  the prompt (an `image_url` part on OpenAI-compatible APIs, `images` on Ollama), so a vision model can
+  be asked about a photo. The images are task content (their bytes are in the content hash; tasks without
+  images keep their hashes). Agent harnesses refuse such tasks, and the direct harness refuses one whose
+  image is missing.
+- A mock travel MCP server, `mock-travel` (`fixtures/mock-travel/travel_server.py`), with flight,
+  restaurant, distance and travel-time tools over fictional data, for travel-planning tasks. Its script and
+  data are task content; the README of ground truth beside them isn't.
+
+### Fixed
+- `tool_calls` checks count the MCP calls opencode makes from its `execute` tool (code mode), read from
+  that call's metadata. Before, a model that called the tools only from a script was scored as not
+  calling them, which failed the grounded checks of the calendar and travel tasks.
+
 ## 3.8.1 (2026-11-10)
 
 ### Fixed

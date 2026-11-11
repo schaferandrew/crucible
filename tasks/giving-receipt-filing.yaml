@@ -1,0 +1,40 @@
+id: giving-receipt-filing
+name: File giving receipts
+needs_tools: true
+category: everyday
+area: everyday
+tier: temper
+version: 1
+rubric_version: 1
+status: provisional
+auto_grade: true
+repo: null
+# The seeded workspace: giving-log.csv, records/ (filed receipts by year) and inbox/ (three new PDFs).
+# fixtures/giving-tracker/README.md is the ground truth and is deliberately not listed here.
+fixtures:
+- giving-tracker/giving-log.csv
+- giving-tracker/records
+- giving-tracker/inbox
+prompt: |
+  I keep track of our charitable giving for the tax return each year. This folder has my giving log (giving-log.csv), records/ with the receipts I've already filed, and inbox/ with some new receipts I just scanned and downloaded.
+
+  Go through everything in inbox/. Read each PDF, add a row to giving-log.csv for the gift it records, filling in every column the way the existing rows do, and file the PDF under records/ where it belongs, named the way the ones already there are. Leave inbox/ empty when you're done, and don't change any of the existing rows or files.
+
+  When you've finished, tell me briefly what you filed and where.
+scoring: per_test
+grader: giving-receipt-filing
+rubric:
+- criterion: Log rows
+  hidden_tests: rows
+  description: 'Hidden tests, per receipt: exactly one new row for the right organization, with the right amount and payment method.'
+- criterion: Pays attention to the date
+  hidden_tests: dates
+  cap_if_failed: 6
+  description: 'Hidden tests, per receipt: the row carries the date of the gift (not the letter date, the print date, the file name or today), the tax year follows it, and the PDF goes in that year''s folder with the date in its file name. The core requirement: its tests earn their points, and if any one fails the score is capped at 6.'
+- criterion: Filing
+  hidden_tests: filing
+  description: 'Hidden tests, per receipt: the PDF is moved (once, unchanged) to records/, named like the existing files, gone from inbox/, and the row''s Receipt File cell points at it.'
+- criterion: Nothing else disturbed
+  hidden_tests: integrity
+  description: 'Two tests: the log is the five earlier rows plus exactly three new ones, and records/ holds the five earlier PDFs plus the three new ones. A task left undone fails both.'
+critical_failure: Every hidden test weighs the same; the score is tests passed / all tests x 10. Taking the year from the letter date, the file name or today's date for any receipt fails a date test and caps the score at 6. Doing nothing scores 0.

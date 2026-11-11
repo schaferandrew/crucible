@@ -1,0 +1,172 @@
+[
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: build and structure",
+    "name": "the production build succeeds"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: build and structure",
+    "name": "the pages/ directory is gone"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: build and structure",
+    "name": "every URL the old app served still answers 200"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: same content",
+    "name": "/ lists every book in title order with its author, price and link"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: same content",
+    "name": "/about keeps its text and opening hours"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: same content",
+    "name": "a book page shows the book, its genre link and its permalink"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: same content",
+    "name": "an out-of-stock book says so"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: same content",
+    "name": "a genre page lists its shelf in title order"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: same content",
+    "name": "another genre page lists only its own books"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: same content",
+    "name": "/search serves its heading in the HTML"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: same content",
+    "name": "/api/books returns every book as JSON"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: same content",
+    "name": "/api/books?genre= filters by genre"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: same content",
+    "name": "/api/books answers 400 for an unknown genre"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: same content",
+    "name": "/api/books refuses anything but GET with 405"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: shared layout",
+    "name": "every page sits in the layout: html lang, header, navigation and footer"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: shared layout",
+    "name": "the global stylesheet is linked on every page"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: shared layout",
+    "name": "the nav marks Books as current on / and on book and genre pages"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: shared layout",
+    "name": "the nav marks About as current on /about"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: shared layout",
+    "name": "the nav marks Search as current on /search"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: not found",
+    "name": "an unknown URL answers 404 with the not-found page inside the layout"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: not found",
+    "name": "an unknown book slug answers 404 and serves no book"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: not found",
+    "name": "an unknown genre answers 404 with the not-found page, not an empty shelf"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: rendering semantics",
+    "name": "the book page is rendered on every request, so its view counter climbs"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: rendering semantics",
+    "name": "the home, about and genre pages are still prerendered at build time"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: metadata",
+    "name": "/ has its title and description, once"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: metadata",
+    "name": "/about has its title and description, once"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: metadata",
+    "name": "/genres/history has its title and description, once"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: metadata",
+    "name": "/search has its title and description, once"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: metadata",
+    "name": "book pages get their own title and description from the book"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: metadata",
+    "name": "no Pages Router API is left in the source (next/head, next/router, getStaticProps...)"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: client and server boundaries",
+    "name": "every file that uses hooks or event handlers is a client component or only used by one"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: client and server boundaries",
+    "name": "no client component exports metadata"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: client and server boundaries",
+    "name": "the pages that load data stay Server Components"
+  },
+  {
+    "file": "migration.grader.test.ts",
+    "group": "migration: client and server boundaries",
+    "name": "the search page still fetches /api/books on mount, in a client component"
+  }
+]

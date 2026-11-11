@@ -1,0 +1,10 @@
+[
+  {"request":"/rooms","status":200,"body":[{"id":"101","name":"Garden Single","rate":89.0,"max_guests":1},{"id":"102","name":"Harbor Double","rate":124.5,"max_guests":3},{"id":"201","name":"Loft Suite","rate":210.0,"max_guests":4},{"id":"301","name":"Bunk & Breakfast Room","rate":38.75,"max_guests":12},{"id":"401","name":"Lighthouse Cottage","rate":1150.0,"max_guests":6}]},
+  {"request":"/rooms.html","status":200,"body":"<!DOCTYPE html>\n<html>\n<head><meta charset=\"utf-8\"><title>Juniper Inn rooms</title></head>\n<body>\n<h1>Rooms</h1>\n<table>\n<tr><th>Room</th><th>Name</th><th>Sleeps</th><th>Nightly</th></tr>\n<tr><td>101</td><td>Garden Single</td><td>1</td><td>$89.00</td></tr>\n<tr><td>102</td><td>Harbor Double</td><td>3</td><td>$124.50</td></tr>\n<tr><td>201</td><td>Loft Suite</td><td>4</td><td>$210.00</td></tr>\n<tr><td>301</td><td>Bunk &amp; Breakfast Room</td><td>12</td><td>$38.75</td></tr>\n<tr><td>401</td><td>Lighthouse Cottage</td><td>6</td><td>$1,150.00</td></tr>\n</table>\n</body>\n</html>"},
+  {"request":"/room?id=102","status":200,"body":{"id":"102","name":"Harbor Double","rate":124.5,"max_guests":3}},
+  {"request":"/room?id=999","status":404,"body":{"error":"Room not found"}},
+  {"request":"/quote?room=101&checkin=2024-03-19&nights=2&guests=1","status":200,"body":{"room":"101","checkin":"2024-03-19","checkout":"2024-03-21","checkin_label":"Tue 19 Mar 2024","checkout_label":"Thu 21 Mar 2024","nights":2,"guests":1,"lines":[{"label":"Room (2 nights)","amount":178.0},{"label":"Cleaning","amount":20.0}],"coupon":null,"subtotal":198.0,"discount":0,"tax":24.75,"total":222.75,"per_guest":222.75}},
+  {"request":"/quote?room=101&checkin=2024-03-19&nights=1&guests=2","status":422,"body":{"error":"Too many guests for this room"}},
+  {"request":"/quote?room=102&checkin=2024-03-19&nights=0&guests=2","status":422,"body":{"error":"Nights must be at least 1"}},
+  {"request":"/nope","status":404,"body":{"error":"Not found"}}
+]

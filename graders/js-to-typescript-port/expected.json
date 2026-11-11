@@ -1,0 +1,117 @@
+[
+  {
+    "file": "port.grader.test.ts",
+    "group": "toolchain",
+    "name": "every module has a TypeScript source"
+  },
+  {
+    "file": "port.grader.test.ts",
+    "group": "toolchain",
+    "name": "tsconfig.json turns strict mode on"
+  },
+  {
+    "file": "port.grader.test.ts",
+    "group": "toolchain",
+    "name": "the project type-checks with its own tsconfig"
+  },
+  {
+    "file": "port.grader.test.ts",
+    "group": "toolchain",
+    "name": "the sources type-check under strict settings of our own"
+  },
+  {
+    "file": "port.grader.test.ts",
+    "group": "toolchain",
+    "name": "no explicit any in the sources"
+  },
+  {
+    "file": "port.grader.test.ts",
+    "group": "toolchain",
+    "name": "no type-check suppression comments"
+  },
+  {
+    "file": "port.grader.test.ts",
+    "group": "types",
+    "name": "a tool's status is the union of its three values, not string"
+  },
+  {
+    "file": "port.grader.test.ts",
+    "group": "types",
+    "name": "borrower, due date, retired reason and cost are typed as nullable"
+  },
+  {
+    "file": "port.grader.test.ts",
+    "group": "types",
+    "name": "looking a tool up can give undefined"
+  },
+  {
+    "file": "port.grader.test.ts",
+    "group": "types",
+    "name": "change listeners receive a union of events that narrows on its type"
+  },
+  {
+    "file": "port.grader.test.ts",
+    "group": "types",
+    "name": "nothing the modules export is any"
+  },
+  {
+    "file": "port.grader.test.ts",
+    "group": "behavior",
+    "name": "list filters by status, tag and text"
+  },
+  {
+    "file": "port.grader.test.ts",
+    "group": "behavior",
+    "name": "loan saves the due date, trims the borrower and logs the change"
+  },
+  {
+    "file": "port.grader.test.ts",
+    "group": "behavior",
+    "name": "return reports lateness and frees the tool"
+  },
+  {
+    "file": "port.grader.test.ts",
+    "group": "behavior",
+    "name": "return counts late days across a month end"
+  },
+  {
+    "file": "port.grader.test.ts",
+    "group": "behavior",
+    "name": "retire needs a reason and refuses tools that are out or already retired"
+  },
+  {
+    "file": "port.grader.test.ts",
+    "group": "behavior",
+    "name": "add assigns ids, tags and costs"
+  },
+  {
+    "file": "port.grader.test.ts",
+    "group": "behavior",
+    "name": "bad arguments give the same messages and exit codes"
+  },
+  {
+    "file": "port.grader.test.ts",
+    "group": "behavior",
+    "name": "report and overdue summarise the fixture"
+  },
+  {
+    "file": "port.grader.test.ts",
+    "group": "behavior",
+    "name": "loading handles missing files, odd records and bad data"
+  },
+  {
+    "file": "port.grader.test.ts",
+    "group": "behavior",
+    "name": "the store and tools API return and emit the same things"
+  },
+  {
+    "file": "port.grader.test.ts",
+    "group": "behavior",
+    "name": "findTools, overdueTools and summarize on a custom store"
+  },
+  {
+    "file": "port.grader.test.ts",
+    "group": "behavior",
+    "name": "date helpers handle leap days and invalid dates"
+  }
+]

@@ -1222,6 +1222,11 @@ def session_tool_calls(run_dir: Path) -> list[dict] | None:
                     state = part.get("state") if isinstance(part.get("state"), dict) else {}
                     calls.append({"name": part.get("name") or part.get("tool") or "",
                                   "args": state.get("input") or part.get("input") or part.get("args") or {}})
+                    # opencode's code mode: one `execute` call runs a script that calls the MCP tools, and
+                    # each of those is recorded in its metadata ("mock-travel.search_flights").
+                    meta = state.get("metadata") if isinstance(state.get("metadata"), dict) else {}
+                    calls += [{"name": c.get("tool") or "", "args": c.get("input") or {}}
+                              for c in meta.get("toolCalls") or [] if isinstance(c, dict)]
     return calls
 
 

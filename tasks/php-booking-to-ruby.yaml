@@ -1,0 +1,59 @@
+id: php-booking-to-ruby
+name: Port a PHP booking app to Ruby
+needs_tools: true
+category: coding_repo
+area: coding
+tier: forge
+version: 1
+rubric_version: 1
+status: provisional
+auto_grade: true
+repo: php-booking-to-ruby
+grader: php-booking-to-ruby
+# Every hidden test weighs the same: the score is tests passed / all tests x 10. The route tests compare
+# whole responses; each trap test compares only the fields one legacy PHP behaviour decides, so a port
+# that loses one behaviour loses one test.
+scoring: per_test
+prompt: |
+  This is the Juniper Inn booking desk, a small PHP app from 2014: a router, a flat-file data layer (data/rooms.json and two CSV files), a quote calculator, date helpers and one HTML page. It runs from the command line, for example `php app.php '/quote?room=101&checkin=2024-03-19&nights=2&guests=1'`. Read README.md first.
+
+  We're retiring PHP on this machine. Rewrite the app in Ruby so the front desk can keep using it exactly as before.
+
+  What we need:
+  1. `ruby app.rb '<request>'`, run from the repo root, gives the same output and exit status as `php app.php '<request>'` for every request: the same JSON (as parsed values: same keys, values and types of container) or the same HTML text, and exit status 0 or 1 in the same cases. "The same" means the PHP app's actual behaviour, quirks included, not what the README or a comment says it should do. The front desk's habits depend on it.
+  2. Put the Ruby code in app.rb and lib/. Write idiomatic Ruby, standard library only: no gems, no Bundler, nothing to install. It must run on the `ruby` installed here (check `ruby -v`).
+  3. Port the legacy tests: `ruby test/run_tests.rb` must read the fixture cases in tests/fixtures/cases.json, run each request through your Ruby app, compare the status and body the way tests/run_tests.php does, print what failed and exit non-zero if anything did. All the cases must pass. Add more tests if you like.
+  4. Don't change data/, tests/fixtures/ or the PHP files; they are the reference. You may leave the PHP files in place.
+
+  PHP may not be installed here, so you might not be able to run the old app to compare; the PHP source and the fixtures are the spec. Read the PHP carefully: the fixtures don't cover every request the desk sends.
+
+  When you're done, end with a short summary of how the Ruby app is laid out and any PHP behaviour you had to reproduce deliberately.
+rubric:
+- criterion: Routes
+  hidden_tests: routes
+  description: 'Hidden tests: whole responses match the PHP app for the rooms list, the HTML rooms page, a weekday quote, a coupon quote with extra guests, and the 404 and 422 errors.'
+- criterion: Loose comparison
+  hidden_tests: 'trap: loose comparison'
+  description: 'Hidden tests: room id "0101" finds room 101; a booking is unpaid when its paid field == false ("" and "0", not "no").'
+- criterion: Numeric strings
+  hidden_tests: 'trap: numeric strings'
+  description: 'Hidden tests: 9 guests fit a room whose max_guests is the string "12"; nights=3.7 is cast to 3.'
+- criterion: empty()
+  hidden_tests: 'trap: empty()'
+  description: 'Hidden tests: guests=0 counts as one guest; a cleaning fee of "0" adds no line.'
+- criterion: Division
+  hidden_tests: 'trap: division'
+  description: 'Hidden test: the report''s average nights is 17 / 6 = 2.83, not integer division.'
+- criterion: Rounding
+  hidden_tests: 'trap: rounding'
+  description: 'Hidden tests: half-cent ties round away from zero, PHP''s round(): tax 13.625 to 13.63, discount -65.625 to -65.63.'
+- criterion: Arrays
+  hidden_tests: 'trap: arrays'
+  description: 'Hidden tests: filtered bookings keep their original positions as JSON object keys (array_filter); all bookings are a list.'
+- criterion: Dates
+  hidden_tests: 'trap: dates'
+  description: 'Hidden tests: Sunday nights are weekend nights (date N >= 6); 03/09/2024 is 9 March; labels have no leading zero (D j M Y); 2024-02-30 rolls over to 1 March.'
+- criterion: Ruby tests
+  hidden_tests: 'ruby tests'
+  description: 'Hidden tests: `ruby test/run_tests.rb` passes, and fails when the legacy fixtures expect different bodies (so it really reads them).'
+critical_failure: Every hidden test weighs the same; the score is tests passed / all tests x 10.

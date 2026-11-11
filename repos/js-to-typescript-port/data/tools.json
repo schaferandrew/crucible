@@ -1,0 +1,13 @@
+{
+  "nextId": 9,
+  "tools": [
+    { "id": 1, "name": "Cordless drill", "category": "power", "tags": ["drill", "cordless"], "status": "loaned", "borrower": "mina", "dueDate": "2025-03-03", "replacementCost": 89.5 },
+    { "id": 2, "name": "Orbital sander", "category": "power", "tags": ["sanding"], "status": "available", "borrower": null, "dueDate": null, "replacementCost": 64 },
+    { "id": 3, "name": "Claw hammer", "category": "hand", "tags": ["striking"], "status": "available", "borrower": null, "dueDate": null, "replacementCost": 18.25 },
+    { "id": 4, "name": "Tile saw", "category": "power", "tags": ["cutting", "wet"], "status": "loaned", "borrower": "oskar", "dueDate": "2025-03-14", "replacementCost": 240 },
+    { "id": 5, "name": "Socket set", "category": "hand", "status": "available" },
+    { "id": 6, "name": "Garden fork", "category": "garden", "tags": ["digging"], "status": "retired", "retiredReason": "snapped handle", "replacementCost": 22 },
+    { "id": 7, "name": "Stud finder", "category": "measure", "tags": [], "status": "loaned", "borrower": "priya", "dueDate": "2025-03-01" },
+    { "id": 8, "name": "Router table", "category": "power", "tags": ["woodwork", "cutting"], "status": "available", "replacementCost": 310.99 }
+  ]
+}
