@@ -49,7 +49,7 @@ machines:
     machine_ids: []
   - id: eclipse
     label: Eclipse
-    # Its 63 runs recorded no hardware (key, cpu and memory all null), so it has none here either
-    hardware: null
+    # Its runs recorded no hardware; the maintainer confirmed it is a MacBook Pro, M5 Pro, 48 GB (2026-11-11)
+    hardware: m5-pro-48gb
     host_aliases: [Eclipse]
     machine_ids: []

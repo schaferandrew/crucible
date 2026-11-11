@@ -284,7 +284,7 @@ class Registry:
                 if how == "alias":
                     notes.append(f"recorded as model {raw}; corrected to {model_id}: {alias['reason'].strip()}")
             else:
-                model_id = "unknown/" + (slug(str(raw).lstrip("~"), keep_slash=True) or UNRECORDED)
+                model_id = "unknown/" + ((slug(str(raw).lstrip("~"), keep_slash=True) if raw else "") or UNRECORDED)
                 sources["model_from"] = "unknown"
                 notes.append(f"model {raw!r} isn't in the registry")
         entry = self.models.get(model_id)
@@ -292,12 +292,14 @@ class Registry:
         # maker
         origin = model.get("origin") or {}
         recorded_maker = _norm(model.get("maker")) or _norm(origin.get("maker"))
-        if recorded_maker:
+        # One model has one maker: a known model takes the registry's, so a run can't split it.
+        if entry:
+            maker = entry["maker"]
+            sources["maker_from"] = "recorded" if recorded_maker == maker else "registry"
+            if recorded_maker and recorded_maker != maker:
+                notes.append(f"recorded maker {recorded_maker}; the registry's maker for {model_id} is {maker}")
+        elif recorded_maker:
             maker, sources["maker_from"] = recorded_maker, "recorded"
-            if entry and entry.get("maker") != recorded_maker:
-                notes.append(f"recorded maker {recorded_maker} differs from the registry's {entry['maker']}")
-        elif entry:
-            maker, sources["maker_from"] = entry["maker"], "registry"
         else:
             maker, sources["maker_from"] = None, "unknown"
 
