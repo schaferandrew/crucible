@@ -265,10 +265,10 @@ An exact match earns full points, and the penalty grows with the distance: a gra
 
 ### Publishing results
 
-`crucible publish` adds this machine's results to the portfolio's `_data/crucible/` folder in **bundle format 3** ([docs/bundle-format.md](docs/bundle-format.md)): one file per run (`runs/<yyyy-mm>/<run_uuid>.json`), one per score record and status record, and one catalog per suite that holds every label, tier and weight the page shows. Full outputs go to `crucible-data/outputs/`, outside `_data`. Publishing only adds files, keyed by each run's permanent `run_uuid`, so publishing twice changes nothing and two machines never touch the same file; everything is validated before it's written. Runs through a harness their mode doesn't use (chat: direct; agentic: opencode, pi) are skipped and listed, and stay in `runs/`.
+`crucible publish` adds this machine's results to the dashboard's `bundle/` folder in **bundle format 3** ([docs/bundle-format.md](docs/bundle-format.md)): one file per run (`runs/<yyyy-mm>/<run_uuid>.json`), one per score record and status record, and one catalog per suite that holds every label, tier and weight the page shows. Full outputs go to `bundle/outputs/`. Publishing only adds files, keyed by each run's permanent `run_uuid`, so publishing twice changes nothing and two machines never touch the same file; everything is validated before it's written. Runs through a harness their mode doesn't use (chat: direct; agentic: opencode, pi) are skipped and listed, and stay in `runs/`.
 
 ```bash
-crucible publish                         # this machine's runs -> ../schaferandrew.github.io/_data/crucible/
+crucible publish                         # this machine's runs -> ../crucible-dashboard/bundle/
 crucible publish --dry-run               # what would be added
 crucible publish --to <folder>           # somewhere else (or set CRUCIBLE_PUBLISH_DIR)
 crucible publish --check <folder>        # validate a folder and recompute every run's content hash
@@ -281,8 +281,8 @@ A model recorded under a bad name (no maker, a packager prefix, a quant tag in i
 `corrections.yaml`, never in the published run: `crucible publish` sends that file along, and
 `crucible publish --check` lists every published name that still needs an entry.
 
-The live [Crucible dashboard](https://www.schaferandrew.com/crucible-dashboard/) builds from the
-portfolio's format-3 bundle. See the [publish-results skill](.claude/skills/publish-results/SKILL.md)
+The live [Crucible dashboard](https://www.schaferandrew.com/crucible-dashboard/) builds from its
+format-3 bundle. See the [publish-results skill](.claude/skills/publish-results/SKILL.md)
 for preview and deployment and the [sync-runs-usb skill](.claude/skills/sync-runs-usb/SKILL.md) for
 transferring runs to a removable drive.
 

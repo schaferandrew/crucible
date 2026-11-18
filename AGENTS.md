@@ -77,8 +77,7 @@ Docs-only PRs (README, AGENTS.md, `docs/`) need neither.
 
 ## Publishing results
 
-`crucible publish` adds this machine's runs, score and status records to the portfolio's
-`_data/crucible/` folder in bundle format 3 ([docs/bundle-format.md](docs/bundle-format.md)): it only
-ever adds files, keyed by `run_uuid`, and validates everything it writes. The live dashboard generates its site data from that bundle.
-After merging results in `schaferandrew.github.io`, run the Deploy workflow in
-`schaferandrew/crucible-dashboard`. See the `publish-results` skill for preview and deployment.
+`crucible publish` adds this machine's runs, score and status records to the dashboard's
+`bundle/` folder in bundle format 3 ([docs/bundle-format.md](docs/bundle-format.md)). The Deploy
+workflow publishes the dashboard when a results PR merges into `crucible-dashboard/main`. See the
+`publish-results` skill for preview and deployment.

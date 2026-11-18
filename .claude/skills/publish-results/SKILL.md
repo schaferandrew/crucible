@@ -1,162 +1,64 @@
 ---
 name: publish-results
-description: Publish Crucible results to the portfolio's Crucible page, from this machine or from a results file made on another one. Use when asked to publish, upload, add or update Crucible results or scores on the site.
+description: Publish Crucible results to crucible-dashboard from this machine or a removable drive's format-3 bundle. Use when asked to publish, upload, or update Crucible results on the site.
 ---
 
 # Publish Crucible results
 
-The live `crucible-dashboard` generates its data from the format-3 bundle in
-`schaferandrew.github.io/_data/crucible/` and the full outputs in
-`schaferandrew.github.io/crucible-data/outputs/`. The portfolio repository holds the published
-records. The dashboard repository builds and deploys the site.
+`schaferandrew/crucible-dashboard` owns the format-3 results bundle in `bundle/`, including
+`bundle/outputs/`. The dashboard generates its site data from that bundle on every deploy.
 
-## 0. Which direction? Read this first
+- **Machine → USB.** Use the [sync-runs-usb skill](../sync-runs-usb/SKILL.md).
+- **Machine → dashboard.** Publish local runs with `crucible publish --to "$BUNDLE"`.
+- **USB → dashboard.** Validate and import the existing bundle as described below.
 
-There are two directions, and the verb is the same, so pick before running anything:
+## Set up a results worktree
 
-| The task | The direction | The command |
-|---|---|---|
-| This machine's runs → the drive | **out** | `crucible publish --to "$USB"` (see the `sync-runs-usb` skill) |
-| A drive's bundle → the portfolio | **in** | copy records add-only, then commit (section 2c below) |
-| This machine's runs → the portfolio | **out** (portfolio) | `crucible publish --to ../schaferandrew.github.io/_data/crucible` |
-
-If the user says "publish the results" without naming a destination, ask which of the three they
-mean rather than guessing: `--to <site>/_data/crucible` and importing a drive bundle are easy to
-confuse, and running the wrong one changes the wrong repo. Importing is **not** a `publish --to`
-against the site.
-
-## 0b. Destination branch: `master`, by PR
-
-Publishing changes `schaferandrew.github.io`, whose default branch is **`master`** (not `main`) and
-which takes changes as pull requests. Before committing anything:
-
-1. `git -C ../schaferandrew.github.io fetch origin` and check what the default branch is:
-   `git -C ../schaferandrew.github.io symbolic-ref refs/remotes/origin/HEAD`.
-2. Never commit results onto whatever branch the user happens to have checked out — it is usually a
-   feature branch, and may be far behind. Put them on a fresh branch off the current default, in a
-   **worktree** (`git worktree add -b <branch> ../schaferandrew.github.io-publish origin/master`), so the user's
-   checkout is untouched. AGENTS.md forbids switching branches while a `crucible run` is active.
-3. Commit and push the branch, then open the PR against the default branch:
-   `gh pr create --base master --head <branch>`. A direct push to `master` may be rejected.
-4. Remove the worktree once the PR is merged: `git worktree remove ../schaferandrew.github.io-publish`.
-
-## 1. Make sure scores are current (for runs in this checkout)
-
-For an existing format-3 bundle from USB or another machine, don't rescore local runs just to import
-it. Validate the source and destination bundles with `crucible publish --check` instead; keep imported
-records and scores unchanged.
+Fetch `origin/main` in the dashboard checkout. Create a feature branch and a worktree so the
+current checkout stays available. Run the commands using absolute paths when switching repositories.
 
 ```bash
-uv run crucible versions          # the version lock is clean
-uv run crucible suite verify      # the current suite still holds
-uv run crucible checks            # rerun checks; scores land in score records (add --no-hidden to skip graders)
+DASHBOARD=/absolute/path/to/crucible-dashboard
+PREVIEW=/absolute/path/to/crucible-dashboard-publish
+git -C "$DASHBOARD" fetch origin main
+git -C "$DASHBOARD" worktree add -b publish-results "$PREVIEW" origin/main
+BUNDLE="$PREVIEW/bundle"
 ```
 
-If `crucible` says runs are from before 3.0.0, they need `crucible migrate`. Migrating real runs moves
-folders: show the user `crucible migrate --dry-run` first and run it only when they say so.
+## Publish this machine's runs
 
-## 2a. Format 2 (only for a target that still reads format 2)
+From the Crucible checkout, verify versions and suites and refresh scores with
+`uv run crucible versions`, `uv run crucible suite verify`, and `uv run crucible checks`.
 
 ```bash
-uv run crucible export --format 2 --out ../schaferandrew.github.io/_data/crucible/ironwood.json
+uv run crucible publish --to "$BUNDLE" --dry-run
+uv run crucible publish --to "$BUNDLE"
+uv run crucible publish --check "$BUNDLE"
 ```
 
-The file name is the machine; never overwrite another machine's file with this machine's runs.
+For pre-3.0 runs, show `uv run crucible migrate --dry-run` before migrating local data.
 
-## 2b. Format 3 (the live dashboard bundle)
+## Import a USB bundle
 
-```bash
-SITE=../schaferandrew.github.io-publish
-uv run crucible publish --to "$SITE/_data/crucible" --dry-run
-uv run crucible publish --to "$SITE/_data/crucible"
-uv run crucible publish --check "$SITE/_data/crucible"
-```
+Set `USB` to the resolved `crucible-results/` directory. Inspect AppleDouble sidecars (`._*`)
+and zero-byte files if validation fails. Clean copy artifacts and revalidate before importing.
 
-`--check` must exit 0 before anything is committed. Its warnings aren't failures: list them for the
-user. A model name it flags gets an entry in `corrections.yaml` (then publish again, which sends the
-file along as `corrections.json`); never edit a published run.
+1. From Crucible, run `uv run crucible publish --check "$USB"` and
+   `uv run crucible publish --check "$BUNDLE"`. Stop on a nonzero exit and report validation errors.
+   Report any warnings. A model-name correction belongs in Crucible's `corrections.yaml`.
+2. Compare paths in `catalog/`, `runs/`, `scores/`, `status/` and `outputs/`. Skip identical files,
+   copy missing files, and preserve existing dashboard files when bytes differ. Report conflict
+   counts. For legacy transfers with outputs at the root, copy an output into `outputs/` only if
+   an imported run references that exact file. If a correction needs updating, use the current
+   Crucible registry as the source.
+3. Validate the destination again, then repeat the comparison to verify that no additions remain.
 
-- Publishing twice adds nothing. A rescore under a new rubric version adds a score record; a run marked with
-  `crucible status <run> --invalid REASON` (or `--withdrawn`) adds a status record. Nothing else changes.
-- Runs through a harness their mode doesn't use are skipped and listed (they stay in `runs/`), so runs
-  removed from the site for that reason don't come back. Never delete them from `runs/` to keep them off.
-- Full outputs go to `crucible-data/outputs/`, outside `_data`, so Jekyll never parses them.
-- From another machine, run `crucible publish --to <folder>` there and transfer the resulting
-  format-3 bundle, or convert its format-2 file with
-  `crucible migrate --bundle <file> --to ../schaferandrew.github.io/_data/crucible`.
+## Preview and deploy
 
-## 2c. Importing an existing format-3 bundle (for example, from USB)
+In the dashboard worktree, run `npm ci`, `npm run data:gen`, `npm run check`, `npm test`, and
+`npm run build`. Verify the imported runs in `static/data/runs/` or use `npm run dev` to view them at
+`http://localhost:5173/crucible-dashboard/`.
 
-The bundle may already contain records also present on the site. A matching UUID is not enough to
-assume two files are identical: a later publish can enrich an older record with hashes, metrics or
-an output reference. Never overwrite a destination file during import.
-
-### First clean the bundle, then judge it
-
-The bundle is often a Finder/`cp` copy, so it carries AppleDouble sidecars (`._*`) and possibly a
-zero-byte record from a cut-short copy. `--check` parses both as records and fails, which makes a
-perfectly good bundle look broken. Clean first:
-
-```bash
-USB=/Volumes/<drive>/crucible-results
-find "$USB" -name '._*' -delete
-find "$USB" -type f -size 0 -print   # a zero-byte record is a failed write; delete it
-```
-
-1. Check the source bundle and the site's `_data/crucible/` with `crucible publish --check`. The exit
-   code is the verdict: 0 is valid. Report its warnings (unverifiable pre-hash runs, model names that
-   need a `corrections.yaml` entry) but don't treat them as failures. A non-zero exit means stop: show
-   the errors and import nothing from that bundle until they're understood. After the cleanup above,
-   re-run `--check` — most sidecar failures vanish, and whatever is left is the real verdict.
-2. For `catalog/`, `runs/`, `scores/` and `status/`, compare relative paths. Copy a source file only
-   when the destination path is absent. If it exists and bytes differ, preserve the site's copy and
-   report the conflict; if identical, skip it. Catalogs are included in this rule too.
-
-   **Expect conflicts; they are not damage.** A drive often holds an older copy of a record the site
-   has since enriched (extra metrics like `output_tokens_per_s`, a recomputed `provenance.content_hash`).
-   Hundreds at once is normal. Keeping the destination is the whole point: importing would downgrade
-   it. Report them as counts, and only show diffs if the user asks — do not "fix" them.
-3. Copy bundle `outputs/<run_uuid>.txt` files to the site's `crucible-data/outputs/`, also
-   add-only. If a transfer bundle has output text at its root instead, recover it only when an
-   imported run's `output_ref` names that exact file; don't import unrelated root files.
-4. Run `crucible publish --check` on the destination. Repeat the same add-only comparison and confirm
-   it finds zero additions. Apply any corrections below before previewing the dashboard.
-
-5. If the bundle's `corrections.json` differs from the site's, copy the newer one over (the source of
-   truth is the Crucible repo's `corrections.yaml`, which `crucible publish` writes out). Importing
-   records that a correction names without importing the correction leaves those runs mislabeled.
-
-## 3. Preview and deploy
-
-1. From the `crucible-dashboard` checkout, generate data from the portfolio publishing worktree
-   before merging. Use a dashboard checkout with support for `CRUCIBLE_SITE_REPO`.
-
-   ```bash
-   CRUCIBLE_SITE_REPO=/absolute/path/to/portfolio-publish-worktree npm run data:gen
-   npm run check
-   npm test
-   npm run build
-   npm run dev
-   ```
-
-   Open `http://localhost:5173/crucible-dashboard/` and verify that the imported runs and scores
-   appear. For a specific run, check `static/data/runs/` or its dashboard run page.
-
-2. When the user asks to publish, ship the data through the portfolio PR in section 0b. Once that PR
-   has merged, dispatch the dashboard workflow and watch the resulting deployment.
-
-   ```bash
-   gh workflow run deploy.yml -R schaferandrew/crucible-dashboard --ref main
-   ```
-
-   Verify the imported results at `https://www.schaferandrew.com/crucible-dashboard/` after the
-   deployment succeeds.
-
-## Don'ts
-
-- Don't hand-edit or rewrite published JSON: `publish --check` catches it (content hashes). Fix the
-  run, rescore or add a status record, and publish again. For imports, copy validated source records
-  add-only; do not normalize or patch their contents.
-- Don't publish runs from `runs-archive/`.
-- Don't start or load a local model to fill gaps when the user's models are served remotely (LM Studio over
-  LM Link).
+When asked to publish, commit the bundle changes on the feature branch and open a dashboard PR
+against `main`. The Deploy workflow starts after merge. Verify the results at
+`https://www.schaferandrew.com/crucible-dashboard/` once it succeeds.
