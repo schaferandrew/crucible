@@ -82,3 +82,8 @@ Docs-only PRs (README, AGENTS.md, `docs/`) need neither.
 ever adds files, keyed by `run_uuid`, and validates everything it writes. Until the dashboard
 switches to format 3, the live page reads the single format-2 file from `crucible export --format 2`.
 Deploying is a commit and push in `schaferandrew.github.io`; see the `publish-results` skill.
+`crucible publish --to` also syncs runs to a removable drive's `crucible-results` bundle; see the
+`sync-runs-usb` skill. On macOS, the publish itself can leave AppleDouble `._*` sidecars in the
+bundle, which make `publish --check` fail with a wall of "not valid JSON" errors. Delete them after
+every publish with `find "$USB" -name '._*' -delete` and re-check before treating that as real
+trouble.
