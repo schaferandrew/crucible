@@ -5,10 +5,10 @@ description: Publish Crucible results to the portfolio's Crucible page, from thi
 
 # Publish Crucible results
 
-The portfolio (`schaferandrew.github.io`, page `/crucible/`) reads its data from `_data/crucible/`. Crucible
-3.0.0 publishes **bundle format 3** there ([docs/bundle-format.md](../../../docs/bundle-format.md)): one file
-per run, per score record and per status record, keyed by each run's permanent `run_uuid`, plus one catalog
-per suite. Publishing only ever adds files; it never edits or deletes one.
+The live `crucible-dashboard` generates its data from the format-3 bundle in
+`schaferandrew.github.io/_data/crucible/` and the full outputs in
+`schaferandrew.github.io/crucible-data/outputs/`. The portfolio repository holds the published
+records. The dashboard repository builds and deploys the site.
 
 ## 0. Which direction? Read this first
 
@@ -25,10 +25,6 @@ mean rather than guessing: `--to <site>/_data/crucible` and importing a drive bu
 confuse, and running the wrong one changes the wrong repo. Importing is **not** a `publish --to`
 against the site.
 
-**The live portfolio currently reads format 3** (verified by its `AGENTS.md` and
-`_data/crucible/catalog/`). If targeting another site or a different checkout, inspect its dashboard
-reader before choosing a format; don't infer the format from the Crucible repo alone.
-
 ## 0b. Destination branch: `master`, by PR
 
 Publishing changes `schaferandrew.github.io`, whose default branch is **`master`** (not `main`) and
@@ -38,14 +34,11 @@ which takes changes as pull requests. Before committing anything:
    `git -C ../schaferandrew.github.io symbolic-ref refs/remotes/origin/HEAD`.
 2. Never commit results onto whatever branch the user happens to have checked out — it is usually a
    feature branch, and may be far behind. Put them on a fresh branch off the current default, in a
-   **worktree** (`git worktree add ../schaferandrew.github.io-publish origin/master`), so the user's
+   **worktree** (`git worktree add -b <branch> ../schaferandrew.github.io-publish origin/master`), so the user's
    checkout is untouched. AGENTS.md forbids switching branches while a `crucible run` is active.
 3. Commit and push the branch, then open the PR against the default branch:
    `gh pr create --base master --head <branch>`. A direct push to `master` may be rejected.
 4. Remove the worktree once the PR is merged: `git worktree remove ../schaferandrew.github.io-publish`.
-
-`_site/` is tracked in that repo despite being gitignored, so a build dirties unrelated files with
-Jekyll-version churn. Leave those out of the results commit (`git checkout -- _site`).
 
 ## 1. Make sure scores are current (for runs in this checkout)
 
@@ -70,12 +63,13 @@ uv run crucible export --format 2 --out ../schaferandrew.github.io/_data/crucibl
 
 The file name is the machine; never overwrite another machine's file with this machine's runs.
 
-## 2b. Format 3 (the live portfolio)
+## 2b. Format 3 (the live dashboard bundle)
 
 ```bash
-uv run crucible publish --dry-run                 # what would be added
-uv run crucible publish                           # adds to ../schaferandrew.github.io/_data/crucible/
-uv run crucible publish --check ../schaferandrew.github.io/_data/crucible   # schema, names, content hashes
+SITE=../schaferandrew.github.io-publish
+uv run crucible publish --to "$SITE/_data/crucible" --dry-run
+uv run crucible publish --to "$SITE/_data/crucible"
+uv run crucible publish --check "$SITE/_data/crucible"
 ```
 
 `--check` must exit 0 before anything is committed. Its warnings aren't failures: list them for the
@@ -126,31 +120,37 @@ find "$USB" -type f -size 0 -print   # a zero-byte record is a failed write; del
    add-only. If a transfer bundle has output text at its root instead, recover it only when an
    imported run's `output_ref` names that exact file; don't import unrelated root files.
 4. Run `crucible publish --check` on the destination. Repeat the same add-only comparison and confirm
-   it finds zero additions; this verifies the import is idempotent. Build Jekyll and check that the
-   new runs/scores appear in generated dashboard data. The build needs the repo's Ruby, not the
-   system one:
-
-   ```bash
-   cd ../schaferandrew.github.io
-   export PATH="$HOME/.rbenv/shims:$PATH" && eval "$(rbenv init - bash)"
-   bundle exec jekyll build    # system ruby fails: wrong bundler/jekyll version
-   ```
-
-   The page joins runs client-side, so grep `_site/crucible/data.json` for a new model name — not
-   `_site/crucible/index.html`, which only holds the shell. A per-run entry also lives in
-   `_data/crucible/runs/`; the `runs` key inside `data.json` holds only the pre-hash handful.
+   it finds zero additions. Apply any corrections below before previewing the dashboard.
 
 5. If the bundle's `corrections.json` differs from the site's, copy the newer one over (the source of
    truth is the Crucible repo's `corrections.yaml`, which `crucible publish` writes out). Importing
    records that a correction names without importing the correction leaves those runs mislabeled.
 
-## 3. Check and ship
+## 3. Preview and deploy
 
-1. Preview: in the portfolio, `bundle exec jekyll serve` and open `http://localhost:4000/crucible/`; switch
-   between Chat and Agentic and confirm the new models or runs show up.
-2. Commit and push the portfolio **only when the user asks to publish/deploy** (branch and PR rules in
-   section 0b). Keep the page's existing navbar and indexing settings; don't change its promotion or
-   visibility as part of a results publish.
+1. From the `crucible-dashboard` checkout, generate data from the portfolio publishing worktree
+   before merging. Use a dashboard checkout with support for `CRUCIBLE_SITE_REPO`.
+
+   ```bash
+   CRUCIBLE_SITE_REPO=/absolute/path/to/portfolio-publish-worktree npm run data:gen
+   npm run check
+   npm test
+   npm run build
+   npm run dev
+   ```
+
+   Open `http://localhost:5173/crucible-dashboard/` and verify that the imported runs and scores
+   appear. For a specific run, check `static/data/runs/` or its dashboard run page.
+
+2. When the user asks to publish, ship the data through the portfolio PR in section 0b. Once that PR
+   has merged, dispatch the dashboard workflow and watch the resulting deployment.
+
+   ```bash
+   gh workflow run deploy.yml -R schaferandrew/crucible-dashboard --ref main
+   ```
+
+   Verify the imported results at `https://www.schaferandrew.com/crucible-dashboard/` after the
+   deployment succeeds.
 
 ## Don'ts
 

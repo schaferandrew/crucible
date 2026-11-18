@@ -272,7 +272,7 @@ crucible publish                         # this machine's runs -> ../schaferandr
 crucible publish --dry-run               # what would be added
 crucible publish --to <folder>           # somewhere else (or set CRUCIBLE_PUBLISH_DIR)
 crucible publish --check <folder>        # validate a folder and recompute every run's content hash
-crucible export --format 2 --out <file>  # the single-file bundle the page reads until it switches to format 3
+crucible export --format 2 --out <file>  # legacy single-file export
 crucible migrate --bundle <file> --to <folder>   # convert another machine's format-2 bundle into records
 crucible coverage [--suite v4] [--json]  # which suite tasks each model has finished, and the command for the rest
 ```
@@ -281,7 +281,10 @@ A model recorded under a bad name (no maker, a packager prefix, a quant tag in i
 `corrections.yaml`, never in the published run: `crucible publish` sends that file along, and
 `crucible publish --check` lists every published name that still needs an entry.
 
-Until the dashboard switches to format 3, the live page reads the format-2 file (`_data/crucible/ironwood.json`) written by `crucible export --format 2`, which keeps the pre-3.0.0 IDs. Claude Code users can say "publish my Crucible results": the repo ships a skill for it (`.claude/skills/publish-results/`).
+The live [Crucible dashboard](https://www.schaferandrew.com/crucible-dashboard/) builds from the
+portfolio's format-3 bundle. See the [publish-results skill](.claude/skills/publish-results/SKILL.md)
+for preview and deployment and the [sync-runs-usb skill](.claude/skills/sync-runs-usb/SKILL.md) for
+transferring runs to a removable drive.
 
 Runs that shouldn't be published live in `runs-archive/`: bad-day runs (incomplete, invalid, harness errors) and models with no scored run. `crucible publish` and `crucible export` read `runs/` only; move a folder back to restore it.
 

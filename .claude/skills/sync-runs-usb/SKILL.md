@@ -15,6 +15,8 @@ publish only adds). **No volume name is hardcoded** — find the destination fir
 the whole bundle ("not valid JSON"). If you must copy by hand, prefix the command with
 `COPYFILE_DISABLE=1`. A bundle can accumulate thousands of sidecars this way — clean them in step 2.
 
+For the second leg from USB to the live dashboard, use the [publish-results skill](../publish-results/SKILL.md).
+
 ## Step 1: resolve the destination
 
 In order of preference:
@@ -22,14 +24,15 @@ In order of preference:
 1. **Explicit path**: if the user's request names a path (e.g. "sync to `/Volumes/Samsung USB`"),
    use it as-is. Validate `${path}/crucible-results` exists (or the path itself has
    `runs/scores/outputs/catalog` subfolders).
-2. **Search `/Volumes`**: candidates are volumes where `[ -d "$V/$c/crucible-results" ]` — that is,
+2. **Search `/Volumes`**: candidates are volumes where `[ -d "$V/crucible-results" ]` — that is,
    a `crucible-results/` folder at the volume root containing `runs/` and `scores/` subfolders.
    Mounted macOS resource-fork entries (names starting with `._`) are not candidates.
 3. **Ask**: if multiple candidates match, or one match is ambiguous, list them and ask the user
    which to use (see sample below). If none match, ask the user to plug in the drive or give a path
    — do not create the folder on an arbitrary volume unasked.
 
-Once resolved, set `USB="$VOLUME/crucible-results"`.
+Set `USB` to the resolved bundle folder itself. For a volume root, use
+`USB="$VOLUME/crucible-results"`.
 
 Sample question when multiple candidates:
 
