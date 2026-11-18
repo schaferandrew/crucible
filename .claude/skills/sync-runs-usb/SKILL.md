@@ -43,7 +43,9 @@ that drive; without user confirmation the directory may be live, so always resol
 ## Step 2: publish (and verify)
 
 First drop any macOS copy junk the drive has picked up. It is safe: sidecars are resource-fork
-metadata, never records, and no real record is zero bytes.
+metadata, never records, and no real record is zero bytes. `crucible publish --to` itself can also
+create sidecars when the bundle lives on a macOS-mounted removable volume, so clean them again
+after publishing, not just before.
 
 ```bash
 find "$USB" -name '._*' -delete              # AppleDouble sidecars from Finder/cp
@@ -72,6 +74,12 @@ Then publish (the usual steps, with the resolved path):
    uv run crucible publish --to "$USB"
    ```
 
+   Then delete sidecars the publish itself may have created on the macOS-mounted volume:
+
+   ```bash
+   find "$USB" -name '._*' -delete
+   ```
+
 3. Verify (always):
 
    ```bash
@@ -88,11 +96,13 @@ Then publish (the usual steps, with the resolved path):
    A non-zero exit is real trouble: a hash that doesn't match (a record or output edited after
    publishing), a schema error, or a missing output. Stop, show the user the lines, and don't copy
    that bundle onward until it's understood. The one exception is a wall of `._*` "not valid JSON"
-   errors with little else: that is copy junk, not a broken bundle — clean it (step 2) and check
-   again before deciding anything is wrong.
+   errors with little else: that is copy junk, often created by the publish itself — delete the
+   sidecars (step 2) and check again before deciding anything is wrong.
 
 ## Troubleshooting
 
+- `--check` right after publish fails with a wall of `._*` "not valid JSON" errors: the publish
+  created macOS sidecars on the volume. Delete them and check again; this is not bundle corruption.
 - A dry run right after publish shows new additions: a run is active and wrote runs since. Go again,
   or report and finish.
 - If `crucible` says runs are from before 3.0.0 locally, they need `crucible migrate` first — show
