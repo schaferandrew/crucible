@@ -77,11 +77,11 @@ Docs-only PRs (README, AGENTS.md, `docs/`) need neither.
 
 ## Publishing results
 
-`crucible publish` adds this machine's runs, score and status records to the portfolio's
-`_data/crucible/` folder in bundle format 3 ([docs/bundle-format.md](docs/bundle-format.md)): it only
-ever adds files, keyed by `run_uuid`, and validates everything it writes. Until the dashboard
-switches to format 3, the live page reads the single format-2 file from `crucible export --format 2`.
-Deploying is a commit and push in `schaferandrew.github.io`; see the `publish-results` skill.
+`crucible publish` adds this machine's runs, score and status records to the dashboard's
+`bundle/` folder in bundle format 3 ([docs/bundle-format.md](docs/bundle-format.md)). The Deploy
+workflow publishes the dashboard when a results PR merges into `crucible-dashboard/main`. See the
+`publish-results` skill for preview and deployment.
+
 `crucible publish --to` also syncs runs to a removable drive's `crucible-results` bundle; see the
 `sync-runs-usb` skill. On macOS, the publish itself can leave AppleDouble `._*` sidecars in the
 bundle, which make `publish --check` fail with a wall of "not valid JSON" errors. Delete them after

@@ -7,22 +7,23 @@ adds files. Schemas: `crucible/schemas/{catalog,run,score,status,corrections}.sc
 ## Layout
 
 ```
-_data/crucible/
+bundle/
   catalog/v1.json  v2.json  v2.1.json            one per suite
   runs/2026-10/<run_uuid>.json                   one per run, never edited
   scores/2026-10/<run_uuid>.r<n>.<method>.json   one per run × rubric version × method
   status/<run_uuid>.json                         status records, only appended to
   corrections.json                               reviewed fixes for badly recorded model fields
-crucible-data/outputs/<run_uuid>.txt             full model output, outside _data
+  outputs/<run_uuid>.txt                        full model output
 ```
 
-Month folders come from the run's `started_at` and keep directories browsable on GitHub. Outputs
-live outside `_data` so Jekyll never parses them; the page fetches one when asked.
+Month folders come from the run's `started_at` and keep directories browsable on GitHub. The dashboard
+loads full outputs on demand. Legacy Jekyll bundles under `_data` still resolve their separate outputs
+folder when checked explicitly.
 
 ## Publishing
 
 ```
-crucible publish [--to <site>/_data/crucible] [--outputs DIR] [--runs runs] [--dry-run]
+crucible publish [--to <dashboard>/bundle] [--outputs DIR] [--runs runs] [--dry-run]
 ```
 
 1. Reads the run UUIDs and score records already in the folder (the file names).
@@ -42,7 +43,7 @@ add a status record (`crucible status <run> --withdrawn REASON`) and publish.
 compact) of the run record without `provenance`, a zero byte, and the output text.
 `crucible publish --check DIR [--outputs DIR]` validates every file against its schema, checks the
 file names, and recomputes every content hash, so an edited copy is detectable. Run it before
-committing the portfolio. A run published before every record was hashed (a format-2 run converted
+committing results to the dashboard. A run published before every record was hashed (a format-2 run converted
 by an older `crucible migrate --bundle`, or an early 3.x publish) and with no output has an empty
 hash; runs are never edited, so the check lists those as unverifiable warnings instead of failing.
 A hash that doesn't match, or an output with no hash, is always an error. The exit code is the

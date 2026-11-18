@@ -12,6 +12,11 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## 3.10.0 (2026-11-17)
+
+### Changed
+- `crucible publish` defaults to the sibling `crucible-dashboard/bundle/` checkout. Explicit destinations and `CRUCIBLE_PUBLISH_DIR` still work.
+
 ## 3.9.0 (2026-11-10)
 
 ### Added

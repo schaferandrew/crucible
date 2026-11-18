@@ -40,7 +40,7 @@ CORRECTIONS_FILE = "corrections.json"
 FORMAT_REVISION = 2
 # Where publish writes when --to isn't given: the portfolio checkout next to this one
 DEFAULT_DIRS = [Path(os.environ["CRUCIBLE_PUBLISH_DIR"])] if os.environ.get("CRUCIBLE_PUBLISH_DIR") else []
-DEFAULT_DIRS.append(Path(__file__).resolve().parents[2] / "schaferandrew.github.io" / "_data" / "crucible")
+DEFAULT_DIRS.append(Path(__file__).resolve().parents[2] / "crucible-dashboard" / "bundle")
 CHANGELOG_URL = "https://github.com/schaferandrew/crucible/blob/main/SUITE_CHANGELOG.md"
 
 TYPES = {"object": dict, "array": list, "string": str, "integer": int, "number": (int, float),
@@ -400,15 +400,15 @@ def unnormalized(base: str) -> list[str]:
 
 
 def default_outputs(to: Path) -> Path:
-    """Outputs live outside _data, so Jekyll never parses them: <site>/crucible-data/outputs."""
+    """Use bundle/outputs, with a compatibility path for legacy Jekyll bundles."""
     return to.parent.parent / "crucible-data" / "outputs" if to.parent.name == "_data" else to / "outputs"
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="crucible publish", description=__doc__.splitlines()[0])
-    parser.add_argument("--to", type=Path, help="The page's data folder (default: CRUCIBLE_PUBLISH_DIR, else "
-                                                "../schaferandrew.github.io/_data/crucible)")
-    parser.add_argument("--outputs", type=Path, help="Where full outputs go (default: <site>/crucible-data/outputs)")
+    parser.add_argument("--to", type=Path, help="The results bundle (default: CRUCIBLE_PUBLISH_DIR, else "
+                                                "../crucible-dashboard/bundle)")
+    parser.add_argument("--outputs", type=Path, help="Where full outputs go (default: outputs/ inside the bundle, or the legacy Jekyll outputs directory)")
     parser.add_argument("--runs", type=Path, default=Path("runs"))
     parser.add_argument("--dry-run", action="store_true", help="Say what would be added; write nothing")
     parser.add_argument("--check", type=Path, metavar="DIR", help="Only validate a published folder and its content hashes")
@@ -424,7 +424,7 @@ def main() -> None:
 
     folder = args.to or next((d for d in DEFAULT_DIRS if d.parent.exists()), None)
     if folder is None:
-        sys.exit("No data folder found; pass --to <portfolio>/_data/crucible (or set CRUCIBLE_PUBLISH_DIR).")
+        sys.exit("No data folder found; pass --to <dashboard>/bundle (or set CRUCIBLE_PUBLISH_DIR).")
     pub = publish(args.runs, folder, args.outputs or default_outputs(folder), args.dry_run)
     c = pub.counts
     verb = "Would add" if args.dry_run else "Added"
