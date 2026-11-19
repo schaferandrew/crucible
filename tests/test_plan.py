@@ -8,6 +8,17 @@ MODEL = "lmstudio/qwen/qwen3.5-9b"
 TASK = "fire-truck-color"
 
 
+@pytest.mark.parametrize("vision", [True, False, None])
+def test_image_tasks_are_skipped_only_when_the_provider_says_no(monkeypatch, vision):
+    image = "sports-fan-from-photo"
+    monkeypatch.setattr(environment, "_get", lambda url: {"models": [
+        {"key": MODEL.split("/", 1)[1], "capabilities": {"vision": vision}},
+    ]})
+    result = plan.build(MODEL, [TASK, image])
+    assert result.skipped_images == ([image] if vision is False else [])
+    assert [step.task_id for step in result.steps] == ([TASK] if vision is False else [TASK, image])
+
+
 def _prompt() -> dict:
     return workspace.load_task(TASK)
 

@@ -12,6 +12,12 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## 3.11.0 (2026-11-18)
+
+### Added
+- Skip image tasks when the selected provider reports that the model cannot accept images.
+- `crucible suite cut --tiebreak` pins an optional image task for leaderboard ties.
+
 ## 3.10.0 (2026-11-17)
 
 ### Changed

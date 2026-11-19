@@ -5,7 +5,7 @@ import shutil
 import pytest
 import yaml
 
-from crucible import suites, versioning, workspace
+from crucible import bundle, suites, versioning, workspace
 
 
 def test_repo_suite_holds():
@@ -102,6 +102,18 @@ def test_cut_refuses_without_a_changelog_entry_or_with_a_dirty_lock(sandbox):
     with pytest.raises(ValueError, match="not provisional"):
         _edit(sandbox, "recipe-and-discount", prompt=original)
         suites.cut(nxt, promote=["fire-truck-color"], check_graders=False)
+
+
+def test_cut_pins_image_tiebreak_outside_scored_tasks(sandbox):
+    _, nxt, _ = _names()
+    task = "sports-fan-from-photo"
+    suites.cut(nxt, check_graders=False, tiebreak=task)
+    suite = suites.load(nxt)
+    assert task not in suites.pins(suite)
+    assert suite["tiebreak"]["rubric_hash"] == versioning.read_lock()[task]["rubric_hash"]
+    published = bundle.catalog(nxt)
+    assert published["scoring_policy"]["tiebreak_task"] == task
+    assert next(entry for entry in published["tasks"] if entry["id"] == task)["status"] == "provisional"
 
 
 def test_verify_catches_unbumped_changes_and_status_edits(sandbox):

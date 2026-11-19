@@ -234,8 +234,8 @@
     "version": 1,
     "content_hash": "6a15e01955042cb5",
     "prompt_hash": "4ddaa62b68ab4219",
-    "rubric_version": 1,
-    "rubric_hash": "045cbc7ea0a00183"
+    "rubric_version": 2,
+    "rubric_hash": "3d4574ec849d78cd"
   },
   "morning-brief-priorities": {
     "version": 3,

@@ -159,6 +159,7 @@ def catalog(suite_name: str, suites_dir: Path | None = None) -> dict:
     suite = suites.load(suite_name, suites_dir)
     all_names = suites.names(suites_dir)
     pinned = suites.pins(suite)
+    tie = suite.get("tiebreak") or {}
     first_pinned = {}
     for name in all_names:
         for task_id in suites.pins(suites.load(name, suites_dir)):
@@ -169,12 +170,13 @@ def catalog(suite_name: str, suites_dir: Path | None = None) -> dict:
     for task_id in workspace.all_task_ids():
         p = workspace.load_task(task_id)
         pin = pinned.get(task_id)
+        task_version = pin or (tie if tie.get("id") == task_id else p)
         tasks.append({
             "id": task_id, "name": p.get("name"), "aliases": list(p.get("aliases") or []),
             "mode": mode_for(p), "area": p.get("area"),
             "category": (pin or p).get("category"), "tier": (pin or p).get("tier"),
             "status": "active" if pin else ("retired" if p.get("status") == "retired" else "provisional"),
-            "version": (pin or p).get("version"), "rubric_version": (pin or p).get("rubric_version"),
+            "version": task_version.get("version"), "rubric_version": task_version.get("rubric_version"),
             "weight": pin.get("weight") if pin else None,
             "scoring": _scoring(p),
             "criteria": [{"id": i["criterion"], "label": i["criterion"], "max_score": i.get("max_score")}
@@ -191,7 +193,8 @@ def catalog(suite_name: str, suites_dir: Path | None = None) -> dict:
                   "status": "current" if newest else "past",
                   "changelog_url": f"{CHANGELOG_URL}#suite-{suite_name.replace('.', '')}"},
         "crucible_version": provenance.crucible_version(),
-        "scoring_policy": suite.get("scoring_policy") or {},
+        "scoring_policy": {**(suite.get("scoring_policy") or {}),
+                           **({"tiebreak_task": tie["id"]} if tie else {})},
         "modes": [{"id": m, "label": MODE_LABELS[m], "blurb": MODE_BLURBS[m], "order": i + 1} for i, m in enumerate(MODES)],
         "areas": [{"id": a, "label": label, "mode": m, "order": i + 1}
                   for m in MODES for i, (a, label) in enumerate(AREAS[m].items())],

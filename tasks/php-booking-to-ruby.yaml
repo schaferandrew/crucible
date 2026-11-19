@@ -6,7 +6,7 @@ area: coding
 tier: forge
 version: 1
 rubric_version: 1
-status: provisional
+status: active
 auto_grade: true
 repo: php-booking-to-ruby
 grader: php-booking-to-ruby

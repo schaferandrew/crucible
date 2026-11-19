@@ -97,6 +97,35 @@ def _lms_json(*args: str):
         return None
 
 
+def supports_images(model: str) -> bool | None:
+    """Image input support from provider metadata, or None when the answer is unavailable."""
+    try:
+        provider, model_id = providers.split_model(model)
+        if provider.name == "lmstudio":
+            base = providers.LMSTUDIO_BASE_URL.removesuffix("/v1")
+            models = (_get(f"{base}/api/v1/models") or {}).get("models", [])
+            matches = [m for m in models if model_id in
+                       {m.get("key"), *(m.get("variants") or []),
+                        *(i.get("id") for i in m.get("loaded_instances") or [])}]
+            loaded = [m for m in matches if m.get("loaded_instances")]
+            flags = {(m.get("capabilities") or {}).get("vision") for m in loaded or matches}
+            if flags == {True} or flags == {False}:
+                return flags.pop()
+        elif provider.name == "ollama":
+            capabilities = (_get(f"{providers.OLLAMA_BASE_URL}/api/show", {"model": model_id}) or {}).get("capabilities")
+            if isinstance(capabilities, list) and capabilities:
+                return "vision" in capabilities
+        elif provider.name == "openrouter":
+            models = (_get(f"{providers.OPENROUTER_BASE_URL}/models") or {}).get("data", [])
+            match = next((m for m in models if m.get("id") == model_id), {})
+            modalities = (match.get("architecture") or {}).get("input_modalities")
+            if isinstance(modalities, list) and modalities:
+                return "image" in modalities
+    except (TypeError, ValueError, AttributeError):
+        pass
+    return None
+
+
 def lmstudio_device(model_id: str, loaded: list | None, link: dict | None,
                     quant: str | None = None) -> dict:
     """Which device LM Studio ran the model on, from `lms ps` and `lms link status`.

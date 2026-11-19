@@ -85,12 +85,8 @@ afterAll(() => {
   server?.kill("SIGTERM");
 });
 
-const exists = (dir: string, names: string[]) =>
-  names.some((n) => existsSync(path.join(root, dir, n)));
 beforeEach(() => {
-  const app = exists("app", ["layout.tsx", "layout.jsx", "layout.js", "layout.ts"]) &&
-    exists("app", ["page.tsx", "page.jsx", "page.js", "page.ts"]);
-  expect(app, "there's no app/layout and app/page: the app hasn't been migrated").toBe(true);
+  expect(appPage("app/page"), "there's no App Router page for /").toBeTruthy();
 });
 
 /** What the server answered for a URL (the build must have worked). */
@@ -141,6 +137,17 @@ function sources(dir: string): string[] {
   });
 }
 const allSources = () => SOURCE_DIRS.flatMap(sources);
+const appPages = sources("app").filter((file) => /^page\.(tsx?|jsx?)$/.test(path.basename(file)));
+
+function appPage(route: string): string | undefined {
+  // Ordinary route groups share layouts without adding a URL segment.
+  return appPages.find((file) => file
+    .split(path.sep)
+    .filter((part) => !/^\([^()]+\)$/.test(part))
+    .join("/")
+    .replace(/\.(tsx?|jsx?)$/, "") === route);
+}
+
 const read = (file: string) => readFileSync(path.join(root, file), "utf8");
 const hasDirective = (src: string) => /^(?:\s|\/\/[^\n]*\n|\/\*[\s\S]*?\*\/)*["']use client["']/.test(src);
 const HOOKS = /\buse(State|Effect|LayoutEffect|Reducer|Ref|Memo|Callback|Context|Transition|Id|Router|Params|Pathname|SearchParams|SelectedLayoutSegments?)\s*\(/;
@@ -401,7 +408,7 @@ describe("migration: client and server boundaries", () => {
   it("the pages that load data stay Server Components", () => {
     const pages = ["app/page", "app/about/page", "app/books/[slug]/page", "app/genres/[genre]/page"];
     for (const p of pages) {
-      const file = ["tsx", "jsx", "js", "ts"].map((e) => `${p}.${e}`).find((f) => existsSync(path.join(root, f)));
+      const file = appPage(p);
       expect(file, `${p} exists`).toBeTruthy();
       expect(hasDirective(read(file!)), `${file} is a Server Component`).toBe(false);
     }
