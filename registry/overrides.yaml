@@ -2,6 +2,11 @@
 # model, packager, format, quant, machine. Prefer a registry alias or a machine entry; Keep each reason specific.
 runs:
 - run_uuids:
+  - 20ac8c04-03ab-4075-bd3b-6fe2436beb81
+  set:
+    format: gguf
+  reason: Confirmed Whitehall was serving Qwen3.6 Q4_K_M GGUF over LM Link for this run.
+- run_uuids:
   - 0dfbb189-230d-4b75-bec3-436f1e26e2d6
   set:
     format: mlx

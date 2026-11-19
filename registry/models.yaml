@@ -167,6 +167,8 @@ models:
   - id: qwen/qwen3.8-27b
     maker: qwen
     aliases:
+      - base: qwen3.8-27b
+        reason: Whitehall's Bartowski GGUF uses an LM Studio key without the maker namespace.
       - base: qwen3.8-27b-splash
         packager: incoai
         reason: >-
