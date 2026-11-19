@@ -24,17 +24,19 @@ def _prompt() -> dict:
 
 
 def _write_run(tmp_path, *, quant=None, publisher=None, reasoning="default", resolved=None,
-               model=MODEL, harness="direct"):
+               model=MODEL, harness="direct", format=None, timestamp="20260101_000000"):
     """A valid run of the task's current version in a temp runs dir."""
     inference = {"provider": "lmstudio", "local": True, "same_machine": True}
     if quant is not None:
         inference["quantization"] = quant
     if publisher is not None:
         inference["publisher"] = publisher
+    if format is not None:
+        inference["format"] = format
     meta = run_meta(TASK, model=model, harness=harness, inference=inference)
     meta["task"]["content_hash"] = versioning.content_hash(_prompt())
     meta["model"]["reasoning"] = {"requested": reasoning, "resolved": resolved}
-    run_dir = tmp_path / workspace.model_slug(model, reasoning) / TASK / "20260101_000000"
+    run_dir = tmp_path / workspace.model_slug(model, reasoning) / TASK / timestamp
     write_run(run_dir, meta)
     return run_dir
 
@@ -74,18 +76,36 @@ class TestQuant:
 class TestLoadedVariants:
     """One LM Studio key, two variants loaded on different devices: each run matches its own weights."""
 
-    def test_a_loaded_sibling_does_not_hide_the_runs_weights(self, tmp_path):
+    def test_every_possible_loaded_variant_needs_a_run(self, tmp_path):
         _write_run(tmp_path, quant="4bit", publisher="qwen")
         both = [{"quant": "mlx-4bit"}, {"quant": "mlx-6bit"}]
-        assert _done(tmp_path, variants=both)
+        assert not _done(tmp_path, variants=both)
+        assert _done(tmp_path, variants=[{"quant": "mlx-4bit"}])
         # Only the 6bit sibling loaded: the 4bit weights really aren't loaded, so it isn't done
         assert not _done(tmp_path, variants=[{"quant": "mlx-6bit"}])
 
     def test_a_run_on_another_loaded_variant_does_not_count(self, tmp_path):
         _write_run(tmp_path, quant="6bit", publisher="qwen")
         both = [{"quant": "mlx-4bit"}, {"quant": "mlx-6bit"}]
-        assert _done(tmp_path, variants=both)
+        assert not _done(tmp_path, variants=both)
         assert not _done(tmp_path, variants=[{"quant": "mlx-4bit"}])
+
+    def test_same_mxfp4_quant_and_publisher_can_have_different_formats(self, tmp_path, monkeypatch):
+        model = "lmstudio/openai/gpt-oss-20b"
+        gguf = {"quant": "MXFP4", "publisher": "openai", "format": "gguf"}
+        mlx = {**gguf, "format": "mlx"}
+        _write_run(tmp_path, model=model, quant="MXFP4", publisher="openai", format="gguf")
+        monkeypatch.setattr(environment, "inference", lambda *args, **kwargs: {
+            "quantization": "MXFP4", "publisher": "openai", "format": "gguf", "variants": [gguf, mlx],
+        })
+        variant = plan.current_variant(model, "high")
+        assert not plan.has_current_run(tmp_path, model, TASK, _prompt(), "direct", variant=variant)
+        assert _done(tmp_path, model=model, variants=[gguf])
+        assert not _done(tmp_path, model=model, variants=[mlx])
+        assert not _done(tmp_path, model=model, unloaded=True, expected_variant=mlx)
+        _write_run(tmp_path, model=model, quant="MXFP4", publisher="openai", format="mlx",
+                   timestamp="20260102_000000")
+        assert plan.has_current_run(tmp_path, model, TASK, _prompt(), "direct", variant=variant)
 
     def test_an_unknown_loaded_set_falls_back_to_the_single_quant(self, tmp_path):
         _write_run(tmp_path, quant="6bit", publisher="qwen")
@@ -171,7 +191,7 @@ class TestProbe:
                             lambda model, device=True: {"quantization": "Q4_K_M", "publisher": "Qwen"})
         monkeypatch.setattr(environment, "reasoning_resolved", lambda model, level: ("on", "server"))
         assert plan.current_variant(MODEL) == {"quant": "q4_k_m", "variants": [], "publisher": "qwen",
-                                               "reasoning": "on"}
+                                               "format": None, "reasoning": "on"}
 
     def test_explicit_reasoning_needs_no_provider_call(self, monkeypatch):
         monkeypatch.setattr(environment, "inference",
@@ -179,7 +199,7 @@ class TestProbe:
         monkeypatch.setattr(environment, "reasoning_resolved",
                             lambda model, level: pytest.fail("asked for the default level"))
         assert plan.current_variant(MODEL, "off") == {"quant": "mlx-4bit", "variants": [], "publisher": "qwen",
-                                                      "reasoning": "off"}
+                                                      "format": None, "reasoning": "off"}
 
     def test_current_variant_reads_the_loaded_variant(self, monkeypatch):
         monkeypatch.setattr(environment, "_get",
@@ -189,8 +209,11 @@ class TestProbe:
              "quantization": {"name": "6bit", "bits": 6}}])
         monkeypatch.setattr(environment, "reasoning_resolved", lambda model, level: ("on", "server"))
         assert plan.current_variant("lmstudio/qwen/qwen3.6-35b-a3b") == {
-            "quant": "mlx-6bit", "variants": [{"quant": "mlx-6bit", "artifact": None, "bits": 6, "device": None}],
-            "publisher": "qwen", "reasoning": "on"}
+            "quant": "mlx-6bit", "variants": [{
+                "key": "qwen/qwen3.6-35b-a3b@6bit", "quant": "mlx-6bit", "artifact": None,
+                "bits": 6, "device": None, "format": None, "publisher": None, "size_bytes": None,
+            }],
+            "publisher": "qwen", "format": None, "reasoning": "on"}
 
     def test_current_variant_prefers_resolved_unloaded_weights_over_api_default(self, monkeypatch):
         monkeypatch.setattr(environment, "inference", lambda model, device=True: {
