@@ -408,7 +408,11 @@ class Registry:
         if where == "local":
             recorded_key = hardware.get("key") or None
             machine_key = (self.machines.get(machine) or {}).get("hardware") if machine else None
-            if recorded_key:
+            if machine_from == "override" and machine_key:
+                hardware_key, hardware_from = machine_key, "override"
+                if recorded_key and recorded_key != machine_key:
+                    notes.append(f"recorded hardware {recorded_key}; read as {machine_key} from the machine override")
+            elif recorded_key:
                 hardware_key, hardware_from = recorded_key, "recorded"
                 if machine_key and machine_key != recorded_key:
                     notes.append(f"recorded hardware {recorded_key} differs from {machine}'s {machine_key}")
