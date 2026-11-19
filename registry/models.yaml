@@ -177,6 +177,8 @@ models:
           the run's format/variant_key
   - id: qwen/qwen3.8-flash
     maker: qwen
+  - id: recursivesi/flint
+    maker: recursivesi
   - id: z-ai/glm-5.3-flash
     maker: z-ai
   - id: zai-org/glm-4.7-flash
