@@ -18,6 +18,7 @@ makers:
   - {id: poolside, label: Poolside}
   - {id: prism-ml, label: Prism ML}
   - {id: qwen, label: Qwen}
+  - {id: recursivesi, label: Recursive}
   # OpenRouter files Z.ai's models under z-ai and LM Studio under zai-org; the two ids are never merged
   - {id: z-ai, label: Z.ai (OpenRouter)}
   - {id: zai-org, label: Z.ai (Hugging Face)}
