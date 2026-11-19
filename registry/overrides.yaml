@@ -2,6 +2,20 @@
 # model, packager, format, quant, machine. Prefer a registry alias or a machine entry; Keep each reason specific.
 runs:
 - run_uuids:
+  - 02798ddc-9033-4de3-bb82-94847ef54886
+  - 0f00cf84-e8e2-4b8b-a389-796a7890e103
+  - 3784a90b-1a48-47bc-a371-84bba56e03d9
+  - 38028aaa-81cd-43be-b5da-95e420b62541
+  - 68cca282-a573-4820-af3f-b7fda9168199
+  - 78be5c68-c1ca-4dd6-9654-c581a20fe8b6
+  - d34f3bfc-de28-4875-af84-d34567458015
+  - e20fc736-85ec-4059-a279-54072fca4dcf
+  set:
+    machine: duskfall
+  reason: >-
+    Flint inference ran on Duskfall over LM Link. Post-run discovery fell back to Ironwood,
+    the host running the CLI, when the serving device was unavailable.
+- run_uuids:
   - 20ac8c04-03ab-4075-bd3b-6fe2436beb81
   set:
     format: gguf

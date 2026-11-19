@@ -12,6 +12,11 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## 3.10.2 (2026-11-19)
+
+- Use the corrected machine’s hardware when a run has a machine override. Eight Flint runs
+  now resolve to Duskfall’s M5 Pro after LM Link’s post-run lookup fell back to Ironwood.
+
 ## 3.10.1 (2026-11-19)
 
 - Resolve Whitehall’s Qwen3.8-27B GGUF runs to the canonical model and correct an earlier

@@ -242,10 +242,12 @@ def test_overrides_apply_per_run_with_their_reason():
                                            "machine": "ironwood", "model": "qwen/qwen3.6-35b-a3b"}}]}
     reg = registry.Registry(data)
     assert reg.problems() == []
-    res = reg.resolve_run(run(fmt=None, quant=None, publisher=None, device="Whitehall", key=None))
+    res = reg.resolve_run(run(fmt=None, quant=None, publisher=None, device="Whitehall", key="m5-pro-48gb"))
     assert (res.model_id, res.format, res.quant, res.packager, res.machine, res.hardware_key) == (
         "qwen/qwen3.6-35b-a3b", "gguf", "mxfp4", "unsloth", "ironwood", "m1-pro-32gb")
     assert {res.sources[k] for k in ("model_from", "format_from", "packager_from", "machine_from")} == {"override"}
+    assert res.sources["hardware_from"] == "override"
+    assert any("recorded hardware m5-pro-48gb" in n for n in res.notes)
     assert any("checked the GGUF header" in n for n in res.notes)
     assert REG.resolve_run(run()).sources["model_from"] == "recorded"
 
