@@ -326,8 +326,8 @@ def run_wizard(args) -> tuple[planner.Plan, dict] | None:
             print(problem)
             return None
         if not plan.steps:
-            print("Everything selected has already been run on its current version "
-                  "with these weights and reasoning level.")
+            for line in planner.describe(plan):
+                print(line)
             return None
         print()
         for line in planner.describe(plan):

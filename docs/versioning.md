@@ -80,6 +80,10 @@ isn't clean, the changelog has nothing under Unreleased, or a promoted task's gr
 `crucible grader`. Promotion criteria: runs from at least one small local, one mid-size and one
 frontier model, scores that aren't all equal, and for graders, a passing oracle.
 
+A cut can use `--tiebreak <task>` to pin one provisional image task at its current task and rubric
+versions. Its scores order exact leaderboard ties among setups with scored image runs. The task
+stays outside the suite's scored tasks, coverage, and tier gates.
+
 **Verifying.** `crucible suite verify` checks the latest suite still holds: a pinned task's content
 and rubric haven't changed without a version bump, and only a cut changed which tasks are active.
 

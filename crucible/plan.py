@@ -38,6 +38,7 @@ class Plan:
     steps: list[Step] = field(default_factory=list)
     reasoning: str = "default"   # one level for the whole run; each level is its own model
     skipped_done: list[str] = field(default_factory=list)
+    skipped_images: list[str] = field(default_factory=list)
     weights_note: str | None = None   # why nothing was skipped when runs exist on other weights
 
     def groups(self) -> list[tuple[str, list[Step]]]:
@@ -103,10 +104,15 @@ def build(model: str, task_ids: list[str], harness: str | None = None, timeout: 
     """A plan for these tests. `harness` is the agentic harness; chat tests always use direct."""
     prompts = all_prompts()
     plan = Plan(model=model, reasoning=reasoning)
+    image_tasks = {t for t in task_ids if workspace.image_names(prompts[t])}
+    skip_images = bool(image_tasks) and environment.supports_images(model) is False
     if skip_done and variant is None and (runs_dir / model_slug(model, reasoning)).is_dir():
         # One probe for the whole sweep, not one per test; no runs means nothing to skip
         variant = current_variant(model, reasoning)
     for t in task_ids:
+        if skip_images and t in image_tasks:
+            plan.skipped_images.append(t)
+            continue
         p = prompts[t]
         mode = mode_for(p)
         h = MODE_HARNESSES[mode][0] if mode == "chat" else (harness or DEFAULT_AGENTIC_HARNESS)
@@ -309,4 +315,6 @@ def describe(plan: Plan) -> list[str]:
         lines.append(f"Already run on the current version with these weights, skipped: {' '.join(plan.skipped_done)}")
     elif plan.weights_note:
         lines.append(plan.weights_note)
+    if plan.skipped_images:
+        lines.append(f"Skipped because this model does not support image input: {' '.join(plan.skipped_images)}")
     return lines

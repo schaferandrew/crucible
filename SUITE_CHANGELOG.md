@@ -10,6 +10,15 @@ runs rescored). Task changes between cuts go under `## Unreleased`.
 
 ## Unreleased
 
+## Suite v5 (2026-11-19)
+
+- **Suite v5 promotions.** Giving receipt filing, travel planning, the JavaScript-to-TypeScript
+  port, the Pages-to-App-Router migration, and the PHP-to-Ruby port now count. The sports photo
+  remains outside the base score and breaks exact leaderboard ties between setups with image scores.
+
+- **migrate-pages-to-app-router rubric 2.** The grader accepts App Router routes inside route groups.
+  Routes still have to preserve their URLs, rendered behavior, and server component boundaries.
+
 - **New, provisional: sports-fan-from-photo** (version 2, rubric 1, spark, general). The first image task: a
   photo of a baby in a team onesie is attached and the model names the college team, in an `ANSWERS:` block. The
   answer is Michigan State; the trap is the University of Michigan, which small models tend to answer. Direct

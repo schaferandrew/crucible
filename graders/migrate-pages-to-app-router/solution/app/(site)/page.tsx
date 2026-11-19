@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import BookCard from "../components/BookCard";
-import { getAllBooks } from "../lib/books";
+import BookCard from "../../components/BookCard";
+import { getAllBooks } from "../../lib/books";
 
 export const metadata: Metadata = {
   title: { absolute: "Lantern Books" },

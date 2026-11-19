@@ -6,8 +6,8 @@ category: coding_repo
 area: coding
 tier: forge
 version: 1
-rubric_version: 1
-status: provisional
+rubric_version: 2
+status: active
 auto_grade: true
 repo: lantern-books-pages
 grader: migrate-pages-to-app-router

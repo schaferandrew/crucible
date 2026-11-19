@@ -125,7 +125,9 @@ def verify(suite: dict | None = None, lock: dict | None = None, statuses: dict[s
         statuses = {t: workspace.load_task(t).get("status") for t in workspace.all_task_ids()}
     problems = []
     pinned = pins(suite)
-    for task_id, pin in pinned.items():
+    tie = suite.get("tiebreak")
+    versions = {**pinned, **({tie["id"]: tie} if tie else {})}
+    for task_id, pin in versions.items():
         now = lock.get(task_id)
         if now is None:
             problems.append(f"{task_id}: pinned in suite {suite['suite']} but not in the lock; tasks are retired, never deleted")
@@ -188,7 +190,8 @@ def _grader_passes(task_id: str) -> bool:
 
 
 def cut(name: str, promote: list[str] = (), retire: list[str] = (), date: str | None = None,
-        check_graders: bool = True, suites_dir: Path | None = None, changelog: Path | None = None) -> Path:
+        check_graders: bool = True, suites_dir: Path | None = None, changelog: Path | None = None,
+        tiebreak: str | None = None) -> Path:
     """Promote and retire tasks, write suites/<name>.yaml from the lock and close the changelog section."""
     date = date or datetime.now(timezone.utc).date().isoformat()
     previous = names(suites_dir)
@@ -197,6 +200,13 @@ def cut(name: str, promote: list[str] = (), retire: list[str] = (), date: str | 
         raise ValueError(f"The next suite is {expected}, not {name} (a patch is `crucible suite patch`)")
     promote = [workspace.resolve(t)[0] for t in promote]
     retire = [workspace.resolve(t)[0] for t in retire]
+    if tiebreak:
+        tiebreak = workspace.resolve(tiebreak)[0]
+        task = workspace.load_task(tiebreak)
+        if (task.get("status") != "provisional" or tiebreak in promote or tiebreak in retire
+                or not workspace.image_names(task) or not task.get("checks")
+                or task.get("needs_tools") or task.get("grader")):
+            raise ValueError(f"{tiebreak}: the tie-breaker must be a provisional image task scored by checks")
     _unreleased(changelog or CHANGELOG_PATH)
     problems = versioning.check_lock()
     if problems:
@@ -215,7 +225,12 @@ def cut(name: str, promote: list[str] = (), retire: list[str] = (), date: str | 
     for task_id in retire:
         set_status(task_id, "retired")
     active = [t for t in workspace.all_task_ids() if workspace.load_task(t).get("status") == "active"]
-    path = write(build(name, date, active), suites_dir)
+    suite = build(name, date, active)
+    if tiebreak:
+        pin = versioning.read_lock()[tiebreak]
+        suite["tiebreak"] = {"id": tiebreak, **{k: pin[k] for k in
+                             ("version", "rubric_version", "content_hash", "rubric_hash")}}
+    path = write(suite, suites_dir)
     release_changelog(name, date, changelog)
     return path
 
@@ -265,6 +280,7 @@ def main() -> None:
     c.add_argument("name", help="The new suite, e.g. v2")
     c.add_argument("--promote", nargs="*", default=[], help="Provisional tasks to make active")
     c.add_argument("--retire", nargs="*", default=[], help="Tasks to retire")
+    c.add_argument("--tiebreak", help="Pin a provisional image task as an optional leaderboard tie-breaker")
     c.add_argument("--skip-grader-check", action="store_true", help="Don't run `crucible grader` on promoted tasks")
     p = sub.add_parser("patch", help="Pin rubric fixes into the next suite patch and rescore stored runs")
     p.add_argument("--runs", type=Path, default=Path("runs"))
@@ -287,7 +303,8 @@ def main() -> None:
         return
     try:
         if args.command == "cut":
-            path = cut(args.name, args.promote, args.retire, check_graders=not args.skip_grader_check)
+            path = cut(args.name, args.promote, args.retire, check_graders=not args.skip_grader_check,
+                       tiebreak=args.tiebreak)
             print(f"Wrote {path}; run `crucible versions` and commit it with SUITE_CHANGELOG.md and the task files")
         else:
             path, bumped = patch()
