@@ -12,6 +12,11 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
+## 3.11.1 (2026-11-19)
+
+### Fixed
+- `--skip-done` distinguishes weight formats such as GPT-OSS MXFP4 in MLX and GGUF, and requires a matching run for each variant that can serve the selected key.
+
 ## 3.11.0 (2026-11-18)
 
 ### Added

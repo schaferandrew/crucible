@@ -139,10 +139,10 @@ def current_variant(model: str, reasoning: str = "default") -> dict:
     unloaded route is unknown and must not cause a run to be skipped.
     """
     inference = environment.inference(model, device=False)
-    raw_variants = inference.get("variants")
-    variants = [{"quant": runrecord.normalize_quant(w.get("quant")), "artifact": w.get("artifact"),
-                 "bits": w.get("bits"), "device": w.get("device")}
-                for w in raw_variants if w.get("quant")] if raw_variants is not None else []
+    variants = [
+        {**w, "quant": runrecord.normalize_quant(w.get("quant"))}
+        for w in inference.get("variants") or []
+    ]
     reasoning_level = (reasoning if reasoning != "default"
                        else environment.reasoning_resolved(model, "default")[0])
     if inference.get("state") == "not-loaded" and not variants:
@@ -162,54 +162,57 @@ def current_variant(model: str, reasoning: str = "default") -> dict:
         "quant": runrecord.normalize_quant(inference.get("quantization")),
         "variants": variants,
         "publisher": (inference.get("publisher") or "").lower() or None,
+        "format": inference.get("format"),
         "reasoning": reasoning_level,
     }
 
 
-def _variant_matches(meta: dict, variant: dict) -> bool:
-    """No field known on both the run and the server differs (see `current_variant`)."""
-    model = meta.get("model") or {}
+def _weights_format(weights: dict) -> str | None:
+    reported = (weights.get("format") or "").lower()
+    quant = runrecord.normalize_quant(weights.get("quant")) or ""
+    implied = runrecord.implied_variant(weights.get("artifact") or weights.get("id"), None)["format"]
+    if quant.startswith("mlx-") or (reported == "safetensors" and implied == "mlx"):
+        return reported if reported and reported != "safetensors" else "mlx"
+    if reported:
+        return reported
+    # Older records can name GGUF quantizations without recording the container.
+    if re.fullmatch(r"(?:i?q[2-8]|tq[12])_\w+", quant):
+        return "gguf"
+    return implied
+
+
+def _variant_matches(model: dict, variant: dict) -> bool:
+    """Match the recorded weights against one possible live variant."""
     stored_quant = runrecord.normalize_quant(model.get("quant"))
-    # With more than one instance loaded for this key, the run counts when its own weights are among
-    # them: the sibling being loaded elsewhere says nothing about whether these weights are loaded.
-    loaded = {runrecord.normalize_quant(w.get("quant")) for w in variant.get("variants") or []}
-    loaded.discard(None)
-    if stored_quant and loaded:
-        if stored_quant not in loaded:
-            return False
-        stored_publisher = (model.get("publisher") or "").lower() or None
-        live_publisher = (variant.get("publisher") or "").lower() or None
-        if stored_publisher and live_publisher and stored_publisher != live_publisher:
-            return False
-        return _reasoning_matches(model, variant)
-    # For an unloaded LM Studio model, the API's advertised quant is only a default and may belong
-    # to a different device. Match only the uniquely resolved next-load variant; unknown routing is
-    # deliberately conservative so it cannot hide a run on the wrong sibling.
-    if variant.get("unloaded"):
-        expected = variant.get("expected_variant")
-        if not expected:
-            return False
-        live_quant = runrecord.normalize_quant(expected.get("quant"))
-        if stored_quant and live_quant and stored_quant != live_quant:
-            return False
-        stored_publisher = (model.get("publisher") or "").lower() or None
-        live_publisher = (expected.get("publisher") or "").lower() or None
-        if stored_publisher and live_publisher and stored_publisher != live_publisher:
-            return False
-        return _reasoning_matches(model, variant)
     live_quant = runrecord.normalize_quant(variant.get("quant"))
     if stored_quant and live_quant and stored_quant != live_quant:
         return False
-    stored_publisher = (model.get("publisher") or "").lower() or None
-    live_publisher = (variant.get("publisher") or "").lower() or None
+    stored_publisher = (model.get("publisher") or "").lower()
+    live_publisher = (variant.get("publisher") or "").lower()
     if stored_publisher and live_publisher and stored_publisher != live_publisher:
         return False
-    return _reasoning_matches(model, variant)
-
-
-def _reasoning_matches(model: dict, variant: dict) -> bool:
+    live_format = _weights_format(variant)
+    if live_format and (variant.get("format") or stored_quant) and live_format != _weights_format(model):
+        return False
     stored_reasoning = (model.get("reasoning") or {}).get("resolved")
     return not (stored_reasoning and variant.get("reasoning") and stored_reasoning != variant["reasoning"])
+
+
+def _possible_variants(variant: dict) -> list[dict]:
+    if variant.get("unloaded"):
+        expected = variant.get("expected_variant")
+        return [{**expected, "reasoning": variant.get("reasoning")}] if expected else []
+    possible = []
+    for weights in variant.get("variants") or [{}]:
+        candidate = {**variant, **{k: v for k, v in weights.items() if v is not None}}
+        fmt = _weights_format(weights)
+        # The API reports the runtime format, while lms can name the safetensors file container.
+        if fmt == "safetensors" and variant.get("format") == "mlx":
+            fmt = "mlx"
+        if fmt:
+            candidate["format"] = fmt
+        possible.append(candidate)
+    return possible
 
 
 def weights_note(runs_dir: Path, model: str, reasoning: str, variant: dict) -> str | None:
@@ -265,17 +268,22 @@ def weights_note(runs_dir: Path, model: str, reasoning: str, variant: dict) -> s
 def has_current_run(runs_dir: Path, model: str, task_id: str, prompt_def: dict, harness: str,
                     reasoning: str = "default", variant: dict | None = None) -> bool:
     """A valid run of this task's current version, by this model, harness and reasoning level, on
-    the same weights (quant and publisher) and effective reasoning level, when the server can tell,
-    already exists."""
+    each possible set of weights (quant, publisher and format) and effective reasoning level,
+    when the server can tell, already exists."""
     current = versioning.content_hash(prompt_def)
+    remaining = None
     for run_dir in sorted((runs_dir / model_slug(model, reasoning) / task_id).glob("*")):
         meta = runrecord.read(run_dir)
         if (meta and meta["task"].get("content_hash") == current and meta["harness"].get("id") == harness
+                and meta["model"].get("id") in (None, model)
                 and meta["model"]["reasoning"].get("requested") == reasoning
                 and not runrecord.invalid(run_dir, meta) and meta["outcome"].get("status") != "harness_error"):
-            if variant is None:
-                variant = current_variant(model, reasoning)
-            if _variant_matches(meta, variant):
+            if remaining is None:
+                remaining = _possible_variants(variant if variant is not None else current_variant(model, reasoning))
+                if not remaining:
+                    return False
+            remaining = [weights for weights in remaining if not _variant_matches(meta["model"], weights)]
+            if not remaining:
                 return True
     return False
 
