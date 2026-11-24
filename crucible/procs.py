@@ -5,9 +5,8 @@ the whole tree (agent + MCP servers + shells it spawned): killpg(SIGTERM),
 escalating to SIGKILL.
 
 That misses whatever an agent's tools start in a process group of their own (pi runs
-each shell command detached), so runs also sweep by working directory: a watchdog kills
-any process in the workspace past a memory limit while the agent runs, and every
-process still in the workspace is stopped when it ends.
+each shell command detached). An inherited run marker identifies the agent's
+processes in the workspace for the memory watchdog and final sweep.
 """
 from __future__ import annotations
 
@@ -20,6 +19,7 @@ import sys
 import threading
 import time
 from pathlib import Path
+from uuid import uuid4
 
 # Test runners an agent starts: one worker at a time, and a heap cap on every Node
 # process, so a stuck or orphaned worker can't take the machine's memory
@@ -27,6 +27,8 @@ NODE_HEAP_MB = 3072
 # A process in the workspace past this resident size is killed mid-run
 WATCHDOG_RSS_MB = 4096
 WATCHDOG_INTERVAL_S = 10.0
+RUN_MARKER_ENV = "CRUCIBLE_PROCESS_RUN_ID"
+PROCESS_QUERY_TIMEOUT_S = 2.0
 
 def resolve_executable(name: str) -> str:
     """Absolute path to an executable on PATH."""
@@ -85,7 +87,8 @@ def pids_in(directory: Path | str) -> list[int]:
                 if _under(cwd, root):
                     found.append(int(entry.name))
     elif shutil.which("lsof"):  # macOS
-        out = subprocess.run(["lsof", "-nP", "-d", "cwd", "-Fpn"], capture_output=True, text=True).stdout
+        out = subprocess.run(["lsof", "-nP", "-d", "cwd", "-Fpn"], capture_output=True,
+                             text=True, timeout=PROCESS_QUERY_TIMEOUT_S).stdout
         pid = None
         for line in out.splitlines():
             if line.startswith("p"):
@@ -95,12 +98,28 @@ def pids_in(directory: Path | str) -> list[int]:
     return [p for p in found if p != os.getpid()]
 
 
+def _belongs_to_run(pid: int, run_id: str) -> bool:
+    """Check the inherited marker, which survives reparenting and new sessions."""
+    marker = f"{RUN_MARKER_ENV}={run_id}"
+    try:
+        if sys.platform == "linux":
+            environ = Path(f"/proc/{pid}/environ").read_bytes()
+            return marker.encode() in environ.split(b"\0")
+        # On macOS ps appends the environment to the command with -E.
+        out = subprocess.run(["ps", "-Eww", "-p", str(pid), "-o", "command="],
+                             capture_output=True, text=True, errors="replace",
+                             timeout=PROCESS_QUERY_TIMEOUT_S).stdout
+        return marker in out.split()
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+
+
 def _rss_mb(pids: list[int]) -> dict[int, tuple[float, str]]:
     """{pid: (resident MB, command name)} for the pids still alive."""
     if not pids:
         return {}
     out = subprocess.run(["ps", "-o", "pid=,rss=,comm=", "-p", ",".join(map(str, pids))],
-                         capture_output=True, text=True).stdout
+                         capture_output=True, text=True, timeout=PROCESS_QUERY_TIMEOUT_S).stdout
     sizes = {}
     for line in out.splitlines():
         parts = line.split(None, 2)
@@ -117,41 +136,57 @@ def _alive(pid: int) -> bool:
     except PermissionError:
         return True
     # A zombie is dead but still listed until its parent reaps it
-    state = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True).stdout.strip()
+    state = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True,
+                           text=True, timeout=PROCESS_QUERY_TIMEOUT_S).stdout.strip()
     return bool(state) and not state.startswith("Z")
 
 
-def _kill(pids: list[int], grace: float = 2.0) -> None:
-    """SIGTERM, then SIGKILL whatever is left after grace seconds."""
-    for sig in (signal.SIGTERM, signal.SIGKILL):
-        for pid in pids:
-            try:
-                os.kill(pid, sig)
-            except (ProcessLookupError, PermissionError):
-                pass
-        if sig == signal.SIGTERM:
-            deadline = time.time() + grace
-            while time.time() < deadline and any(_alive(p) for p in pids):
-                time.sleep(0.1)
+def _kill(pids: list[int], run_id: str, grace: float = 2.0) -> list[int]:
+    """Signal owned processes, sharing one grace period across the batch."""
+    signaled = []
+    for pid in pids:
+        if _signal_run_process(pid, run_id, signal.SIGTERM):
+            signaled.append(pid)
+    deadline = time.monotonic() + grace
+    while time.monotonic() < deadline and any(_alive(pid) for pid in signaled):
+        time.sleep(0.1)
+    for pid in signaled:
+        _signal_run_process(pid, run_id, signal.SIGKILL)
+    return signaled
 
 
-def stop_workspace_processes(workspace: Path | str | None) -> list[int]:
-    """Stop every process still running in the workspace (servers, test workers...)."""
+def _signal_run_process(pid: int, run_id: str, sig: signal.Signals) -> bool:
+    # Recheck ownership before signaling because a PID can disappear or be reused.
+    if not _belongs_to_run(pid, run_id):
+        return False
+    try:
+        os.kill(pid, sig)
+    except (ProcessLookupError, PermissionError):
+        return False
+    return True
+
+
+def stop_workspace_processes(workspace: Path | str | None, run_id: str) -> list[int]:
+    """Stop processes from this run that are still in the workspace."""
     if workspace is None or not Path(workspace).exists():
         return []
-    pids = pids_in(workspace)
-    if pids:
-        _kill(pids)
-        print(f"  Stopped {len(pids)} process(es) the agent left running in its workspace")
-    return pids
+    try:
+        stopped = _kill(pids_in(workspace), run_id)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        print(f"[CLEANUP] workspace sweep failed: {exc}", file=sys.stderr)
+        return []
+    if stopped:
+        print(f"  Stopped {len(stopped)} process(es) the agent left running in its workspace")
+    return stopped
 
 
 class Watchdog:
-    """While a run is going, kill any process in the workspace past a memory limit."""
+    """While a run is going, kill its processes in the workspace past a memory limit."""
 
-    def __init__(self, workspace: Path | str | None, limit_mb: float = WATCHDOG_RSS_MB,
+    def __init__(self, workspace: Path | str | None, run_id: str, limit_mb: float = WATCHDOG_RSS_MB,
                  interval: float = WATCHDOG_INTERVAL_S):
-        self.workspace, self.limit_mb, self.interval = workspace, limit_mb, interval
+        self.workspace, self.run_id = workspace, run_id
+        self.limit_mb, self.interval = limit_mb, interval
         self.killed: list[dict] = []
         self._stop = threading.Event()
         self._thread = threading.Thread(target=self._loop, daemon=True)
@@ -161,8 +196,11 @@ class Watchdog:
             self._thread.start()
         return self
 
-    def __exit__(self, *exc) -> None:
+    def stop(self) -> None:
         self._stop.set()
+
+    def __exit__(self, *exc) -> None:
+        self.stop()
         if self._thread.is_alive():
             self._thread.join()
 
@@ -174,14 +212,20 @@ class Watchdog:
                 print(f"[WATCHDOG] check failed: {exc}", file=sys.stderr)
 
     def check(self) -> None:
-        if not Path(self.workspace).exists():
+        if self.workspace is None or not Path(self.workspace).exists():
             return
-        for pid, (mb, name) in _rss_mb(pids_in(self.workspace)).items():
-            if mb > self.limit_mb:
-                _kill([pid])
-                self.killed.append({"pid": pid, "command": name, "rss_mb": round(mb)})
-                print(f"[WATCHDOG] killed {name} (pid {pid}): {mb / 1024:.1f} GB in the workspace, "
-                      f"over the {self.limit_mb / 1024:.1f} GB limit")
+        oversized = {
+            pid: (mb, name)
+            for pid, (mb, name) in _rss_mb(pids_in(self.workspace)).items()
+            if mb > self.limit_mb
+        }
+        if self._stop.is_set():
+            return
+        for pid in _kill(list(oversized), self.run_id):
+            mb, name = oversized[pid]
+            self.killed.append({"pid": pid, "command": name, "rss_mb": round(mb)})
+            print(f"[WATCHDOG] killed {name} (pid {pid}): {mb / 1024:.1f} GB in the workspace, "
+                  f"over the {self.limit_mb / 1024:.1f} GB limit")
 
 
 def kill_tree(proc: subprocess.Popen, grace: int = 10) -> None:
@@ -206,28 +250,37 @@ def spawn(cmd: list[str], *, cwd: Path | str | None = None, env: dict | None = N
                             start_new_session=True)
 
 
-def wait(proc: subprocess.Popen, timeout: int, label: str, workspace: Path | str | None = None) -> dict:
-    """Wait for proc, killing its tree on timeout/interrupt/shutdown.
-
-    The finally block is a safety net for every exit path (e.g. SIGTERM while
-    SIGINT is ignored in backgrounded shells) so agents are never orphaned.
-    With a workspace, a Watchdog runs meanwhile, and whatever is left running
-    in the workspace afterwards (outside proc's group) is stopped too.
-    """
+def wait(proc: subprocess.Popen, timeout: int, label: str, workspace: Path | str | None = None,
+         *, run_id: str = "") -> dict:
+    """Wait for the agent, starting group teardown before joining the watchdog."""
     timed_out = False
     try:
-        with Watchdog(workspace):
-            proc.wait(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        timed_out = True
-        print(f"[TIMEOUT] {label} timed out after {timeout}s")
-    except KeyboardInterrupt:
-        print("\n[INTERRUPTED] Killing agent process tree...")
-        raise
+        with Watchdog(workspace if run_id else None, run_id) as watchdog:
+            try:
+                proc.wait(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                timed_out = True
+                print(f"[TIMEOUT] {label} timed out after {timeout}s")
+            except KeyboardInterrupt:
+                print("\n[INTERRUPTED] Killing agent process tree...")
+                raise
+            finally:
+                watchdog.stop()
+                kill_tree(proc)
     finally:
-        kill_tree(proc)
-        stop_workspace_processes(workspace)
+        if run_id:
+            stop_workspace_processes(workspace, run_id)
     return {"returncode": proc.returncode, "timed_out": timed_out}
+
+
+def _run(cmd: list[str], timeout: int, label: str, *, workspace: Path | str | None,
+         cwd: Path | str | None, env: dict | None, stdin=None, stdout=None, stderr=None) -> dict:
+    run_id = ""
+    if workspace is not None:
+        run_id = uuid4().hex
+        env = {**(os.environ if env is None else env), RUN_MARKER_ENV: run_id}
+    proc = spawn(cmd, cwd=cwd, env=env, stdin=stdin, stdout=stdout, stderr=stderr)
+    return wait(proc, timeout, label, workspace, run_id=run_id)
 
 
 def run_logged(cmd: list[str], run_dir: Path, timeout: int, label: str, *,
@@ -241,14 +294,12 @@ def run_logged(cmd: list[str], run_dir: Path, timeout: int, label: str, *,
     with open(run_dir / "stdout.txt", "wb") as out_f, \
          open(run_dir / "stderr.txt", "wb") as err_f:
         # Headless agents never need stdin; DEVNULL stops them waiting on it.
-        proc = spawn(cmd, cwd=cwd, env=env, stdin=subprocess.DEVNULL,
-                     stdout=out_f, stderr=err_f)
-        return wait(proc, timeout, label, workspace)
+        return _run(cmd, timeout, label, workspace=workspace, cwd=cwd, env=env,
+                    stdin=subprocess.DEVNULL, stdout=out_f, stderr=err_f)
 
 
 def run_interactive(cmd: list[str], timeout: int, label: str, *,
                     cwd: Path | str | None = None, env: dict | None = None,
                     workspace: Path | str | None = None) -> dict:
     """Run an agent TUI attached to the terminal; output is not captured."""
-    proc = spawn(cmd, cwd=cwd, env=env)
-    return wait(proc, timeout, label, workspace)
+    return _run(cmd, timeout, label, workspace=workspace, cwd=cwd, env=env)

@@ -318,44 +318,90 @@ class TestProcs:
         capped = procs.test_runner_limits({"NODE_OPTIONS": "--max-old-space-size=8192"})
         assert capped["NODE_OPTIONS"] == "--max-old-space-size=8192"
 
-    def test_run_stops_processes_that_left_its_group(self, tmp_path):
-        # Like pi's bash tool: the agent starts a detached process in the workspace and exits
+    def test_run_stops_only_its_detached_processes(self, tmp_path):
+        import subprocess
+
         workspace, pid_file = tmp_path / "ws", tmp_path / "pid"
         workspace.mkdir()
+        sleeper = [sys.executable, "-c", "import time; time.sleep(60)"]
         script = (
-            "import subprocess, sys, time\n"
-            "p = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'],\n"
-            "                     cwd=sys.argv[2], start_new_session=True)\n"
+            "import subprocess, sys\n"
+            f"p = subprocess.Popen({sleeper!r}, cwd=sys.argv[2], start_new_session=True)\n"
             "open(sys.argv[1], 'w').write(str(p.pid))\n"
         )
-        result = procs.run_logged([sys.executable, "-c", script, str(pid_file), str(workspace)], tmp_path, 30, "t",
-                                  workspace=workspace)
-        assert not result["timed_out"]
-        assert not procs._alive(int(pid_file.read_text()))
+        with subprocess.Popen(sleeper, cwd=workspace) as unrelated:
+            try:
+                result = procs.run_logged(
+                    [sys.executable, "-c", script, str(pid_file), str(workspace)],
+                    tmp_path, 30, "t", workspace=workspace,
+                )
+                assert result == {"returncode": 0, "timed_out": False}
+                assert not procs._alive(int(pid_file.read_text()))
+                assert unrelated.poll() is None
+            finally:
+                unrelated.kill()
 
-    def test_watchdog_kills_a_process_over_the_limit(self, tmp_path):
+    def test_watchdog_kills_only_owned_processes_over_the_limit(self, tmp_path):
+        import os
         import subprocess
-        import time
-        sleeper = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"], cwd=tmp_path)
-        try:
-            with procs.Watchdog(tmp_path, limit_mb=1, interval=0.1) as dog:
-                deadline = time.time() + 10
-                while sleeper.poll() is None and time.time() < deadline:
-                    time.sleep(0.1)
-            assert sleeper.poll() is not None
-            assert [k["pid"] for k in dog.killed] == [sleeper.pid]
-        finally:
-            sleeper.kill()
 
-    def test_watchdog_leaves_processes_under_the_limit(self, tmp_path):
+        sleeper = [sys.executable, "-c", "import time; time.sleep(60)"]
+        run_id = "watchdog-test"
+        env = {**os.environ, procs.RUN_MARKER_ENV: run_id}
+        with subprocess.Popen(sleeper, cwd=tmp_path, env=env) as owned, \
+             subprocess.Popen(sleeper, cwd=tmp_path) as unrelated:
+            try:
+                dog = procs.Watchdog(tmp_path, run_id, limit_mb=1)
+                dog.check()
+                assert owned.wait(timeout=5) != 0
+                assert [k["pid"] for k in dog.killed] == [owned.pid]
+                assert unrelated.poll() is None
+            finally:
+                owned.kill()
+                unrelated.kill()
+
+    def test_watchdog_leaves_owned_processes_under_the_limit(self, tmp_path):
+        import os
         import subprocess
-        sleeper = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"], cwd=tmp_path)
-        try:
-            dog = procs.Watchdog(tmp_path, limit_mb=10_000)
-            dog.check()
-            assert sleeper.poll() is None and not dog.killed
-        finally:
-            sleeper.kill()
+
+        env = {**os.environ, procs.RUN_MARKER_ENV: "watchdog-test"}
+        with subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"],
+                              cwd=tmp_path, env=env) as sleeper:
+            try:
+                dog = procs.Watchdog(tmp_path, "watchdog-test", limit_mb=10_000)
+                dog.check()
+                assert sleeper.poll() is None and not dog.killed
+            finally:
+                sleeper.kill()
+
+    def test_timeout_starts_teardown_before_watchdog_finishes(self, tmp_path, monkeypatch):
+        import threading
+
+        scan_started = threading.Event()
+        teardown_finished = threading.Event()
+        scan_saw_teardown = []
+        original_kill_tree = procs.kill_tree
+        original_init = procs.Watchdog.__init__
+
+        def fast_watchdog(self, workspace, run_id):
+            original_init(self, workspace, run_id, interval=0.01)
+
+        def check(self):
+            scan_started.set()
+            scan_saw_teardown.append(teardown_finished.wait(timeout=5))
+
+        def kill_tree(proc):
+            original_kill_tree(proc)
+            teardown_finished.set()
+
+        monkeypatch.setattr(procs.Watchdog, "__init__", fast_watchdog)
+        monkeypatch.setattr(procs.Watchdog, "check", check)
+        monkeypatch.setattr(procs, "kill_tree", kill_tree)
+        result = procs.run_logged([sys.executable, "-c", "import time; time.sleep(60)"],
+                                  tmp_path, 1, "t", workspace=tmp_path)
+        assert scan_started.is_set()
+        assert result["timed_out"]
+        assert scan_saw_teardown == [True]
 
 
 class TestRegistry:

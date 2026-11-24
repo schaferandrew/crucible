@@ -18,7 +18,7 @@ here ([docs/versioning.md](docs/versioning.md)).
 - Test runners an agent starts run on one worker with a Node heap cap: runs set `VITEST_MAX_FORKS`/`VITEST_MAX_THREADS` (and the matching minimums) to 1 and add `--max-old-space-size=3072` to `NODE_OPTIONS`, unless those are already set. `command.sh` records them.
 
 ### Fixed
-- Processes an agent's tools start outside its process group (pi runs each shell command detached) no longer outlive the run. A watchdog kills any process in the workspace using more than 4 GB while the agent runs, and when the agent exits or times out, every process still running in the workspace is stopped, not only listening dev servers. Before this, `npm test | head` in a run could leave vitest workers spinning at full CPU and several GB each after the run ended.
+- Processes an agent's tools start outside its process group (pi runs each shell command detached) no longer outlive the run. An inherited run ID lets a watchdog stop agent processes in the workspace using more than 4 GB. When the agent exits or times out, Crucible stops its remaining workspace processes, including test workers and dev servers. Before this, `npm test | head` in a run could leave vitest workers spinning at full CPU and several GB each after the run ended.
 
 ## 3.11.1 (2026-11-19)
 
