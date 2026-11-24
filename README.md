@@ -118,7 +118,7 @@ Runs are written to `runs/<model_slug>/<task>/<timestamp>/`, and `meta.json` the
 
 ### What a sweep does when things break
 
-A full sweep runs chat tasks first, then agentic tasks, area by area with the easiest tier first. After each agentic task it stops any dev server the agent left listening in its workspace. If two runs in a row fail before the model produced anything (or are refused, for example because the model isn't loaded), the sweep stops with `SETUP PROBLEM` instead of burning through the rest: fix the setup and rerun with `--skip-done`.
+A full sweep runs chat tasks first, then agentic tasks, area by area with the easiest tier first. When an agent exits or times out, crucible stops every process still running in its workspace (dev servers, test workers); while it runs, a watchdog kills any of them past 4 GB, and test runners get one worker and a Node heap cap. If two runs in a row fail before the model produced anything (or are refused, for example because the model isn't loaded), the sweep stops with `SETUP PROBLEM` instead of burning through the rest: fix the setup and rerun with `--skip-done`.
 
 Every run records an **outcome** in `meta.json` (`outcome.status`), before any scoring:
 

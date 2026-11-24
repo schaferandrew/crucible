@@ -307,6 +307,56 @@ class TestProcs:
         text = procs.format_command(["pi"], {"OPENROUTER_API_KEY": "sk-1", "MODEL": "m"})
         assert "sk-1" not in text and "MODEL=m" in text
 
+    def test_test_runner_limits(self):
+        limits = procs.test_runner_limits({"PATH": "/bin"})
+        assert limits["VITEST_MAX_FORKS"] == limits["VITEST_MAX_THREADS"] == "1"
+        assert limits["NODE_OPTIONS"] == f"--max-old-space-size={procs.NODE_HEAP_MB}"
+        # The user's own settings win, and other Node options are kept
+        mine = procs.test_runner_limits({"VITEST_MAX_FORKS": "4", "NODE_OPTIONS": "--enable-source-maps"})
+        assert mine["VITEST_MAX_FORKS"] == "4"
+        assert mine["NODE_OPTIONS"] == f"--enable-source-maps --max-old-space-size={procs.NODE_HEAP_MB}"
+        capped = procs.test_runner_limits({"NODE_OPTIONS": "--max-old-space-size=8192"})
+        assert capped["NODE_OPTIONS"] == "--max-old-space-size=8192"
+
+    def test_run_stops_processes_that_left_its_group(self, tmp_path):
+        # Like pi's bash tool: the agent starts a detached process in the workspace and exits
+        workspace, pid_file = tmp_path / "ws", tmp_path / "pid"
+        workspace.mkdir()
+        script = (
+            "import subprocess, sys, time\n"
+            "p = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'],\n"
+            "                     cwd=sys.argv[2], start_new_session=True)\n"
+            "open(sys.argv[1], 'w').write(str(p.pid))\n"
+        )
+        result = procs.run_logged([sys.executable, "-c", script, str(pid_file), str(workspace)], tmp_path, 30, "t",
+                                  workspace=workspace)
+        assert not result["timed_out"]
+        assert not procs._alive(int(pid_file.read_text()))
+
+    def test_watchdog_kills_a_process_over_the_limit(self, tmp_path):
+        import subprocess
+        import time
+        sleeper = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"], cwd=tmp_path)
+        try:
+            with procs.Watchdog(tmp_path, limit_mb=1, interval=0.1) as dog:
+                deadline = time.time() + 10
+                while sleeper.poll() is None and time.time() < deadline:
+                    time.sleep(0.1)
+            assert sleeper.poll() is not None
+            assert [k["pid"] for k in dog.killed] == [sleeper.pid]
+        finally:
+            sleeper.kill()
+
+    def test_watchdog_leaves_processes_under_the_limit(self, tmp_path):
+        import subprocess
+        sleeper = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"], cwd=tmp_path)
+        try:
+            dog = procs.Watchdog(tmp_path, limit_mb=10_000)
+            dog.check()
+            assert sleeper.poll() is None and not dog.killed
+        finally:
+            sleeper.kill()
+
 
 class TestRegistry:
     def test_every_agent_is_complete(self):

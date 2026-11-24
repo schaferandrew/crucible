@@ -18,7 +18,6 @@ import argparse
 import json
 import re
 import shutil
-import subprocess
 import sys
 import time
 from datetime import datetime, timezone
@@ -343,19 +342,6 @@ def _read_meta(run_dir: Path) -> dict:
 # CLI
 # --------------------------------------------------------------------------
 
-def _stop_workspace_servers(run_dir: Path) -> None:
-    """Stop dev servers an agent left listening in its workspace (macOS and Linux, via lsof)."""
-    if not shutil.which("lsof"):
-        return
-    workspace_dir = str((run_dir / "workspace").resolve())
-    out = subprocess.run(["lsof", "-nP", "-tiTCP", "-sTCP:LISTEN"], capture_output=True, text=True).stdout
-    for pid in out.split():
-        cwd = subprocess.run(["lsof", "-a", "-p", pid, "-d", "cwd", "-Fn"], capture_output=True, text=True).stdout
-        if any(line[1:].startswith(workspace_dir) for line in cwd.splitlines() if line.startswith("n")):
-            subprocess.run(["kill", pid], capture_output=True)
-            print(f"  Stopped a server the agent left running (pid {pid})")
-
-
 def run_plan(plan: planner.Plan, watch: bool, output_dir: Path) -> list[str]:
     """Run every step; stop early when the setup is broken rather than the model."""
     run_paths, setup_failures = [], 0
@@ -379,8 +365,6 @@ def run_plan(plan: planner.Plan, watch: bool, output_dir: Path) -> list[str]:
             outcome = (_read_meta(output_dir / run_path).get("outcome") or {}).get("status") if run_path else "refused"
             if run_path:
                 run_paths.append(run_path)
-                if step.mode == "agentic":
-                    _stop_workspace_servers(output_dir / run_path)
             # Two in a row means the model or harness isn't reachable: stop, don't burn the suite
             setup_failures = setup_failures + 1 if outcome in ("harness_error", "refused") else 0
             if setup_failures >= 2 and total > 2:
