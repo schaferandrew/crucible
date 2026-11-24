@@ -155,18 +155,20 @@ class Agent:
         """
         with self.prepare(ctx):
             launch = self.launch(ctx)
-            env = {**agent_environ(), **launch.env}
+            # Test runners the agent starts get one worker and a heap cap (recorded in command.sh)
+            launch_env = {**procs.test_runner_limits(), **launch.env}
+            env = {**agent_environ(), **launch_env}
             (ctx.run_dir / "command.sh").write_text(
-                "#!/bin/bash\n" + procs.format_command(launch.cmd, launch.env) + "\n",
+                "#!/bin/bash\n" + procs.format_command(launch.cmd, launch_env) + "\n",
                 encoding="utf-8")
             if ctx.watch:
                 print(f"Command: {' '.join(launch.cmd)}\n")
                 result = procs.run_interactive(launch.cmd, ctx.timeout, ctx.task_id,
-                                               cwd=launch.cwd, env=env)
+                                               cwd=launch.cwd, env=env, workspace=ctx.workspace)
             else:
                 print(f"Running headless - follow along: tail -f {ctx.run_dir / 'stdout.txt'}")
                 result = procs.run_logged(launch.cmd, ctx.run_dir, ctx.timeout, ctx.task_id,
-                                          cwd=launch.cwd, env=env)
+                                          cwd=launch.cwd, env=env, workspace=ctx.workspace)
             self.collect(ctx)
         return result
 
