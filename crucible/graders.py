@@ -59,7 +59,7 @@ from pathlib import Path
 import yaml
 
 from crucible.versioning import GRADERS_DIR
-from crucible.workspace import REPOS_DIR
+from crucible.workspace import REPOS_DIR, dependency_paths, prune_dependencies
 
 RESULTS_FILENAME = "grader_results.json"
 CONFIG_FILENAME = "grader.yaml"
@@ -118,7 +118,7 @@ def _ensure_deps(workspace: Path) -> str | None:
     """Install the monorepo's dependencies when the agent never did; returns an error or None."""
     if (workspace / "node_modules").exists():
         return None
-    result = _run(["npm", "install", "--no-audit", "--no-fund", "--loglevel=error"], workspace, 600)
+    result = _run(["npm", "install", "--no-save", "--no-audit", "--no-fund", "--loglevel=error"], workspace, 600)
     return None if result.returncode == 0 else f"npm install failed: {result.stderr.strip()[-300:]}"
 
 
@@ -577,15 +577,20 @@ def run(run_dir: Path, prompt_def: dict) -> dict | None:
         return record
     files = sorted((GRADERS_DIR / grader).glob("*.grader.test.ts*"))
     record: dict = {"grader": grader, "ran_at": datetime.now(timezone.utc).isoformat()}
-    deps_error = _ensure_deps(workspace)
-    if deps_error:
-        record.update(error=deps_error, tests=[t for f in files for t in _expected_tests(f)],
-                      existing={"passed": False}, contract_unchanged=None, regression={"passed": False})
-    else:
-        seed = _seed_commit(workspace)
-        tests, errors = _hidden_tests(workspace, files)
-        record.update(tests=tests, errors=errors, existing=_existing_suite(workspace),
-                      contract_unchanged=_contract_unchanged(workspace, seed), regression=_regression(workspace, seed))
+    existing_deps = dependency_paths(workspace) if not (workspace / "node_modules").exists() else None
+    try:
+        deps_error = _ensure_deps(workspace)
+        if deps_error:
+            record.update(error=deps_error, tests=[t for f in files for t in _expected_tests(f)],
+                          existing={"passed": False}, contract_unchanged=None, regression={"passed": False})
+        else:
+            seed = _seed_commit(workspace)
+            tests, errors = _hidden_tests(workspace, files)
+            record.update(tests=tests, errors=errors, existing=_existing_suite(workspace),
+                          contract_unchanged=_contract_unchanged(workspace, seed), regression=_regression(workspace, seed))
+    finally:
+        if existing_deps is not None:
+            prune_dependencies(workspace, preserve=existing_deps)
     (run_dir / RESULTS_FILENAME).write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
     return record
 
