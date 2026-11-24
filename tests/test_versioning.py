@@ -260,6 +260,37 @@ class TestWorkspaceIsolation:
         assert (run_dir / "workspace" / "edited.txt").read_text() == "agent work"
         assert not ws.exists()
 
+    def test_finalization_prunes_nested_installs_and_preserves_source(self, tmp_path):
+        import subprocess
+
+        run_dir = tmp_path / "run"
+        ws = run_dir / "workspace"
+        ws.mkdir(parents=True)
+        manifest = ws / "package.json"
+        manifest.write_text("{}")
+        lock = ws / "package-lock.json"
+        lock.write_text("{}")
+        workspace._isolate_git(ws)
+        tracked = ws / "vendor" / "node_modules" / "source.js"
+        tracked.parent.mkdir(parents=True)
+        tracked.write_text("tracked source")
+        subprocess.run(["git", "add", "-f", str(tracked)], cwd=ws, check=True)
+        nested = ws / "apps" / "web" / "node_modules"
+        nested.mkdir(parents=True)
+        shared = tmp_path / "shared"
+        shared.mkdir()
+        link = ws / "node_modules"
+        link.symlink_to(shared, target_is_directory=True)
+
+        workspace.finalize_workspace(run_dir)
+
+        assert not link.is_symlink()
+        assert not nested.exists()
+        assert shared.is_dir()
+        assert tracked.read_text() == "tracked source"
+        assert manifest.read_text() == lock.read_text() == "{}"
+        assert (ws / ".git").is_dir()
+
     def test_leaks_into_the_checkout_are_found(self, tmp_path):
         from crucible import runner
         run_dir = tmp_path / "run"

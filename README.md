@@ -194,6 +194,8 @@ Tasks that still need judgment (explanations, advice, research briefs) aren't sc
 ### Workspace isolation
 Agents work in `~/.crucible/workspaces/<run>` (override with `CRUCIBLE_WORKSPACES`), outside this checkout, linked from the run's `workspace/` and moved back into the run directory when the run ends. Each workspace is also its own git repository, with the seeded state as its first commit. Inside the checkout, an agent searching upward would find the hidden graders, every rubric and other models' runs.
 
+After scoring, Crucible removes generated `node_modules` directories from the workspace, including nested installs. The archived workspace keeps its source, manifests, lockfiles, and Git history. To run it locally again, use `npm ci` from the package root if it has a lockfile, or `npm install` otherwise. Crucible's hidden graders reinstall dependencies when needed.
+
 After every run, crucible scans the transcript for paths inside this checkout. If the agent reached any, the run's `meta.json` records `outcome.leaks` and `outcome.invalid`, and the run never counts. To mark a run invalid after the fact (a stale server, say), `crucible status <run> --invalid REASON` appends a status record.
 
 ### Programmatic checks

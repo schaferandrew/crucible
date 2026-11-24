@@ -190,9 +190,11 @@ def run_single(task_id: str, model: str | None, watch: bool, timeout: int,
     elapsed = time.time() - start
     meta = _write_meta(ctx, agent, prompt_def, result, started_at, elapsed, bill.usd)
     _record_outcome(ctx, meta)
-    _record_checks(ctx, prompt_def, meta)
-    _flag_leaks(ctx, meta)
-    workspace.finalize_workspace(ctx.run_dir)
+    try:
+        _record_checks(ctx, prompt_def, meta)
+        _flag_leaks(ctx, meta)
+    finally:
+        workspace.finalize_workspace(ctx.run_dir)
     console.print_result(meta, ctx.run_dir)
     return ctx.run_path
 

@@ -12,13 +12,18 @@ slugs, tiers and weights, are suite data, not part of this surface. Every change
 `pyproject.toml` or `tests/` is a release, and CI checks it bumps the version and adds its entry
 here ([docs/versioning.md](docs/versioning.md)).
 
-## 3.12.0 (2026-11-24)
+## 3.13.0 (2026-11-24)
 
 ### Changed
 - Test runners an agent starts run on one worker with a Node heap cap: runs set `VITEST_MAX_FORKS`/`VITEST_MAX_THREADS` (and the matching minimums) to 1 and add `--max-old-space-size=3072` to `NODE_OPTIONS`, unless those are already set. `command.sh` records them.
 
 ### Fixed
 - Processes an agent's tools start outside its process group (pi runs each shell command detached) no longer outlive the run. An inherited run ID lets a watchdog stop agent processes in the workspace using more than 4 GB. When the agent exits or times out, Crucible stops its remaining workspace processes, including test workers and dev servers. Before this, `npm test | head` in a run could leave vitest workers spinning at full CPU and several GB each after the run ended.
+
+## 3.12.0 (2026-11-20)
+
+### Added
+- Finished agentic runs automatically discard generated `node_modules` trees after scoring. Archived workspaces keep their source, manifests, lockfiles, and Git history. Legacy graders reinstall dependencies when needed and clean up their temporary installs.
 
 ## 3.11.1 (2026-11-19)
 
