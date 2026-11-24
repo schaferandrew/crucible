@@ -165,15 +165,56 @@ def setup_workspace(run_dir: Path, prompt_def: dict) -> Path:
     return workspace
 
 
-def finalize_workspace(run_dir: Path) -> None:
-    """Move an outside workspace back into its run directory, so the run is self-contained."""
-    link = run_dir / "workspace"
-    if not link.is_symlink():
+def dependency_paths(workspace: Path) -> set[Path]:
+    """Find dependency trees without entering Git data or following workspace symlinks."""
+    paths = set()
+    for root, dirs, files in os.walk(workspace):
+        if "node_modules" in dirs or "node_modules" in files:
+            paths.add(Path(root) / "node_modules")
+        dirs[:] = [name for name in dirs if name not in {".git", "node_modules"}]
+    return paths
+
+
+def prune_dependencies(workspace: Path, preserve: set[Path] | None = None) -> None:
+    """Remove generated dependency trees and preserve any that contain tracked files."""
+    paths = dependency_paths(workspace) - (preserve or set())
+    if not paths:
         return
-    target = link.resolve()
-    link.unlink()
-    if target.exists():
-        shutil.move(str(target), str(link))
+    if (workspace / ".git").exists():
+        try:
+            tracked = subprocess.run(["git", "ls-files", "-z"], cwd=workspace, capture_output=True)
+        except OSError as exc:
+            print(f"  Warning: could not list tracked files; keeping workspace dependencies ({exc})")
+            return
+        if tracked.returncode:
+            print("  Warning: could not list tracked files; keeping workspace dependencies")
+            return
+        tracked_modules = set()
+        for filename in os.fsdecode(tracked.stdout).split("\0"):
+            parts = Path(filename).parts
+            if "node_modules" in parts:
+                tracked_modules.add(workspace.joinpath(*parts[:parts.index("node_modules") + 1]))
+        paths -= tracked_modules
+    for path in sorted(paths):
+        try:
+            if path.is_symlink():
+                path.unlink()
+            elif path.is_dir():
+                shutil.rmtree(path)
+        except OSError as exc:
+            print(f"  Warning: could not prune {path}: {exc}")
+
+
+def finalize_workspace(run_dir: Path) -> None:
+    """Archive the workspace and discard reinstallable Node dependencies."""
+    link = run_dir / "workspace"
+    target = link.resolve() if link.is_symlink() else link
+    if target.is_dir():
+        prune_dependencies(target)
+    if link.is_symlink():
+        link.unlink()
+        if target.exists():
+            shutil.move(str(target), str(link))
 
 
 def _isolate_git(workspace: Path) -> None:
